@@ -15,9 +15,11 @@
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden;background:var(--pit)}
+  html{touch-action:none}
   body{
     font-family:var(--serif);color:var(--bone);
     touch-action:none;user-select:none;-webkit-user-select:none;
+    -webkit-touch-callout:none;overscroll-behavior:none;
     position:fixed;inset:0;width:100%;
   }
   canvas#gl{
@@ -65,7 +67,7 @@
   #bossframe{height:8px;border:1px solid var(--bone-faint);background:rgba(4,6,5,.65);padding:1px;}
   #bossfill{height:100%;width:100%;background:linear-gradient(180deg,#d8b34a,#8a6a1c);transition:width .2s steps(8);}
   /* ---- controls ---- */
-  #controls{position:fixed;inset:0;z-index:7;}
+  #controls{position:fixed;inset:0;z-index:7;touch-action:none;}
   .btn{position:absolute;border-radius:50%;border:1px solid var(--bone-faint);
     background:radial-gradient(circle at 38% 32%, rgba(60,58,48,.85), rgba(10,13,11,.85) 72%);
     color:var(--bone-dim);display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -595,11 +597,48 @@ const canvas=$('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.setPixelRatio(1);
-const FOGC=0x18211d;
+const FOGC=0x172122;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(FOGC);
 scene.fog=new THREE.FogExp2(FOGC,0.046);
 const camera=new THREE.PerspectiveCamera(68,16/9,0.1,220);
+
+/* grade pass — the PSX color pipeline:
+   exposure -> S-curve -> desat -> teal shadows / bone-amber highlights
+   -> 15-bit quantize with ordered Bayer dither */
+const rt=new THREE.WebGLRenderTarget(4,4,{
+  minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
+rt.texture.encoding=THREE.sRGBEncoding;
+const postScene=new THREE.Scene();
+const postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const gradeMat=new THREE.ShaderMaterial({
+  uniforms:{tex:{value:rt.texture}},
+  depthTest:false,depthWrite:false,
+  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
+  fragmentShader:[
+    'precision mediump float;',
+    'uniform sampler2D tex;varying vec2 vUv;',
+    'float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}',
+    'void main(){',
+    '  vec3 c=texture2D(tex,vUv).rgb;',
+    '  c*=1.16;',
+    '  c=mix(c,c*c*(3.0-2.0*c),.42);',
+    '  float l=dot(c,vec3(.299,.587,.114));',
+    '  c=mix(vec3(l),c,.84);',
+    '  c+=vec3(.018,.044,.042)*(1.0-smoothstep(0.0,.42,l));',
+    '  c*=mix(vec3(1.0),vec3(1.10,1.03,.87),smoothstep(.45,1.0,l));',
+    '  c*=vec3(.985,1.015,.995);',
+    '  float d=bayer2(gl_FragCoord.xy*.5)*.25+bayer2(gl_FragCoord.xy);',
+    '  c=floor(clamp(c,0.,1.)*31.0+d)/31.0;',
+    '  gl_FragColor=vec4(c,1.0);',
+    '}'].join('\n')});
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
+function renderFrame(){
+  renderer.setRenderTarget(rt);
+  renderer.render(scene,camera);
+  renderer.setRenderTarget(null);
+  renderer.render(postScene,postCam);
+}
 
 const snapUniform={value:new THREE.Vector2(80,60)};
 let INTERNAL_H=216;
@@ -607,6 +646,7 @@ function resize(){
   const w=innerWidth,h=innerHeight;
   const ih=Math.min(INTERNAL_H,h), iw=Math.round(ih*w/h);
   renderer.setSize(iw,ih,false);
+  rt.setSize(iw,ih);
   camera.aspect=w/h;camera.updateProjectionMatrix();
   snapUniform.value.set(iw/2,ih/2);
 }
@@ -768,16 +808,18 @@ const Input=(()=>{
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
 
   const ctl=$('controls');
+  let camLX=null,camLY=null;
   ctl.addEventListener('pointerdown',e=>{
     if(e.target.closest('.btn'))return;
     e.preventDefault();st.anyPressed=true;
+    try{ctl.setPointerCapture(e.pointerId);}catch(err){}
     if(e.clientX<innerWidth*.45&&stickId===null){
       stickId=e.pointerId;stickOX=e.clientX;stickOY=e.clientY;
       base.style.display='block';nub.style.display='block';
       base.style.left=(stickOX-48)+'px';base.style.top=(stickOY-48)+'px';
       nub.style.left=(stickOX-20)+'px';nub.style.top=(stickOY-20)+'px';
     }else if(camId===null){
-      camId=e.pointerId;
+      camId=e.pointerId;camLX=e.clientX;camLY=e.clientY;
     }
   });
   ctl.addEventListener('pointermove',e=>{
@@ -794,13 +836,12 @@ const Input=(()=>{
       const l=Math.hypot(st.mx,st.mz);
       if(l>1){st.mx/=l;st.mz/=l;}
       nub.style.left=(e.clientX-20)+'px';nub.style.top=(e.clientY-20)+'px';
-    }else if(e.pointerId===camId){
-      st.camDX+=e.movementX!==undefined&&e.movementX!==0?e.movementX:(e.clientX-(camLX??e.clientX));
-      st.camDY+=e.movementY!==undefined&&e.movementY!==0?e.movementY:(e.clientY-(camLY??e.clientY));
+    }else if(e.pointerId===camId&&camLX!==null){
+      // plain client-coordinate deltas: movementX is unreliable for touch
+      st.camDX+=e.clientX-camLX;st.camDY+=e.clientY-camLY;
       camLX=e.clientX;camLY=e.clientY;
     }
   });
-  let camLX=null,camLY=null;
   function endPtr(e){
     if(e.pointerId===stickId){
       stickId=null;st.mx=0;st.mz=0;
@@ -810,6 +851,7 @@ const Input=(()=>{
   }
   ctl.addEventListener('pointerup',endPtr);
   ctl.addEventListener('pointercancel',endPtr);
+  addEventListener('contextmenu',e=>e.preventDefault());
 
   // keyboard fallback for desktop testing
   addEventListener('keydown',e=>{
@@ -835,7 +877,7 @@ const Input=(()=>{
     if(keys.KeyD||keys.ArrowRight)kx+=1;
     if(kx||kz){const l=Math.hypot(kx,kz);st.mx=kx/l;st.mz=kz/l;}
     else if(stickId===null){st.mx=0;st.mz=0;}
-    if(keys.KeyZ)st.camDX-=260*dt;
+    if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
     if(st.atkDown)st.atkHeld+=dt;
   }
@@ -1093,8 +1135,10 @@ function buildWorld(){
     M.oss.map.repeat.set(1.6,1.8);
     world.add(seg);
   }
-  // arena floor: worn flagstone disc
-  const disc=new THREE.Mesh(new THREE.CircleGeometry(ARENA_R+1,24),M.flag);
+  // arena floor: worn flagstone disc (own texture clone — UVs span the disc once)
+  const discTex=texCache.flag.clone();
+  discTex.needsUpdate=true;discTex.repeat.set(9,9);
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(ARENA_R+1,24),lam({map:discTex}));
   disc.rotation.x=-Math.PI/2;disc.position.set(ARENA[0],0.05,ARENA[1]);
   world.add(disc);
   // candles around the arena rim
@@ -1107,8 +1151,8 @@ function buildWorld(){
   }
 
   // moonlight & ambience
-  const hemi=new THREE.HemisphereLight(0x53656e,0x2b2721,1.0);
-  const moonL=new THREE.DirectionalLight(0x9db4bd,.85);
+  const hemi=new THREE.HemisphereLight(0x4f6472,0x2b2620,1.0);
+  const moonL=new THREE.DirectionalLight(0x9cb2c4,.85);
   moonL.position.set(28,52,-34);
   scene.add(hemi,moonL);
 
@@ -1173,7 +1217,7 @@ function makeBonfire(x,z,id){
   world.add(grp);
   addObstacle(x,z,.55);
 
-  const light=new THREE.PointLight(0xd0762b,0,9,2); // dark until kindled
+  const light=new THREE.PointLight(0xff8630,0,9,2); // dark until kindled
   light.position.set(x,1.1,z);
   scene.add(light);
 
@@ -1582,7 +1626,7 @@ const player={
   flash(on){for(const m of this.mats)m.emissive.setHex(on?0x77140f:0x000000);},
   iframes(){return this.state==='roll'&&this.t>.03&&this.t<.34;},
   takeHit(dmg,fx,fz){
-    if(this.state==='dead'||G.mode!=='play')return;
+    if(this.state==='dead'||this.state==='rest'||G.mode!=='play')return;
     if(this.iframes()){AudioSys.parryTick();return;}
     if(this.hurtGrace>0)return;
     this.hp-=dmg;
@@ -2020,7 +2064,7 @@ function spawnEnemies(){
   enemies.push(new Enemy('hollow',-0.8,27));
   enemies.push(new Enemy('hollow',-2.4,34.5,{ambush:true}));
   enemies.push(new Enemy('hollow',-0.2,40.5));
-  enemies.push(new Enemy('hollow',5.2,44.5));
+  enemies.push(new Enemy('hollow',4.5,41,{ambush:true}));
   enemies.push(new Enemy('big',0.6,55.5,{ambush:true})); // gate guard, wakes as you near it
   boss=new Enemy('boss',ARENA[0],ARENA[1]+5,{});
   enemies.push(boss);
@@ -2028,7 +2072,8 @@ function spawnEnemies(){
 function respawnWorld(){
   for(const e of enemies){
     if(e.boss){
-      if(!G.bossDead){e.reset();G.bossActive=false;$('bossbar').style.display='none';fogGate.material.opacity=.16;}
+      if(!G.bossDead){e.reset();G.bossActive=false;$('bossbar').style.display='none';
+        fogGate.visible=true;fogGate.material.opacity=.16;}
       continue;
     }
     e.reset();
@@ -2038,16 +2083,19 @@ function respawnWorld(){
 /* ---------------- boss flow ---------------- */
 let fogGate=null,altarGlow=null;
 function makeFogGate(){
+  // single-sided: seen approaching from the path, culled from inside the
+  // arena so it can never wash the fight with its additive glow
   fogGate=new THREE.Mesh(new THREE.PlaneGeometry(4.2,3.4),
     new THREE.MeshBasicMaterial({color:0xb8c4b2,transparent:true,opacity:.16,
-      depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));
+      depthWrite:false,blending:THREE.AdditiveBlending}));
   fogGate.position.set(GATE_B[0],1.7,GATE_B[1]);
+  fogGate.rotation.y=Math.PI;
   scene.add(fogGate);
 }
 function startBossFight(){
   G.bossActive=true;
   boss.state='rise';boss.t=0;boss.rig.root.position.y=0;
-  fogGate.material.opacity=.5;
+  fogGate.visible=false; // never let its additive glow wash the fight
   setTimeout(()=>{
     AudioSys.roar();G.camShake=.5;G.vibr([60,40,120]);
     $('bossbar').style.display='block';
@@ -2060,7 +2108,7 @@ function onBossDead(){
   G.bossDead=true;G.bossActive=false;
   G.hitstop=.45;G.camShake=.5;
   $('bossbar').style.display='none';
-  fogGate.material.opacity=0;
+  fogGate.visible=false;
   setTimeout(()=>{
     bannerShow('THE WARDEN FALLS','claim the path at the far altar');
     AudioSys.victory();
@@ -2074,9 +2122,9 @@ function onBossDead(){
 /* ---------------- camera ---------------- */
 const camTmp=V3(0,0,0);
 function updateCamera(dt){
-  // manual orbit
+  // manual orbit — swipe right looks right, swipe up looks up
   if(!G.lockTarget){
-    G.camYaw-=IN.camDX*.0062;
+    G.camYaw+=IN.camDX*.0062;
     G.camPitch=clamp(G.camPitch+IN.camDY*.0045,.08,.85);
   }else{
     const t=G.lockTarget;
@@ -2311,13 +2359,13 @@ function frame(now){
   if(grainT>.09){grainT=0;
     $('grain').style.transform='translate('+((Math.random()*48)|0)+'px,'+((Math.random()*48)|0)+'px)';}
 
-  renderer.render(scene,camera);
+  renderFrame();
   Input.consume();
 }
 requestAnimationFrame(frame);
 
 // debug/testing handle
-window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys};
+window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera};
 
 })(); /* end BONEPATH */
 </script>
