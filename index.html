@@ -30,7 +30,7 @@
   /* ---- atmosphere overlays ---- */
   #vig{position:fixed;inset:0;pointer-events:none;z-index:3;
     background:radial-gradient(ellipse at 50% 45%, transparent 52%, rgba(4,6,5,.55) 100%);}
-  #grain{position:fixed;inset:-64px;pointer-events:none;z-index:4;opacity:.09;}
+  #grain{position:fixed;inset:-64px;pointer-events:none;z-index:4;opacity:.045;}
   #hurt{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .35s;
     background:radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(120,10,10,.55) 100%);}
   #lowhp{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;
@@ -632,13 +632,13 @@ const gradeMat=new THREE.ShaderMaterial({
     'float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}',
     'void main(){',
     '  vec3 c=texture2D(tex,vUv).rgb;',
-    '  c*=1.16;',
-    '  c=mix(c,c*c*(3.0-2.0*c),.42);',
+    '  c*=1.18;',
+    '  c=mix(c,c*c*(3.0-2.0*c),.62);',
     '  float l=dot(c,vec3(.299,.587,.114));',
-    '  c=mix(vec3(l),c,.84);',
-    '  c+=vec3(.018,.044,.042)*(1.0-smoothstep(0.0,.42,l));',
-    '  c*=mix(vec3(1.0),vec3(1.10,1.03,.87),smoothstep(.45,1.0,l));',
-    '  c*=vec3(.985,1.015,.995);',
+    '  c=mix(vec3(l),c,.92);',
+    '  c+=vec3(.028,.068,.062)*(1.0-smoothstep(0.0,.42,l));',
+    '  c*=mix(vec3(1.0),vec3(1.17,1.05,.80),smoothstep(.42,1.0,l));',
+    '  c*=vec3(.975,1.025,.99);',
     '  float d=bayer2(gl_FragCoord.xy*.5)*.25+bayer2(gl_FragCoord.xy);',
     '  c=floor(clamp(c,0.,1.)*31.0+d)/31.0;',
     '  gl_FragColor=vec4(c,1.0);',
@@ -864,9 +864,12 @@ const Input=(()=>{
         const dx=e.clientX-g.x0,dy=e.clientY-g.y0;
         const dist=Math.hypot(dx,dy),ms=performance.now()-g.t0;
         if(dist>=SWIPE_DIST&&ms<=SWIPE_MS){
-          // a flick: up = strike, down = dodge; direction carries into the action
-          st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
-          g.mode='done';
+          // a flick: up = strike, down = dodge; direction carries into the
+          // action. Near-horizontal flicks are camera intent, not actions.
+          if(Math.abs(dy)>=dist*.38){
+            st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
+            g.mode='done';
+          }else{g.mode='cam';g.lx=e.clientX;g.ly=e.clientY;}
         }else if(ms>SWIPE_MS){
           g.mode='cam';g.lx=e.clientX;g.ly=e.clientY;
         }
@@ -887,7 +890,7 @@ const Input=(()=>{
       if(gesture&&gesture.mode==='pending'){
         const dx=e.clientX-gesture.x0,dy=e.clientY-gesture.y0;
         const dist=Math.hypot(dx,dy),ms=performance.now()-gesture.t0;
-        if(dist>=SWIPE_DIST&&ms<=SWIPE_MS+90)
+        if(dist>=SWIPE_DIST&&ms<=SWIPE_MS+90&&Math.abs(dy)>=dist*.38)
           st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
       }
       camId=null;gesture=null;
@@ -1692,7 +1695,7 @@ const player={
     if(!on&&this.charged&&this.rig.bladeMesh)
       this.rig.bladeMesh.material.emissive.setHex(0x8a4f16);
   },
-  iframes(){return this.state==='roll'&&this.t>.03&&this.t<.34;},
+  iframes(){return this.state==='roll'&&this.t>.03&&this.t<.38;},
   takeHit(dmg,fx,fz){
     if(this.state==='dead'||this.state==='rest'||G.mode!=='play')return;
     if(this.iframes()){AudioSys.parryTick();return;}
@@ -1775,17 +1778,18 @@ const player={
     // desired move vector in world space (camera-relative)
     let mvx=0,mvz=0,mAmt=Math.hypot(IN.mx,IN.mz);
     if(mAmt>0.12){
-      // camera sits at player + (sin,cos)*yaw; forward is the opposite
+      // camera at player + (sinθ,cosθ)d faces f=(−sinθ,−cosθ);
+      // three.js screen-right is f×up = (cosθ,−sinθ) — NOT up×f
       const cy=G.camYaw;
-      mvx=-Math.cos(cy)*IN.mx+Math.sin(cy)*IN.mz;
-      mvz= Math.sin(cy)*IN.mx+Math.cos(cy)*IN.mz;
+      mvx= Math.cos(cy)*IN.mx+Math.sin(cy)*IN.mz;
+      mvz=-Math.sin(cy)*IN.mx+Math.cos(cy)*IN.mz;
       const l=Math.hypot(mvx,mvz)||1;mvx/=l;mvz/=l;
     }else mAmt=0;
     // a swipe's screen vector, mapped the same way the stick is
     const swipeWorld=s=>{
       const cy=G.camYaw;
-      const wx=-Math.cos(cy)*s.sx+Math.sin(cy)*s.sy;
-      const wz= Math.sin(cy)*s.sx+Math.cos(cy)*s.sy;
+      const wx= Math.cos(cy)*s.sx+Math.sin(cy)*s.sy;
+      const wz=-Math.sin(cy)*s.sx+Math.cos(cy)*s.sy;
       return Math.atan2(wx,wz);
     };
     const startAttack=(s)=>{
@@ -1847,8 +1851,8 @@ const player={
       }
     }
     else if(this.state==='roll'){
-      const p=this.t/.42;
-      const sp=9.5*(1-easeIn(Math.min(1,p))*.75);
+      const p=this.t/.46;
+      const sp=12.5*(1-easeIn(Math.min(1,p))*.72);
       this.x+=this.rollDX*sp*dt;this.z+=this.rollDZ*sp*dt;
       if(p>=1)this.state='free';
     }
@@ -1937,7 +1941,7 @@ const player={
       if(this.blocking)poseBlock(r);
     }
     else if(this.state==='roll'){
-      const p=Math.min(1,this.t/.42);
+      const p=Math.min(1,this.t/.46);
       r.body.position.y=r.baseY-.34+Math.sin(p*Math.PI)*.05;
       r.body.rotation.x=p*TAU*.96;
       r.legR.rotation.x=-1.6;r.kneeR.rotation.x=2.2;
@@ -2252,9 +2256,9 @@ function onBossDead(){
 /* ---------------- camera ---------------- */
 const camTmp=V3(0,0,0);
 function updateCamera(dt){
-  // manual orbit — swipe right looks right, swipe up looks up
+  // manual orbit — drag right looks right (view heading turns with −yaw)
   if(!G.lockTarget){
-    G.camYaw+=IN.camDX*.0062;
+    G.camYaw-=IN.camDX*.0062;
     G.camPitch=clamp(G.camPitch+IN.camDY*.0045,.08,.85);
   }else{
     const t=G.lockTarget;
