@@ -1483,21 +1483,53 @@ function buildHumanoid(o){
 
   /* shield strapped on the left forearm */
   if(o.shield){
-    // round iron shield with a center boss
+    // round iron shield on a strap group: hangs vertical at rest,
+    // poseBlock squares it to the front
     const shm=o.shieldMat||limb;
-    const plate=M(GSph(.32*s,8,5),shm,-.02*s,-.3*s,.02*s);
+    const grp=new THREE.Group();
+    grp.position.set(-.04*s,-.26*s,.02*s);
+    const plate=M(GSph(.32*s,8,5),shm,0,0,0);
     plate.scale.set(1,.14,1.08);
-    aL.el.add(plate);
-    const knob=M(GSph(.09*s,6,4),shm,-.02*s,-.35*s,.02*s);
-    knob.scale.y=.6;aL.el.add(knob);
-    rig.shield=plate;
+    const knob=M(GSph(.09*s,6,4),shm,0,-.05*s,0);
+    knob.scale.y=.6;
+    grp.add(plate,knob);
+    grp.rotation.x=1.4;                      // face out while the arm hangs
+    aL.el.add(grp);
+    rig.shield=grp;
   }
 
   /* weapon hangs from the right hand */
   if(o.weapon){
     const w=new THREE.Group();w.position.y=-.34*s;aR.el.add(w);rig.weapon=w;
     const bladeM=o.bladeMat,gripM=o.gripMat;
-    if(o.weapon==='sword'){
+    if(o.weapon==='claymore'){
+      /* the hero blade — a Highland claymore:
+         long leather grip under a wheel pommel, forward-sloping quillons
+         ending in quatrefoils, langet down the ricasso, long tapering blade */
+      const gripM2=o.clothMat||gripM;
+      w.add(M(GCyl(.026*s,.031*s,.27*s,5),gripM2,0,.1*s,0));            // two-hand grip
+      w.add(M(GCyl(.035*s,.035*s,.015*s,5),gripM,0,.03*s,0));           // wrap ring
+      w.add(M(GCyl(.035*s,.035*s,.015*s,5),gripM,0,.17*s,0));
+      const wheel=M(GCyl(.055*s,.055*s,.028*s,8),gripM,0,.27*s,0);      // wheel pommel
+      wheel.rotation.x=Math.PI/2;w.add(wheel);
+      w.add(M(GSph(.02*s,4,3),gripM,0,.31*s,0));                        // crescent nut
+      w.add(M(GBox(.07*s,.05*s,.05*s),gripM,0,-.05*s,0));               // guard block
+      for(const side of[1,-1]){
+        const q=M(GBox(.28*s,.022*s,.028*s),gripM,.13*s*side,-.09*s,0);
+        q.rotation.z=-.42*side;w.add(q);                                // sloped quillon
+        const qx=.255*s*side,qy=-.145*s;
+        for(const[ox,oy]of[[0,.022],[0,-.022],[.022,0],[-.022,0]])
+          w.add(M(GSph(.02*s,4,3),gripM,qx+ox*s,qy+oy*s,0));            // quatrefoil
+      }
+      w.add(M(GBox(.06*s,.15*s,.03*s),bladeM,0,-.16*s,0));              // ricasso
+      w.add(M(GBox(.024*s,.15*s,.036*s),gripM,0,-.16*s,0));             // langet
+      const bl=M(GBox(.095*s,.74*s,.026*s),bladeM,0,-.58*s,0);          // blade
+      const bl2=M(GBox(.07*s,.2*s,.023*s),bladeM,0,-1.03*s,0);          // distal taper
+      const tip=M(GCone(.04*s,.15*s,4),bladeM,0,-1.2*s,0);
+      tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;tip.scale.z=.6;
+      w.add(bl,bl2,tip);
+      rig.reach=2.55*s;rig.bladeMesh=bl;
+    }else if(o.weapon==='sword'){
       const bl=M(GBox(.07*s,.95*s,.025*s),bladeM,0,-.58*s,0);
       const tip=M(GCone(.045*s,.16*s,4),bladeM,0,-1.12*s,0);
       tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;
@@ -1583,6 +1615,7 @@ function resetPose(r){
   r.armR.rotation.set(0,0,-.1);r.foreR.rotation.set(-.25,0,0);
   r.armL.rotation.set(0,0,.1);r.foreL.rotation.set(-.35,0,0);
   if(r.weapon)r.weapon.rotation.set(0,0,0);
+  if(r.shield)r.shield.rotation.set(1.4,0,0);
   r.legR.rotation.set(0,0,0);r.kneeR.rotation.set(0,0,0);
   r.legL.rotation.set(0,0,0);r.kneeL.rotation.set(0,0,0);
   r._spNow=0;
@@ -1614,50 +1647,66 @@ function poseWalk(r,t,sp,shamble){
   }
   r._spNow=sp;
 }
+/* three-beat keyframe: wind to A, whip through to B, settle toward C.
+   The whip uses a hard quartic so peak blade speed lands at the hit frame. */
+function seg3(p,W,H,A,B,C){
+  if(p<W)return A*easeOut(p/W);
+  if(p<H)return A+(B-A)*(1-Math.pow(1-(p-W)/(H-W),3.5));
+  return B+(C-B)*easeInOut((p-H)/(1-H));
+}
 // light combo: 0 slash R->L, 1 backhand, 2 thrust. p in [0,1]
+// Thrown from the ground up: hips coil, trunk wheels, the arm mostly
+// carries — and the blade lags the body, then whips past it.
 function poseLight(r,p,combo){
-  const wind=.3,hitT=.52;
-  const dip=Math.sin(clamp((p-.25)/.6,0,1)*Math.PI)*.06;
-  r.body.position.y=r.baseY-dip*r.s;                  // weight drops into the cut
-  if(combo===2){ // thrust
-    if(p<wind){const q=easeIn(p/wind);
-      r.armR.rotation.x=-.4-q*.7;r.foreR.rotation.x=-.9*q;
-      r.torso.rotation.y=.5*q;r.torso.rotation.x+=.1*q;
-    }else{const q=easeOut(Math.min(1,(p-wind)/(hitT-wind)));
-      r.armR.rotation.x=-1.5+q*.15;r.foreR.rotation.x=-.9+q*.95;
-      r.torso.rotation.y=.5-q*1.0;r.torso.rotation.x+=.1+.12*q;
-      r.weapon.rotation.x=.35*q;
-      r.head.rotation.y=-.2*q;
-    }
+  const W=.3,H=.62;
+  if(combo===2){ // lunging thrust off the rear leg
+    const tw=seg3(p,W,H,.55,-.8,-.22);
+    r.torso.rotation.y=tw;
+    r.body.rotation.y=tw*.5;
+    r.torso.rotation.x+=seg3(p,W,H,-.06,.3,.12);
+    r.armR.rotation.x=seg3(p,W,H,-.7,-1.62,-1.0);
+    r.armR.rotation.z=-.1+seg3(p,W,H,-.05,.05,0);
+    r.foreR.rotation.x=seg3(p,W,H,-1.0,.05,-.35);
+    r.weapon.rotation.x=seg3(p,W,H,-.3,.42,.1);       // blade levels for the lunge
+    r.legR.rotation.x=seg3(p,W,H,.2,-.55,-.15);       // rear leg drives
+    r.legL.rotation.x=seg3(p,W,H,-.15,.4,.1);
+    r.kneeL.rotation.x=seg3(p,W,H,.2,.5,.2);
+    r.head.rotation.y=-tw*.6;
+    r.body.position.y=r.baseY-seg3(p,W,H,.02,.1,.05)*r.s;
     return;
   }
-  const dir=combo===0?1:-1;
-  if(p<wind){const q=easeIn(p/wind);
-    r.torso.rotation.y=-.7*dir*q;
-    r.armR.rotation.z=-.2-1.1*q*dir;
-    r.armR.rotation.x=-.9*q;r.foreR.rotation.x=-.5*q;
-    r.head.rotation.y=.3*dir*q;                       // eyes lead the swing
-  }else{const q=easeOut(Math.min(1,(p-wind)/(hitT-wind)));
-    r.torso.rotation.y=-.7*dir+1.5*dir*q;
-    r.torso.rotation.x+=.14*q;
-    r.armR.rotation.z=-.2-1.1*dir+2.4*dir*q;
-    r.armR.rotation.x=-.9+.5*q;r.foreR.rotation.x=-.5+.2*q;
-    r.weapon.rotation.z=.5*dir*q;
-    r.weapon.rotation.y=.25*dir*q;                    // wrist rolls through
-    r.head.rotation.y=(.3-.5*q)*dir;
-  }
+  const d=combo===0?1:-1;
+  const ty=seg3(p,W,H,-1.05*d,1.2*d,.35*d);           // the trunk carries the cut
+  r.torso.rotation.y=ty;
+  r.body.rotation.y=seg3(p,W,H,-.45*d,.6*d,.18*d);    // hips coil and release first
+  r.torso.rotation.x+=seg3(p,W,H,-.1,.18,.06);
+  r.torso.rotation.z=seg3(p,W,H,.05*d,-.12*d,-.03*d); // lean into the arc
+  r.armR.rotation.x=seg3(p,W,H,-1.0,-1.25,-.6);       // arm stays long at chest height
+  r.armR.rotation.z=-.1+seg3(p,W,H,-.35*d,.3*d,0);
+  r.foreR.rotation.x=seg3(p,W,H,-.4,-.1,-.3);
+  r.weapon.rotation.z=seg3(p,W,H,.55*d,-.6*d,-.1*d);  // blade drags, then overtakes
+  r.weapon.rotation.y=seg3(p,W,H,.2*d,-.3*d,0);
+  r.legL.rotation.x=seg3(p,W,H,-.1,.3,.1);            // front knee takes the weight
+  r.kneeL.rotation.x=seg3(p,W,H,.1,.45,.15);
+  r.legR.rotation.x=seg3(p,W,H,.15,-.3,-.1);
+  r.head.rotation.y=-ty*.62;                          // gaze pinned to the target
+  r.body.position.y=r.baseY-seg3(p,W,H,-.02,.09,.04)*r.s;
+  r.armL.rotation.x+=seg3(p,W,H,.2,-.45,-.15);        // off arm counterbalances
+  r.armL.rotation.z=.1+seg3(p,W,H,.25,-.2,0)*d;
 }
 function poseHeavy(r,p){
   const wind=.52,hitT=.72;
   if(p<wind){const q=easeInOut(p/wind);
     r.armR.rotation.x=-.4-2.4*q;r.armL.rotation.x=-.4-2.2*q;
     r.foreR.rotation.x=-.4*q;r.torso.rotation.x-=.28*q;
+    r.torso.rotation.y=.3*q;r.body.rotation.y=.2*q;   // whole trunk coils
     r.head.rotation.x-=.2*q;
     r.body.position.y=r.baseY+.1*q*r.s;
     r.legR.rotation.x=-.2*q;r.kneeR.rotation.x=.3*q;  // coiled stance
   }else if(p<hitT){const q=easeIn(Math.min(1,(p-wind)/(hitT-wind)));
     r.armR.rotation.x=-2.8+3.6*q;r.armL.rotation.x=-2.6+3.4*q;
     r.torso.rotation.x=-.28+.75*q;
+    r.torso.rotation.y=.3-.55*q;r.body.rotation.y=.2-.35*q; // hips release through
     r.head.rotation.x=-.2+.5*q;
     r.body.position.y=r.baseY+(.1-.24*q)*r.s;
     r.legR.rotation.x=-.2-.5*q;r.kneeR.rotation.x=.3+.8*q;
@@ -1666,6 +1715,7 @@ function poseHeavy(r,p){
     const e=easeOut(q);
     r.armR.rotation.x=.8-1.0*e;r.armL.rotation.x=.8-1.0*e;
     r.torso.rotation.x=.47-.45*e;
+    r.torso.rotation.y=-.25+.25*e;r.body.rotation.y=-.15+.15*e;
     r.head.rotation.x=.3-.3*e;
     r.body.position.y=r.baseY-(.14-.14*e)*r.s;
     r.legR.rotation.x=-.7+.7*e;r.kneeR.rotation.x=1.1-1.1*e;
@@ -1757,6 +1807,7 @@ function poseDrink(r,p){
 function poseBlock(r){
   r.armL.rotation.x=-1.55;r.armL.rotation.z=.5;
   r.foreL.rotation.x=-.25;
+  if(r.shield)r.shield.rotation.x=0;         // face meets the blow
   r.torso.rotation.y=.24;
   r.armR.rotation.x=-.3;r.armR.rotation.z=-.35;
   r.head.rotation.y=-.18;
@@ -1795,7 +1846,8 @@ function makeKnightRig(){
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
-    weapon:'sword',shield:true,shieldMat:mat('iron'),
+    weapon:'claymore',shield:true,shieldMat:mat('iron'),
+    clothMat:mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
   });
 }
@@ -1891,18 +1943,20 @@ function shockRing(x,z,color,maxR,dur){
   }});
 }
 function slashArc(parentX,parentZ,y,facing,color){
-  // brief glowing arc where a swing passed
-  const g=new THREE.RingGeometry(1.1,1.5,18,1,-(Math.PI*.45),Math.PI*.9);
-  const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5,
+  // glowing wake of the blade, canted to the swing plane, expanding as it fades
+  const g=new THREE.RingGeometry(1.15,1.75,18,1,-(Math.PI*.5),Math.PI);
+  const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.65,
     side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
   const arc=new THREE.Mesh(g,m);
-  arc.rotation.x=-Math.PI/2;arc.rotation.z=-facing+Math.PI/2;
+  arc.rotation.x=-Math.PI/2+.42;arc.rotation.z=-facing+Math.PI/2;
   arc.position.set(parentX,y,parentZ);
   scene.add(arc);
   let t=0;
   effects.push({update(dt){
-    t+=dt;m.opacity=.5*(1-t/.18);
-    if(t>.18){scene.remove(arc);g.dispose();m.dispose();return false;}
+    t+=dt;const p=t/.16;
+    m.opacity=.65*(1-p);
+    arc.scale.setScalar(1+p*.25);
+    if(p>=1){scene.remove(arc);g.dispose();m.dispose();return false;}
     return true;
   }});
 }
@@ -2103,9 +2157,10 @@ const player={
       if(heavy)this.useCharge();
       this.state=heavy?'heavyatk':'attack';
       this.t=0;this.combo=0;this.queued=false;this.qDir=null;this.hitDone=false;
+      this.sfxDone=false;
       if(G.lockTarget)this.facing=Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z);
       else if(s&&s.sx!==null)this.facing=swipeWorld(s);
-      AudioSys[heavy?'heavySwing':'swing']();
+      if(heavy)AudioSys.heavySwing(); // light whoosh waits for the whip
     };
     const startDodge=(s)=>{
       this.state='roll';this.t=0;
@@ -2174,8 +2229,10 @@ const player={
           startDodge(IN.swipe);return this.post(dt);
         }
       }
-      // small forward drive during the swing
-      if(p>.3&&p<.6){this.x+=Math.sin(this.facing)*2.2*dt;this.z+=Math.cos(this.facing)*2.2*dt;}
+      // the whoosh rides the whip, not the button press
+      if(!this.sfxDone&&p>=.28){this.sfxDone=true;AudioSys.swing();}
+      // step through the cut
+      if(p>.3&&p<.62){this.x+=Math.sin(this.facing)*3.4*dt;this.z+=Math.cos(this.facing)*3.4*dt;}
       if(G.lockTarget&&p<.3)this.facing=angLerp(this.facing,
         Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),14*dt);
       if(!this.hitDone&&p>=.52){
@@ -2191,9 +2248,9 @@ const player={
           AudioSys.heavySwing();
         }else if(this.queued&&this.combo<2){
           this.combo++;this.t=0;this.queued=false;this.hitDone=false;
+          this.sfxDone=false;
           if(!G.lockTarget&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
-          AudioSys.swing();
         }else this.state='free';
       }
     }
