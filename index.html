@@ -1381,118 +1381,192 @@ function updateAmbient(t,dt){
   }
 }
 const rr3=(a,b)=>a+Math.random()*(b-a);
-/* ---------------- characters: chunky PSX rigs ---------------- */
-// A rig is a hierarchy of pivot groups; poses are written to it
-// absolutely every frame, so states can't leave stale rotations.
+/* ---------------- characters: PSX rigs, second pass ----------------
+   Tapered limbs, armor furniture, jaws, capes with drag, joint knobs.
+   The rig interface (body/torso/head/armR/foreR/legR/kneeR/weapon/...)
+   is unchanged, so poses and game logic bind the same way. */
+
+const geoCache={};
+function GBox(w,h,d){const k='b'+w+'|'+h+'|'+d;
+  return geoCache[k]||(geoCache[k]=new THREE.BoxGeometry(w,h,d));}
+function GCyl(rt,rb,h,seg){const k='c'+rt+'|'+rb+'|'+h+'|'+seg;
+  return geoCache[k]||(geoCache[k]=new THREE.CylinderGeometry(rt,rb,h,seg));}
+function GSph(r,ws,hs){const k='s'+r+'|'+ws+'|'+hs;
+  return geoCache[k]||(geoCache[k]=new THREE.SphereGeometry(r,ws,hs));}
+function GCone(r,h,seg){const k='k'+r+'|'+h+'|'+seg;
+  return geoCache[k]||(geoCache[k]=new THREE.ConeGeometry(r,h,seg));}
+function M(geo,m,x,y,z){const me=new THREE.Mesh(geo,m);me.position.set(x||0,y||0,z||0);return me;}
 
 function buildHumanoid(o){
-  // o: {scale, torsoMat, headMat, limbMat, weapon, skeletal, hunch, eyes}
-  const s=o.scale||1;
-  const rig={s,parts:[]};
+  const s=o.scale||1,sk=o.skeletal;
+  const rig={s};
   const root=new THREE.Group();rig.root=root;
   const body=new THREE.Group();body.position.y=0.92*s;root.add(body);rig.body=body;
+  const limb=o.limbMat;
 
-  const limb=o.limbMat,thick=o.skeletal?.09:.15;
-
-  // torso
-  const torso=new THREE.Group();body.add(torso);rig.torso=torso;
-  const torsoMesh=new THREE.Mesh(new THREE.BoxGeometry(.5*s,.62*s,.3*s),o.torsoMat);
-  torsoMesh.position.y=.31*s;torso.add(torsoMesh);
-  if(o.skeletal){ // pelvis + spine gap
-    const pelvis=new THREE.Mesh(new THREE.BoxGeometry(.4*s,.16*s,.24*s),limb);
-    pelvis.position.y=-.04*s;body.add(pelvis);
+  /* pelvis & spine */
+  if(sk){
+    body.add(M(GBox(.36*s,.14*s,.2*s),limb,0,-.04*s,0));           // pelvis
+    body.add(M(GBox(.09*s,.06*s,.09*s),limb,0,.05*s,0));           // lumbar
+    body.add(M(GBox(.08*s,.06*s,.08*s),limb,0,.12*s,-.01*s));      // spine
+  }else{
+    body.add(M(GBox(.44*s,.16*s,.28*s),limb,0,-.03*s,0));          // hip plate
+    const faulds=M(GBox(.5*s,.2*s,.34*s),o.torsoMat,0,-.16*s,0);
+    faulds.rotation.x=.06;body.add(faulds);                        // skirt of tassets
   }
-  // head
-  const head=new THREE.Group();head.position.y=.66*s;torso.add(head);rig.head=head;
-  const headMesh=new THREE.Mesh(new THREE.BoxGeometry(.3*s,.32*s,.3*s),o.headMat);
-  headMesh.position.y=.16*s;head.add(headMesh);
+
+  /* torso */
+  const torso=new THREE.Group();torso.position.y=.08*s;body.add(torso);rig.torso=torso;
+  if(sk){
+    const cage=M(GCyl(.21*s,.15*s,.5*s,6),o.torsoMat,0,.3*s,0);    // tapered ribcage
+    torso.add(cage);
+    torso.add(M(GBox(.34*s,.05*s,.07*s),limb,0,.52*s,.05*s));      // clavicle
+  }else{
+    const chest=M(GCyl(.26*s,.2*s,.52*s,6),o.chestMat||o.torsoMat,0,.28*s,0); // cuirass
+    torso.add(chest);
+    torso.add(M(GBox(.4*s,.07*s,.3*s),limb,0,.04*s,0));            // belt
+    const tabard=M(GBox(.2*s,.42*s,.03*s),o.torsoMat,0,-.18*s,.15*s);
+    tabard.rotation.x=.05;torso.add(tabard);                       // hanging tabard
+  }
+
+  /* head */
+  const head=new THREE.Group();head.position.y=.58*s;torso.add(head);rig.head=head;
+  head.add(M(GCyl(.06*s,.07*s,.1*s,5),limb,0,.03*s,0));            // neck
+  const headMesh=M(GBox(.28*s,.3*s,.28*s),o.headMat,0,.22*s,0);
+  head.add(headMesh);
+  if(sk){                                                           // hanging jaw
+    const jaw=new THREE.Group();jaw.position.set(0,.1*s,.03*s);head.add(jaw);
+    jaw.add(M(GBox(.22*s,.07*s,.2*s),limb,0,-.03*s,.03*s));
+    jaw.rotation.x=.08;rig.jaw=jaw;
+  }else{
+    head.add(M(GBox(.04*s,.12*s,.3*s),limb,0,.4*s,-.02*s));        // helm crest fin
+  }
   if(o.horns){
-    const hm=o.limbMat;
     for(const side of[1,-1]){
-      const horn=new THREE.Mesh(new THREE.ConeGeometry(.06*s,.42*s,5),hm);
-      horn.position.set(.16*s*side,.34*s,0);
-      horn.rotation.z=-.85*side;
-      head.add(horn);
+      const h1=M(GCone(.06*s,.34*s,5),limb,.17*s*side,.38*s,0);
+      h1.rotation.z=-.8*side;head.add(h1);
+      const h2=M(GCone(.035*s,.2*s,4),limb,.31*s*side,.5*s,0);
+      h2.rotation.z=-1.35*side;head.add(h2);                        // curved tip
     }
   }
   if(o.eyes){
     rig.eyes=[];
     for(const side of[1,-1]){
-      const e=new THREE.Mesh(new THREE.SphereGeometry(.035*s,5,4),
+      const e=new THREE.Mesh(GSph(.035*s,5,4),
         new THREE.MeshBasicMaterial({color:o.eyes}));
-      e.position.set(.08*s*side,.17*s,.16*s);
+      e.position.set(.08*s*side,.24*s,.15*s);
       head.add(e);rig.eyes.push(e);
     }
   }
 
-  // arms: shoulder pivot -> upper -> elbow pivot -> fore (+weapon)
+  /* arms: shoulder -> tapered upper -> elbow -> tapered fore (+hand) */
+  const armThick=sk?[.05,.04]:[.08,.065];
   function makeArm(side){
     const sh=new THREE.Group();
-    sh.position.set(.33*s*side,.55*s,0);torso.add(sh);
-    const up=new THREE.Mesh(new THREE.BoxGeometry(thick*s,.34*s,thick*s),limb);
-    up.position.y=-.17*s;sh.add(up);
+    sh.position.set(.3*s*side,.47*s,0);torso.add(sh);
+    if(!sk){                                                        // pauldron rides the arm
+      const p=M(GSph(.13*s,6,4),limb,0,.02*s,0);
+      p.scale.y=.75;sh.add(p);
+    }else{
+      sh.add(M(GSph(.055*s,5,4),limb,0,0,0));                       // shoulder knob
+    }
+    sh.add(M(GCyl(armThick[0]*s,armThick[1]*s,.32*s,5),limb,0,-.17*s,0));
     const el=new THREE.Group();el.position.y=-.34*s;sh.add(el);
-    const fo=new THREE.Mesh(new THREE.BoxGeometry(thick*.9*s,.32*s,thick*.9*s),limb);
-    fo.position.y=-.16*s;el.add(fo);
+    el.add(M(GCyl(armThick[1]*s,armThick[1]*.85*s,.3*s,5),limb,0,-.15*s,0));
+    if(!sk)el.add(M(GBox(.09*s,.1*s,.09*s),limb,0,-.34*s,0));       // gauntlet fist
     return {sh,el};
   }
   const aR=makeArm(1),aL=makeArm(-1);
   rig.armR=aR.sh;rig.foreR=aR.el;rig.armL=aL.sh;rig.foreL=aL.el;
 
-  // strapped kite shield on the left forearm
+  /* shield strapped on the left forearm */
   if(o.shield){
-    const sh=new THREE.Mesh(new THREE.BoxGeometry(.5*s,.07*s,.62*s),o.shieldMat||o.limbMat);
-    sh.position.set(-.02*s,-.3*s,.02*s);
-    aL.el.add(sh);rig.shield=sh;
+    const shm=o.shieldMat||limb;
+    const plate=M(GBox(.5*s,.06*s,.62*s),shm,-.02*s,-.3*s,.02*s);
+    aL.el.add(plate);
+    const knob=M(GSph(.08*s,6,4),shm,-.02*s,-.34*s,.02*s);
+    knob.scale.y=.6;aL.el.add(knob);
+    rig.shield=plate;
   }
 
-  // weapon in right hand
+  /* weapon hangs from the right hand */
   if(o.weapon){
     const w=new THREE.Group();w.position.y=-.34*s;aR.el.add(w);rig.weapon=w;
     const bladeM=o.bladeMat,gripM=o.gripMat;
     if(o.weapon==='sword'){
-      const bl=new THREE.Mesh(new THREE.BoxGeometry(.07*s,1.05*s,.025*s),bladeM);
-      bl.position.y=-.62*s;
-      const gu=new THREE.Mesh(new THREE.BoxGeometry(.3*s,.05*s,.07*s),gripM);
-      gu.position.y=-.1*s;
-      w.add(bl,gu);rig.reach=2.3*s;rig.bladeMesh=bl;
+      const bl=M(GBox(.07*s,.95*s,.025*s),bladeM,0,-.58*s,0);
+      const tip=M(GCone(.045*s,.16*s,4),bladeM,0,-1.12*s,0);
+      tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;
+      w.add(bl,tip,
+        M(GBox(.3*s,.05*s,.07*s),gripM,0,-.1*s,0),
+        M(GSph(.045*s,5,4),gripM,0,.05*s,0));
+      rig.reach=2.3*s;rig.bladeMesh=bl;
     }else if(o.weapon==='club'){
-      const cl=new THREE.Mesh(new THREE.BoxGeometry(.11*s,.9*s,.11*s),gripM);
-      cl.position.y=-.5*s;cl.rotation.y=.6;
-      const kn=new THREE.Mesh(new THREE.BoxGeometry(.2*s,.26*s,.2*s),gripM);
-      kn.position.y=-.9*s;
+      const cl=M(GCyl(.05*s,.07*s,.85*s,5),gripM,0,-.48*s,0);
+      const kn=M(GBox(.2*s,.28*s,.2*s),gripM,0,-.9*s,0);
+      kn.rotation.y=.5;
       w.add(cl,kn);rig.reach=2.1*s;
     }else if(o.weapon==='great'){
-      const bl=new THREE.Mesh(new THREE.BoxGeometry(.13*s,1.55*s,.04*s),bladeM);
-      bl.position.y=-.9*s;
-      const gu=new THREE.Mesh(new THREE.BoxGeometry(.42*s,.07*s,.1*s),gripM);
-      gu.position.y=-.14*s;
-      const pm=new THREE.Mesh(new THREE.SphereGeometry(.07*s,5,4),gripM);
-      pm.position.y=.06*s;
-      w.add(bl,gu,pm);rig.reach=3.2*s;
+      const bl=M(GBox(.13*s,1.4*s,.04*s),bladeM,0,-.82*s,0);
+      const tip=M(GCone(.08*s,.24*s,4),bladeM,0,-1.62*s,0);
+      tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;
+      w.add(bl,tip,
+        M(GBox(.44*s,.07*s,.1*s),gripM,0,-.14*s,0),
+        M(GSph(.07*s,5,4),gripM,0,.06*s,0));
+      rig.reach=3.2*s;rig.bladeMesh=bl;
     }
   }
+  if(o.heldBone){ // the caster's next throw, carried in hand
+    const hb=M(GBox(.07*s,.34*s,.07*s),limb,0,-.42*s,.03*s);
+    hb.rotation.x=.4;aR.el.add(hb);rig.heldBone=hb;
+  }
 
-  // legs
+  /* legs */
+  const legThick=sk?[.055,.045]:[.09,.07];
   function makeLeg(side){
     const hip=new THREE.Group();hip.position.set(.14*s*side,-.02*s,0);body.add(hip);
-    const th=new THREE.Mesh(new THREE.BoxGeometry(thick*1.1*s,.4*s,thick*1.1*s),limb);
-    th.position.y=-.2*s;hip.add(th);
+    hip.add(M(GCyl(legThick[0]*s,legThick[1]*s,.38*s,5),limb,0,-.2*s,0));
     const kn=new THREE.Group();kn.position.y=-.4*s;hip.add(kn);
-    const sh2=new THREE.Mesh(new THREE.BoxGeometry(thick*s,.42*s,thick*s),limb);
-    sh2.position.y=-.21*s;kn.add(sh2);
+    kn.add(M(GSph(sk?.05*s:.07*s,5,4),limb,0,0,0));                 // knee knob / poleyn
+    kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*s,5),limb,0,-.21*s,0));
+    kn.add(M(GBox(.11*s,.06*s,.2*s),limb,0,-.42*s,.04*s));          // foot
     return {hip,kn};
   }
   const lR=makeLeg(1),lL=makeLeg(-1);
   rig.legR=lR.hip;rig.kneeR=lR.kn;rig.legL=lL.hip;rig.kneeL=lL.kn;
 
-  // shadow blob
+  /* cape: three hinged segments that drag behind movement */
+  if(o.cape){
+    const capeM=o.cape;
+    let parent=torso,py=.5*s;
+    rig.cape=[];
+    const lens=[.3*s,.26*s,.22*s];
+    for(let i=0;i<3;i++){
+      const g=new THREE.Group();
+      g.position.set(0,py,i===0?-.2*s:0);
+      const seg=new THREE.Mesh(new THREE.PlaneGeometry((.5-.06*i)*s,lens[i]),
+        new THREE.MeshLambertMaterial({map:capeM.map,side:THREE.DoubleSide}));
+      psx(seg.material);
+      seg.position.y=-lens[i]/2;
+      g.add(seg);parent.add(g);
+      rig.cape.push(g);
+      parent=g;py=-lens[i];
+    }
+  }
+  if(o.heart){ // the Warden's ember, dim until phase two
+    const h=new THREE.Mesh(GSph(.1*s,6,5),
+      new THREE.MeshBasicMaterial({color:0x2a0a06}));
+    h.position.set(0,.3*s,.17*s);torso.add(h);rig.heart=h; // set in the sternum, visible
+  }
+
+  /* shadow blob */
   const sh=new THREE.Mesh(new THREE.CircleGeometry(.42*s,10),
     new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.4,depthWrite:false}));
   sh.rotation.x=-Math.PI/2;sh.position.y=.02;root.add(sh);
 
   rig.hunch=o.hunch||0;
   rig.baseY=0.92*s;
+  rig.capeSway=0;rig._spNow=0;
   return rig;
 }
 
@@ -1506,14 +1580,17 @@ function resetPose(r){
   if(r.weapon)r.weapon.rotation.set(0,0,0);
   r.legR.rotation.set(0,0,0);r.kneeR.rotation.set(0,0,0);
   r.legL.rotation.set(0,0,0);r.kneeL.rotation.set(0,0,0);
+  r._spNow=0;
 }
 function poseIdle(r,t){
   const b=Math.sin(t*1.7)*.02;
   r.body.position.y=r.baseY+b*r.s;
-  r.torso.rotation.x+=Math.sin(t*1.7)*.02;
+  r.torso.rotation.x+=Math.sin(t*1.7)*.02;            // breath
+  r.torso.rotation.z=Math.sin(t*.9)*.015;             // weight shift
   r.armR.rotation.x+=Math.sin(t*1.7+1)*.03;
   r.armL.rotation.x+=Math.sin(t*1.7+2)*.03;
   r.head.rotation.y=Math.sin(t*.5)*.12;
+  r.head.rotation.x+=Math.sin(t*1.7+.5)*.015;
 }
 function poseWalk(r,t,sp,shamble){
   const f=shamble?5.2:7.5,amp=shamble?.5:.62;
@@ -1521,23 +1598,31 @@ function poseWalk(r,t,sp,shamble){
   r.legR.rotation.x=w;r.legL.rotation.x=-w;
   r.kneeR.rotation.x=Math.max(0,-w2)*.9;r.kneeL.rotation.x=Math.max(0,w2)*.9;
   r.armR.rotation.x+=-w*.5;r.armL.rotation.x+=w*.5;
+  r.foreR.rotation.x+=-Math.max(0,w)*.35;r.foreL.rotation.x+=-Math.max(0,-w)*.35; // elbows trail
+  r.body.rotation.y=Math.sin(t*f)*.07*sp;             // hips swing...
+  r.torso.rotation.y=-Math.sin(t*f)*.13*sp;           // ...shoulders answer
+  r.head.rotation.y=Math.sin(t*f)*.05*sp;             // gaze stays level
   r.body.position.y=r.baseY+Math.abs(Math.cos(t*f))*.05*sp*r.s;
   if(shamble){
     r.torso.rotation.z=Math.sin(t*f*.5)*.1;
     r.body.rotation.z=Math.sin(t*f*.5)*.06;
   }
+  r._spNow=sp;
 }
 // light combo: 0 slash R->L, 1 backhand, 2 thrust. p in [0,1]
 function poseLight(r,p,combo){
   const wind=.3,hitT=.52;
+  const dip=Math.sin(clamp((p-.25)/.6,0,1)*Math.PI)*.06;
+  r.body.position.y=r.baseY-dip*r.s;                  // weight drops into the cut
   if(combo===2){ // thrust
     if(p<wind){const q=easeIn(p/wind);
       r.armR.rotation.x=-.4-q*.7;r.foreR.rotation.x=-.9*q;
-      r.torso.rotation.y=.5*q;
+      r.torso.rotation.y=.5*q;r.torso.rotation.x+=.1*q;
     }else{const q=easeOut(Math.min(1,(p-wind)/(hitT-wind)));
       r.armR.rotation.x=-1.5+q*.15;r.foreR.rotation.x=-.9+q*.95;
-      r.torso.rotation.y=.5-q*1.0;
+      r.torso.rotation.y=.5-q*1.0;r.torso.rotation.x+=.1+.12*q;
       r.weapon.rotation.x=.35*q;
+      r.head.rotation.y=-.2*q;
     }
     return;
   }
@@ -1546,11 +1631,15 @@ function poseLight(r,p,combo){
     r.torso.rotation.y=-.7*dir*q;
     r.armR.rotation.z=-.2-1.1*q*dir;
     r.armR.rotation.x=-.9*q;r.foreR.rotation.x=-.5*q;
+    r.head.rotation.y=.3*dir*q;                       // eyes lead the swing
   }else{const q=easeOut(Math.min(1,(p-wind)/(hitT-wind)));
     r.torso.rotation.y=-.7*dir+1.5*dir*q;
+    r.torso.rotation.x+=.14*q;
     r.armR.rotation.z=-.2-1.1*dir+2.4*dir*q;
     r.armR.rotation.x=-.9+.5*q;r.foreR.rotation.x=-.5+.2*q;
     r.weapon.rotation.z=.5*dir*q;
+    r.weapon.rotation.y=.25*dir*q;                    // wrist rolls through
+    r.head.rotation.y=(.3-.5*q)*dir;
   }
 }
 function poseHeavy(r,p){
@@ -1558,25 +1647,38 @@ function poseHeavy(r,p){
   if(p<wind){const q=easeInOut(p/wind);
     r.armR.rotation.x=-.4-2.4*q;r.armL.rotation.x=-.4-2.2*q;
     r.foreR.rotation.x=-.4*q;r.torso.rotation.x-=.28*q;
+    r.head.rotation.x-=.2*q;
     r.body.position.y=r.baseY+.1*q*r.s;
+    r.legR.rotation.x=-.2*q;r.kneeR.rotation.x=.3*q;  // coiled stance
   }else if(p<hitT){const q=easeIn(Math.min(1,(p-wind)/(hitT-wind)));
     r.armR.rotation.x=-2.8+3.6*q;r.armL.rotation.x=-2.6+3.4*q;
     r.torso.rotation.x=-.28+.75*q;
+    r.head.rotation.x=-.2+.5*q;
     r.body.position.y=r.baseY+(.1-.24*q)*r.s;
+    r.legR.rotation.x=-.2-.5*q;r.kneeR.rotation.x=.3+.8*q;
+    r.legL.rotation.x=.3*q;
   }else{const q=(p-hitT)/(1-hitT);
-    r.armR.rotation.x=.8-1.0*easeOut(q);r.armL.rotation.x=.8-1.0*easeOut(q);
-    r.torso.rotation.x=.47-.45*easeOut(q);
-    r.body.position.y=r.baseY-(.14-.14*q)*r.s;
+    const e=easeOut(q);
+    r.armR.rotation.x=.8-1.0*e;r.armL.rotation.x=.8-1.0*e;
+    r.torso.rotation.x=.47-.45*e;
+    r.head.rotation.x=.3-.3*e;
+    r.body.position.y=r.baseY-(.14-.14*e)*r.s;
+    r.legR.rotation.x=-.7+.7*e;r.kneeR.rotation.x=1.1-1.1*e;
+    r.legL.rotation.x=.3-.3*e;
   }
 }
 // enemy overhead chop; windT fraction of anim spent winding
 function poseChop(r,p,windT){
   if(p<windT){const q=easeInOut(p/windT);
     r.armR.rotation.x=-.3-2.2*q;r.torso.rotation.x+=-.3*q;
-    r.head.rotation.x-= .2*q;
+    r.torso.rotation.y=-.2*q;
+    r.head.rotation.x-=.2*q;
+    r.body.position.y=r.baseY+.06*q*r.s;
   }else{const q=easeIn(Math.min(1,(p-windT)/.16));
     r.armR.rotation.x=-2.5+3.3*q;r.torso.rotation.x+=(-.3+.8*q);
+    r.torso.rotation.y=-.2+.3*q;
     r.foreR.rotation.x=-.3*q;
+    r.body.position.y=r.baseY-(.1*q)*r.s;
   }
 }
 function poseSweep(r,p,windT,dir){
@@ -1584,23 +1686,62 @@ function poseSweep(r,p,windT,dir){
   if(p<windT){const q=easeInOut(p/windT);
     r.torso.rotation.y=-1.1*dir*q;
     r.armR.rotation.z=-.2-1.4*q*dir;r.armR.rotation.x=-1.1*q;
+    r.head.rotation.y=.5*dir*q;
+    r.body.position.y=r.baseY-.05*q*r.s;
   }else{const q=easeOut(Math.min(1,(p-windT)/.22));
     r.torso.rotation.y=-1.1*dir+2.4*dir*q;
     r.armR.rotation.z=-.2-1.4*dir+2.6*dir*q;
     r.armR.rotation.x=-1.1+.3*q;
+    r.head.rotation.y=(.5-.9*q)*dir;
+    r.body.rotation.y=.3*dir*q;                        // hips carry through
+  }
+}
+// caster: haul the bone back over the shoulder, then whip it forward
+function poseThrow(r,p,windT){
+  if(p<windT){const q=easeInOut(p/windT);
+    r.armR.rotation.x=-.3-2.4*q;r.foreR.rotation.x=-.9*q;
+    r.torso.rotation.y=-.55*q;r.torso.rotation.x-=.15*q;
+    r.legL.rotation.x=-.25*q;
+    r.head.rotation.y=.3*q;
+  }else{const q=easeOut(Math.min(1,(p-windT)/.2));
+    r.armR.rotation.x=-2.7+3.5*q;r.foreR.rotation.x=-.9+.7*q;
+    r.torso.rotation.y=-.55+.95*q;r.torso.rotation.x+=.35*q;
+    r.legL.rotation.x=-.25+.45*q;
+    r.head.rotation.y=.3-.4*q;
   }
 }
 function poseStagger(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
-  r.torso.rotation.x-=.5*q;r.head.rotation.x-=.3*q;
+  r.torso.rotation.x-=.5*q;r.head.rotation.x-=.35*q;
   r.armR.rotation.z+=.5*q;r.armL.rotation.z-=.5*q;
   r.body.rotation.z=.12*Math.sin(p*14)*(1-p);
+  r.legR.rotation.x=-.2*q;r.kneeR.rotation.x=.3*q;    // heels dug in
 }
+// death: knees buckle, then the body topples
 function poseDead(r,p){
-  const q=easeOut(Math.min(1,p*1.6));
-  r.root.rotation.x=-Math.PI/2*q*.94;
-  r.body.position.y=r.baseY*(1-q*.55);
-  r.armR.rotation.z=-1.2*q;r.armL.rotation.z=1.2*q;
+  const a=easeIn(Math.min(1,p/.4));
+  const b=easeOut(clamp((p-.35)/.5,0,1));
+  r.legR.rotation.x=-1.7*a;r.kneeR.rotation.x=2.3*a;
+  r.legL.rotation.x=-1.4*a;r.kneeL.rotation.x=2.2*a;
+  r.body.position.y=r.baseY*(1-.5*a-.32*b);
+  r.torso.rotation.x+=.4*a;
+  r.root.rotation.x=-1.42*b;
+  r.armR.rotation.z=-1.1*b;r.armL.rotation.z=1.1*b;
+  r.armR.rotation.x=-.3*a;r.armL.rotation.x=-.3*a;
+  r.head.rotation.x=.4*a-.6*b;
+}
+// clawing up out of the grave soil
+function poseRise(r,p){
+  const a=easeOut(clamp(p/.35,0,1));                  // the arm breaches first
+  const b=easeInOut(clamp((p-.3)/.7,0,1));            // then the body hauls up
+  r.root.position.y=lerp(-1.55,0,b);
+  r.torso.rotation.x+=(1-b)*.9;
+  r.head.rotation.x-=(1-b)*.5;
+  r.armR.rotation.x=-2.6*a+1.5*b;                     // reach, then push
+  r.armL.rotation.x=-1.4*a*(1-b)-.2*b;
+  r.foreR.rotation.x=-.6*(1-b);
+  r.legR.rotation.x=-1.2*(1-b);r.kneeR.rotation.x=1.6*(1-b);
+  r.legL.rotation.x=-.6*(1-b);r.kneeL.rotation.x=1.1*(1-b);
 }
 function poseDrink(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
@@ -1615,6 +1756,7 @@ function poseBlock(r){
   r.armR.rotation.x=-.3;r.armR.rotation.z=-.35;
   r.head.rotation.y=-.18;
   r.body.position.y=r.baseY-.05*r.s;
+  r.legL.rotation.x=-.15;r.legR.rotation.x=.15;       // braced stance
 }
 function poseRest(r,p){
   const q=easeInOut(Math.min(1,p*2));
@@ -1625,23 +1767,42 @@ function poseRest(r,p){
   r.armR.rotation.x=-.5*q;r.armL.rotation.x=-.3*q;
 }
 
-/* factory: the four cast members */
+/* secondary motion, applied after the pose each frame */
+function updateRigExtras(r,dt){
+  if(r.cape){
+    r.capeSway+=((r._spNow||0)-r.capeSway)*Math.min(1,6*dt);
+    const t=G.time,sw=r.capeSway;
+    for(let i=0;i<r.cape.length;i++){
+      // negative x pitches the hanging cloth backward, away from the spine
+      r.cape[i].rotation.x=-(.14+sw*.5+Math.sin(t*(3.2+i)+i*1.7)*(.05+sw*.1));
+      r.cape[i].rotation.z=Math.sin(t*2.1+i*2.3)*.05*(1+sw);
+    }
+  }
+  if(r.heart&&r.heartOn){
+    const p=1+Math.sin(G.time*7)*.25;
+    r.heart.scale.setScalar(p);
+  }
+}
+
+/* factory: the cast */
 function makeKnightRig(){
   return buildHumanoid({
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'sword',shield:true,shieldMat:mat('iron'),
+    chestMat:mat('iron'),cape:mat('rag'),
   });
 }
 function makeHollowRig(big,caster){
   const boneM=mat('bone');
   return buildHumanoid({
-    scale:big?1.32:caster?.9:.95,
+    scale:(big?1.32:caster?.9:.95)*(0.97+Math.random()*.06), // no two hollows alike
     torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:boneM,
     bladeMat:mat('blade'),gripMat:mat('bark'),
     weapon:big?'club':caster?null:'sword',
-    skeletal:true,hunch:big?.22:caster?.38:.3,
+    heldBone:!!caster,
+    skeletal:true,hunch:(big?.22:caster?.38:.3)+Math.random()*.06,
     eyes:big?0x86d9c2:caster?0x9fe06a:undefined,
   });
 }
@@ -1652,14 +1813,40 @@ function makeWardenRig(){
     torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:boneM,
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'great',skeletal:true,hunch:.14,horns:true,
-    eyes:0xff5533,
+    eyes:0xff5533,cape:mat('rag'),heart:true,
   });
-  // ragged cowl
-  const cape=new THREE.Mesh(new THREE.PlaneGeometry(1.15,1.5,1,3),
-    lam({map:texCache.rag,side:THREE.DoubleSide}));
-  cape.position.set(0,.9,-.36);cape.rotation.x=.16;
-  r.torso.add(cape);
   return r;
+}
+
+/* a felled skeleton comes apart into the soil */
+function boneCollapse(x,z,s){
+  const bm=mat('bone');
+  const n=6+((Math.random()*3)|0);
+  for(let i=0;i<n;i++){
+    const skull=i===0;
+    const piece=new THREE.Mesh(
+      skull?GSph(.13*s,6,5):GBox(.3*s,.07*s,.07*s),
+      bm.clone());
+    piece.material.transparent=true;
+    piece.position.set(x,(.5+Math.random()*.7)*s,z);
+    piece.rotation.set(Math.random()*TAU,Math.random()*TAU,0);
+    scene.add(piece);
+    const a=Math.random()*TAU,sp=(.6+Math.random()*1.4)*s;
+    const vx=Math.cos(a)*sp,vz=Math.sin(a)*sp;
+    let vy=1.5+Math.random()*2,life=0,rs=(Math.random()-.5)*10;
+    effects.push({update(dt){
+      life+=dt;
+      if(piece.position.y>.06){
+        vy-=10*dt;
+        piece.position.x+=vx*dt;piece.position.y+=vy*dt;piece.position.z+=vz*dt;
+        piece.rotation.x+=rs*dt;piece.rotation.z+=rs*.7*dt;
+        if(piece.position.y<.06)piece.position.y=.055;
+      }
+      if(life>2.2)piece.material.opacity=Math.max(0,1-(life-2.2)*1.4);
+      if(life>3){scene.remove(piece);piece.material.dispose();return false;}
+      return true;
+    }});
+  }
 }
 /* ---------------- effects ---------------- */
 const effects=[];
@@ -1922,6 +2109,7 @@ const player={
       else{this.rollDX=-Math.sin(this.facing);this.rollDZ=-Math.cos(this.facing);} // neutral = backstep
       this.facing=Math.atan2(this.rollDX,this.rollDZ);
       AudioSys.roll();
+      boneBurst(this.x,.15,this.z,0x4a463a,4,1.2); // kicked-up dust
     };
 
     // heavy charge: hold to fill, keep it until spent
@@ -2072,6 +2260,7 @@ const player={
 
     r.root.position.set(this.x,0,this.z);
     r.root.rotation.y=this.facing;
+    updateRigExtras(r,dt);
     return this.post(dt);
   },
   post(dt){},
@@ -2109,8 +2298,11 @@ class Enemy{
     this.x=this.homeX;this.z=this.homeZ;
     this.hp=this.maxHp;this.poise=0;this.phase2=false;
     this.state='dormant';this.t=0;this.vx=0;this.vz=0;
+    this.crumbled=false;
     this.rig.root.visible=true;
     this.rig.root.rotation.x=0;
+    if(this.rig.heart){this.rig.heart.material.color.setHex(0x2a0a06);
+      this.rig.heartOn=false;this.rig.heart.scale.setScalar(1);}
     this.rig.root.position.y=this.boss?0:-1.6;   // hollows wait under the soil
     if(this.boss)this.facing=Math.PI;            // kneeling, facing the door
     if(this.rig.eyes)for(const e of this.rig.eyes)
@@ -2135,6 +2327,7 @@ class Enemy{
     if(this.boss&&!this.phase2&&this.hp<this.maxHp*.5){
       this.phase2=true;
       if(this.rig.eyes)for(const e of this.rig.eyes)e.material.color.setHex(0xff4422);
+      if(this.rig.heart){this.rig.heart.material.color.setHex(0xff3a14);this.rig.heartOn=true;}
       AudioSys.roar();AudioSys.bossMusic(2);G.camShake=.5;
       bannerShow('THE MARROW STIRS','the warden remembers its rage');
     }
@@ -2152,6 +2345,7 @@ class Enemy{
     this.state='rise';this.t=0;
     if(this.boss)return; // boss has its own cutscene path
     AudioSys.hurt();
+    boneBurst(this.x,.25,this.z,0x5a4d38,8,1.6); // grave soil breaks
   }
   update(dt){
     const P=player;
@@ -2164,7 +2358,7 @@ class Enemy{
         if(!this.boss&&dist<this.aggroR&&G.mode==='play')this.wake();
         break;
       case 'rise':
-        this.rig.root.position.y=lerp(-1.6,0,easeOut(Math.min(1,this.t/1.1)));
+        // poseRise drives the climb out of the soil
         if(this.t>=1.1){this.rig.root.position.y=0;this.state='chase';}
         break;
       case 'chase':{
@@ -2279,16 +2473,16 @@ class Enemy{
           poseRest(r,1);r.head.rotation.x=.5;
         }
         break;
-      case 'rise':{
-        const q=Math.min(1,this.t/1.1);
-        r.torso.rotation.x+=(1-q)*.8;r.armR.rotation.x=-(1-q)*1.4;r.armL.rotation.x=-(1-q)*1.4;
-        break;}
+      case 'rise':
+        poseRise(r,Math.min(1,this.t/1.1));
+        break;
       case 'chase':case 'return':
         poseWalk(r,t+this.homeX,1,sham);break;
       case 'windup':case 'strike':{
         const wd=this.windDur();
         const p=this.state==='windup'?(this.t/wd)*.8:.8+(this.t/(this.attack==='lunge'?.4:.18))*.2;
         if(this.attack==='slam')poseHeavy(r,p);
+        else if(this.attack==='throw')poseThrow(r,p,.8);
         else if(this.attack==='sweep')poseSweep(r,p,.8,1);
         else if(this.attack==='sweep2')poseSweep(r,p,.8,-1);
         else if(this.attack==='lunge'){
@@ -2301,7 +2495,12 @@ class Enemy{
       case 'stagger':poseStagger(r,this.t/(this.boss?1.1:.85));break;
       case 'dead':
         poseDead(r,this.t);
-        if(this.t>2.6)r.root.visible=false;
+        // the fallen come apart into the soil
+        if(!this.crumbled&&this.t>(this.boss?1.7:1.05)){
+          this.crumbled=true;
+          this.rig.root.visible=false;
+          boneCollapse(this.x,this.z,this.boss?1.9:this.big?1.25:.9);
+        }
         break;
     }
     r.root.position.x=this.x;r.root.position.z=this.z;
@@ -2315,6 +2514,11 @@ class Enemy{
         for(const m of this.mats)m.emissive.setHex(on?0x6a4410:0x140b02);
       }else for(const m of this.mats)m.emissive.setHex(0x000000);
     }
+    // the jaw hangs slack, gapes through the windup, snaps on the strike
+    if(r.jaw)r.jaw.rotation.x=
+      this.state==='windup'?(.45+Math.sin(G.time*20)*.12):
+      this.state==='strike'?.65:.08;
+    updateRigExtras(r,dt);
   }
   begin(atk){
     this.attack=atk;this.state='windup';this.t=0;
@@ -2405,7 +2609,7 @@ function updateCamera(dt){
     G.camYaw=angLerp(G.camYaw,want,5*dt);
     G.camPitch=lerp(G.camPitch,.3,4*dt);
   }
-  const dist=5.1,py=1.55;
+  const dist=G.camDist||5.1,py=1.55;
   let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist;
   let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist;
   const cy=py+Math.sin(G.camPitch)*dist;

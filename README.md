@@ -63,9 +63,12 @@ Everything is generated at boot inside the one file:
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
-- **Characters** — chunky box-rigs (knight, hollows, the horned Warden)
-  with fully procedural animation: walk cycles, telegraphed windups, combos,
-  rolls, staggers, deaths.
+- **Characters** — low-poly articulated rigs (armored knight with cape,
+  shield and crested helm; jawed skeletal hollows with ribcages and joint
+  knobs; the horned Warden with a burning heart) with fully procedural
+  animation: counter-rotating walk cycles, telegraphed windups, combos,
+  rolls, clawing-from-the-grave rises, and deaths that buckle at the
+  knees and crumble into bone piles. Capes drag with movement.
 - **Audio** — synthesized WebAudio: graveyard wind, sub drone, whooshes,
   clangs, the death gong, the Warden's roar.
 - **No dependencies fetched at runtime.** Works offline.
