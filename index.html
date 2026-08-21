@@ -4,6 +4,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#070a09">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Bonepath","short_name":"Bonepath","display":"fullscreen","orientation":"landscape","background_color":"%23070a09","theme_color":"%23070a09"}'>
 <style>
   /* BONEPATH — haunted PSX souls-like. Single committed theme: bone ivory on grave fog. */
   :root{
@@ -100,6 +102,24 @@
     z-index:8;display:none;padding:10px 22px;border:1px solid var(--bone-dim);
     background:rgba(7,10,9,.85);color:var(--bone);font-size:13px;letter-spacing:.3em;text-transform:uppercase;
     box-shadow:0 0 18px rgba(208,118,43,.25);touch-action:none;}
+  #prompt2{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom));
+    z-index:8;display:none;padding:8px 18px;border:1px solid var(--bone-faint);
+    background:rgba(7,10,9,.85);color:var(--bone-dim);font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+    touch-action:none;}
+  /* marrow offerings */
+  #shop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;display:none;
+    width:min(86vw,380px);padding:20px 22px;border:1px solid var(--bone-dim);
+    background:rgba(7,10,9,.94);box-shadow:0 0 40px rgba(0,0,0,.8);}
+  #shop .shopTitle{text-align:center;font-size:14px;letter-spacing:.42em;text-indent:.42em;
+    text-transform:uppercase;color:var(--ember-hi);margin-bottom:4px;}
+  #shop .shopBal{text-align:center;font-size:10px;letter-spacing:.3em;text-transform:uppercase;
+    color:var(--bone-dim);margin-bottom:14px;font-variant-numeric:tabular-nums;}
+  #shop button{display:block;width:100%;margin-top:9px;padding:11px 12px;
+    border:1px solid var(--bone-faint);background:rgba(20,24,20,.6);color:var(--bone);
+    font-family:var(--serif);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    touch-action:manipulation;}
+  #shop button:disabled{opacity:.35;}
+  #shop #shopLeave{border-color:var(--bone-dim);background:transparent;color:var(--bone-dim);margin-top:16px;}
   /* ---- banners & screens ---- */
   #banner{position:fixed;left:0;right:0;top:34%;z-index:8;text-align:center;pointer-events:none;
     opacity:0;transition:opacity .7s;}
@@ -171,9 +191,17 @@
   <div class="btn" id="btnCharge"><span class="g">&#8623;</span><span class="t">charge</span></div>
   <div class="btn" id="btnFlask"><span class="g">&#9673;</span><span class="t">flask</span></div>
   <div class="btn" id="btnLock"><span class="g">&#9678;</span><span class="t">lock</span></div>
-  <div id="swipeHint">flick &#8593; strike &nbsp; flick &#8595; roll<br>hold &amp; drag &mdash; camera</div>
+  <div id="swipeHint">tap / flick &#8593; &mdash; strike &nbsp; flick &#8595; &mdash; roll<br>hold &amp; drag &mdash; camera &nbsp; &#9678; &mdash; lock</div>
 </div>
 <div id="prompt"></div>
+<div id="prompt2"></div>
+<div id="shop">
+  <div class="shopTitle">Offer Marrow</div>
+  <div class="shopBal">marrow held &mdash; <span id="shopMarrow">0</span></div>
+  <button id="buyFlask"></button>
+  <button id="buyVigor"></button>
+  <button id="shopLeave">leave</button>
+</div>
 
 <div id="banner"><div class="big" id="bannerBig"></div><div class="rule"></div><div class="sm" id="bannerSm"></div></div>
 <div id="toast"></div>
@@ -186,8 +214,9 @@
   <div id="begin">touch to begin</div>
   <div class="hint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
-    flick up &mdash; strike &middot; flick down &mdash; roll &middot; both follow your swipe<br>
-    hold block to guard &middot; hold charge, then your next strike is the heavy<br>
+    tap &mdash; strike &middot; flick up &mdash; aimed strike &middot; flick down &mdash; roll where you swipe<br>
+    block stops light blows &mdash; heavy blows break guard: roll those<br>
+    hold charge, then your next strike is the heavy &middot; offer marrow at the fire<br>
     no stamina, only nerve &middot; best in landscape
   </div>
 </div>
@@ -745,7 +774,37 @@ const AudioSys=(()=>{
   }
   const rr2=(a,b)=>a+Math.random()*(b-a);
   const now=()=>ac?ac.currentTime:0;
+  // boss fight layer: tremolo drone that quickens with the Warden's rage
+  let bossN=null;
+  function bossMusic(level){
+    if(!ac)return;
+    if(level===0){
+      if(bossN){const n=bossN;bossN=null;
+        n.g.gain.cancelScheduledValues(ac.currentTime);
+        n.g.gain.setValueAtTime(n.g.gain.value,ac.currentTime);
+        n.g.gain.linearRampToValueAtTime(0,ac.currentTime+1.2);
+        setTimeout(()=>{n.stop.forEach(o=>{try{o.stop();}catch(e){}});},1400);}
+      return;
+    }
+    if(!bossN){
+      const g=ac.createGain();g.gain.value=0;g.connect(master);
+      const trem=ac.createGain();trem.gain.value=.5;trem.connect(g);
+      const lfo=ac.createOscillator();lfo.frequency.value=2.1;
+      const lg=ac.createGain();lg.gain.value=.45;lfo.connect(lg).connect(trem.gain);
+      const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=420;
+      f.connect(trem);
+      const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=55;
+      const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=82.4;
+      o1.connect(f);o2.connect(f);
+      o1.start();o2.start();lfo.start();
+      bossN={g,lfo,o2,stop:[o1,o2,lfo]};
+    }
+    bossN.g.gain.linearRampToValueAtTime(level===2?.11:.07,ac.currentTime+(level===2?.5:2.5));
+    bossN.lfo.frequency.setValueAtTime(level===2?3.7:2.1,ac.currentTime);
+    bossN.o2.frequency.setValueAtTime(level===2?65.4:82.4,ac.currentTime);
+  }
   return {
+    bossMusic,
     start,
     swing(){noise(now(),{peak:.22,att:.02,dec:.16,f0:900,f1:2600,type:'bandpass',Q:1.6});},
     heavySwing(){noise(now(),{peak:.3,att:.04,dec:.3,f0:500,f1:1800,type:'bandpass',Q:1.4});},
@@ -787,6 +846,10 @@ const AudioSys=(()=>{
     blockClank(){const t=now();
       tone(t,{f:520,f2:340,type:'square',peak:.12,dec:.1});
       noise(t,{peak:.2,att:.002,dec:.09,f0:3000,f1:700});},
+    guardBreak(){const t=now();
+      tone(t,{f:240,f2:55,type:'square',peak:.26,dec:.32});
+      noise(t,{peak:.3,att:.003,dec:.26,f0:2600,f1:280});},
+    windup(){noise(now(),{peak:.11,att:.14,dec:.14,f0:280,f1:1900,type:'bandpass',Q:2.2});},
     victory(){const t=now();
       [220,277,330,440,554].forEach((f,i)=>tone(t+i*.22,{f,f2:f,type:'triangle',peak:.12,dec:1.6}));},
   };
@@ -800,7 +863,7 @@ const Input=(()=>{
     swipe:null,           // {kind:'atk'|'dodge', sx,sy} — sx/sy null for keyboard
     blockHeld:false,chargeHeld:false,
     flaskPressed:false,lockPressed:false,
-    interactPressed:false,
+    interactPressed:false,interact2Pressed:false,
     anyPressed:false,
   };
   const keys={};
@@ -825,6 +888,7 @@ const Input=(()=>{
   bindBtn($('btnFlask'),()=>{st.flaskPressed=true;});
   bindBtn($('btnLock'),()=>{st.lockPressed=true;});
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
+  $('prompt2').addEventListener('pointerdown',e=>{e.preventDefault();st.interact2Pressed=true;});
 
   const ctl=$('controls');
   let camLX=null,camLY=null;
@@ -892,6 +956,8 @@ const Input=(()=>{
         const dist=Math.hypot(dx,dy),ms=performance.now()-gesture.t0;
         if(dist>=SWIPE_DIST&&ms<=SWIPE_MS+90&&Math.abs(dy)>=dist*.38)
           st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
+        else if(dist<14&&ms<=260)
+          st.swipe={kind:'atk',sx:null,sy:null}; // plain tap = straight strike
       }
       camId=null;gesture=null;
     }
@@ -908,6 +974,7 @@ const Input=(()=>{
     if(e.code==='KeyF')st.flaskPressed=true;
     if(e.code==='KeyQ'||e.code==='Tab'){st.lockPressed=true;e.preventDefault();}
     if(e.code==='KeyE')st.interactPressed=true;
+    if(e.code==='KeyB')st.interact2Pressed=true;
   });
   addEventListener('keyup',e=>{keys[e.code]=false;});
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
@@ -928,7 +995,8 @@ const Input=(()=>{
   }
   function consume(){
     st.swipe=null;
-    st.flaskPressed=false;st.lockPressed=false;st.interactPressed=false;
+    st.flaskPressed=false;st.lockPressed=false;
+    st.interactPressed=false;st.interact2Pressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
   return {st,poll,consume};
@@ -953,6 +1021,7 @@ for(let i=0;i<PATH_PTS.length-1;i++){
   addSeg(a[0],a[1],b[0],b[1],3.4);
 }
 addCircle(MID[0],MID[1],MID_R);
+addCircle(5,25,2.4);   // grave pocket where a bone-thrower posts up
 addSeg(GATE_A[0],GATE_A[1],GATE_B[0],GATE_B[1],2.4);
 addSeg(GATE_B[0],GATE_B[1],ARENA[0],ARENA[1]-ARENA_R+2,2.4);
 addCircle(ARENA[0],ARENA[1],ARENA_R);
@@ -1565,15 +1634,15 @@ function makeKnightRig(){
     weapon:'sword',shield:true,shieldMat:mat('iron'),
   });
 }
-function makeHollowRig(big){
+function makeHollowRig(big,caster){
   const boneM=mat('bone');
   return buildHumanoid({
-    scale:big?1.32:.95,
+    scale:big?1.32:caster?.9:.95,
     torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:boneM,
     bladeMat:mat('blade'),gripMat:mat('bark'),
-    weapon:big?'club':'sword',
-    skeletal:true,hunch:big?.22:.3,
-    eyes:big?0x86d9c2:undefined,
+    weapon:big?'club':caster?null:'sword',
+    skeletal:true,hunch:big?.22:caster?.38:.3,
+    eyes:big?0x86d9c2:caster?0x9fe06a:undefined,
   });
 }
 function makeWardenRig(){
@@ -1646,6 +1715,36 @@ function slashArc(parentX,parentZ,y,facing,color){
   }});
 }
 
+/* thrown bone: dodge it, block it, or wear it */
+let boneProjMat=null;
+function throwBone(x,z,tx,tz,dmg){
+  if(!boneProjMat)boneProjMat=mat('bone');
+  const m=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.44),boneProjMat);
+  const dx=tx-x,dz=tz-z,l=Math.hypot(dx,dz)||1;
+  const vx=dx/l*11,vz=dz/l*11;
+  m.position.set(x+dx/l*.5,1.35,z+dz/l*.5);
+  m.rotation.y=Math.atan2(vx,vz);
+  scene.add(m);
+  AudioSys.swing();
+  let life=0;
+  effects.push({update(dt){
+    life+=dt;
+    m.position.x+=vx*dt;m.position.z+=vz*dt;
+    m.rotation.x+=13*dt;
+    const done=()=>{scene.remove(m);m.geometry.dispose();return false;};
+    if(player.state!=='dead'&&
+       Math.hypot(player.x-m.position.x,player.z-m.position.z)<.55){
+      const res=player.takeHit(dmg,m.position.x-vx*.2,m.position.z-vz*.2,false);
+      if(res!=='iframe'){ // grace lets it whistle past
+        boneBurst(m.position.x,1.2,m.position.z,0xcfc4a3,4,2);
+        return done();
+      }
+    }
+    if(life>2.4)return done();
+    return true;
+  }});
+}
+
 /* ---------------- global game state ---------------- */
 const G={
   mode:'title',        // title | play | dead | victory
@@ -1654,6 +1753,7 @@ const G={
   hitstop:0,
   lockTarget:null,
   checkpoint:{x:0,z:-1},
+  vigorCost:200,
   bossActive:false,bossDead:false,
   marrowDrop:null,
   vibr(ms){try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}},
@@ -1696,23 +1796,36 @@ const player={
       this.rig.bladeMesh.material.emissive.setHex(0x8a4f16);
   },
   iframes(){return this.state==='roll'&&this.t>.03&&this.t<.38;},
-  takeHit(dmg,fx,fz){
-    if(this.state==='dead'||this.state==='rest'||G.mode!=='play')return;
-    if(this.iframes()){AudioSys.parryTick();return;}
-    if(this.hurtGrace>0)return;
-    // shield: soaks most of a hit that lands on your front arc
+  takeHit(dmg,fx,fz,heavy){
+    if(this.state==='dead'||this.state==='rest'||G.mode!=='play')return 'immune';
+    if(this.iframes()){AudioSys.parryTick();return 'iframe';}
+    if(this.hurtGrace>0)return 'immune';
+    // shield: soaks light hits on the front arc — heavy blows break guard
     if(this.blocking){
       const dx=fx-this.x,dz=fz-this.z,l=Math.hypot(dx,dz)||1;
       const front=(Math.sin(this.facing)*dx+Math.cos(this.facing)*dz)/l;
       if(front>0.25){
+        if(heavy){ // guard broken: the shield beats pokes, not slams
+          dmg=Math.ceil(dmg*.6);
+          this.hp-=dmg;this.hurtGrace=.9;
+          AudioSys.guardBreak();G.vibr([50,40,90]);
+          G.hitstop=Math.max(G.hitstop,.08);G.camShake=Math.max(G.camShake,.4);
+          $('hurt').style.opacity=1;setTimeout(()=>$('hurt').style.opacity=0,120);
+          boneBurst(this.x+Math.sin(this.facing)*.7,1.1,this.z+Math.cos(this.facing)*.7,0xd8d2b8,8,2.5);
+          if(this.hp<=0){this.die();return 'dead';}
+          this.state='hurt';this.t=0;this.hurtDur=.72;
+          this.vx=-dx/l*6.5;this.vz=-dz/l*6.5;
+          toast('guard broken');
+          return 'break';
+        }
         dmg=Math.ceil(dmg*.25);
         this.hp-=dmg;this.hurtGrace=.45;
         AudioSys.blockClank();G.vibr(30);
         G.camShake=Math.max(G.camShake,.14);
         boneBurst(this.x+Math.sin(this.facing)*.6,1.1,this.z+Math.cos(this.facing)*.6,0xd8d2b8,3,1.5);
         this.vx=-dx/l*2.2;this.vz=-dz/l*2.2;
-        if(this.hp<=0)this.die();
-        return;
+        if(this.hp<=0){this.die();return 'dead';}
+        return 'blocked';
       }
     }
     this.hp-=dmg;
@@ -1722,9 +1835,10 @@ const player={
     $('hurt').style.opacity=1;setTimeout(()=>$('hurt').style.opacity=0,120);
     this.flash(true);setTimeout(()=>this.flash(false),130);
     const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
-    if(this.hp<=0){this.die();return;}
-    this.state='hurt';this.t=0;
+    if(this.hp<=0){this.die();return 'dead';}
+    this.state='hurt';this.t=0;this.hurtDur=.38;
     this.vx=dx/l*5;this.vz=dz/l*5;
+    return 'hit';
   },
   die(){
     this.hp=0;this.state='dead';this.t=0;
@@ -1915,7 +2029,7 @@ const player={
     else if(this.state==='hurt'){
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
-      if(this.t>=.38)this.state='free';
+      if(this.t>=(this.hurtDur||.38))this.state='free';
     }
     else if(this.state==='rest'){
       if(this.t>=2.2)this.state='free';
@@ -1952,7 +2066,7 @@ const player={
     else if(this.state==='attack')poseLight(r,Math.min(1,this.t/.48),this.combo);
     else if(this.state==='heavyatk')poseHeavy(r,Math.min(1,this.t/.92));
     else if(this.state==='flask'){poseDrink(r,this.t);if(this.moveAmt>.05)poseWalk(r,t,.4,false);}
-    else if(this.state==='hurt')poseStagger(r,this.t/.38);
+    else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
     else if(this.state==='rest')poseRest(r,Math.min(1,this.t));
 
@@ -1969,20 +2083,22 @@ class Enemy{
   constructor(kind,x,z,opts){
     opts=opts||{};
     this.kind=kind;
-    this.big=kind==='big';this.boss=kind==='boss';
+    this.big=kind==='big';this.boss=kind==='boss';this.caster=kind==='caster';
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=opts.facing||Math.PI;
     this.radius=this.boss?.8:this.big?.55:.4;
-    this.maxHp=this.boss?420:this.big?95:42;
+    this.maxHp=this.boss?380:this.big?95:this.caster?36:42;
     this.hp=this.maxHp;
-    this.speed=this.boss?2.7:this.big?2.1:2.5;
-    this.dmg=this.boss?26:this.big?24:14;
-    this.aggroR=opts.ambush?4.2:10;
+    this.speed=this.boss?2.7:this.big?2.1:this.caster?2.3:2.5;
+    this.dmg=this.boss?26:this.big?24:this.caster?12:14;
+    this.aggroR=opts.ambush?4.2:this.caster?11:10;
     this.ambush=!!opts.ambush;
-    this.poise=0;this.poiseMax=this.boss?11:this.big?5:3;
-    this.marrow=this.boss?800:this.big?120:35;
+    this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
+    this.marrow=this.boss?800:this.big?120:this.caster?45:35;
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
-    this.phase2=false;this.vx=0;this.vz=0;
-    this.rig=this.boss?makeWardenRig():makeHollowRig(this.big);
+    this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;
+    // heavy blows break a raised guard; pokes don't
+    this.heavyHitter=this.boss||this.big;
+    this.rig=this.boss?makeWardenRig():makeHollowRig(this.big,this.caster);
     this.reach=this.boss?3.4:this.big?2.4:2.15;
     scene.add(this.rig.root);
     this.mats=[];
@@ -1997,10 +2113,10 @@ class Enemy{
     this.rig.root.rotation.x=0;
     this.rig.root.position.y=this.boss?0:-1.6;   // hollows wait under the soil
     if(this.boss)this.facing=Math.PI;            // kneeling, facing the door
-    if(this.rig.eyes)for(const e of this.rig.eyes)e.material.color.setHex(this.boss?0x551815:0x2c4a42);
+    if(this.rig.eyes)for(const e of this.rig.eyes)
+      e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:0x2c4a42);
   }
-  flash(){for(const m of this.mats)m.emissive.setHex(0x6e1410);
-    setTimeout(()=>{for(const m of this.mats)m.emissive.setHex(0x000000);},110);}
+  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
   takeHit(dmg,poise,fx,fz,kb){
     if(this.hp<=0)return;
     this.hp-=dmg;this.flash();
@@ -2019,7 +2135,7 @@ class Enemy{
     if(this.boss&&!this.phase2&&this.hp<this.maxHp*.5){
       this.phase2=true;
       if(this.rig.eyes)for(const e of this.rig.eyes)e.material.color.setHex(0xff4422);
-      AudioSys.roar();G.camShake=.5;
+      AudioSys.roar();AudioSys.bossMusic(2);G.camShake=.5;
       bannerShow('THE MARROW STIRS','the warden remembers its rage');
     }
   }
@@ -2053,19 +2169,27 @@ class Enemy{
         break;
       case 'chase':{
         faceP(6);
-        if(dist>this.reach*.72){
+        if(this.caster){
+          // bone-thrower keeps its distance and lobs
           const l=dist||1;
-          this.x+=dx/l*this.speed*(this.boss&&this.phase2?1.3:1)*dt;
-          this.z+=dz/l*this.speed*(this.boss&&this.phase2?1.3:1)*dt;
-        }
-        const inRange=dist<this.reach*.85;
-        if(this.boss){
-          if(dist>6.2&&this.t>.6){this.begin('lunge');}
-          else if(inRange&&this.t>.4){
-            this.begin(Math.random()<.5?'slam':'sweep');
+          if(dist<5.5){this.x-=dx/l*this.speed*dt;this.z-=dz/l*this.speed*dt;}
+          else if(dist>11){this.x+=dx/l*this.speed*dt;this.z+=dz/l*this.speed*dt;}
+          if(dist>3.2&&dist<13&&this.t>1.2)this.begin('throw');
+        }else{
+          if(dist>this.reach*.72){
+            const l=dist||1;
+            this.x+=dx/l*this.speed*(this.boss&&this.phase2?1.3:1)*dt;
+            this.z+=dz/l*this.speed*(this.boss&&this.phase2?1.3:1)*dt;
           }
-        }else if(inRange&&this.t>.25){
-          this.begin(this.big?(Math.random()<.4?'sweep':'chop'):'chop');
+          const inRange=dist<this.reach*.85;
+          if(this.boss){
+            if(dist>6.2&&this.t>.6){this.begin('lunge');}
+            else if(inRange&&this.t>.4){
+              this.begin(Math.random()<.5?'slam':'sweep');
+            }
+          }else if(inRange&&this.t>.25){
+            this.begin(this.big?(Math.random()<.4?'sweep':'chop'):'chop');
+          }
         }
         // lose interest far from home, and never cross the fog gate
         if(!this.boss&&(dist>16||this.z>GATE_B[1]-.6)){this.state='return';}
@@ -2088,25 +2212,27 @@ class Enemy{
         }
         break;}
       case 'strike':{
-        const sd=this.attack==='lunge'?.4:.18;
+        const sd=this.attack==='lunge'?.4:this.attack==='throw'?.26:.18;
         if(this.attack==='lunge'){
           this.x+=this.vx*dt;this.z+=this.vz*dt;
           this.vx*=Math.pow(.1,dt);this.vz*=Math.pow(.1,dt);
           if(!this.hitDone&&dist<this.reach*.75){
-            this.hitDone=true;P.takeHit(this.dmg,this.x,this.z);
+            this.hitDone=true;P.takeHit(this.dmg,this.x,this.z,true);
           }
         }else if(!this.hitDone&&this.t>=sd*.45){
           this.hitDone=true;
-          if(this.attack==='slam'){
+          if(this.attack==='throw'){
+            throwBone(this.x,this.z,P.x,P.z,this.dmg);
+          }else if(this.attack==='slam'){
             AudioSys.slam();G.camShake=Math.max(G.camShake,.45);
             shockRing(this.x+Math.sin(this.facing)*1.6,this.z+Math.cos(this.facing)*1.6,0xd8b34a,4.2,.5);
             const sx=this.x+Math.sin(this.facing)*1.6,sz=this.z+Math.cos(this.facing)*1.6;
             const sd2=Math.hypot(P.x-sx,P.z-sz);
-            if(sd2<3.6)P.takeHit(this.dmg+6,sx,sz);
+            if(sd2<3.6)P.takeHit(this.dmg+6,sx,sz,true);
           }else{
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             const arc=this.attack==='sweep'?1.9:1.05;
-            if(dist<this.reach&&ang<arc)P.takeHit(this.dmg,this.x,this.z);
+            if(dist<this.reach&&ang<arc)P.takeHit(this.dmg,this.x,this.z,this.heavyHitter);
           }
         }
         if(this.t>=sd){
@@ -2116,7 +2242,8 @@ class Enemy{
         }
         break;}
       case 'recover':
-        if(this.t>=(this.boss?(this.phase2?.55:.85):.8)){this.state='chase';this.t=0;}
+        if(this.caster)faceP(3);
+        if(this.t>=(this.boss?(this.phase2?.55:.85):this.caster?1.3:.8)){this.state='chase';this.t=0;}
         break;
       case 'stagger':
         this.x+=this.vx*dt;this.z+=this.vz*dt;
@@ -2180,13 +2307,21 @@ class Enemy{
     r.root.position.x=this.x;r.root.position.z=this.z;
     if(this.state!=='rise'&&this.state!=='dormant')r.root.position.y=0;
     r.root.rotation.y=this.facing;
+
+    // telegraph glint: windups pulse amber so they read through the fog
+    if(G.time>=this.flashUntil){
+      if(this.state==='windup'){
+        const on=((G.time*14)|0)%2===0;
+        for(const m of this.mats)m.emissive.setHex(on?0x6a4410:0x140b02);
+      }else for(const m of this.mats)m.emissive.setHex(0x000000);
+    }
   }
   begin(atk){
     this.attack=atk;this.state='windup';this.t=0;
-    if(atk==='slam')AudioSys.swing();
+    AudioSys.windup(); // every attack announces itself
   }
   windDur(){
-    const base={chop:this.big?.75:.6,sweep:.7,sweep2:.4,slam:.95,lunge:.5}[this.attack]||.6;
+    const base={chop:this.big?.75:.6,sweep:.7,sweep2:.4,slam:.95,lunge:.5,throw:.8}[this.attack]||.6;
     return this.boss&&this.phase2?base*.72:base;
   }
 }
@@ -2195,10 +2330,12 @@ let boss=null;
 function spawnEnemies(){
   enemies.push(new Enemy('hollow',2.2,13));
   enemies.push(new Enemy('hollow',3.2,19.5,{ambush:true}));
+  enemies.push(new Enemy('caster',4.6,25));            // lobs bones over its kin
   enemies.push(new Enemy('hollow',-0.8,27));
   enemies.push(new Enemy('hollow',-2.4,34.5,{ambush:true}));
   enemies.push(new Enemy('hollow',-0.2,40.5));
   enemies.push(new Enemy('hollow',4.5,41,{ambush:true}));
+  enemies.push(new Enemy('caster',-1.5,45.5,{ambush:true})); // won't snipe the bonfire
   enemies.push(new Enemy('big',0.6,55.5,{ambush:true})); // gate guard, wakes as you near it
   boss=new Enemy('boss',ARENA[0],ARENA[1]+5,{});
   enemies.push(boss);
@@ -2207,7 +2344,7 @@ function respawnWorld(){
   for(const e of enemies){
     if(e.boss){
       if(!G.bossDead){e.reset();G.bossActive=false;$('bossbar').style.display='none';
-        fogGate.visible=true;fogGate.material.opacity=.16;}
+        fogGate.visible=true;fogGate.material.opacity=.16;AudioSys.bossMusic(0);}
       continue;
     }
     e.reset();
@@ -2230,6 +2367,7 @@ function startBossFight(){
   G.bossActive=true;
   boss.state='rise';boss.t=0;boss.rig.root.position.y=0;
   fogGate.visible=false; // never let its additive glow wash the fight
+  AudioSys.bossMusic(1);
   setTimeout(()=>{
     AudioSys.roar();G.camShake=.5;G.vibr([60,40,120]);
     $('bossbar').style.display='block';
@@ -2243,6 +2381,7 @@ function onBossDead(){
   G.hitstop=.45;G.camShake=.5;
   $('bossbar').style.display='none';
   fogGate.visible=false;
+  AudioSys.bossMusic(0);
   setTimeout(()=>{
     bannerShow('THE WARDEN FALLS','claim the path at the far altar');
     AudioSys.victory();
@@ -2267,9 +2406,13 @@ function updateCamera(dt){
     G.camPitch=lerp(G.camPitch,.3,4*dt);
   }
   const dist=5.1,py=1.55;
-  const cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist;
-  const cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist;
+  let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist;
+  let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist;
   const cy=py+Math.sin(G.camPitch)*dist;
+  if(G.bossActive){ // keep the camera off the ossuary walls
+    const ax=cx-ARENA[0],az=cz-ARENA[1],ad=Math.hypot(ax,az),mr=ARENA_R+.2;
+    if(ad>mr){cx=ARENA[0]+ax/ad*mr;cz=ARENA[1]+az/ad*mr;}
+  }
   camTmp.set(cx,Math.max(.5,cy),cz);
   camera.position.lerp(camTmp,1-Math.pow(.0001,dt));
   if(G.camShake>0){
@@ -2288,14 +2431,20 @@ function updateCamera(dt){
 /* ---------------- lock-on ---------------- */
 let lockMarker=null;
 function toggleLock(){
-  if(G.lockTarget){G.lockTarget=null;lockMarker.visible=false;return;}
-  let best=null,bd=15;
-  for(const e of enemies){
-    if(e.hp<=0||e.state==='dormant')continue;
-    const d=Math.hypot(e.x-player.x,e.z-player.z);
-    if(d<bd){bd=d;best=e;}
+  // tap cycles nearest -> next -> ... -> off
+  const cands=enemies
+    .filter(e=>e.hp>0&&e.state!=='dormant'&&Math.hypot(e.x-player.x,e.z-player.z)<15)
+    .sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
+  if(!cands.length){G.lockTarget=null;lockMarker.visible=false;return;}
+  if(!G.lockTarget){G.lockTarget=cands[0];}
+  else{
+    const i=cands.indexOf(G.lockTarget);
+    const next=i+1;
+    if(i===-1)G.lockTarget=cands[0];
+    else if(next>=cands.length){G.lockTarget=null;lockMarker.visible=false;return;}
+    else G.lockTarget=cands[next];
   }
-  if(best){G.lockTarget=best;lockMarker.visible=true;AudioSys.parryTick();}
+  lockMarker.visible=true;AudioSys.parryTick();
 }
 function updateLock(){
   const t=G.lockTarget;
@@ -2336,11 +2485,37 @@ function toast(msg){
   toastTO=setTimeout(()=>t.style.opacity=0,1600);
 }
 
-/* ---------------- interaction ---------------- */
-let promptAction=null;
+/* ---------------- interaction & offerings ---------------- */
+let promptAction=null,shopOpen=false,shopBonfire=null;
+function refreshShop(){
+  $('shopMarrow').textContent=player.marrow;
+  const fMax=player.maxFlasks>=5;
+  $('buyFlask').textContent=fMax?'the vials hold no more':'another vial — 300 marrow';
+  $('buyFlask').disabled=fMax||player.marrow<300;
+  $('buyVigor').textContent='thicken the marrow — +15 vigor — '+G.vigorCost;
+  $('buyVigor').disabled=player.marrow<G.vigorCost;
+}
+function openShop(){shopOpen=true;$('shop').style.display='block';refreshShop();}
+function closeShop(){shopOpen=false;$('shop').style.display='none';}
+$('shopLeave').addEventListener('click',closeShop);
+$('buyFlask').addEventListener('click',()=>{
+  if(player.marrow<300||player.maxFlasks>=5)return;
+  player.marrow-=300;player.maxFlasks++;player.flasks=player.maxFlasks;
+  buildFlasks();AudioSys.flask();refreshShop();updateHUD();
+  toast('a vial takes shape');
+});
+$('buyVigor').addEventListener('click',()=>{
+  if(player.marrow<G.vigorCost)return;
+  player.marrow-=G.vigorCost;
+  player.maxHp+=15;player.hp+=15;
+  G.vigorCost=Math.round(G.vigorCost*1.5/10)*10;
+  AudioSys.chargeReady();refreshShop();updateHUD();
+  toast('the marrow thickens');
+});
 function updateInteract(){
-  const pr=$('prompt');
+  const pr=$('prompt'),pr2=$('prompt2');
   promptAction=null;
+  let offerHere=null;
   if(player.state==='free'&&G.mode==='play'){
     // bonfires
     for(const b of bonfires){
@@ -2351,6 +2526,7 @@ function updateInteract(){
         if(!danger){
           promptAction={type:b.lit?'rest':'kindle',b};
           pr.textContent=b.lit?'rest':'kindle the marrowfire';
+          if(b.lit)offerHere=b;
         }
         break;
       }
@@ -2363,7 +2539,14 @@ function updateInteract(){
       }
     }
   }
-  pr.style.display=promptAction?'block':'none';
+  // walking away closes the offerings
+  if(shopOpen&&(!shopBonfire||Math.hypot(player.x-shopBonfire.x,player.z-shopBonfire.z)>3.2))
+    closeShop();
+  pr.style.display=promptAction&&!shopOpen?'block':'none';
+  pr2.textContent='offer marrow';
+  pr2.style.display=offerHere&&!shopOpen?'block':'none';
+  if(shopOpen)return;
+  if(offerHere&&IN.interact2Pressed){shopBonfire=offerHere;openShop();return;}
   if(promptAction&&IN.interactPressed)doInteract();
 }
 function doInteract(){

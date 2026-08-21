@@ -18,19 +18,31 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 ## Controls (touch)
 
 - **Left thumb** — floating joystick, movement only
-- **Right thumb, hold & drag** — turn the camera
-- **Right thumb, flick up** — quick strike, aimed along your swipe
-  (flick again mid-swing for a 3-hit combo)
+- **Right thumb, tap** — quick strike ahead (or at your lock-on target)
+- **Right thumb, flick up** — aimed strike along your swipe
+  (tap or flick again mid-swing for a 3-hit combo)
 - **Right thumb, flick down** — dodge roll with i-frames, in the
   direction of your swipe (neutral keyboard roll is a backstep)
-- **Block** — hold to raise the shield: hits from your front arc are
-  cut to a quarter, with chip damage
+- **Right thumb, hold & drag** — turn the camera
+- **Block** — hold to raise the shield: light hits from your front arc
+  are cut to a quarter — but heavy blows (the big hollow, the Warden)
+  **break your guard**. Block the pokes, roll the slams.
 - **Charge** — hold ~0.6s until the blade smolders; your next strike
-  flick is the heavy — bigger damage, staggers
-- **Flask** — 3 charges, refilled at marrowfires
-- **Lock** — lock the camera onto the nearest horror
+  is the heavy — bigger damage, staggers
+- **Flask** — refilled at marrowfires
+- **Lock** — tap to lock the nearest horror, tap again to cycle
+  targets, cycle past the last to release
 
 No stamina. Only nerve.
+
+## Marrow
+
+Everything you fell pays marrow, and the marrowfires accept it: buy
+another flask vial, or thicken your marrow for more vigor (max HP, at
+rising cost). Die and you drop every unspent shard where you fell —
+one corpse-run to win it back. Enemy windups flash amber and rasp
+before they land; bone-throwers with green eyes lob shots you can
+sidestep, block, or roll through.
 
 ## The loop
 
