@@ -78,10 +78,19 @@
   .btn span.t{font-size:8px;margin-top:2px;}
   .btn.pressed{background:radial-gradient(circle at 38% 32%, rgba(120,104,70,.9), rgba(30,26,18,.9) 72%);
     color:var(--bone);border-color:var(--bone-dim);}
-  #btnAtk{width:76px;height:76px;right:calc(18px + env(safe-area-inset-right));bottom:calc(74px + env(safe-area-inset-bottom));}
-  #btnRoll{width:60px;height:60px;right:calc(104px + env(safe-area-inset-right));bottom:calc(34px + env(safe-area-inset-bottom));}
-  #btnFlask{width:50px;height:50px;right:calc(118px + env(safe-area-inset-right));bottom:calc(110px + env(safe-area-inset-bottom));}
-  #btnLock{width:44px;height:44px;right:calc(34px + env(safe-area-inset-right));bottom:calc(162px + env(safe-area-inset-bottom));}
+  /* block & charge sit above the right-hand swipe zone */
+  #btnBlock{width:58px;height:58px;right:calc(100px + env(safe-area-inset-right));bottom:calc(170px + env(safe-area-inset-bottom));}
+  #btnCharge{width:58px;height:58px;right:calc(26px + env(safe-area-inset-right));bottom:calc(170px + env(safe-area-inset-bottom));}
+  #btnCharge.charging{border-color:var(--ember);color:var(--ember);}
+  #btnCharge.ready{border-color:var(--ember-hi);color:var(--ember-hi);
+    box-shadow:0 0 18px rgba(240,166,72,.55),inset 0 0 12px rgba(240,166,72,.25);}
+  #btnCharge.ready span.g{color:var(--ember-hi);}
+  #btnFlask{width:50px;height:50px;left:calc(18px + env(safe-area-inset-left));bottom:calc(176px + env(safe-area-inset-bottom));}
+  #btnLock{width:44px;height:44px;right:calc(33px + env(safe-area-inset-right));bottom:calc(244px + env(safe-area-inset-bottom));}
+  #swipeHint{position:absolute;right:calc(34px + env(safe-area-inset-right));
+    bottom:calc(64px + env(safe-area-inset-bottom));pointer-events:none;text-align:center;
+    font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-faint);
+    line-height:2;transition:opacity 1.2s;}
   #stickBase{position:absolute;width:96px;height:96px;border-radius:50%;border:1px solid rgba(133,125,104,.5);
     background:radial-gradient(circle, rgba(10,13,11,.35), rgba(10,13,11,.55));display:none;pointer-events:none;}
   #stickNub{position:absolute;width:40px;height:40px;border-radius:50%;pointer-events:none;display:none;
@@ -158,10 +167,11 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div class="btn" id="btnAtk"><span class="g">&#10013;</span><span class="t">strike</span></div>
-  <div class="btn" id="btnRoll"><span class="g">&#8635;</span><span class="t">roll</span></div>
+  <div class="btn" id="btnBlock"><span class="g">&#11042;</span><span class="t">block</span></div>
+  <div class="btn" id="btnCharge"><span class="g">&#8623;</span><span class="t">charge</span></div>
   <div class="btn" id="btnFlask"><span class="g">&#9673;</span><span class="t">flask</span></div>
   <div class="btn" id="btnLock"><span class="g">&#9678;</span><span class="t">lock</span></div>
+  <div id="swipeHint">flick &#8593; strike &nbsp; flick &#8595; roll<br>hold &amp; drag &mdash; camera</div>
 </div>
 <div id="prompt"></div>
 
@@ -175,9 +185,10 @@
   <div class="rule"></div>
   <div id="begin">touch to begin</div>
   <div class="hint">
-    left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb &mdash; camera<br>
-    strike &middot; hold to strike heavy &middot; roll has grace &middot; no stamina, only nerve<br>
-    best in landscape
+    left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
+    flick up &mdash; strike &middot; flick down &mdash; roll &middot; both follow your swipe<br>
+    hold block to guard &middot; hold charge, then your next strike is the heavy<br>
+    no stamina, only nerve &middot; best in landscape
   </div>
 </div>
 
@@ -770,6 +781,12 @@ const AudioSys=(()=>{
       tone(t,{f:95,f2:28,type:'sine',peak:.42,att:.004,dec:.5});
       noise(t,{peak:.32,att:.002,dec:.35,f0:500,f1:60});},
     parryTick(){tone(now(),{f:1500,f2:1200,type:'square',peak:.05,dec:.05});},
+    chargeReady(){const t=now();
+      tone(t,{f:440,f2:880,type:'triangle',peak:.1,dec:.22});
+      tone(t+.1,{f:1320,f2:1980,type:'sine',peak:.05,dec:.35});},
+    blockClank(){const t=now();
+      tone(t,{f:520,f2:340,type:'square',peak:.12,dec:.1});
+      noise(t,{peak:.2,att:.002,dec:.09,f0:3000,f1:700});},
     victory(){const t=now();
       [220,277,330,440,554].forEach((f,i)=>tone(t+i*.22,{f,f2:f,type:'triangle',peak:.12,dec:1.6}));},
   };
@@ -780,16 +797,18 @@ const Input=(()=>{
   const st={
     mx:0,mz:0,            // move vector (screen-relative, magnitude<=1)
     camDX:0,camDY:0,      // camera drag deltas this frame
-    atkDown:false,atkPressed:false,atkReleased:false,atkHeld:0,
-    rollPressed:false,flaskPressed:false,lockPressed:false,
+    swipe:null,           // {kind:'atk'|'dodge', sx,sy} — sx/sy null for keyboard
+    blockHeld:false,chargeHeld:false,
+    flaskPressed:false,lockPressed:false,
     interactPressed:false,
     anyPressed:false,
   };
   const keys={};
-  let stickId=null,camId=null;
+  let stickId=null,camId=null,gesture=null;
   let stickOX=0,stickOY=0;
   const base=$('stickBase'),nub=$('stickNub');
   const RADIUS=52;
+  const SWIPE_DIST=26,SWIPE_MS=220; // a flick: fast and short
 
   function bindBtn(el,down,up){
     el.addEventListener('pointerdown',e=>{
@@ -800,9 +819,9 @@ const Input=(()=>{
     el.addEventListener('pointerup',release);
     el.addEventListener('pointercancel',release);
   }
-  bindBtn($('btnAtk'),()=>{st.atkDown=true;st.atkPressed=true;st.atkHeld=0;},
-                      ()=>{st.atkDown=false;st.atkReleased=true;});
-  bindBtn($('btnRoll'),()=>{st.rollPressed=true;});
+  let btnBlockDown=false,btnChargeDown=false;
+  bindBtn($('btnBlock'),()=>{btnBlockDown=true;},()=>{btnBlockDown=false;});
+  bindBtn($('btnCharge'),()=>{btnChargeDown=true;},()=>{btnChargeDown=false;});
   bindBtn($('btnFlask'),()=>{st.flaskPressed=true;});
   bindBtn($('btnLock'),()=>{st.lockPressed=true;});
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
@@ -819,7 +838,10 @@ const Input=(()=>{
       base.style.left=(stickOX-48)+'px';base.style.top=(stickOY-48)+'px';
       nub.style.left=(stickOX-20)+'px';nub.style.top=(stickOY-20)+'px';
     }else if(camId===null){
-      camId=e.pointerId;camLX=e.clientX;camLY=e.clientY;
+      // right-side gesture: undecided until it's a flick or a hold
+      camId=e.pointerId;
+      gesture={t0:performance.now(),x0:e.clientX,y0:e.clientY,
+               lx:e.clientX,ly:e.clientY,mode:'pending'};
     }
   });
   ctl.addEventListener('pointermove',e=>{
@@ -836,10 +858,23 @@ const Input=(()=>{
       const l=Math.hypot(st.mx,st.mz);
       if(l>1){st.mx/=l;st.mz/=l;}
       nub.style.left=(e.clientX-20)+'px';nub.style.top=(e.clientY-20)+'px';
-    }else if(e.pointerId===camId&&camLX!==null){
-      // plain client-coordinate deltas: movementX is unreliable for touch
-      st.camDX+=e.clientX-camLX;st.camDY+=e.clientY-camLY;
-      camLX=e.clientX;camLY=e.clientY;
+    }else if(e.pointerId===camId&&gesture){
+      const g=gesture;
+      if(g.mode==='pending'){
+        const dx=e.clientX-g.x0,dy=e.clientY-g.y0;
+        const dist=Math.hypot(dx,dy),ms=performance.now()-g.t0;
+        if(dist>=SWIPE_DIST&&ms<=SWIPE_MS){
+          // a flick: up = strike, down = dodge; direction carries into the action
+          st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
+          g.mode='done';
+        }else if(ms>SWIPE_MS){
+          g.mode='cam';g.lx=e.clientX;g.ly=e.clientY;
+        }
+      }
+      if(g.mode==='cam'){
+        st.camDX+=e.clientX-g.lx;st.camDY+=e.clientY-g.ly;
+        g.lx=e.clientX;g.ly=e.clientY;
+      }
     }
   });
   function endPtr(e){
@@ -847,7 +882,16 @@ const Input=(()=>{
       stickId=null;st.mx=0;st.mz=0;
       base.style.display='none';nub.style.display='none';
     }
-    if(e.pointerId===camId){camId=null;camLX=camLY=null;}
+    if(e.pointerId===camId){
+      // a fast flick can end before any move crossed the threshold
+      if(gesture&&gesture.mode==='pending'){
+        const dx=e.clientX-gesture.x0,dy=e.clientY-gesture.y0;
+        const dist=Math.hypot(dx,dy),ms=performance.now()-gesture.t0;
+        if(dist>=SWIPE_DIST&&ms<=SWIPE_MS+90)
+          st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
+      }
+      camId=null;gesture=null;
+    }
   }
   ctl.addEventListener('pointerup',endPtr);
   ctl.addEventListener('pointercancel',endPtr);
@@ -856,16 +900,13 @@ const Input=(()=>{
   // keyboard fallback for desktop testing
   addEventListener('keydown',e=>{
     if(e.repeat)return;keys[e.code]=true;st.anyPressed=true;
-    if(e.code==='KeyJ'||e.code==='Space'){st.atkDown=true;st.atkPressed=true;st.atkHeld=0;}
-    if(e.code==='KeyK'||e.code==='ShiftLeft')st.rollPressed=true;
+    if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',sx:null,sy:null};
+    if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',sx:null,sy:null};
     if(e.code==='KeyF')st.flaskPressed=true;
     if(e.code==='KeyQ'||e.code==='Tab'){st.lockPressed=true;e.preventDefault();}
     if(e.code==='KeyE')st.interactPressed=true;
   });
-  addEventListener('keyup',e=>{
-    keys[e.code]=false;
-    if(e.code==='KeyJ'||e.code==='Space'){st.atkDown=false;st.atkReleased=true;}
-  });
+  addEventListener('keyup',e=>{keys[e.code]=false;});
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
 
   function poll(dt){
@@ -879,10 +920,11 @@ const Input=(()=>{
     else if(stickId===null){st.mx=0;st.mz=0;}
     if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
-    if(st.atkDown)st.atkHeld+=dt;
+    st.blockHeld=btnBlockDown||!!keys.KeyL;
+    st.chargeHeld=btnChargeDown||!!keys.KeyH;
   }
   function consume(){
-    st.atkPressed=false;st.atkReleased=false;st.rollPressed=false;
+    st.swipe=null;
     st.flaskPressed=false;st.lockPressed=false;st.interactPressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
@@ -1325,6 +1367,13 @@ function buildHumanoid(o){
   const aR=makeArm(1),aL=makeArm(-1);
   rig.armR=aR.sh;rig.foreR=aR.el;rig.armL=aL.sh;rig.foreL=aL.el;
 
+  // strapped kite shield on the left forearm
+  if(o.shield){
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(.5*s,.07*s,.62*s),o.shieldMat||o.limbMat);
+    sh.position.set(-.02*s,-.3*s,.02*s);
+    aL.el.add(sh);rig.shield=sh;
+  }
+
   // weapon in right hand
   if(o.weapon){
     const w=new THREE.Group();w.position.y=-.34*s;aR.el.add(w);rig.weapon=w;
@@ -1334,7 +1383,7 @@ function buildHumanoid(o){
       bl.position.y=-.62*s;
       const gu=new THREE.Mesh(new THREE.BoxGeometry(.3*s,.05*s,.07*s),gripM);
       gu.position.y=-.1*s;
-      w.add(bl,gu);rig.reach=2.3*s;
+      w.add(bl,gu);rig.reach=2.3*s;rig.bladeMesh=bl;
     }else if(o.weapon==='club'){
       const cl=new THREE.Mesh(new THREE.BoxGeometry(.11*s,.9*s,.11*s),gripM);
       cl.position.y=-.5*s;cl.rotation.y=.6;
@@ -1486,6 +1535,15 @@ function poseDrink(r,p){
   r.armL.rotation.x=-1.9*q;r.foreL.rotation.x=-1.1*q;
   r.head.rotation.x-=.4*q;
 }
+// guard: shield raised square to the front
+function poseBlock(r){
+  r.armL.rotation.x=-1.55;r.armL.rotation.z=.5;
+  r.foreL.rotation.x=-.25;
+  r.torso.rotation.y=.24;
+  r.armR.rotation.x=-.3;r.armR.rotation.z=-.35;
+  r.head.rotation.y=-.18;
+  r.body.position.y=r.baseY-.05*r.s;
+}
 function poseRest(r,p){
   const q=easeInOut(Math.min(1,p*2));
   r.body.position.y=r.baseY-.42*r.s*q;
@@ -1501,7 +1559,7 @@ function makeKnightRig(){
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
-    weapon:'sword',
+    weapon:'sword',shield:true,shieldMat:mat('iron'),
   });
 }
 function makeHollowRig(big){
@@ -1602,8 +1660,9 @@ const G={
 const player={
   rig:null,x:0,z:-1,facing:0,
   hp:100,maxHp:100,flasks:3,maxFlasks:3,marrow:0,
-  state:'free',t:0,combo:0,queued:false,heavy:false,hitDone:false,
+  state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,stepT:0,
+  blocking:false,charged:false,chargeT:0,
   mats:[],
   init(){
     this.rig=makeKnightRig();
@@ -1621,14 +1680,38 @@ const player={
     this.state='free';this.t=0;this.hurtGrace=0;
     this.facing=0;
     this.rig.root.rotation.x=0;
+    this.blocking=false;this.useCharge();
     G.lockTarget=null;
   },
-  flash(on){for(const m of this.mats)m.emissive.setHex(on?0x77140f:0x000000);},
+  useCharge(){
+    this.charged=false;this.chargeT=0;
+    if(this.rig.bladeMesh)this.rig.bladeMesh.material.emissive.setHex(0x000000);
+  },
+  flash(on){
+    for(const m of this.mats)m.emissive.setHex(on?0x77140f:0x000000);
+    if(!on&&this.charged&&this.rig.bladeMesh)
+      this.rig.bladeMesh.material.emissive.setHex(0x8a4f16);
+  },
   iframes(){return this.state==='roll'&&this.t>.03&&this.t<.34;},
   takeHit(dmg,fx,fz){
     if(this.state==='dead'||this.state==='rest'||G.mode!=='play')return;
     if(this.iframes()){AudioSys.parryTick();return;}
     if(this.hurtGrace>0)return;
+    // shield: soaks most of a hit that lands on your front arc
+    if(this.blocking){
+      const dx=fx-this.x,dz=fz-this.z,l=Math.hypot(dx,dz)||1;
+      const front=(Math.sin(this.facing)*dx+Math.cos(this.facing)*dz)/l;
+      if(front>0.25){
+        dmg=Math.ceil(dmg*.25);
+        this.hp-=dmg;this.hurtGrace=.45;
+        AudioSys.blockClank();G.vibr(30);
+        G.camShake=Math.max(G.camShake,.14);
+        boneBurst(this.x+Math.sin(this.facing)*.6,1.1,this.z+Math.cos(this.facing)*.6,0xd8d2b8,3,1.5);
+        this.vx=-dx/l*2.2;this.vz=-dz/l*2.2;
+        if(this.hp<=0)this.die();
+        return;
+      }
+    }
     this.hp-=dmg;
     this.hurtGrace=.7;
     G.hitstop=Math.max(G.hitstop,.06);G.camShake=Math.max(G.camShake,.25);
@@ -1698,29 +1781,66 @@ const player={
       mvz= Math.sin(cy)*IN.mx+Math.cos(cy)*IN.mz;
       const l=Math.hypot(mvx,mvz)||1;mvx/=l;mvz/=l;
     }else mAmt=0;
+    // a swipe's screen vector, mapped the same way the stick is
+    const swipeWorld=s=>{
+      const cy=G.camYaw;
+      const wx=-Math.cos(cy)*s.sx+Math.sin(cy)*s.sy;
+      const wz= Math.sin(cy)*s.sx+Math.cos(cy)*s.sy;
+      return Math.atan2(wx,wz);
+    };
+    const startAttack=(s)=>{
+      const heavy=this.charged;
+      if(heavy)this.useCharge();
+      this.state=heavy?'heavyatk':'attack';
+      this.t=0;this.combo=0;this.queued=false;this.qDir=null;this.hitDone=false;
+      if(G.lockTarget)this.facing=Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z);
+      else if(s&&s.sx!==null)this.facing=swipeWorld(s);
+      AudioSys[heavy?'heavySwing':'swing']();
+    };
+    const startDodge=(s)=>{
+      this.state='roll';this.t=0;
+      if(s&&s.sx!==null){const a=swipeWorld(s);this.rollDX=Math.sin(a);this.rollDZ=Math.cos(a);}
+      else if(mAmt>0){this.rollDX=mvx;this.rollDZ=mvz;}
+      else{this.rollDX=-Math.sin(this.facing);this.rollDZ=-Math.cos(this.facing);} // neutral = backstep
+      this.facing=Math.atan2(this.rollDX,this.rollDZ);
+      AudioSys.roll();
+    };
+
+    // heavy charge: hold to fill, keep it until spent
+    if(!this.charged&&this.state!=='dead'){
+      if(IN.chargeHeld){
+        this.chargeT+=dt;
+        if(this.chargeT>=.6){
+          this.charged=true;
+          AudioSys.chargeReady();G.vibr(25);
+          if(this.rig.bladeMesh)this.rig.bladeMesh.material.emissive.setHex(0x8a4f16);
+        }
+      }else this.chargeT=0;
+    }
+    $('btnCharge').classList.toggle('charging',IN.chargeHeld&&!this.charged);
+    $('btnCharge').classList.toggle('ready',this.charged);
 
     // ---- state machine ----
+    this.blocking=this.state==='free'&&IN.blockHeld;
     if(this.state==='free'){
+      const spMul=this.blocking?.45:1;
       if(mAmt>0){
-        const sp=4.5*Math.min(1,mAmt*1.2);
+        const sp=4.5*Math.min(1,mAmt*1.2)*spMul;
         this.x+=mvx*sp*dt;this.z+=mvz*sp*dt;
-        if(!G.lockTarget)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
+        if(!G.lockTarget&&!this.blocking)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
         this.stepT+=dt*sp;
         if(this.stepT>1.6){this.stepT=0;AudioSys.step();}
       }
-      this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
+      this.moveAmt=lerp(this.moveAmt,mAmt*spMul,10*dt);
       if(G.lockTarget)this.facing=angLerp(this.facing,
         Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),10*dt);
-      if(IN.rollPressed){
-        this.state='roll';this.t=0;
-        if(mAmt>0){this.rollDX=mvx;this.rollDZ=mvz;}
-        else{this.rollDX=Math.sin(this.facing);this.rollDZ=Math.cos(this.facing);}
-        this.facing=Math.atan2(this.rollDX,this.rollDZ);
-        AudioSys.roll();
-      }else if(IN.atkPressed){
-        this.state='attack';this.t=0;this.combo=0;this.queued=false;
-        this.heavy=false;this.hitDone=false;
-        AudioSys.swing();
+      else if(this.blocking)this.facing=angLerp(this.facing,G.camYaw+Math.PI,8*dt);
+      // block pushback drift
+      this.x+=this.vx*dt;this.z+=this.vz*dt;
+      this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+      if(IN.swipe){
+        if(IN.swipe.kind==='atk')startAttack(IN.swipe);
+        else startDodge(IN.swipe);
       }else if(IN.flaskPressed&&this.flasks>0&&this.hp<this.maxHp){
         this.state='flask';this.t=0;this.flasks--;this.hitDone=false;
         AudioSys.flask();
@@ -1734,13 +1854,15 @@ const player={
     }
     else if(this.state==='attack'){
       const DUR=.48;
-      // held long enough during windup? commit to the heavy
-      if(!this.heavy&&this.combo===0&&IN.atkDown&&IN.atkHeld>.2&&this.t<.2){
-        this.state='heavyatk';this.t=0;this.hitDone=false;
-        AudioSys.heavySwing();return this.post(dt);
-      }
-      if(IN.atkPressed&&this.t>.15)this.queued=true;
       const p=this.t/DUR;
+      if(IN.swipe){
+        if(IN.swipe.kind==='atk'&&this.t>.15){
+          this.queued=true;
+          this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
+        }else if(IN.swipe.kind==='dodge'&&p>.6){
+          startDodge(IN.swipe);return this.post(dt);
+        }
+      }
       // small forward drive during the swing
       if(p>.3&&p<.6){this.x+=Math.sin(this.facing)*2.2*dt;this.z+=Math.cos(this.facing)*2.2*dt;}
       if(G.lockTarget&&p<.3)this.facing=angLerp(this.facing,
@@ -1751,8 +1873,15 @@ const player={
         if(hit)AudioSys.hit();
       }
       if(p>=1){
-        if(this.queued&&this.combo<2){
+        if(this.queued&&this.charged){ // banked heavy comes out mid-combo
+          const d=this.qDir;this.useCharge();
+          this.state='heavyatk';this.t=0;this.hitDone=false;
+          if(!G.lockTarget&&d!==null)this.facing=d;
+          AudioSys.heavySwing();
+        }else if(this.queued&&this.combo<2){
           this.combo++;this.t=0;this.queued=false;this.hitDone=false;
+          if(!G.lockTarget&&this.qDir!==null)this.facing=this.qDir;
+          this.qDir=null;
           AudioSys.swing();
         }else this.state='free';
       }
@@ -1805,6 +1934,7 @@ const player={
     if(this.state==='free'){
       if(this.moveAmt>.05)poseWalk(r,t,this.moveAmt,false);
       else poseIdle(r,t);
+      if(this.blocking)poseBlock(r);
     }
     else if(this.state==='roll'){
       const p=Math.min(1,this.t/.42);
@@ -2335,6 +2465,7 @@ function frame(now){
   if(G.mode==='play'||G.mode==='dead'){
     if(G.mode==='play'){
       if(IN.lockPressed)toggleLock();
+      if(IN.swipe)$('swipeHint').style.opacity=0;
       player.update(wdt);
       // fog gate trigger
       if(!G.bossDead&&!G.bossActive&&player.z>GATE_B[1]+1.2)startBossFight();

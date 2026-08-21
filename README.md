@@ -11,15 +11,22 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Phone**: serve the repo with any static host (GitHub Pages works) and open
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
-- **Desktop**: just open `index.html`. WASD to move, mouse-free — J/Space
-  strike, K/Shift roll, F flask, Q lock-on, E interact, Z/C orbit camera.
+- **Desktop**: just open `index.html`. WASD to move — J/Space strike,
+  K/Shift roll, hold L to block, hold H to charge the heavy, F flask,
+  Q lock-on, E interact, Z/C orbit camera.
 
 ## Controls (touch)
 
-- **Left thumb** — floating joystick, move
-- **Right thumb** — drag to orbit the camera
-- **Strike** — tap for a 3-hit combo, *hold* for a heavy that staggers
-- **Roll** — invincibility frames, rolls in your input direction
+- **Left thumb** — floating joystick, movement only
+- **Right thumb, hold & drag** — turn the camera
+- **Right thumb, flick up** — quick strike, aimed along your swipe
+  (flick again mid-swing for a 3-hit combo)
+- **Right thumb, flick down** — dodge roll with i-frames, in the
+  direction of your swipe (neutral keyboard roll is a backstep)
+- **Block** — hold to raise the shield: hits from your front arc are
+  cut to a quarter, with chip damage
+- **Charge** — hold ~0.6s until the blade smolders; your next strike
+  flick is the heavy — bigger damage, staggers
 - **Flask** — 3 charges, refilled at marrowfires
 - **Lock** — lock the camera onto the nearest horror
 
