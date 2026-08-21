@@ -32,7 +32,7 @@
   /* ---- atmosphere overlays ---- */
   #vig{position:fixed;inset:0;pointer-events:none;z-index:3;
     background:radial-gradient(ellipse at 50% 45%, transparent 52%, rgba(4,6,5,.55) 100%);}
-  #grain{position:fixed;inset:-64px;pointer-events:none;z-index:4;opacity:.045;}
+  #grain{position:fixed;inset:-64px;pointer-events:none;z-index:4;opacity:.02;}
   #hurt{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .35s;
     background:radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(120,10,10,.55) 100%);}
   #lowhp{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;
@@ -669,7 +669,7 @@ const gradeMat=new THREE.ShaderMaterial({
     '  c*=mix(vec3(1.0),vec3(1.17,1.05,.80),smoothstep(.42,1.0,l));',
     '  c*=vec3(.975,1.025,.99);',
     '  float d=bayer2(gl_FragCoord.xy*.5)*.25+bayer2(gl_FragCoord.xy);',
-    '  c=floor(clamp(c,0.,1.)*31.0+d)/31.0;',
+    '  c=floor(clamp(c,0.,1.)*63.0+d)/63.0;',
     '  gl_FragColor=vec4(c,1.0);',
     '}'].join('\n')});
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
@@ -1410,9 +1410,8 @@ function buildHumanoid(o){
     body.add(M(GBox(.09*s,.06*s,.09*s),limb,0,.05*s,0));           // lumbar
     body.add(M(GBox(.08*s,.06*s,.08*s),limb,0,.12*s,-.01*s));      // spine
   }else{
-    body.add(M(GBox(.44*s,.16*s,.28*s),limb,0,-.03*s,0));          // hip plate
-    const faulds=M(GBox(.5*s,.2*s,.34*s),o.torsoMat,0,-.16*s,0);
-    faulds.rotation.x=.06;body.add(faulds);                        // skirt of tassets
+    body.add(M(GCyl(.2*s,.23*s,.14*s,6),limb,0,-.02*s,0));         // hip girdle
+    body.add(M(GCyl(.21*s,.31*s,.24*s,6),o.torsoMat,0,-.15*s,0));  // flared fauld skirt
   }
 
   /* torso */
@@ -1422,9 +1421,9 @@ function buildHumanoid(o){
     torso.add(cage);
     torso.add(M(GBox(.34*s,.05*s,.07*s),limb,0,.52*s,.05*s));      // clavicle
   }else{
-    const chest=M(GCyl(.26*s,.2*s,.52*s,6),o.chestMat||o.torsoMat,0,.28*s,0); // cuirass
+    const chest=M(GCyl(.26*s,.2*s,.52*s,7),o.chestMat||o.torsoMat,0,.28*s,0); // cuirass
     torso.add(chest);
-    torso.add(M(GBox(.4*s,.07*s,.3*s),limb,0,.04*s,0));            // belt
+    torso.add(M(GCyl(.27*s,.27*s,.06*s,7),limb,0,.04*s,0));        // belt ring
     const tabard=M(GBox(.2*s,.42*s,.03*s),o.torsoMat,0,-.18*s,.15*s);
     tabard.rotation.x=.05;torso.add(tabard);                       // hanging tabard
   }
@@ -1432,14 +1431,17 @@ function buildHumanoid(o){
   /* head */
   const head=new THREE.Group();head.position.y=.58*s;torso.add(head);rig.head=head;
   head.add(M(GCyl(.06*s,.07*s,.1*s,5),limb,0,.03*s,0));            // neck
-  const headMesh=M(GBox(.28*s,.3*s,.28*s),o.headMat,0,.22*s,0);
-  head.add(headMesh);
-  if(sk){                                                           // hanging jaw
+  if(sk){
+    const headMesh=M(GBox(.28*s,.3*s,.28*s),o.headMat,0,.22*s,0);  // skull reads best square
+    head.add(headMesh);
     const jaw=new THREE.Group();jaw.position.set(0,.1*s,.03*s);head.add(jaw);
     jaw.add(M(GBox(.22*s,.07*s,.2*s),limb,0,-.03*s,.03*s));
     jaw.rotation.x=.08;rig.jaw=jaw;
   }else{
-    head.add(M(GBox(.04*s,.12*s,.3*s),limb,0,.4*s,-.02*s));        // helm crest fin
+    // rounded barbute: banded cylinder under a dome, thin crest fin
+    head.add(M(GCyl(.15*s,.16*s,.24*s,7),o.headMat,0,.18*s,0));
+    head.add(M(GSph(.15*s,7,4),o.headMat,0,.3*s,0));
+    head.add(M(GBox(.03*s,.09*s,.26*s),limb,0,.42*s,-.02*s));
   }
   if(o.horns){
     for(const side of[1,-1]){
@@ -1473,7 +1475,7 @@ function buildHumanoid(o){
     sh.add(M(GCyl(armThick[0]*s,armThick[1]*s,.32*s,5),limb,0,-.17*s,0));
     const el=new THREE.Group();el.position.y=-.34*s;sh.add(el);
     el.add(M(GCyl(armThick[1]*s,armThick[1]*.85*s,.3*s,5),limb,0,-.15*s,0));
-    if(!sk)el.add(M(GBox(.09*s,.1*s,.09*s),limb,0,-.34*s,0));       // gauntlet fist
+    if(!sk)el.add(M(GSph(.065*s,5,4),limb,0,-.34*s,0));             // gauntlet fist
     return {sh,el};
   }
   const aR=makeArm(1),aL=makeArm(-1);
@@ -1481,10 +1483,12 @@ function buildHumanoid(o){
 
   /* shield strapped on the left forearm */
   if(o.shield){
+    // round iron shield with a center boss
     const shm=o.shieldMat||limb;
-    const plate=M(GBox(.5*s,.06*s,.62*s),shm,-.02*s,-.3*s,.02*s);
+    const plate=M(GSph(.32*s,8,5),shm,-.02*s,-.3*s,.02*s);
+    plate.scale.set(1,.14,1.08);
     aL.el.add(plate);
-    const knob=M(GSph(.08*s,6,4),shm,-.02*s,-.34*s,.02*s);
+    const knob=M(GSph(.09*s,6,4),shm,-.02*s,-.35*s,.02*s);
     knob.scale.y=.6;aL.el.add(knob);
     rig.shield=plate;
   }
@@ -1529,7 +1533,8 @@ function buildHumanoid(o){
     const kn=new THREE.Group();kn.position.y=-.4*s;hip.add(kn);
     kn.add(M(GSph(sk?.05*s:.07*s,5,4),limb,0,0,0));                 // knee knob / poleyn
     kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*s,5),limb,0,-.21*s,0));
-    kn.add(M(GBox(.11*s,.06*s,.2*s),limb,0,-.42*s,.04*s));          // foot
+    const foot=M(GSph(.075*s,5,4),limb,0,-.42*s,.05*s);             // rounded sabaton
+    foot.scale.set(1.1,.55,1.7);kn.add(foot);
     return {hip,kn};
   }
   const lR=makeLeg(1),lL=makeLeg(-1);
