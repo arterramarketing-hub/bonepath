@@ -80,15 +80,15 @@
   .btn span.t{font-size:8px;margin-top:2px;}
   .btn.pressed{background:radial-gradient(circle at 38% 32%, rgba(120,104,70,.9), rgba(30,26,18,.9) 72%);
     color:var(--bone);border-color:var(--bone-dim);}
-  /* block & charge sit above the right-hand swipe zone */
-  #btnBlock{width:58px;height:58px;right:calc(100px + env(safe-area-inset-right));bottom:calc(170px + env(safe-area-inset-bottom));}
-  #btnCharge{width:58px;height:58px;right:calc(26px + env(safe-area-inset-right));bottom:calc(170px + env(safe-area-inset-bottom));}
+  /* buttons ride the top edges, clear of the thumbs' swipe space */
+  #btnBlock{width:56px;height:56px;right:calc(90px + env(safe-area-inset-right));top:calc(64px + env(safe-area-inset-top));}
+  #btnCharge{width:56px;height:56px;right:calc(20px + env(safe-area-inset-right));top:calc(64px + env(safe-area-inset-top));}
   #btnCharge.charging{border-color:var(--ember);color:var(--ember);}
   #btnCharge.ready{border-color:var(--ember-hi);color:var(--ember-hi);
     box-shadow:0 0 18px rgba(240,166,72,.55),inset 0 0 12px rgba(240,166,72,.25);}
   #btnCharge.ready span.g{color:var(--ember-hi);}
-  #btnFlask{width:50px;height:50px;left:calc(18px + env(safe-area-inset-left));bottom:calc(176px + env(safe-area-inset-bottom));}
-  #btnLock{width:44px;height:44px;right:calc(33px + env(safe-area-inset-right));bottom:calc(244px + env(safe-area-inset-bottom));}
+  #btnFlask{width:50px;height:50px;left:calc(18px + env(safe-area-inset-left));top:calc(84px + env(safe-area-inset-top));}
+  #btnLock{width:44px;height:44px;right:calc(20px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));}
   #swipeHint{position:absolute;right:calc(34px + env(safe-area-inset-right));
     bottom:calc(64px + env(safe-area-inset-bottom));pointer-events:none;text-align:center;
     font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-faint);
@@ -709,6 +709,11 @@ function mat(name,extra){
   const o=Object.assign({map:texCache[name]},extra||{});
   return lam(o);
 }
+// no vertex snap: for huge floor polygons, whose distant corners would
+// otherwise make the whole ground swim as the camera moves
+function matNS(name,extra){
+  return new THREE.MeshLambertMaterial(Object.assign({map:texCache[name]},extra||{}));
+}
 /* ---------------- audio: tiny haunted synth ---------------- */
 const AudioSys=(()=>{
   let ac=null,master=null,noiseBuf=null,started=false;
@@ -1082,8 +1087,8 @@ function buildWorld(){
     grave:mat('grave'),bone:mat('bone'),bark:mat('bark'),iron:mat('iron'),
   };
 
-  // ground
-  const g=new THREE.Mesh(new THREE.PlaneGeometry(240,240,1,1),M.dirt);
+  // ground (unsnapped — see matNS)
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(240,240,1,1),matNS('dirt'));
   M.dirt.map.repeat.set(48,48);
   g.rotation.x=-Math.PI/2;g.position.set(0,0,40);
   world.add(g);
@@ -1107,7 +1112,7 @@ function buildWorld(){
   ribbon.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   ribbon.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
   ribbon.setIndex(idx);ribbon.computeVertexNormals();
-  world.add(new THREE.Mesh(ribbon,M.flag));
+  world.add(new THREE.Mesh(ribbon,matNS('flag')));
 
   // low walls hugging the path
   srand(777);
@@ -1252,7 +1257,8 @@ function buildWorld(){
   // arena floor: worn flagstone disc (own texture clone — UVs span the disc once)
   const discTex=texCache.flag.clone();
   discTex.needsUpdate=true;discTex.repeat.set(9,9);
-  const disc=new THREE.Mesh(new THREE.CircleGeometry(ARENA_R+1,24),lam({map:discTex}));
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(ARENA_R+1,24),
+    new THREE.MeshLambertMaterial({map:discTex}));
   disc.rotation.x=-Math.PI/2;disc.position.set(ARENA[0],0.05,ARENA[1]);
   world.add(disc);
   // candles around the arena rim
@@ -2075,7 +2081,7 @@ const player={
   rig:null,x:0,z:-1,facing:0,
   hp:100,maxHp:100,flasks:3,maxFlasks:3,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
-  rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,stepT:0,
+  rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   blocking:false,charged:false,chargeT:0,
   mats:[],
   init(){
@@ -2272,6 +2278,7 @@ const player={
         if(this.stepT>1.6){this.stepT=0;AudioSys.step();}
       }
       this.moveAmt=lerp(this.moveAmt,mAmt*spMul,10*dt);
+      if(mAmt>0){this.moveX=mvx;this.moveZ=mvz;} // the follow camera reads this
       if(G.lockTarget)this.facing=angLerp(this.facing,
         Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),10*dt);
       else if(this.blocking)this.facing=angLerp(this.facing,G.camYaw+Math.PI,8*dt);
@@ -2734,11 +2741,26 @@ function onBossDead(){
 
 /* ---------------- camera ---------------- */
 const camTmp=V3(0,0,0);
+let camIdle=9,lookX=0,lookY=1.35,lookZ=0;
 function updateCamera(dt){
-  // manual orbit — drag right looks right (view heading turns with −yaw)
+  const dragging=IN.camDX!==0||IN.camDY!==0;
+  if(dragging)camIdle=0;else camIdle+=dt;
   if(!G.lockTarget){
+    // manual orbit — drag right looks right; pitch is gentle and self-righting
     G.camYaw-=IN.camDX*.0062;
-    G.camPitch=clamp(G.camPitch+IN.camDY*.0045,.08,.85);
+    G.camPitch=clamp(G.camPitch+IN.camDY*.002,.12,.6);
+    if(camIdle>.5){
+      // the camera minds itself: pitch drifts home, yaw eases in behind
+      // your run — the drag becomes a correction, not a chore
+      const moving=player.moveAmt>.3&&player.state!=='dead';
+      G.camPitch=lerp(G.camPitch,.34,Math.min(1,(moving?1.1:.35)*dt));
+      if(moving){
+        const wantYaw=Math.atan2(-player.moveX,-player.moveZ);
+        const off=Math.abs(wrapA(wantYaw-G.camYaw));
+        if(off<2.45) // never spin when running toward the camera
+          G.camYaw=angLerp(G.camYaw,wantYaw,Math.min(1,1.1*dt*player.moveAmt));
+      }
+    }
   }else{
     const t=G.lockTarget;
     const want=Math.atan2(player.x-t.x,player.z-t.z);
@@ -2765,7 +2787,10 @@ function updateCamera(dt){
     lx=(player.x+G.lockTarget.x)/2;lz=(player.z+G.lockTarget.z)/2;
     ly=1.5;
   }
-  camera.lookAt(lx,ly,lz);
+  // smoothed gaze so knockbacks and rolls don't jerk the horizon
+  const lk=1-Math.pow(.0005,dt);
+  lookX=lerp(lookX,lx,lk);lookY=lerp(lookY,ly,lk);lookZ=lerp(lookZ,lz,lk);
+  camera.lookAt(lookX,lookY,lookZ);
 }
 
 /* ---------------- lock-on ---------------- */
