@@ -12,8 +12,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
 - **Desktop**: just open `index.html`. WASD to move — J/Space strike,
-  K/Shift roll, hold L to block, hold H to charge the heavy, F flask,
-  Q lock-on, E interact, Z/C orbit camera.
+  K/Shift roll, hold H to charge the heavy, F flask, Q lock-on,
+  E interact, B offerings, Z/C orbit camera.
 
 ## Controls (touch)
 
@@ -24,9 +24,6 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Right thumb, flick down** — dodge roll with i-frames, in the
   direction of your swipe (neutral keyboard roll is a backstep)
 - **Right thumb, hold & drag** — turn the camera
-- **Block** — hold to raise the shield: light hits from your front arc
-  are cut to a quarter — but heavy blows (the big hollow, the Warden)
-  **break your guard**. Block the pokes, roll the slams.
 - **Charge** — hold ~0.6s until the blade smolders; your next strike
   is the heavy — bigger damage, staggers
 - **Flask** — refilled at marrowfires
@@ -63,8 +60,8 @@ Everything is generated at boot inside the one file:
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
-- **Characters** — low-poly articulated rigs (armored knight with cape,
-  shield and crested helm; jawed skeletal hollows with ribcages and joint
+- **Characters** — low-poly articulated rigs (armored knight with cape
+  and crested helm; jawed skeletal hollows with ribcages and joint
   knobs; the horned Warden with a burning heart) with fully procedural
   animation: counter-rotating walk cycles, telegraphed windups, combos,
   rolls, clawing-from-the-grave rises, and deaths that buckle at the

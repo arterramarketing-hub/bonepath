@@ -81,8 +81,7 @@
   .btn.pressed{background:radial-gradient(circle at 38% 32%, rgba(120,104,70,.9), rgba(30,26,18,.9) 72%);
     color:var(--bone);border-color:var(--bone-dim);}
   /* buttons ride the top edges, clear of the thumbs' swipe space */
-  #btnBlock{width:56px;height:56px;right:calc(90px + env(safe-area-inset-right));top:calc(64px + env(safe-area-inset-top));}
-  #btnCharge{width:56px;height:56px;right:calc(20px + env(safe-area-inset-right));top:calc(64px + env(safe-area-inset-top));}
+  #btnCharge{width:56px;height:56px;right:calc(20px + env(safe-area-inset-right));top:calc(70px + env(safe-area-inset-top));}
   #btnCharge.charging{border-color:var(--ember);color:var(--ember);}
   #btnCharge.ready{border-color:var(--ember-hi);color:var(--ember-hi);
     box-shadow:0 0 18px rgba(240,166,72,.55),inset 0 0 12px rgba(240,166,72,.25);}
@@ -187,7 +186,6 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div class="btn" id="btnBlock"><span class="g">&#11042;</span><span class="t">block</span></div>
   <div class="btn" id="btnCharge"><span class="g">&#8623;</span><span class="t">charge</span></div>
   <div class="btn" id="btnFlask"><span class="g">&#9673;</span><span class="t">flask</span></div>
   <div class="btn" id="btnLock"><span class="g">&#9678;</span><span class="t">lock</span></div>
@@ -215,7 +213,7 @@
   <div class="hint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
     tap &mdash; strike &middot; flick up &mdash; aimed strike &middot; flick down &mdash; roll where you swipe<br>
-    block stops light blows &mdash; heavy blows break guard: roll those<br>
+    the roll has grace &mdash; roll through every blow<br>
     hold charge, then your next strike is the heavy &middot; offer marrow at the fire<br>
     no stamina, only nerve &middot; best in landscape
   </div>
@@ -720,7 +718,12 @@ const AudioSys=(()=>{
   function ensure(){
     if(ac)return;
     ac=new (window.AudioContext||window.webkitAudioContext)();
-    master=ac.createGain();master.gain.value=.5;master.connect(ac.destination);
+    master=ac.createGain();master.gain.value=.55;
+    // a gentle bus compressor glues the layered synth voices together
+    const comp=ac.createDynamicsCompressor();
+    comp.threshold.value=-16;comp.knee.value=18;comp.ratio.value=4;
+    comp.attack.value=.004;comp.release.value=.22;
+    master.connect(comp);comp.connect(ac.destination);
     const len=ac.sampleRate*2;
     noiseBuf=ac.createBuffer(1,len,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);
@@ -811,52 +814,88 @@ const AudioSys=(()=>{
   return {
     bossMusic,
     start,
-    swing(){noise(now(),{peak:.22,att:.02,dec:.16,f0:900,f1:2600,type:'bandpass',Q:1.6});},
-    heavySwing(){noise(now(),{peak:.3,att:.04,dec:.3,f0:500,f1:1800,type:'bandpass',Q:1.4});},
+    // blade whips the air: crossing band-swept noise layers + a faint whistle
+    swing(){const t=now();
+      noise(t,{peak:.16,att:.05,dec:.13,f0:500,f1:2400,type:'bandpass',Q:2});
+      noise(t+.02,{peak:.12,att:.03,dec:.1,f0:2800,f1:900,type:'bandpass',Q:1.4});
+      tone(t+.03,{f:rr2(680,760),f2:1500,type:'sine',peak:.02,dec:.1});},
+    heavySwing(){const t=now();
+      noise(t,{peak:.24,att:.09,dec:.24,f0:280,f1:1500,type:'bandpass',Q:1.6});
+      noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
+      tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});},
+    // steel into old bone: low body, mid crunch, dry crack
     hit(){const t=now();
-      tone(t,{f:rr2(190,230),f2:70,type:'square',peak:.16,dec:.12});
-      noise(t,{peak:.3,att:.002,dec:.1,f0:2600,f1:500});},
+      tone(t,{f:rr2(140,170),f2:48,type:'sine',peak:.3,dec:.16});
+      noise(t,{peak:.3,att:.001,dec:.09,f0:3200,f1:700});
+      noise(t+.015,{peak:.16,att:.002,dec:.14,f0:900,f1:250});
+      tone(t+.005,{f:rr2(900,1200),f2:500,type:'square',peak:.045,dec:.05});},
+    // ringing steel: inharmonic partials, slow decay, bright tick on top
     clang(){const t=now();
-      [720,1080,1620].forEach((f,i)=>tone(t,{f:f*rr2(.97,1.03),f2:f*.8,type:'triangle',peak:.1/(i+1),dec:.25}));
-      noise(t,{peak:.2,att:.002,dec:.08,f0:4000,f1:900});},
+      [538,1310,2140,2860].forEach((f,i)=>
+        tone(t,{f:f*rr2(.985,1.015),f2:f*.96,type:'triangle',peak:.09/(i+1),dec:.4+i*.1}));
+      noise(t,{peak:.22,att:.001,dec:.05,f0:6000,f1:1800});},
+    // taking a wound: formant grunt over a dull body thud
     hurt(){const t=now();
-      tone(t,{f:150,f2:55,type:'sawtooth',peak:.28,dec:.28});
-      noise(t,{peak:.24,att:.004,dec:.18,f0:700,f1:150});},
-    roll(){noise(now(),{peak:.16,att:.01,dec:.16,f0:420,f1:110});},
-    step(){noise(now(),{peak:.05,att:.002,dec:.06,f0:500,f1:160});},
+      tone(t,{f:165,f2:62,type:'sawtooth',peak:.2,att:.01,dec:.24});
+      tone(t,{f:330,f2:110,type:'square',peak:.07,att:.01,dec:.14});
+      noise(t,{peak:.2,att:.003,dec:.16,f0:650,f1:130});
+      tone(t+.02,{f:82,f2:40,type:'sine',peak:.22,dec:.18});},
+    // cloth and armor tumbling over dirt
+    roll(){const t=now();
+      noise(t,{peak:.12,att:.01,dec:.1,f0:900,f1:280});
+      noise(t+.09,{peak:.16,att:.008,dec:.16,f0:340,f1:90});
+      tone(t+.1,{f:95,f2:55,type:'sine',peak:.1,dec:.12});},
+    step(){noise(now(),{peak:.045,att:.002,dec:.07,f0:rr2(420,560),f1:150});},
+    // gulp, gulp, warm ember settling in the chest
     flask(){const t=now();
-      tone(t,{f:300,f2:520,type:'sine',peak:.12,dec:.16});
-      tone(t+.16,{f:340,f2:580,type:'sine',peak:.12,dec:.2});
-      tone(t+.34,{f:660,f2:990,type:'sine',peak:.07,dec:.5});},
+      tone(t,{f:320,f2:180,type:'sine',peak:.1,dec:.09});
+      tone(t+.14,{f:360,f2:190,type:'sine',peak:.11,dec:.09});
+      tone(t+.3,{f:420,f2:210,type:'sine',peak:.09,dec:.1});
+      tone(t+.44,{f:520,f2:1040,type:'sine',peak:.05,att:.08,dec:.7});
+      tone(t+.44,{f:780,f2:1560,type:'sine',peak:.03,att:.1,dec:.8});},
+    // fire takes the bones: low swell, crackle train, high shimmer
     kindle(){const t=now();
-      [110,165,220,330].forEach((f,i)=>tone(t+i*.09,{f,f2:f*1.02,type:'sine',peak:.12,dec:1.2}));
-      noise(t,{peak:.1,att:.3,dec:1.2,f0:300,f1:900});},
+      [110,165,220,330].forEach((f,i)=>tone(t+i*.08,{f,f2:f*1.02,type:'sine',peak:.11,att:.05,dec:1.3}));
+      for(let i=0;i<7;i++)
+        noise(t+.15+i*.11+Math.random()*.05,{peak:.05,att:.002,dec:.05,f0:rr2(1800,3400),f1:900});
+      noise(t,{peak:.09,att:.4,dec:1.3,f0:300,f1:1100});},
+    // essence taken: a glassy rising arpeggio
     marrow(){const t=now();
-      tone(t,{f:880,f2:1320,type:'sine',peak:.06,dec:.3});
-      tone(t,{f:1108,f2:1660,type:'sine',peak:.045,dec:.35});},
+      tone(t,{f:880,f2:1320,type:'sine',peak:.05,dec:.3});
+      tone(t+.03,{f:1318,f2:1976,type:'sine',peak:.035,dec:.4});
+      tone(t+.08,{f:2093,f2:2093,type:'sine',peak:.02,dec:.5});},
+    // the bell tolls: inharmonic bell stack over a falling sub
     deathGong(){const t=now();
-      [82,123,164,246].forEach((f,i)=>tone(t,{f:f*1.002,f2:f*.985,type:'sine',peak:.22/(i+1),dec:2.8}));
-      noise(t,{peak:.14,att:.01,dec:1.2,f0:400,f1:60});},
+      [1,2.76,4.07,5.43,6.79].forEach((r,i)=>
+        tone(t,{f:76*r*rr2(.998,1.002),f2:76*r*.985,type:'sine',peak:.2/(i+1),dec:3.2}));
+      tone(t+.05,{f:60,f2:24,type:'sine',peak:.2,att:.02,dec:1.6});
+      noise(t,{peak:.1,att:.01,dec:1.4,f0:400,f1:50});},
+    // the Warden's voice: detuned snarl with a beating throat, torn by noise
     roar(){const t=now();
-      tone(t,{f:180,f2:48,type:'sawtooth',peak:.3,att:.06,dec:1.1});
-      tone(t,{f:92,f2:30,type:'square',peak:.2,att:.06,dec:1.2});
-      noise(t,{peak:.26,att:.05,dec:1.1,f0:900,f1:120});},
+      tone(t,{f:170,f2:44,type:'sawtooth',peak:.26,att:.08,dec:1.2});
+      tone(t,{f:176,f2:47,type:'sawtooth',peak:.18,att:.08,dec:1.1});
+      tone(t,{f:88,f2:28,type:'square',peak:.16,att:.06,dec:1.3});
+      noise(t,{peak:.24,att:.06,dec:1.2,f0:1100,f1:110});
+      noise(t+.5,{peak:.1,att:.05,dec:.7,f0:700,f1:90});},
+    // the earth takes the blow, and gravel answers
     slam(){const t=now();
-      tone(t,{f:95,f2:28,type:'sine',peak:.42,att:.004,dec:.5});
-      noise(t,{peak:.32,att:.002,dec:.35,f0:500,f1:60});},
-    parryTick(){tone(now(),{f:1500,f2:1200,type:'square',peak:.05,dec:.05});},
+      tone(t,{f:80,f2:22,type:'sine',peak:.45,att:.003,dec:.55});
+      noise(t,{peak:.32,att:.002,dec:.3,f0:500,f1:55});
+      for(let i=0;i<4;i++)
+        noise(t+.1+i*.06+Math.random()*.03,{peak:.05,att:.002,dec:.05,f0:rr2(700,1400),f1:250});},
+    parryTick(){tone(now(),{f:1680,f2:2200,type:'sine',peak:.05,dec:.07});},
     chargeReady(){const t=now();
-      tone(t,{f:440,f2:880,type:'triangle',peak:.1,dec:.22});
-      tone(t+.1,{f:1320,f2:1980,type:'sine',peak:.05,dec:.35});},
-    blockClank(){const t=now();
-      tone(t,{f:520,f2:340,type:'square',peak:.12,dec:.1});
-      noise(t,{peak:.2,att:.002,dec:.09,f0:3000,f1:700});},
-    guardBreak(){const t=now();
-      tone(t,{f:240,f2:55,type:'square',peak:.26,dec:.32});
-      noise(t,{peak:.3,att:.003,dec:.26,f0:2600,f1:280});},
-    windup(){noise(now(),{peak:.11,att:.14,dec:.14,f0:280,f1:1900,type:'bandpass',Q:2.2});},
+      tone(t,{f:440,f2:880,type:'triangle',peak:.09,dec:.25});
+      tone(t+.09,{f:1320,f2:1980,type:'sine',peak:.05,dec:.4});
+      noise(t,{peak:.05,att:.15,dec:.3,f0:2000,f1:4200,type:'bandpass',Q:2});},
+    // dry joints cocking back — the warning
+    windup(){const t=now();
+      noise(t,{peak:.1,att:.15,dec:.13,f0:260,f1:2100,type:'bandpass',Q:2.4});
+      tone(t+.05,{f:180,f2:330,type:'triangle',peak:.03,att:.1,dec:.12});},
     victory(){const t=now();
-      [220,277,330,440,554].forEach((f,i)=>tone(t+i*.22,{f,f2:f,type:'triangle',peak:.12,dec:1.6}));},
+      [220,277,330,440,554,659].forEach((f,i)=>{
+        tone(t+i*.2,{f,f2:f,type:'triangle',peak:.1,dec:1.8});
+        tone(t+i*.2,{f:f*2.01,f2:f*2,type:'sine',peak:.03,dec:1.2});});},
   };
 })();
 
@@ -866,7 +905,7 @@ const Input=(()=>{
     mx:0,mz:0,            // move vector (screen-relative, magnitude<=1)
     camDX:0,camDY:0,      // camera drag deltas this frame
     swipe:null,           // {kind:'atk'|'dodge', sx,sy} — sx/sy null for keyboard
-    blockHeld:false,chargeHeld:false,
+    chargeHeld:false,
     flaskPressed:false,lockPressed:false,
     interactPressed:false,interact2Pressed:false,
     anyPressed:false,
@@ -887,8 +926,7 @@ const Input=(()=>{
     el.addEventListener('pointerup',release);
     el.addEventListener('pointercancel',release);
   }
-  let btnBlockDown=false,btnChargeDown=false;
-  bindBtn($('btnBlock'),()=>{btnBlockDown=true;},()=>{btnBlockDown=false;});
+  let btnChargeDown=false;
   bindBtn($('btnCharge'),()=>{btnChargeDown=true;},()=>{btnChargeDown=false;});
   bindBtn($('btnFlask'),()=>{st.flaskPressed=true;});
   bindBtn($('btnLock'),()=>{st.lockPressed=true;});
@@ -995,7 +1033,6 @@ const Input=(()=>{
     else if(stickId===null){st.mx=0;st.mz=0;}
     if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
-    st.blockHeld=btnBlockDown||!!keys.KeyL;
     st.chargeHeld=btnChargeDown||!!keys.KeyH;
   }
   function consume(){
@@ -1487,23 +1524,6 @@ function buildHumanoid(o){
   const aR=makeArm(1),aL=makeArm(-1);
   rig.armR=aR.sh;rig.foreR=aR.el;rig.armL=aL.sh;rig.foreL=aL.el;
 
-  /* shield strapped on the left forearm */
-  if(o.shield){
-    // round iron shield on a strap group: hangs vertical at rest,
-    // poseBlock squares it to the front
-    const shm=o.shieldMat||limb;
-    const grp=new THREE.Group();
-    grp.position.set(-.04*s,-.26*s,.02*s);
-    const plate=M(GSph(.32*s,8,5),shm,0,0,0);
-    plate.scale.set(1,.14,1.08);
-    const knob=M(GSph(.09*s,6,4),shm,0,-.05*s,0);
-    knob.scale.y=.6;
-    grp.add(plate,knob);
-    grp.rotation.x=1.4;                      // face out while the arm hangs
-    aL.el.add(grp);
-    rig.shield=grp;
-  }
-
   /* weapon hangs from the right hand */
   if(o.weapon){
     const w=new THREE.Group();w.position.y=-.34*s;aR.el.add(w);rig.weapon=w;
@@ -1621,7 +1641,6 @@ function resetPose(r){
   r.armR.rotation.set(0,0,-.1);r.foreR.rotation.set(-.25,0,0);
   r.armL.rotation.set(0,0,.1);r.foreL.rotation.set(-.35,0,0);
   if(r.weapon)r.weapon.rotation.set(0,0,0);
-  if(r.shield)r.shield.rotation.set(1.4,0,0);
   r.legR.rotation.set(0,0,0);r.kneeR.rotation.set(0,0,0);
   r.legL.rotation.set(0,0,0);r.kneeL.rotation.set(0,0,0);
   r._spNow=0;
@@ -1809,17 +1828,6 @@ function poseDrink(r,p){
   r.armL.rotation.x=-1.9*q;r.foreL.rotation.x=-1.1*q;
   r.head.rotation.x-=.4*q;
 }
-// guard: shield raised square to the front
-function poseBlock(r){
-  r.armL.rotation.x=-1.55;r.armL.rotation.z=.5;
-  r.foreL.rotation.x=-.25;
-  if(r.shield)r.shield.rotation.x=0;         // face meets the blow
-  r.torso.rotation.y=.24;
-  r.armR.rotation.x=-.3;r.armR.rotation.z=-.35;
-  r.head.rotation.y=-.18;
-  r.body.position.y=r.baseY-.05*r.s;
-  r.legL.rotation.x=-.15;r.legR.rotation.x=.15;       // braced stance
-}
 function poseRest(r,p){
   const q=easeInOut(Math.min(1,p*2));
   r.body.position.y=r.baseY-.42*r.s*q;
@@ -1852,8 +1860,7 @@ function makeKnightRig(){
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
-    weapon:'claymore',shield:true,shieldMat:mat('iron'),
-    clothMat:mat('rag'),
+    weapon:'claymore',clothMat:mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
   });
 }
@@ -1939,7 +1946,9 @@ function bloodDecal(x,z,s){
   // a stain that stays on the path until the oldest are reclaimed
   if(!decalGeo){
     decalGeo=new THREE.CircleGeometry(1,8);
-    decalMats=[0x741210,0x881611,0x5c0d0b].map(c=>new THREE.MeshBasicMaterial({
+    // linear-space values chosen to DISPLAY as deep wine (#5a0f22-ish)
+    // after the renderer's sRGB encode brightens them
+    decalMats=[0x1a0103,0x260105,0x0f0102].map(c=>new THREE.MeshBasicMaterial({
       color:c,transparent:true,opacity:.85,depthWrite:false}));
   }
   const m=new THREE.Mesh(decalGeo,decalMats[(Math.random()*3)|0]);
@@ -1955,7 +1964,7 @@ function bloodSpray(x,y,z,n,pow){
   pow=pow||1;
   for(let i=0;i<n;i++){
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
-      color:[0xa61c1a,0x8c1616,0xc22620][(Math.random()*3)|0],
+      color:[0x320208,0x2a0206,0x3c030a][(Math.random()*3)|0], // displays as wine
       transparent:true,opacity:.95,depthWrite:false}));
     const sc=.1+Math.random()*.09;
     s.scale.set(sc,sc,1);s.position.set(x,y,z);
@@ -2082,7 +2091,7 @@ const player={
   hp:100,maxHp:100,flasks:3,maxFlasks:3,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
-  blocking:false,charged:false,chargeT:0,
+  charged:false,chargeT:0,
   mats:[],
   init(){
     this.rig=makeKnightRig();
@@ -2100,7 +2109,7 @@ const player={
     this.state='free';this.t=0;this.hurtGrace=0;
     this.facing=0;
     this.rig.root.rotation.x=0;
-    this.blocking=false;this.useCharge();
+    this.useCharge();
     G.lockTarget=null;
   },
   useCharge(){
@@ -2117,35 +2126,6 @@ const player={
     if(this.state==='dead'||this.state==='rest'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
     if(this.hurtGrace>0)return 'immune';
-    // shield: soaks light hits on the front arc — heavy blows break guard
-    if(this.blocking){
-      const dx=fx-this.x,dz=fz-this.z,l=Math.hypot(dx,dz)||1;
-      const front=(Math.sin(this.facing)*dx+Math.cos(this.facing)*dz)/l;
-      if(front>0.25){
-        if(heavy){ // guard broken: the shield beats pokes, not slams
-          dmg=Math.ceil(dmg*.6);
-          this.hp-=dmg;this.hurtGrace=.9;
-          AudioSys.guardBreak();G.vibr([50,40,90]);
-          G.hitstop=Math.max(G.hitstop,.08);G.camShake=Math.max(G.camShake,.4);
-          $('hurt').style.opacity=1;setTimeout(()=>$('hurt').style.opacity=0,120);
-          sparkBurst(this.x+Math.sin(this.facing)*.7,1.1,this.z+Math.cos(this.facing)*.7,16);
-          bloodSpray(this.x,1.2,this.z,5);
-          if(this.hp<=0){this.die();return 'dead';}
-          this.state='hurt';this.t=0;this.hurtDur=.72;
-          this.vx=-dx/l*6.5;this.vz=-dz/l*6.5;
-          toast('guard broken');
-          return 'break';
-        }
-        dmg=Math.ceil(dmg*.25);
-        this.hp-=dmg;this.hurtGrace=.45;
-        AudioSys.blockClank();G.vibr(30);
-        G.camShake=Math.max(G.camShake,.14);
-        sparkBurst(this.x+Math.sin(this.facing)*.6,1.1,this.z+Math.cos(this.facing)*.6,8);
-        this.vx=-dx/l*2.2;this.vz=-dz/l*2.2;
-        if(this.hp<=0){this.die();return 'dead';}
-        return 'blocked';
-      }
-    }
     this.hp-=dmg;
     this.hurtGrace=.7;
     G.hitstop=Math.max(G.hitstop,.06);G.camShake=Math.max(G.camShake,.25);
@@ -2267,21 +2247,18 @@ const player={
     $('btnCharge').classList.toggle('ready',this.charged);
 
     // ---- state machine ----
-    this.blocking=this.state==='free'&&IN.blockHeld;
     if(this.state==='free'){
-      const spMul=this.blocking?.45:1;
       if(mAmt>0){
-        const sp=4.5*Math.min(1,mAmt*1.2)*spMul;
+        const sp=4.5*Math.min(1,mAmt*1.2);
         this.x+=mvx*sp*dt;this.z+=mvz*sp*dt;
-        if(!G.lockTarget&&!this.blocking)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
+        if(!G.lockTarget)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
         this.stepT+=dt*sp;
         if(this.stepT>1.6){this.stepT=0;AudioSys.step();}
       }
-      this.moveAmt=lerp(this.moveAmt,mAmt*spMul,10*dt);
+      this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
       if(mAmt>0){this.moveX=mvx;this.moveZ=mvz;} // the follow camera reads this
       if(G.lockTarget)this.facing=angLerp(this.facing,
         Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),10*dt);
-      else if(this.blocking)this.facing=angLerp(this.facing,G.camYaw+Math.PI,8*dt);
       // block pushback drift
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
@@ -2383,7 +2360,6 @@ const player={
     if(this.state==='free'){
       if(this.moveAmt>.05)poseWalk(r,t,this.moveAmt,false);
       else poseIdle(r,t);
-      if(this.blocking)poseBlock(r);
     }
     else if(this.state==='roll'){
       const p=Math.min(1,this.t/.46);
