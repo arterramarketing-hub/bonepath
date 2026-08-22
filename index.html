@@ -1638,9 +1638,16 @@ function resetPose(r){
   r.body.position.y=r.baseY;r.body.rotation.set(0,0,0);
   r.torso.rotation.set(r.hunch,0,0);
   r.head.rotation.set(-r.hunch*.7,0,0);
-  r.armR.rotation.set(0,0,-.1);r.foreR.rotation.set(-.25,0,0);
+  if(r.shoulderRest){
+    // the claymore rides the right shoulder: chain rotations must sum
+    // to ~2.5 rad so the blade points up and back over the trapezius
+    r.armR.rotation.set(-1.0,0,-.35);r.foreR.rotation.set(-1.9,0,0);
+    r.weapon.rotation.set(4.95,0,.3);
+  }else{
+    r.armR.rotation.set(0,0,-.1);r.foreR.rotation.set(-.25,0,0);
+    if(r.weapon)r.weapon.rotation.set(0,0,0);
+  }
   r.armL.rotation.set(0,0,.1);r.foreL.rotation.set(-.35,0,0);
-  if(r.weapon)r.weapon.rotation.set(0,0,0);
   r.legR.rotation.set(0,0,0);r.kneeR.rotation.set(0,0,0);
   r.legL.rotation.set(0,0,0);r.kneeL.rotation.set(0,0,0);
   r._spNow=0;
@@ -1660,8 +1667,12 @@ function poseWalk(r,t,sp,shamble){
   const w=Math.sin(t*f)*amp*sp,w2=Math.cos(t*f)*amp*sp;
   r.legR.rotation.x=w;r.legL.rotation.x=-w;
   r.kneeR.rotation.x=Math.max(0,-w2)*.9;r.kneeL.rotation.x=Math.max(0,w2)*.9;
-  r.armR.rotation.x+=-w*.5;r.armL.rotation.x+=w*.5;
-  r.foreR.rotation.x+=-Math.max(0,w)*.35;r.foreL.rotation.x+=-Math.max(0,-w)*.35; // elbows trail
+  if(!r.shoulderRest){ // the carrying arm stays planted on the shoulder
+    r.armR.rotation.x+=-w*.5;
+    r.foreR.rotation.x+=-Math.max(0,w)*.35;
+  }
+  r.armL.rotation.x+=w*.5;
+  r.foreL.rotation.x+=-Math.max(0,-w)*.35; // elbow trails
   r.body.rotation.y=Math.sin(t*f)*.07*sp;             // hips swing...
   r.torso.rotation.y=-Math.sin(t*f)*.13*sp;           // ...shoulders answer
   r.head.rotation.y=Math.sin(t*f)*.05*sp;             // gaze stays level
@@ -1679,12 +1690,27 @@ function seg3(p,W,H,A,B,C){
   if(p<H)return A+(B-A)*(1-Math.pow(1-(p-W)/(H-W),3.5));
   return B+(C-B)*easeInOut((p-H)/(1-H));
 }
-// light combo: 0 slash R->L, 1 backhand, 2 thrust. p in [0,1]
+// light combo: 0 slash R->L, 1 backhand, 2 overhead, 3 thrust. p in [0,1]
 // Thrown from the ground up: hips coil, trunk wheels, the arm mostly
 // carries — and the blade lags the body, then whips past it.
 function poseLight(r,p,combo){
   const W=.3,H=.62;
-  if(combo===2){ // lunging thrust off the rear leg
+  if(combo===2){ // overhead chop: the blade falls off the shoulder line
+    r.armR.rotation.x=seg3(p,W,H,-2.5,.85,-.35);
+    r.foreR.rotation.x=seg3(p,W,H,-.5,-.05,-.3);
+    r.torso.rotation.x+=seg3(p,W,H,-.22,.42,.12);
+    r.torso.rotation.y=seg3(p,W,H,.28,-.22,0);
+    r.body.rotation.y=seg3(p,W,H,.16,-.13,0);
+    r.head.rotation.x+=seg3(p,W,H,-.16,.22,.05);
+    r.weapon.rotation.x=seg3(p,W,H,-.55,.35,.1);      // blade lags, then bites down
+    r.legL.rotation.x=seg3(p,W,H,-.12,.32,.1);
+    r.kneeL.rotation.x=seg3(p,W,H,.1,.42,.15);
+    r.legR.rotation.x=seg3(p,W,H,.14,-.22,-.06);
+    r.armL.rotation.x+=seg3(p,W,H,.25,-.5,-.15);
+    r.body.position.y=r.baseY-seg3(p,W,H,-.05,.11,.04)*r.s;
+    return;
+  }
+  if(combo===3){ // lunging thrust off the rear leg
     const tw=seg3(p,W,H,.55,-.8,-.22);
     r.torso.rotation.y=tw;
     r.body.rotation.y=tw*.5;
@@ -1856,13 +1882,15 @@ function updateRigExtras(r,dt){
 
 /* factory: the cast */
 function makeKnightRig(){
-  return buildHumanoid({
+  const r=buildHumanoid({
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'claymore',clothMat:mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
   });
+  r.shoulderRest=true;
+  return r;
 }
 function makeHollowRig(big,caster){
   const boneM=mat('bone');
@@ -2220,6 +2248,15 @@ const player={
       this.sfxDone=false;
       if(G.lockTarget)this.facing=Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z);
       else if(s&&s.sx!==null)this.facing=swipeWorld(s);
+      else{ // tap/keyboard: quietly square up to the nearest horror
+        let best=null,bd=3.8;
+        for(const e of enemies){
+          if(e.hp<=0||e.state==='dormant')continue;
+          const d=Math.hypot(e.x-this.x,e.z-this.z);
+          if(d<bd){bd=d;best=e;}
+        }
+        if(best)this.facing=Math.atan2(best.x-this.x,best.z-this.z);
+      }
       if(heavy)AudioSys.heavySwing(); // light whoosh waits for the whip
     };
     const startDodge=(s)=>{
@@ -2289,13 +2326,21 @@ const player={
       }
       // the whoosh rides the whip, not the button press
       if(!this.sfxDone&&p>=.28){this.sfxDone=true;AudioSys.swing();}
-      // step through the cut
-      if(p>.3&&p<.62){this.x+=Math.sin(this.facing)*3.4*dt;this.z+=Math.cos(this.facing)*3.4*dt;}
+      // lunge through the cut — the blade goes and finds them,
+      // but only strides hard when something is there to reach
+      if(p>.28&&p<.62){
+        let sp=3.2;
+        for(const e of enemies){
+          if(e.hp<=0||e.state==='dormant')continue;
+          if(Math.hypot(e.x-this.x,e.z-this.z)<5){sp=6.5;break;}
+        }
+        this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
+      }
       if(G.lockTarget&&p<.3)this.facing=angLerp(this.facing,
         Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),14*dt);
       if(!this.hitDone&&p>=.52){
         this.hitDone=true;
-        const hit=this.meleeHit(13+this.combo*3,2.35,1.15,1,.35);
+        const hit=this.meleeHit(13+this.combo*3,this.combo===3?2.75:2.35,1.15,1,.35);
         if(hit)AudioSys.hit();
       }
       if(p>=1){
@@ -2304,7 +2349,7 @@ const player={
           this.state='heavyatk';this.t=0;this.hitDone=false;
           if(!G.lockTarget&&d!==null)this.facing=d;
           AudioSys.heavySwing();
-        }else if(this.queued&&this.combo<2){
+        }else if(this.queued&&this.combo<3){
           this.combo++;this.t=0;this.queued=false;this.hitDone=false;
           this.sfxDone=false;
           if(!G.lockTarget&&this.qDir!==null)this.facing=this.qDir;
@@ -2440,8 +2485,9 @@ class Enemy{
     if(this.poise>=this.poiseMax){
       this.poise=0;this.state='stagger';this.t=0;
       this.vx=dx/l*kb*4;this.vz=dz/l*kb*4;
-    }else if(!this.boss&&(this.state==='chase'||this.state==='recover')){
-      this.vx=dx/l*kb*2.5;this.vz=dz/l*kb*2.5;
+    }else if(!this.boss){
+      // every landed blow rocks them back a step
+      this.vx=dx/l*kb*5;this.vz=dz/l*kb*5;
     }
     if(this.boss&&!this.phase2&&this.hp<this.maxHp*.5){
       this.phase2=true;
@@ -2566,8 +2612,9 @@ class Enemy{
       case 'dead':
         break;
     }
-    // knockback drift for non-stagger states
-    if(this.state==='chase'||this.state==='recover'){
+    // knockback drift for non-stagger states (boss dashes own its velocity)
+    if(this.state==='chase'||this.state==='recover'||
+       (!this.boss&&(this.state==='windup'||this.state==='strike'))){
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.01,dt);this.vz*=Math.pow(.01,dt);
     }
@@ -2626,11 +2673,13 @@ class Enemy{
     if(this.state!=='rise'&&this.state!=='dormant')r.root.position.y=0;
     r.root.rotation.y=this.facing;
 
-    // telegraph glint: windups pulse amber so they read through the fog
+    // telegraph glint, kept subtle: a low breathing ember — amber for
+    // light attackers, a red undertone for the heavy-handed
     if(G.time>=this.flashUntil){
       if(this.state==='windup'){
-        const on=((G.time*14)|0)%2===0;
-        for(const m of this.mats)m.emissive.setHex(on?0x6a4410:0x140b02);
+        const on=((G.time*11)|0)%2===0;
+        const hex=this.heavyHitter?(on?0x2e0c06:0x180503):(on?0x241704:0x120b02);
+        for(const m of this.mats)m.emissive.setHex(hex);
       }else for(const m of this.mats)m.emissive.setHex(0x000000);
     }
     // the jaw hangs slack, gapes through the windup, snaps on the strike
