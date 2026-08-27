@@ -23,6 +23,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   (tap or flick again mid-swing for a 3-hit combo)
 - **Right thumb, flick down** — dodge roll with i-frames, in the
   direction of your swipe (neutral keyboard roll is a backstep)
+- **Rolling attack** — strike during a roll (or right as it ends) and
+  the knight rises out of the tuck with a fast upward cut that flows
+  into the normal combo
 - **Right thumb, hold & drag** — turn the camera
 - **Charge** — hold ~0.6s until the blade smolders; your next strike
   is the heavy — bigger damage, staggers

@@ -1820,10 +1820,11 @@ function resetPose(r){
   r.torso.rotation.set(r.hunch,0,0);
   r.head.rotation.set(-r.hunch*.7,0,0);
   if(r.shoulderRest){
-    // the claymore rides the right shoulder: chain rotations must sum
-    // to ~2.5 rad so the blade points up and back over the trapezius
-    r.armR.rotation.set(-1.0,0,-.35);r.foreR.rotation.set(-1.9,0,0);
-    r.weapon.rotation.set(4.95,0,.3);
+    // zornhut carry: hand grips the hilt LOW in front of the chest,
+    // elbow relaxed, and the flat of the blade lies on the trapezius —
+    // chain rotations sum to ~2.45 rad so the tip points up and back
+    r.armR.rotation.set(-.5,0,-.15);r.foreR.rotation.set(-1.05,0,0);
+    r.weapon.rotation.set(4.0,0,.32);
   }else{
     r.armR.rotation.set(0,0,-.1);r.foreR.rotation.set(-.25,0,0);
     if(r.weapon)r.weapon.rotation.set(0,0,0);
@@ -1996,6 +1997,25 @@ function poseThrow(r,p,windT){
     r.legL.rotation.x=-.25+.45*q;
     r.head.rotation.y=.3-.4*q;
   }
+}
+// bursting out of the roll: a rising diagonal cut, Souls-style
+function poseRollAtk(r,p){
+  const W=.25,H=.55;
+  const rise=easeOut(Math.min(1,p/.5));
+  r.body.position.y=r.baseY-.34*(1-rise)*1+Math.sin(Math.min(1,p)*Math.PI)*-.03;
+  r.legR.rotation.x=-1.4*(1-rise);r.kneeR.rotation.x=1.9*(1-rise);
+  r.legL.rotation.x=-1.1*(1-rise)+.25*rise;r.kneeL.rotation.x=1.7*(1-rise)+.3*rise;
+  const ty=seg3(p,W,H,-.7,.6,.2);
+  r.torso.rotation.y=ty;
+  r.body.rotation.y=ty*.45;
+  r.torso.rotation.x+=seg3(p,W,H,.4,-.05,.05);       // uncoils as it rises
+  r.armR.rotation.x=seg3(p,W,H,.4,-1.5,-.8);         // blade from low-behind to high
+  r.armR.rotation.z=-.1+seg3(p,W,H,-.35,.25,0);
+  r.foreR.rotation.x=seg3(p,W,H,-.3,-.1,-.3);
+  r.weapon.rotation.z=seg3(p,W,H,.5,-.55,-.1);
+  r.weapon.rotation.y=seg3(p,W,H,.2,-.25,0);
+  r.armL.rotation.x+=seg3(p,W,H,.3,-.4,-.1);
+  r.head.rotation.y=-ty*.6;
 }
 function poseStagger(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
@@ -2300,6 +2320,7 @@ const player={
   hp:100,maxHp:100,flasks:3,maxFlasks:3,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
+  postRollT:9,rollAtkQueued:null,
   charged:false,chargeT:0,
   mats:[],
   init(){
@@ -2403,6 +2424,7 @@ const player={
     const r=this.rig;
     this.t+=dt;
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
+    this.postRollT+=dt;
 
     // desired move vector in world space (camera-relative)
     let mvx=0,mvz=0,mAmt=Math.hypot(IN.mx,IN.mz);
@@ -2421,7 +2443,19 @@ const player={
       const wz=-Math.sin(cy)*s.sx+Math.cos(cy)*s.sy;
       return Math.atan2(wx,wz);
     };
+    // the Souls rolling attack: a rising cut straight out of the roll
+    const startRollAtk=(d)=>{
+      this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;
+      this.queued=false;this.rollAtkQueued=null;
+      if(G.lockTarget)this.facing=Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z);
+      else if(d!==null&&d!==undefined)this.facing=d;
+      // else: keeps the roll's own heading
+    };
     const startAttack=(s)=>{
+      if(this.postRollT<.2){ // fresh out of a roll — the cut rises with you
+        startRollAtk(s&&s.sx!==null?swipeWorld(s):null);
+        return;
+      }
       const heavy=this.charged;
       if(heavy)this.useCharge();
       this.state=heavy?'heavyatk':'attack';
@@ -2446,6 +2480,7 @@ const player={
       else if(mAmt>0){this.rollDX=mvx;this.rollDZ=mvz;}
       else{this.rollDX=-Math.sin(this.facing);this.rollDZ=-Math.cos(this.facing);} // neutral = backstep
       this.facing=Math.atan2(this.rollDX,this.rollDZ);
+      this.rollAtkQueued=null;
       AudioSys.roll();
       boneBurst(this.x,.15,this.z,0x4a463a,4,1.2); // kicked-up dust
     };
@@ -2492,7 +2527,36 @@ const player={
       const p=this.t/.46;
       const sp=12.5*(1-easeIn(Math.min(1,p))*.72);
       this.x+=this.rollDX*sp*dt;this.z+=this.rollDZ*sp*dt;
-      if(p>=1)this.state='free';
+      // attack pressed mid-roll banks a rolling attack
+      if(IN.swipe&&IN.swipe.kind==='atk')
+        this.rollAtkQueued={d:IN.swipe.sx!==null?swipeWorld(IN.swipe):null};
+      if(this.rollAtkQueued&&p>=.55){
+        startRollAtk(this.rollAtkQueued.d);
+      }else if(p>=1){this.state='free';this.postRollT=0;}
+    }
+    else if(this.state==='rollatk'){
+      const DUR=.4,p=this.t/DUR;
+      if(!this.sfxDone&&p>=.15){this.sfxDone=true;AudioSys.swing();}
+      if(p>.1&&p<.5){ // the momentum of the roll carries into the cut
+        this.x+=Math.sin(this.facing)*7.5*dt;this.z+=Math.cos(this.facing)*7.5*dt;
+      }
+      if(!this.hitDone&&p>=.42){
+        this.hitDone=true;
+        const hit=this.meleeHit(17,2.5,1.15,2,.5);
+        if(hit)AudioSys.hit();
+      }
+      if(IN.swipe&&IN.swipe.kind==='atk'&&this.t>.15){
+        this.queued=true;
+        this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
+      }
+      if(p>=1){
+        if(this.queued){ // flows on into the normal chain
+          this.state='attack';this.t=0;this.combo=0;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          if(!G.lockTarget&&this.qDir!==null&&this.qDir!==undefined)this.facing=this.qDir;
+          this.qDir=null;
+        }else this.state='free';
+      }
     }
     else if(this.state==='attack'){
       const DUR=.48;
@@ -2597,6 +2661,7 @@ const player={
       r.foreR.rotation.x=-1.4;r.foreL.rotation.x=-1.4;
     }
     else if(this.state==='attack')poseLight(r,Math.min(1,this.t/.48),this.combo);
+    else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/.4));
     else if(this.state==='heavyatk')poseHeavy(r,Math.min(1,this.t/.92));
     else if(this.state==='flask'){poseDrink(r,this.t);if(this.moveAmt>.05)poseWalk(r,t,.4,false);}
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
