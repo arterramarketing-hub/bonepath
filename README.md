@@ -42,7 +42,7 @@ another flask vial, or thicken your marrow for more vigor (max HP, at
 rising cost). Die and you drop every unspent shard where you fell —
 one corpse-run to win it back. Enemy windups flash amber and rasp
 before they land; bone-throwers with green eyes lob shots you can
-sidestep, block, or roll through.
+sidestep or roll through.
 
 ## The loop
 
@@ -63,12 +63,15 @@ Everything is generated at boot inside the one file:
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
-- **Characters** — low-poly articulated rigs (armored knight with cape
-  and crested helm; jawed skeletal hollows with ribcages and joint
+- **Characters** — low-poly articulated rigs (armored knight with cape,
+  barbute helm, and a colossal claymore that rides sheathed on his back
+  until battle draws it; jawed skeletal hollows with ribcages and joint
   knobs; the horned Warden with a burning heart) with fully procedural
   animation: counter-rotating walk cycles, telegraphed windups, combos,
   rolls, clawing-from-the-grave rises, and deaths that buckle at the
-  knees and crumble into bone piles. Capes drag with movement.
+  knees and crumble into bone piles — all run through critically-damped
+  pose smoothing so every joint eases instead of snapping. Capes drag
+  with movement.
 - **Audio** — synthesized WebAudio: graveyard wind, sub drone, whooshes,
   clangs, the death gong, the Warden's roar.
 - **No dependencies fetched at runtime.** Works offline.

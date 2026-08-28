@@ -1645,8 +1645,10 @@ function buildHumanoid(o){
     torso.add(cage);
     torso.add(M(GBox(.34*s,.05*s,.07*s),limb,0,.52*s,.05*s));      // clavicle
   }else{
-    const chest=M(GCyl(.26*s,.2*s,.52*s,7),o.chestMat||o.torsoMat,0,.28*s,0); // cuirass
+    // V-tapered cuirass: broad chest over a narrow waist
+    const chest=M(GCyl(.3*s,.17*s,.54*s,7),o.chestMat||o.torsoMat,0,.28*s,0);
     torso.add(chest);
+    torso.add(M(GCyl(.155*s,.175*s,.09*s,7),o.torsoMat,0,.6*s,0)); // chainmail collar
     torso.add(M(GCyl(.27*s,.27*s,.06*s,7),limb,0,.04*s,0));        // belt ring
     const tabard=M(GBox(.2*s,.42*s,.03*s),o.torsoMat,0,-.18*s,.15*s);
     tabard.rotation.x=.05;torso.add(tabard);                       // hanging tabard
@@ -1662,10 +1664,10 @@ function buildHumanoid(o){
     jaw.add(M(GBox(.22*s,.07*s,.2*s),limb,0,-.03*s,.03*s));
     jaw.rotation.x=.08;rig.jaw=jaw;
   }else{
-    // rounded barbute: banded cylinder under a dome, thin crest fin
-    head.add(M(GCyl(.15*s,.16*s,.24*s,7),o.headMat,0,.18*s,0));
-    head.add(M(GSph(.15*s,7,4),o.headMat,0,.3*s,0));
-    head.add(M(GBox(.03*s,.09*s,.26*s),limb,0,.42*s,-.02*s));
+    // rounded barbute, slightly smaller for knightly proportions
+    head.add(M(GCyl(.135*s,.145*s,.22*s,7),o.headMat,0,.17*s,0));
+    head.add(M(GSph(.135*s,7,4),o.headMat,0,.28*s,0));
+    head.add(M(GBox(.028*s,.08*s,.24*s),limb,0,.39*s,-.02*s));
   }
   if(o.horns){
     for(const side of[1,-1]){
@@ -1690,9 +1692,9 @@ function buildHumanoid(o){
   function makeArm(side){
     const sh=new THREE.Group();
     sh.position.set(.3*s*side,.47*s,0);torso.add(sh);
-    if(!sk){                                                        // pauldron rides the arm
-      const p=M(GSph(.13*s,6,4),limb,0,.02*s,0);
-      p.scale.y=.75;sh.add(p);
+    if(!sk){                                                        // great pauldron rides the arm
+      const p=M(GSph(.165*s,6,4),limb,0,.04*s,0);
+      p.scale.y=.7;sh.add(p);
     }else{
       sh.add(M(GSph(.055*s,5,4),limb,0,0,0));                       // shoulder knob
     }
@@ -1764,15 +1766,16 @@ function buildHumanoid(o){
     hb.rotation.x=.4;aR.el.add(hb);rig.heldBone=hb;
   }
 
-  /* legs */
+  /* legs (legLen stretches an armored knight toward better proportions) */
   const legThick=sk?[.055,.045]:[.09,.07];
+  const L=o.legLen||1;
   function makeLeg(side){
     const hip=new THREE.Group();hip.position.set(.14*s*side,-.02*s,0);body.add(hip);
-    hip.add(M(GCyl(legThick[0]*s,legThick[1]*s,.38*s,5),limb,0,-.2*s,0));
-    const kn=new THREE.Group();kn.position.y=-.4*s;hip.add(kn);
+    hip.add(M(GCyl(legThick[0]*s,legThick[1]*s,.38*L*s,5),limb,0,-.2*L*s,0));
+    const kn=new THREE.Group();kn.position.y=-.4*L*s;hip.add(kn);
     kn.add(M(GSph(sk?.05*s:.07*s,5,4),limb,0,0,0));                 // knee knob / poleyn
-    kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*s,5),limb,0,-.21*s,0));
-    const foot=M(GSph(.075*s,5,4),limb,0,-.42*s,.05*s);             // rounded sabaton
+    kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*L*s,5),limb,0,-.21*L*s,0));
+    const foot=M(GSph(.075*s,5,4),limb,0,-.42*L*s,.05*s);           // rounded sabaton
     foot.scale.set(1.1,.55,1.7);kn.add(foot);
     return {hip,kn};
   }
@@ -1808,8 +1811,16 @@ function buildHumanoid(o){
     new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.4,depthWrite:false}));
   sh.rotation.x=-Math.PI/2;sh.position.y=.02;root.add(sh);
 
+  // back scabbard mount: hilt rides up over the right shoulder
+  if(o.backMount){
+    const bs=new THREE.Group();
+    bs.position.set(.06*s,.5*s,-.28*s);
+    bs.rotation.set(-.15,0,-.5);
+    torso.add(bs);
+    rig.backSocket=bs;rig.handSocket=aR.el;
+  }
   rig.hunch=o.hunch||0;
-  rig.baseY=0.92*s;
+  rig.baseY=(0.92+((o.legLen||1)-1)*.8)*s;
   rig.capeSway=0;rig._spNow=0;
   return rig;
 }
@@ -1819,15 +1830,15 @@ function resetPose(r){
   r.body.position.y=r.baseY;r.body.rotation.set(0,0,0);
   r.torso.rotation.set(r.hunch,0,0);
   r.head.rotation.set(-r.hunch*.7,0,0);
-  if(r.shoulderRest){
-    // two-handed colossal carry: right hand at the guard, left arm
-    // crossed to the pommel, blade near-level on the right shoulder
+  if(r.armed){
+    // drawn: two-handed ready guard, blade up-forward
     r.armR.rotation.set(CARRY.aRx,0,CARRY.aRz);r.foreR.rotation.set(CARRY.fRx,0,0);
     r.weapon.rotation.set(CARRY.wx,0,CARRY.wz);
     r.armL.rotation.set(CARRY.aLx,0,CARRY.aLz);r.foreL.rotation.set(CARRY.fLx,0,0);
   }else{
+    // sheathed (or a skeleton): arms hang natural
     r.armR.rotation.set(0,0,-.1);r.foreR.rotation.set(-.25,0,0);
-    if(r.weapon)r.weapon.rotation.set(0,0,0);
+    if(r.weapon&&!r.backSocket)r.weapon.rotation.set(0,0,0);
     r.armL.rotation.set(0,0,.1);r.foreL.rotation.set(-.35,0,0);
   }
   r.legR.rotation.set(0,0,0);r.kneeR.rotation.set(0,0,0);
@@ -1849,7 +1860,7 @@ function poseWalk(r,t,sp,shamble){
   const w=Math.sin(t*f)*amp*sp,w2=Math.cos(t*f)*amp*sp;
   r.legR.rotation.x=w;r.legL.rotation.x=-w;
   r.kneeR.rotation.x=Math.max(0,-w2)*.9;r.kneeL.rotation.x=Math.max(0,w2)*.9;
-  if(!r.shoulderRest){ // two-handed carry keeps both hands planted
+  if(!r.armed){ // both hands stay on the drawn sword
     r.armR.rotation.x+=-w*.5;
     r.foreR.rotation.x+=-Math.max(0,w)*.35;
     r.armL.rotation.x+=w*.5;
@@ -1865,9 +1876,23 @@ function poseWalk(r,t,sp,shamble){
   }
   r._spNow=sp;
 }
-/* the knight's shoulder-carry angles — every swing starts and settles here,
-   so the blade visibly leaves the shoulder and returns to it */
-const CARRY={aRx:-.5,aRz:-.15,fRx:-1.05,wx:3.55,wz:.3,aLx:-.6,aLz:-.5,fLx:-.95};
+/* the knight's two-handed ready guard — swings start and settle here.
+   At rest the sword rides his BACK; drawing it snaps to this stance. */
+const CARRY={aRx:-.7,aRz:-.25,fRx:-.7,wx:-1.1,wz:.15,aLx:-.6,aLz:-.45,fLx:-.85};
+/* swap the greatsword between the back scabbard and the hands */
+function attachWeapon(r,toHand){
+  const w=r.weapon,s=r.s;
+  if(!w||!r.backSocket)return;
+  if(toHand){
+    r.handSocket.add(w);
+    w.position.set(0,-.34*s,0);
+  }else{
+    r.backSocket.add(w);
+    w.position.set(0,.18*s,0);
+  }
+  w.rotation.set(0,0,0);
+  if(r._sm)delete r._sm.weapon; // don't smooth across the re-parent
+}
 /* three-beat keyframe: wind to A, whip through to B, settle toward C.
    The whip uses a hard quartic so peak blade speed lands at the hit frame. */
 function seg3(p,W,H,A,B,C){
@@ -1892,7 +1917,7 @@ function poseLight(r,p,combo){
     r.armR.rotation.x=seg4(p,W,H,C.aRx,-2.45,.8,-.3);
     r.armR.rotation.z=seg4(p,W,H,C.aRz,-.2,-.1,C.aRz);
     r.foreR.rotation.x=seg4(p,W,H,C.fRx,-.45,-.05,-.6);
-    r.weapon.rotation.x=seg4(p,W,H,C.wx,-.5,.4,2.3);
+    r.weapon.rotation.x=seg4(p,W,H,C.wx,-.5,.4,-.8);
     r.weapon.rotation.z=seg4(p,W,H,C.wz,.1,-.05,C.wz);
     r.armL.rotation.x=seg4(p,W,H,C.aLx,-2.2,.6,-.35);
     r.armL.rotation.z=seg4(p,W,H,C.aLz,-.3,-.25,C.aLz);
@@ -1914,7 +1939,7 @@ function poseLight(r,p,combo){
     r.armR.rotation.x=seg4(p,W,H,C.aRx,-.75,-1.62,-1.0);
     r.armR.rotation.z=seg4(p,W,H,C.aRz,-.15,.05,C.aRz);
     r.foreR.rotation.x=seg4(p,W,H,C.fRx,-1.0,.05,-.5);
-    r.weapon.rotation.x=seg4(p,W,H,C.wx,.2,.45,1.8);
+    r.weapon.rotation.x=seg4(p,W,H,C.wx,.2,.45,-.9);
     r.weapon.rotation.z=seg4(p,W,H,C.wz,0,0,C.wz);
     r.armL.rotation.x=seg4(p,W,H,C.aLx,-.9,-1.25,-.7);
     r.armL.rotation.z=seg4(p,W,H,C.aLz,-.4,-.25,C.aLz);
@@ -1935,7 +1960,7 @@ function poseLight(r,p,combo){
   r.armR.rotation.x=seg4(p,W,H,C.aRx,-1.05,-1.3,-.7);
   r.armR.rotation.z=seg4(p,W,H,C.aRz,-.45*d-.1,.3*d-.1,C.aRz);
   r.foreR.rotation.x=seg4(p,W,H,C.fRx,-.45,-.1,-.6);
-  r.weapon.rotation.x=seg4(p,W,H,C.wx,.35,-.1,2.2);   // blade off the shoulder, level, back up
+  r.weapon.rotation.x=seg4(p,W,H,C.wx,.35,-.1,-.9);   // blade out of guard, level, and back
   r.weapon.rotation.z=seg4(p,W,H,C.wz,.75*d,-.85*d,C.wz*.5);
   r.weapon.rotation.y=seg4(p,W,H,0,.25*d,-.4*d,0);
   r.armL.rotation.x=seg4(p,W,H,C.aLx,-.95,-1.15,-.65); // left hand rides the grip
@@ -1979,7 +2004,7 @@ function poseHeavy(r,p){
     r.armR.rotation.x=.8-1.0*e;r.armL.rotation.x=.8-1.0*e;
     r.armL.rotation.z=-.25+( C.aLz+.25)*e;
     r.foreR.rotation.x=-.4+(-.7+.4)*e;r.foreL.rotation.x=-.4+(-.7+.4)*e;
-    r.weapon.rotation.x=.55+(2.3-.55)*e;              // and swings back toward the shoulder
+    r.weapon.rotation.x=.55+(-.9-.55)*e;              // and eases back toward the guard
     r.weapon.rotation.z=C.wz*e;
     r.torso.rotation.x=.47-.45*e;
     r.torso.rotation.y=-.25+.25*e;r.body.rotation.y=-.15+.15*e;
@@ -2046,7 +2071,7 @@ function poseRollAtk(r,p){
   r.armR.rotation.x=seg4(p,W,H,-1.2,.4,-1.5,-.8);     // blade from the tuck to high
   r.armR.rotation.z=seg4(p,W,H,C.aRz,-.45,.15,C.aRz);
   r.foreR.rotation.x=seg4(p,W,H,-1.4,-.3,-.1,-.5);
-  r.weapon.rotation.x=seg4(p,W,H,C.wx,.6,-.1,2.2);    // blade sweeps off the back
+  r.weapon.rotation.x=seg4(p,W,H,C.wx,.6,-.1,-.9);    // blade sweeps up out of the rise
   r.weapon.rotation.z=seg4(p,W,H,C.wz,.5,-.55,C.wz*.5);
   r.weapon.rotation.y=seg4(p,W,H,0,.2,-.25,0);
   r.armL.rotation.x=seg4(p,W,H,-1.2,-.9,-1.2,-.65);   // left hand stays on the grip
@@ -2102,7 +2127,27 @@ function poseRest(r,p){
 }
 
 /* secondary motion, applied after the pose each frame */
+const SMOOTH_JOINTS=['body','torso','head','armR','armL','foreR','foreL',
+  'legR','legL','kneeR','kneeL','weapon'];
 function updateRigExtras(r,dt){
+  if(r.smoothPose){
+    // critically-damped blend toward each frame's computed pose: state
+    // changes flow instead of popping, and every motion gains follow-through
+    if(!r._sm)r._sm={};
+    const a=1-Math.exp(-22*dt);
+    for(const k of SMOOTH_JOINTS){
+      const j=r[k];if(!j)continue;
+      const p=r._sm[k];
+      if(!p){r._sm[k]=[j.rotation.x,j.rotation.y,j.rotation.z];continue;}
+      p[0]+=(j.rotation.x-p[0])*a;
+      p[1]+=(j.rotation.y-p[1])*a;
+      p[2]+=(j.rotation.z-p[2])*a;
+      j.rotation.set(p[0],p[1],p[2]);
+    }
+    if(r._smY===undefined)r._smY=r.body.position.y;
+    r._smY+=(r.body.position.y-r._smY)*a;
+    r.body.position.y=r._smY;
+  }
   if(r.cape){
     r.capeSway+=((r._spNow||0)-r.capeSway)*Math.min(1,6*dt);
     const t=G.time,sw=r.capeSway;
@@ -2126,8 +2171,8 @@ function makeKnightRig(){
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'claymore',clothMat:mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
+    backMount:true,legLen:1.15,
   });
-  r.shoulderRest=true;
   return r;
 }
 function makeHollowRig(big,caster){
@@ -2358,10 +2403,13 @@ const player={
   state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
+  armed:false,sheathT:0,
   charged:false,chargeT:0,
   mats:[],
   init(){
     this.rig=makeKnightRig();
+    this.rig.smoothPose=true;
+    attachWeapon(this.rig,false); // starts on the back
     scene.add(this.rig.root);
     // a pale grave-light clings to the cursed — and keeps the phone screen readable
     this.lamp=new THREE.PointLight(0xb8c8c2,.55,8,2);
@@ -2377,7 +2425,12 @@ const player={
     this.facing=0;
     this.rig.root.rotation.x=0;
     this.useCharge();
+    this.armed=false;this.sheathT=0;attachWeapon(this.rig,false);
     G.lockTarget=null;
+  },
+  draw(){
+    if(!this.armed){this.armed=true;attachWeapon(this.rig,true);}
+    this.sheathT=0;
   },
   useCharge(){
     this.charged=false;this.chargeT=0;
@@ -2482,6 +2535,7 @@ const player={
     };
     // the Souls rolling attack: a rising cut straight out of the roll
     const startRollAtk=(d)=>{
+      this.draw();
       this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;
       this.queued=false;this.rollAtkQueued=null;
       if(G.lockTarget)this.facing=Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z);
@@ -2493,6 +2547,7 @@ const player={
         startRollAtk(s&&s.sx!==null?swipeWorld(s):null);
         return;
       }
+      this.draw();
       const heavy=this.charged;
       if(heavy)this.useCharge();
       this.state=heavy?'heavyatk':'attack';
@@ -2517,6 +2572,7 @@ const player={
       else if(mAmt>0){this.rollDX=mvx;this.rollDZ=mvz;}
       else{this.rollDX=-Math.sin(this.facing);this.rollDZ=-Math.cos(this.facing);} // neutral = backstep
       this.facing=Math.atan2(this.rollDX,this.rollDZ);
+      if(this.armed)this.sheathT=0;
       this.rollAtkQueued=null;
       AudioSys.roll();
       boneBurst(this.x,.15,this.z,0x4a463a,4,1.2); // kicked-up dust
@@ -2552,6 +2608,17 @@ const player={
       // block pushback drift
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+      // the sword goes back over the shoulder once the path is quiet
+      if(this.armed){
+        this.sheathT+=dt;
+        if(this.sheathT>3.5){
+          let danger=false;
+          for(const e of enemies)
+            if(e.hp>0&&e.state!=='dormant'&&Math.hypot(e.x-this.x,e.z-this.z)<9){danger=true;break;}
+          if(!danger){this.armed=false;attachWeapon(this.rig,false);}
+          else this.sheathT=2.5; // check again soon
+        }
+      }
       if(IN.swipe){
         if(IN.swipe.kind==='atk')startAttack(IN.swipe);
         else startDodge(IN.swipe);
@@ -2682,6 +2749,7 @@ const player={
     }
 
     // ---- pose ----
+    r.armed=this.armed;
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
