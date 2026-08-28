@@ -1831,7 +1831,7 @@ function resetPose(r){
   r.torso.rotation.set(r.hunch,0,0);
   r.head.rotation.set(-r.hunch*.7,0,0);
   if(r.armed){
-    // drawn: two-handed ready guard, blade up-forward
+    // two-handed shoulder carry: blade rests back over the right pauldron
     r.armR.rotation.set(CARRY.aRx,0,CARRY.aRz);r.foreR.rotation.set(CARRY.fRx,0,0);
     r.weapon.rotation.set(CARRY.wx,0,CARRY.wz);
     r.armL.rotation.set(CARRY.aLx,0,CARRY.aLz);r.foreL.rotation.set(CARRY.fLx,0,0);
@@ -1860,7 +1860,7 @@ function poseWalk(r,t,sp,shamble){
   const w=Math.sin(t*f)*amp*sp,w2=Math.cos(t*f)*amp*sp;
   r.legR.rotation.x=w;r.legL.rotation.x=-w;
   r.kneeR.rotation.x=Math.max(0,-w2)*.9;r.kneeL.rotation.x=Math.max(0,w2)*.9;
-  if(!r.armed){ // both hands stay on the drawn sword
+  if(!r.armed){ // unarmed rigs swing their arms; the knight keeps both hands on the grip
     r.armR.rotation.x+=-w*.5;
     r.foreR.rotation.x+=-Math.max(0,w)*.35;
     r.armL.rotation.x+=w*.5;
@@ -1876,9 +1876,10 @@ function poseWalk(r,t,sp,shamble){
   }
   r._spNow=sp;
 }
-/* the knight's two-handed ready guard — swings start and settle here.
-   At rest the sword rides his BACK; drawing it snaps to this stance. */
-const CARRY={aRx:-.7,aRz:-.25,fRx:-.7,wx:-1.1,wz:.15,aLx:-.6,aLz:-.45,fLx:-.85};
+/* the knight's resting carry — both hands on the grip, the flat of the
+   blade lying back across the right pauldron. Swings haul it off the
+   shoulder (seg4 blends from here) and settle back toward it. */
+const CARRY={aRx:-.7,aRz:-.25,fRx:-.7,wx:-2.3,wz:.15,aLx:-.6,aLz:-.45,fLx:-.85};
 /* swap the greatsword between the back scabbard and the hands */
 function attachWeapon(r,toHand){
   const w=r.weapon,s=r.s;
@@ -2171,7 +2172,7 @@ function makeKnightRig(){
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'claymore',clothMat:mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
-    backMount:true,legLen:1.15,
+    legLen:1.15,
   });
   return r;
 }
@@ -2403,13 +2404,12 @@ const player={
   state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
-  armed:false,sheathT:0,
+  armed:true,sheathT:0,
   charged:false,chargeT:0,
   mats:[],
   init(){
     this.rig=makeKnightRig();
     this.rig.smoothPose=true;
-    attachWeapon(this.rig,false); // starts on the back
     scene.add(this.rig.root);
     // a pale grave-light clings to the cursed — and keeps the phone screen readable
     this.lamp=new THREE.PointLight(0xb8c8c2,.55,8,2);
@@ -2425,13 +2425,10 @@ const player={
     this.facing=0;
     this.rig.root.rotation.x=0;
     this.useCharge();
-    this.armed=false;this.sheathT=0;attachWeapon(this.rig,false);
+    this.armed=true;
     G.lockTarget=null;
   },
-  draw(){
-    if(!this.armed){this.armed=true;attachWeapon(this.rig,true);}
-    this.sheathT=0;
-  },
+  draw(){},
   useCharge(){
     this.charged=false;this.chargeT=0;
     if(this.rig.bladeMesh)this.rig.bladeMesh.material.emissive.setHex(0x000000);
@@ -2608,17 +2605,6 @@ const player={
       // block pushback drift
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
-      // the sword goes back over the shoulder once the path is quiet
-      if(this.armed){
-        this.sheathT+=dt;
-        if(this.sheathT>3.5){
-          let danger=false;
-          for(const e of enemies)
-            if(e.hp>0&&e.state!=='dormant'&&Math.hypot(e.x-this.x,e.z-this.z)<9){danger=true;break;}
-          if(!danger){this.armed=false;attachWeapon(this.rig,false);}
-          else this.sheathT=2.5; // check again soon
-        }
-      }
       if(IN.swipe){
         if(IN.swipe.kind==='atk')startAttack(IN.swipe);
         else startDodge(IN.swipe);

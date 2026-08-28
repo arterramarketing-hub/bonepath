@@ -64,8 +64,9 @@ Everything is generated at boot inside the one file:
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
 - **Characters** — low-poly articulated rigs (armored knight with cape,
-  barbute helm, and a colossal claymore that rides sheathed on his back
-  until battle draws it; jawed skeletal hollows with ribcages and joint
+  barbute helm, and a colossal claymore carried two-handed, its blade
+  resting back across the right pauldron between swings; jawed skeletal
+  hollows with ribcages and joint
   knobs; the horned Warden with a burning heart) with fully procedural
   animation: counter-rotating walk cycles, telegraphed windups, combos,
   rolls, clawing-from-the-grave rises, and deaths that buckle at the
