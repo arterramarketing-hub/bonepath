@@ -12,8 +12,7 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
 - **Desktop**: just open `index.html`. WASD to move — J/Space strike,
-  K/Shift roll, hold H to charge the heavy, F flask, Q lock-on,
-  E interact, B offerings, Z/C orbit camera.
+  K/Shift roll, Q switch target, E interact, B offerings, Z/C orbit camera.
 
 ## Controls (touch)
 
@@ -27,28 +26,28 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   the knight rises out of the tuck with a fast upward cut that flows
   into the normal combo
 - **Right thumb, hold & drag** — turn the camera
-- **Charge** — hold ~0.6s until the blade smolders; your next strike
-  is the heavy — bigger damage, staggers
-- **Flask** — refilled at marrowfires
-- **Lock** — tap to lock the nearest horror, tap again to cycle
-  targets, cycle past the last to release
+- **The eye never closes** — lock-on is always active: any horror in
+  range is marked automatically, and the **target** button switches
+  between them. When nothing stalks you, an ember waymark floats ahead,
+  pointing down the path — to the fog gate, and after the Warden falls,
+  to the altar
 
-No stamina. Only nerve.
+No flask. No stamina. Only nerve.
 
 ## Marrow
 
-Everything you fell pays marrow, and the marrowfires accept it: buy
-another flask vial, or thicken your marrow for more vigor (max HP, at
-rising cost). Die and you drop every unspent shard where you fell —
+Everything you fell pays marrow, and the marrowfires accept it:
+thicken your marrow for more vigor (max HP, at rising cost). Die and
+you drop every unspent shard where you fell —
 one corpse-run to win it back. Enemy windups flash amber and rasp
 before they land; bone-throwers with green eyes lob shots you can
 sidestep or roll through.
 
 ## The loop
 
-Kindle the marrowfire. Walk the path through the hollows. Rest to heal,
-refill flasks, and set your checkpoint — but resting raises everything you
-killed. Die and you drop your marrow where you fell; walk back and reclaim
+Kindle the marrowfire. Walk the path through the hollows. Rest to heal
+and set your checkpoint — but resting raises everything you killed, and
+the fires are the only healing there is. Die and you drop your marrow where you fell; walk back and reclaim
 it, or lose it to your next death. Past the fog gate the **Gravewarden of
 the Bone Path** waits, with a second phase when its rage remembers itself.
 Fell it, claim the altar, and the path is walked.

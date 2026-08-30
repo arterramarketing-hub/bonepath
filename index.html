@@ -50,12 +50,6 @@
   #hpfill{height:100%;width:100%;background:linear-gradient(180deg,#c23a2a,#7c1717);
     transition:width .15s steps(6);}
   #hpghost{position:relative;top:-8px;height:6px;background:rgba(207,196,163,.35);width:0;margin:1px;transition:width .6s .4s;}
-  #flasks{margin-top:7px;display:flex;gap:6px;}
-  .pip{width:11px;height:15px;border:1px solid var(--bone-faint);
-    clip-path:polygon(20% 0,80% 0,100% 35%,100% 100%,0 100%,0 35%);
-    background:rgba(4,6,5,.6);}
-  .pip.full{background:linear-gradient(180deg,var(--ember-hi),var(--ember) 60%,#7a3d10);
-    box-shadow:0 0 6px rgba(208,118,43,.55);border-color:#6b5636;}
   #marrow{position:absolute;right:calc(16px + env(safe-area-inset-right));
     bottom:calc(14px + env(safe-area-inset-bottom));text-align:right;
     font-size:15px;letter-spacing:.12em;color:var(--bone);
@@ -80,14 +74,8 @@
   .btn span.t{font-size:8px;margin-top:2px;}
   .btn.pressed{background:radial-gradient(circle at 38% 32%, rgba(120,104,70,.9), rgba(30,26,18,.9) 72%);
     color:var(--bone);border-color:var(--bone-dim);}
-  /* buttons ride the top edges, clear of the thumbs' swipe space */
-  #btnCharge{width:56px;height:56px;right:calc(20px + env(safe-area-inset-right));top:calc(70px + env(safe-area-inset-top));}
-  #btnCharge.charging{border-color:var(--ember);color:var(--ember);}
-  #btnCharge.ready{border-color:var(--ember-hi);color:var(--ember-hi);
-    box-shadow:0 0 18px rgba(240,166,72,.55),inset 0 0 12px rgba(240,166,72,.25);}
-  #btnCharge.ready span.g{color:var(--ember-hi);}
-  #btnFlask{width:50px;height:50px;left:calc(18px + env(safe-area-inset-left));top:calc(84px + env(safe-area-inset-top));}
-  #btnLock{width:44px;height:44px;right:calc(20px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));}
+  /* the one button rides the top edge, clear of the thumbs' swipe space */
+  #btnLock{width:50px;height:50px;right:calc(20px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));}
   #swipeHint{position:absolute;right:calc(34px + env(safe-area-inset-right));
     bottom:calc(64px + env(safe-area-inset-bottom));pointer-events:none;text-align:center;
     font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-faint);
@@ -175,7 +163,6 @@
   <div id="hpwrap">
     <div id="hpframe"><div id="hpfill"></div></div>
     <div id="hpghost"></div>
-    <div id="flasks"></div>
   </div>
   <div id="marrow"><span class="lbl">marrow</span><span id="marrowN">0</span></div>
   <div id="bossbar">
@@ -186,17 +173,14 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div class="btn" id="btnCharge"><span class="g">&#8623;</span><span class="t">charge</span></div>
-  <div class="btn" id="btnFlask"><span class="g">&#9673;</span><span class="t">flask</span></div>
-  <div class="btn" id="btnLock"><span class="g">&#9678;</span><span class="t">lock</span></div>
-  <div id="swipeHint">tap / flick &#8593; &mdash; strike &nbsp; flick &#8595; &mdash; roll<br>hold &amp; drag &mdash; camera &nbsp; &#9678; &mdash; lock</div>
+  <div class="btn" id="btnLock"><span class="g">&#9678;</span><span class="t">target</span></div>
+  <div id="swipeHint">tap / flick &#8593; &mdash; strike &nbsp; flick &#8595; &mdash; roll<br>hold &amp; drag &mdash; camera &nbsp; &#9678; &mdash; switch target</div>
 </div>
 <div id="prompt"></div>
 <div id="prompt2"></div>
 <div id="shop">
   <div class="shopTitle">Offer Marrow</div>
   <div class="shopBal">marrow held &mdash; <span id="shopMarrow">0</span></div>
-  <button id="buyFlask"></button>
   <button id="buyVigor"></button>
   <button id="shopLeave">leave</button>
 </div>
@@ -214,8 +198,8 @@
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
     tap &mdash; strike &middot; flick up &mdash; aimed strike &middot; flick down &mdash; roll where you swipe<br>
     the roll has grace &mdash; roll through every blow<br>
-    hold charge, then your next strike is the heavy &middot; offer marrow at the fire<br>
-    no stamina, only nerve &middot; best in landscape
+    the eye marks your prey &mdash; or the way forward &middot; offer marrow at the fire<br>
+    no flask, no stamina, only nerve &middot; best in landscape
   </div>
 </div>
 
@@ -1021,8 +1005,7 @@ const Input=(()=>{
     mx:0,mz:0,            // move vector (screen-relative, magnitude<=1)
     camDX:0,camDY:0,      // camera drag deltas this frame
     swipe:null,           // {kind:'atk'|'dodge', sx,sy} — sx/sy null for keyboard
-    chargeHeld:false,
-    flaskPressed:false,lockPressed:false,
+    lockPressed:false,
     interactPressed:false,interact2Pressed:false,
     anyPressed:false,
   };
@@ -1042,9 +1025,6 @@ const Input=(()=>{
     el.addEventListener('pointerup',release);
     el.addEventListener('pointercancel',release);
   }
-  let btnChargeDown=false;
-  bindBtn($('btnCharge'),()=>{btnChargeDown=true;},()=>{btnChargeDown=false;});
-  bindBtn($('btnFlask'),()=>{st.flaskPressed=true;});
   bindBtn($('btnLock'),()=>{st.lockPressed=true;});
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
   $('prompt2').addEventListener('pointerdown',e=>{e.preventDefault();st.interact2Pressed=true;});
@@ -1130,7 +1110,6 @@ const Input=(()=>{
     if(e.repeat)return;keys[e.code]=true;st.anyPressed=true;
     if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',sx:null,sy:null};
     if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',sx:null,sy:null};
-    if(e.code==='KeyF')st.flaskPressed=true;
     if(e.code==='KeyQ'||e.code==='Tab'){st.lockPressed=true;e.preventDefault();}
     if(e.code==='KeyE')st.interactPressed=true;
     if(e.code==='KeyB')st.interact2Pressed=true;
@@ -1149,11 +1128,10 @@ const Input=(()=>{
     else if(stickId===null){st.mx=0;st.mz=0;}
     if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
-    st.chargeHeld=btnChargeDown||!!keys.KeyH;
   }
   function consume(){
     st.swipe=null;
-    st.flaskPressed=false;st.lockPressed=false;
+    st.lockPressed=false;
     st.interactPressed=false;st.interact2Pressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
@@ -2455,12 +2433,11 @@ const G={
 /* ---------------- the player ---------------- */
 const player={
   rig:null,x:0,z:-1,facing:0,
-  hp:100,maxHp:100,flasks:3,maxFlasks:3,marrow:0,
+  hp:100,maxHp:100,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
   armed:true,sheathT:0,
-  charged:false,chargeT:0,
   mats:[],
   init(){
     this.rig=makeKnightRig();
@@ -2475,23 +2452,16 @@ const player={
   },
   respawn(){
     this.x=G.checkpoint.x;this.z=G.checkpoint.z;
-    this.hp=this.maxHp;this.flasks=this.maxFlasks;
+    this.hp=this.maxHp;
     this.state='free';this.t=0;this.hurtGrace=0;
     this.facing=0;
     this.rig.root.rotation.x=0;
-    this.useCharge();
     this.armed=true;
     G.lockTarget=null;
   },
   draw(){},
-  useCharge(){
-    this.charged=false;this.chargeT=0;
-    if(this.rig.bladeMesh)this.rig.bladeMesh.material.emissive.setHex(0x000000);
-  },
   flash(on){
     for(const m of this.mats)m.emissive.setHex(on?0x77140f:0x000000);
-    if(!on&&this.charged&&this.rig.bladeMesh)
-      this.rig.bladeMesh.material.emissive.setHex(0x8a4f16);
   },
   iframes(){return this.state==='roll'&&this.t>.03&&this.t<.38;},
   takeHit(dmg,fx,fz,heavy){
@@ -2564,6 +2534,8 @@ const player={
   },
   update(dt){
     const r=this.rig;
+    // the lock can rest on the objective marker; only a live horror steers aim
+    const foe=G.lockTarget&&!G.lockTarget.objective?G.lockTarget:null;
     this.t+=dt;
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
     this.postRollT+=dt;
@@ -2590,7 +2562,7 @@ const player={
       this.draw();
       this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;
       this.queued=false;this.rollAtkQueued=null;
-      if(G.lockTarget)this.facing=Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z);
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       else if(d!==null&&d!==undefined)this.facing=d;
       // else: keeps the roll's own heading
     };
@@ -2600,12 +2572,10 @@ const player={
         return;
       }
       this.draw();
-      const heavy=this.charged;
-      if(heavy)this.useCharge();
-      this.state=heavy?'heavyatk':'attack';
+      this.state='attack';
       this.t=0;this.combo=0;this.queued=false;this.qDir=null;this.hitDone=false;
       this.sfxDone=false;
-      if(G.lockTarget)this.facing=Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z);
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       else if(s&&s.sx!==null)this.facing=swipeWorld(s);
       else{ // tap/keyboard: quietly square up to the nearest horror
         let best=null,bd=3.8;
@@ -2616,7 +2586,6 @@ const player={
         }
         if(best)this.facing=Math.atan2(best.x-this.x,best.z-this.z);
       }
-      if(heavy)AudioSys.heavySwing(); // light whoosh waits for the whip
     };
     const startDodge=(s)=>{
       this.state='roll';this.t=0;
@@ -2630,42 +2599,25 @@ const player={
       boneBurst(this.x,.15,this.z,0x4a463a,4,1.2); // kicked-up dust
     };
 
-    // heavy charge: hold to fill, keep it until spent
-    if(!this.charged&&this.state!=='dead'){
-      if(IN.chargeHeld){
-        this.chargeT+=dt;
-        if(this.chargeT>=.6){
-          this.charged=true;
-          AudioSys.chargeReady();G.vibr(25);
-          if(this.rig.bladeMesh)this.rig.bladeMesh.material.emissive.setHex(0x8a4f16);
-        }
-      }else this.chargeT=0;
-    }
-    $('btnCharge').classList.toggle('charging',IN.chargeHeld&&!this.charged);
-    $('btnCharge').classList.toggle('ready',this.charged);
-
     // ---- state machine ----
     if(this.state==='free'){
       if(mAmt>0){
         const sp=4.5*Math.min(1,mAmt*1.2);
         this.x+=mvx*sp*dt;this.z+=mvz*sp*dt;
-        if(!G.lockTarget)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
+        if(!foe)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
         this.stepT+=dt*sp;
         if(this.stepT>1.6){this.stepT=0;AudioSys.step();}
       }
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
       if(mAmt>0){this.moveX=mvx;this.moveZ=mvz;} // the follow camera reads this
-      if(G.lockTarget)this.facing=angLerp(this.facing,
-        Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),10*dt);
+      if(foe)this.facing=angLerp(this.facing,
+        Math.atan2(foe.x-this.x,foe.z-this.z),10*dt);
       // block pushback drift
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(IN.swipe){
         if(IN.swipe.kind==='atk')startAttack(IN.swipe);
         else startDodge(IN.swipe);
-      }else if(IN.flaskPressed&&this.flasks>0&&this.hp<this.maxHp){
-        this.state='flask';this.t=0;this.flasks--;this.hitDone=false;
-        AudioSys.flask();
       }
     }
     else if(this.state==='roll'){
@@ -2698,7 +2650,7 @@ const player={
         if(this.queued){ // flows on into the normal chain
           this.state='attack';this.t=0;this.combo=0;
           this.queued=false;this.hitDone=false;this.sfxDone=false;
-          if(!G.lockTarget&&this.qDir!==null&&this.qDir!==undefined)this.facing=this.qDir;
+          if(!foe&&this.qDir!==null&&this.qDir!==undefined)this.facing=this.qDir;
           this.qDir=null;
         }else this.state='free';
       }
@@ -2726,48 +2678,21 @@ const player={
         }
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
       }
-      if(G.lockTarget&&p<.3)this.facing=angLerp(this.facing,
-        Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),14*dt);
+      if(foe&&p<.3)this.facing=angLerp(this.facing,
+        Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
       if(!this.hitDone&&p>=.52){
         this.hitDone=true;
         const hit=this.meleeHit(13+this.combo*3,this.combo===3?2.95:2.55,1.15,1,.35);
         if(hit)AudioSys.hit();
       }
       if(p>=1){
-        if(this.queued&&this.charged){ // banked heavy comes out mid-combo
-          const d=this.qDir;this.useCharge();
-          this.state='heavyatk';this.t=0;this.hitDone=false;
-          if(!G.lockTarget&&d!==null)this.facing=d;
-          AudioSys.heavySwing();
-        }else if(this.queued&&this.combo<3){
+        if(this.queued&&this.combo<3){
           this.combo++;this.t=0;this.queued=false;this.hitDone=false;
           this.sfxDone=false;
-          if(!G.lockTarget&&this.qDir!==null)this.facing=this.qDir;
+          if(!foe&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
         }else this.state='free';
       }
-    }
-    else if(this.state==='heavyatk'){
-      const DUR=1.05;
-      const p=this.t/DUR;
-      if(G.lockTarget&&p<.5)this.facing=angLerp(this.facing,
-        Math.atan2(G.lockTarget.x-this.x,G.lockTarget.z-this.z),8*dt);
-      if(p>.5&&p<.75){this.x+=Math.sin(this.facing)*2.8*dt;this.z+=Math.cos(this.facing)*2.8*dt;}
-      if(!this.hitDone&&p>=.68){
-        this.hitDone=true;
-        const hit=this.meleeHit(34,2.8,1.3,3,1.2);
-        if(hit){AudioSys.hit();AudioSys.clang();}
-      }
-      if(p>=1)this.state='free';
-    }
-    else if(this.state==='flask'){
-      if(mAmt>0){this.x+=mvx*1.8*dt;this.z+=mvz*1.8*dt;}
-      if(!this.hitDone&&this.t>=.6){
-        this.hitDone=true;
-        this.hp=Math.min(this.maxHp,this.hp+55);
-        boneBurst(this.x,1.2,this.z,0xd0762b,6,1);
-      }
-      if(this.t>=1)this.state='free';
     }
     else if(this.state==='hurt'){
       this.x+=this.vx*dt;this.z+=this.vz*dt;
@@ -2792,8 +2717,7 @@ const player={
     // ---- pose ----
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
-    r.ikLeftArm=this.state==='free'||this.state==='attack'||
-      this.state==='heavyatk'||this.state==='rollatk';
+    r.ikLeftArm=this.state==='free'||this.state==='attack'||this.state==='rollatk';
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -2811,8 +2735,6 @@ const player={
     }
     else if(this.state==='attack')poseLight(r,Math.min(1,this.t/.58),this.combo);
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/.44));
-    else if(this.state==='heavyatk')poseHeavy(r,Math.min(1,this.t/1.05));
-    else if(this.state==='flask'){poseDrink(r,this.t);if(this.moveAmt>.05)poseWalk(r,t,.4,false);}
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
     else if(this.state==='rest')poseRest(r,Math.min(1,this.t));
@@ -3165,7 +3087,9 @@ let camIdle=9,lookX=0,lookY=1.35,lookZ=0;
 function updateCamera(dt){
   const dragging=IN.camDX!==0||IN.camDY!==0;
   if(dragging)camIdle=0;else camIdle+=dt;
-  if(!G.lockTarget){
+  // an objective marker guides the eye but never seizes the camera
+  const foe=G.lockTarget&&!G.lockTarget.objective?G.lockTarget:null;
+  if(!foe){
     // manual orbit — drag right looks right; pitch is gentle and self-righting
     G.camYaw-=IN.camDX*.0062;
     G.camPitch=clamp(G.camPitch+IN.camDY*.002,.12,.6);
@@ -3182,8 +3106,7 @@ function updateCamera(dt){
       }
     }
   }else{
-    const t=G.lockTarget;
-    const want=Math.atan2(player.x-t.x,player.z-t.z);
+    const want=Math.atan2(player.x-foe.x,player.z-foe.z);
     G.camYaw=angLerp(G.camYaw,want,5*dt);
     G.camPitch=lerp(G.camPitch,.3,4*dt);
   }
@@ -3203,8 +3126,8 @@ function updateCamera(dt){
     camera.position.y+=(Math.random()-.5)*G.camShake*.3;
   }
   let lx=player.x,ly=1.35,lz=player.z;
-  if(G.lockTarget){
-    lx=(player.x+G.lockTarget.x)/2;lz=(player.z+G.lockTarget.z)/2;
+  if(foe){
+    lx=(player.x+foe.x)/2;lz=(player.z+foe.z)/2;
     ly=1.5;
   }
   // smoothed gaze so knockbacks and rolls don't jerk the horizon
@@ -3213,46 +3136,59 @@ function updateCamera(dt){
   camera.lookAt(lookX,lookY,lookZ);
 }
 
-/* ---------------- lock-on ---------------- */
+/* ---------------- lock-on: the eye never closes ----------------
+   A live horror in range is always locked; the button switches between
+   them. With nothing to fight, the lock rests on the objective — the fog
+   gate, then (once the Warden falls) the altar — as a waymark. */
 let lockMarker=null;
-function toggleLock(){
-  // tap cycles nearest -> next -> ... -> off
-  const cands=enemies
+const OBJ_GATE={x:GATE_B[0],z:GATE_B[1],y:2.1,objective:true};
+const OBJ_ALTAR={x:ARENA[0],z:ARENA[1]+ARENA_R-2.4,y:1.5,objective:true};
+function lockCands(){
+  return enemies
     .filter(e=>e.hp>0&&e.state!=='dormant'&&Math.hypot(e.x-player.x,e.z-player.z)<15)
     .sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
-  if(!cands.length){G.lockTarget=null;lockMarker.visible=false;return;}
-  if(!G.lockTarget){G.lockTarget=cands[0];}
-  else{
-    const i=cands.indexOf(G.lockTarget);
-    const next=i+1;
-    if(i===-1)G.lockTarget=cands[0];
-    else if(next>=cands.length){G.lockTarget=null;lockMarker.visible=false;return;}
-    else G.lockTarget=cands[next];
-  }
-  lockMarker.visible=true;AudioSys.parryTick();
+}
+function toggleLock(){
+  // the button only switches between live targets
+  const cands=lockCands();
+  if(!cands.length)return;
+  const i=cands.indexOf(G.lockTarget);
+  G.lockTarget=cands[(i+1)%cands.length];
+  AudioSys.parryTick();
 }
 function updateLock(){
   const t=G.lockTarget;
-  if(!t)return;
-  if(t.hp<=0||Math.hypot(t.x-player.x,t.z-player.z)>17){
-    G.lockTarget=null;lockMarker.visible=false;return;
+  if(t&&!t.objective&&(t.hp<=0||t.state==='dormant'
+      ||Math.hypot(t.x-player.x,t.z-player.z)>17))
+    G.lockTarget=null;
+  if(!G.lockTarget||G.lockTarget.objective){
+    const cands=lockCands();
+    if(cands.length)G.lockTarget=cands[0];
+    else G.lockTarget=G.bossDead?OBJ_ALTAR:OBJ_GATE;
   }
-  lockMarker.position.set(t.x,(t.boss?3.6:t.big?2.3:1.9),t.z);
+  const c=G.lockTarget;
+  lockMarker.visible=G.mode==='play';
+  if(c.objective){
+    // the waymark floats a few strides ahead, pointing down the path —
+    // parked on the objective itself it would drown in the fog
+    const dx=c.x-player.x,dz=c.z-player.z,d=Math.hypot(dx,dz)||1;
+    const k=Math.min(1,6.5/d);
+    lockMarker.position.set(player.x+dx*k,
+      d<7?c.y:2.3+Math.sin(G.time*1.6)*.18,player.z+dz*k);
+    lockMarker.material.color.setHex(0xd0762b);   // ember waymark
+    lockMarker.scale.set(.62,.62,1);
+  }else{
+    lockMarker.position.set(c.x,(c.boss?3.6:c.big?2.3:1.9),c.z);
+    lockMarker.material.color.setHex(0xcfc4a3);   // bone eye on prey
+    lockMarker.scale.set(.34,.34,1);
+  }
   lockMarker.material.rotation=G.time*2;
 }
 
 /* ---------------- HUD & messaging ---------------- */
-function buildFlasks(){
-  const f=$('flasks');f.innerHTML='';
-  for(let i=0;i<player.maxFlasks;i++){
-    const p=document.createElement('div');p.className='pip';f.appendChild(p);
-  }
-}
 function updateHUD(){
   $('hpfill').style.width=clamp(player.hp/player.maxHp*100,0,100)+'%';
   $('hpghost').style.width=clamp(player.hp/player.maxHp*100,0,100)+'%';
-  const pips=$('flasks').children;
-  for(let i=0;i<pips.length;i++)pips[i].className='pip'+(i<player.flasks?' full':'');
   $('marrowN').textContent=player.marrow;
   $('lowhp').style.animationPlayState=player.hp<player.maxHp*.3&&player.hp>0?'running':'paused';
 }
@@ -3274,21 +3210,12 @@ function toast(msg){
 let promptAction=null,shopOpen=false,shopBonfire=null;
 function refreshShop(){
   $('shopMarrow').textContent=player.marrow;
-  const fMax=player.maxFlasks>=5;
-  $('buyFlask').textContent=fMax?'the vials hold no more':'another vial — 300 marrow';
-  $('buyFlask').disabled=fMax||player.marrow<300;
   $('buyVigor').textContent='thicken the marrow — +15 vigor — '+G.vigorCost;
   $('buyVigor').disabled=player.marrow<G.vigorCost;
 }
 function openShop(){shopOpen=true;$('shop').style.display='block';refreshShop();}
 function closeShop(){shopOpen=false;$('shop').style.display='none';}
 $('shopLeave').addEventListener('click',closeShop);
-$('buyFlask').addEventListener('click',()=>{
-  if(player.marrow<300||player.maxFlasks>=5)return;
-  player.marrow-=300;player.maxFlasks++;player.flasks=player.maxFlasks;
-  buildFlasks();AudioSys.flask();refreshShop();updateHUD();
-  toast('a vial takes shape');
-});
 $('buyVigor').addEventListener('click',()=>{
   if(player.marrow<G.vigorCost)return;
   player.marrow-=G.vigorCost;
@@ -3351,7 +3278,7 @@ function doInteract(){
       bannerShow('REST',b.name.toLowerCase());
     }
     G.checkpoint={x:b.x+1.2,z:b.z+1.2};
-    player.hp=player.maxHp;player.flasks=player.maxFlasks;
+    player.hp=player.maxHp;
     respawnWorld();
   }else if(a.type==='altar'){
     endGame();
@@ -3417,7 +3344,6 @@ buildWorld();
 makeFogGate();
 player.init();
 spawnEnemies();
-buildFlasks();
 makeGrain();
 lockMarker=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
   color:0xf0e6c8,transparent:true,opacity:.9,depthWrite:false}));
