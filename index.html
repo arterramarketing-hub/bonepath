@@ -1690,32 +1690,34 @@ function buildHumanoid(o){
     const w=new THREE.Group();w.position.y=-.34*s;aR.el.add(w);rig.weapon=w;
     const bladeM=o.bladeMat,gripM=o.gripMat;
     if(o.weapon==='claymore'){
-      /* the hero blade — a Highland claymore:
-         long leather grip under a wheel pommel, forward-sloping quillons
-         ending in quatrefoils, langet down the ricasso, long tapering blade */
+      /* the hero blade — an ultra greatsword in the reference's style:
+         a LONG two-hand haft under a wheel pommel, guard far down the
+         shaft, then a massive tapering blade. The group's origin sits
+         where the RIGHT hand grips, near the pommel, so the extended
+         arm carries the whole length balanced across the shoulder. */
       const gripM2=o.clothMat||gripM;
-      w.add(M(GCyl(.026*s,.031*s,.27*s,5),gripM2,0,.1*s,0));            // two-hand grip
-      w.add(M(GCyl(.035*s,.035*s,.015*s,5),gripM,0,.03*s,0));           // wrap ring
-      w.add(M(GCyl(.035*s,.035*s,.015*s,5),gripM,0,.17*s,0));
-      const wheel=M(GCyl(.055*s,.055*s,.028*s,8),gripM,0,.27*s,0);      // wheel pommel
+      const wheel=M(GCyl(.055*s,.055*s,.028*s,8),gripM,0,.1*s,0);       // wheel pommel
       wheel.rotation.x=Math.PI/2;w.add(wheel);
-      w.add(M(GSph(.02*s,4,3),gripM,0,.31*s,0));                        // crescent nut
-      w.add(M(GBox(.07*s,.05*s,.05*s),gripM,0,-.05*s,0));               // guard block
+      w.add(M(GSph(.02*s,4,3),gripM,0,.14*s,0));                        // crescent nut
+      w.add(M(GCyl(.026*s,.031*s,.5*s,5),gripM2,0,-.19*s,0));           // long two-hand haft
+      w.add(M(GCyl(.035*s,.035*s,.015*s,5),gripM,0,.03*s,0));           // wrap rings
+      w.add(M(GCyl(.035*s,.035*s,.015*s,5),gripM,0,-.24*s,0));
+      w.add(M(GBox(.07*s,.05*s,.05*s),gripM,0,-.48*s,0));               // guard block
       for(const side of[1,-1]){
-        const q=M(GBox(.28*s,.022*s,.028*s),gripM,.13*s*side,-.09*s,0);
+        const q=M(GBox(.28*s,.022*s,.028*s),gripM,.13*s*side,-.52*s,0);
         q.rotation.z=-.42*side;w.add(q);                                // sloped quillon
-        const qx=.255*s*side,qy=-.145*s;
+        const qx=.255*s*side,qy=-.575*s;
         for(const[ox,oy]of[[0,.022],[0,-.022],[.022,0],[-.022,0]])
           w.add(M(GSph(.02*s,4,3),gripM,qx+ox*s,qy+oy*s,0));            // quatrefoil
       }
-      w.add(M(GBox(.075*s,.16*s,.034*s),bladeM,0,-.16*s,0));            // ricasso
-      w.add(M(GBox(.028*s,.16*s,.04*s),gripM,0,-.16*s,0));              // langet
-      const bl=M(GBox(.12*s,.86*s,.03*s),bladeM,0,-.66*s,0);            // colossal blade
-      const bl2=M(GBox(.09*s,.22*s,.026*s),bladeM,0,-1.19*s,0);         // distal taper
-      const tip=M(GCone(.05*s,.17*s,4),bladeM,0,-1.37*s,0);
+      w.add(M(GBox(.075*s,.16*s,.034*s),bladeM,0,-.59*s,0));            // ricasso
+      w.add(M(GBox(.028*s,.16*s,.04*s),gripM,0,-.59*s,0));              // langet
+      const bl=M(GBox(.12*s,.9*s,.03*s),bladeM,0,-1.11*s,0);            // colossal blade
+      const bl2=M(GBox(.09*s,.22*s,.026*s),bladeM,0,-1.66*s,0);         // distal taper
+      const tip=M(GCone(.05*s,.17*s,4),bladeM,0,-1.84*s,0);
       tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;tip.scale.z=.6;
       w.add(bl,bl2,tip);
-      rig.reach=2.7*s;rig.bladeMesh=bl;
+      rig.reach=2.9*s;rig.bladeMesh=bl;
     }else if(o.weapon==='sword'){
       const bl=M(GBox(.07*s,.95*s,.025*s),bladeM,0,-.58*s,0);
       const tip=M(GCone(.045*s,.16*s,4),bladeM,0,-1.12*s,0);
@@ -1811,7 +1813,7 @@ function resetPose(r){
   if(r.armed){
     // two-handed shoulder carry: blade rests back over the right pauldron
     r.armR.rotation.set(CARRY.aRx,0,CARRY.aRz);r.foreR.rotation.set(CARRY.fRx,0,0);
-    r.weapon.rotation.set(CARRY.wx,0,CARRY.wz);
+    r.weapon.rotation.set(CARRY.wx,CARRY.wy,CARRY.wz);
     r.armL.rotation.set(CARRY.aLx,0,CARRY.aLz);r.foreL.rotation.set(CARRY.fLx,0,0);
   }else{
     // sheathed (or a skeleton): arms hang natural
@@ -1854,10 +1856,14 @@ function poseWalk(r,t,sp,shamble){
   }
   r._spNow=sp;
 }
-/* the knight's resting carry — both hands on the grip, the flat of the
-   blade lying back across the right pauldron. Swings haul it off the
+/* the knight's resting carry, straight from the reference: the right
+   arm extends forward holding the haft near the pommel, the left hand
+   on the haft closer in, and the whole sword lies as one line — guard
+   at the shoulder, blade rising ~30° over it toward the back, broad
+   face showing from the side (wy twist). Swings haul it off the
    shoulder (seg4 blends from here) and settle back toward it. */
-const CARRY={aRx:-.7,aRz:-.5,fRx:-.7,wx:-2.3,wz:.15,aLx:-.6,aLz:-.45,fLx:-.85};
+const CARRY={aRx:-1.15,aRz:-.2,fRx:-.25,wx:-2.8,wy:1.4,wz:0,
+  aLx:-.6,aLz:-.45,fLx:-.85};
 /* swap the greatsword between the back scabbard and the hands */
 function attachWeapon(r,toHand){
   const w=r.weapon,s=r.s;
@@ -1898,6 +1904,8 @@ function poseLight(r,p,combo){
     r.foreR.rotation.x=seg4(p,W,H,C.fRx,-.45,-.05,-.6);
     r.weapon.rotation.x=seg4(p,W,H,C.wx,-.5,.4,-.8);
     r.weapon.rotation.z=seg4(p,W,H,C.wz,.1,-.05,C.wz);
+    // quarter twist so the chop falls edge-first, not flat-first
+    r.weapon.rotation.y=seg4(p,W,H,C.wy,1.57,1.57,C.wy);
     r.armL.rotation.x=seg4(p,W,H,C.aLx,-2.2,.6,-.35);
     r.armL.rotation.z=seg4(p,W,H,C.aLz,-.3,-.25,C.aLz);
     r.foreL.rotation.x=seg4(p,W,H,C.fLx,-.4,-.1,-.7);
@@ -1920,6 +1928,7 @@ function poseLight(r,p,combo){
     r.foreR.rotation.x=seg4(p,W,H,C.fRx,-1.0,.05,-.5);
     r.weapon.rotation.x=seg4(p,W,H,C.wx,.2,.45,-.9);
     r.weapon.rotation.z=seg4(p,W,H,C.wz,0,0,C.wz);
+    r.weapon.rotation.y=seg4(p,W,H,C.wy,.5,0,C.wy);   // point leads the thrust
     r.armL.rotation.x=seg4(p,W,H,C.aLx,-.9,-1.25,-.7);
     r.armL.rotation.z=seg4(p,W,H,C.aLz,-.4,-.25,C.aLz);
     r.foreL.rotation.x=seg4(p,W,H,C.fLx,-.8,-.2,-.6);
@@ -1940,8 +1949,10 @@ function poseLight(r,p,combo){
   r.armR.rotation.z=seg4(p,W,H,C.aRz,-.45*d-.1,.12*d-.15,C.aRz);
   r.foreR.rotation.x=seg4(p,W,H,C.fRx,-.45,-.1,-.6);
   r.weapon.rotation.x=seg4(p,W,H,C.wx,.35,-.1,-.9);   // blade out of guard, level, and back
-  r.weapon.rotation.z=seg4(p,W,H,C.wz,.75*d,-.55*d,C.wz*.5);
-  r.weapon.rotation.y=seg4(p,W,H,0,.25*d,-.28*d,0);
+  // the wrist keeps the EDGE leading through the cut: near-zero bank and
+  // twist at the whip so the thin side, not the flat, meets the enemy
+  r.weapon.rotation.z=seg4(p,W,H,C.wz,.3*d,-.12*d,0);
+  r.weapon.rotation.y=seg4(p,W,H,C.wy,0,0,C.wy); // untwisted by the windup's end
   r.armL.rotation.x=seg4(p,W,H,C.aLx,-.95,-1.15,-.65); // left hand rides the grip
   r.armL.rotation.z=seg4(p,W,H,C.aLz,-.3-.15*d,-.2+.2*d,C.aLz);
   r.foreL.rotation.x=seg4(p,W,H,C.fLx,-.6,-.2,-.75);
@@ -1962,6 +1973,7 @@ function poseHeavy(r,p){
     r.foreL.rotation.x=C.fLx+(-.4-C.fLx)*q;
     r.weapon.rotation.x=C.wx+(-.45-C.wx)*q;
     r.weapon.rotation.z=C.wz*(1-q);
+    r.weapon.rotation.y=C.wy+(1.57-C.wy)*q;           // roll to edge-first
     r.torso.rotation.x-=.28*q;
     r.torso.rotation.y=.3*q;r.body.rotation.y=.2*q;   // whole trunk coils
     r.head.rotation.x-=.2*q;
@@ -1972,6 +1984,7 @@ function poseHeavy(r,p){
     r.armL.rotation.z=-.25;
     r.foreR.rotation.x=-.4;r.foreL.rotation.x=-.4;
     r.weapon.rotation.x=-.45+1.0*q;                   // blade whips over the top
+    r.weapon.rotation.y=1.57;                         // edge falls first
     r.torso.rotation.x=-.28+.75*q;
     r.torso.rotation.y=.3-.55*q;r.body.rotation.y=.2-.35*q; // hips release through
     r.head.rotation.x=-.2+.5*q;
@@ -1984,6 +1997,7 @@ function poseHeavy(r,p){
     r.armL.rotation.z=-.25+( C.aLz+.25)*e;
     r.foreR.rotation.x=-.4+(-.7+.4)*e;r.foreL.rotation.x=-.4+(-.7+.4)*e;
     r.weapon.rotation.x=.55+(-.9-.55)*e;              // and eases back toward the guard
+    r.weapon.rotation.y=1.57+(C.wy-1.57)*e;
     r.weapon.rotation.z=C.wz*e;
     r.torso.rotation.x=.47-.45*e;
     r.torso.rotation.y=-.25+.25*e;r.body.rotation.y=-.15+.15*e;
@@ -2051,8 +2065,9 @@ function poseRollAtk(r,p){
   r.armR.rotation.z=seg4(p,W,H,C.aRz,-.45,.15,C.aRz);
   r.foreR.rotation.x=seg4(p,W,H,-1.4,-.3,-.1,-.5);
   r.weapon.rotation.x=seg4(p,W,H,C.wx,.6,-.1,-.9);    // blade sweeps up out of the rise
-  r.weapon.rotation.z=seg4(p,W,H,C.wz,.5,-.55,C.wz*.5);
-  r.weapon.rotation.y=seg4(p,W,H,0,.2,-.25,0);
+  // rising diagonal cut leads with the edge: quarter twist through the hit
+  r.weapon.rotation.z=seg4(p,W,H,C.wz,.3,-.15,0);
+  r.weapon.rotation.y=seg4(p,W,H,C.wy,1.57,1.57,C.wy);
   r.armL.rotation.x=seg4(p,W,H,-1.2,-.9,-1.2,-.65);   // left hand stays on the grip
   r.armL.rotation.z=seg4(p,W,H,C.aLz,-.35,-.2,C.aLz);
   r.foreL.rotation.x=seg4(p,W,H,-1.4,-.6,-.2,-.75);
@@ -2120,8 +2135,8 @@ function solveLeftHand(r){
   // the left hand slides along the handle: target the closest point of the
   // grip segment (guard to pommel) to the shoulder, in the torso frame
   IK.Mi.copy(r.torso.matrixWorld).invert();
-  IK.T.set(0,.04*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
-  IK.Z.set(0,.26*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
+  IK.T.set(0,-.46*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
+  IK.Z.set(0,.06*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
   IK.Z.sub(IK.T);                                          // grip axis, guard->pommel
   const gl=IK.Z.length();
   if(gl>1e-6){

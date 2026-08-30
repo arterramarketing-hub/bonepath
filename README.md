@@ -63,8 +63,10 @@ Everything is generated at boot inside the one file:
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
 - **Characters** — low-poly articulated rigs (armored knight with cape,
-  barbute helm, and a colossal claymore carried two-handed, its blade
-  resting back across the right pauldron between swings; jawed skeletal
+  barbute helm, and an ultra greatsword with a long two-hand haft,
+  carried DS3-style — arm extended on the haft, guard at the shoulder,
+  blade rising over it toward the back — swinging edge-first with the
+  left hand IK-planted on the haft; jawed skeletal
   hollows with ribcages and joint
   knobs; the horned Warden with a burning heart) with fully procedural
   animation: counter-rotating walk cycles, telegraphed windups, combos,
