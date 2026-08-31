@@ -1687,8 +1687,13 @@ function buildHumanoid(o){
     if(!sk)el.add(M(GSph(.065*s,5,4),limb,0,-.34*s,0));             // gauntlet fist
     return {sh,el};
   }
-  const aR=makeArm(1),aL=makeArm(-1);
+  // mirrorArms puts the weapon arm on the OTHER side of the body — the
+  // rig keeps its armR/armL roles (armR = weapon arm), only the anatomy
+  // swaps, so every pose still binds the same way
+  const ws=o.mirrorArms?-1:1;
+  const aR=makeArm(ws),aL=makeArm(-ws);
   rig.armR=aR.sh;rig.foreR=aR.el;rig.armL=aL.sh;rig.foreL=aL.el;
+  rig.mirrorArms=!!o.mirrorArms;
 
   /* weapon hangs from the right hand */
   if(o.weapon){
@@ -2152,8 +2157,8 @@ function solveLeftHand(r){
   IK.D.subVectors(IK.T,S);
   const d=Math.max(.08*s,Math.min(IK.D.length(),(l1+l2)*.999));
   IK.D.normalize();
-  // elbow pole: out to his left, low, a touch forward
-  IK.H.set(-1,-.35,.25);
+  // elbow pole: out on the off-hand's side, low, a touch forward
+  IK.H.set(r.mirrorArms?1:-1,-.35,.25);
   IK.H.addScaledVector(IK.D,-IK.H.dot(IK.D));
   if(IK.H.lengthSq()<1e-5)IK.H.set(-1,0,0);
   IK.H.normalize();
@@ -2181,6 +2186,13 @@ function solveLeftHand(r){
 const SMOOTH_JOINTS=['body','torso','head','armR','armL','foreR','foreL',
   'legR','legL','kneeR','kneeL','weapon'];
 function updateRigExtras(r,dt){
+  if(r.mirrorArms){
+    // poses are authored for a +x weapon arm; flip the arms' lateral
+    // channels so the tuned inward pulls stay inward on the mirrored side
+    for(const k of['armR','foreR','armL','foreL']){
+      const j=r[k];j.rotation.z*=-1;j.rotation.y*=-1;
+    }
+  }
   const ik=r.ikLeftArm&&r.armed&&r.weapon;
   if(r.smoothPose){
     // critically-damped blend toward each frame's computed pose: state
@@ -2225,7 +2237,7 @@ function makeKnightRig(){
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'claymore',clothMat:mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
-    legLen:1.15,
+    legLen:1.15,mirrorArms:true,
   });
   return r;
 }
