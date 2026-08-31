@@ -171,7 +171,7 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div id="swipeHint">flick &#8593; &mdash; stab &nbsp; flick &#8598;/&#8599; &mdash; swing &nbsp; tap &mdash; strike<br>flick &#8595;/&#8592;/&#8594; &mdash; roll &nbsp; hold &amp; drag &mdash; camera</div>
+  <div id="swipeHint">tap &mdash; strike &nbsp; keep tapping &mdash; combo<br>flick any way &mdash; roll &nbsp; hold &amp; drag &mdash; camera</div>
 </div>
 <div id="prompt"></div>
 <div id="prompt2"></div>
@@ -193,9 +193,9 @@
   <div id="begin">touch to begin</div>
   <div class="hint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
-    flick up &mdash; stab &middot; flick diagonally &mdash; swing that way &middot; tap &mdash; quick strike<br>
-    flick down or sideways &mdash; roll that way; the roll has grace<br>
-    the eye marks the nearest horror &mdash; or the way forward &middot; offer marrow at the fire<br>
+    tap &mdash; strike &middot; keep tapping &mdash; the combo climbs &middot; flick any way &mdash; roll that way<br>
+    the roll has grace &mdash; roll through every blow<br>
+    fallen horrors shed fire, lightning, and frost &mdash; walk into the light to take it<br>
     no flask, no stamina, only nerve &middot; best in landscape
   </div>
 </div>
@@ -955,6 +955,30 @@ const AudioSys=(()=>{
       noise(t,{peak:.15,att:.004,dec:.12,f0:320,f1:80});
       tone(t+.01,{f:72,f2:36,type:'sine',peak:.2,dec:.16});
       noise(t+.07,{peak:.06,att:.003,dec:.09,f0:900,f1:200});},
+    // an element takes to the blade
+    elemPickup(kind){const t=now();
+      if(kind==='fire'){
+        noise(t,{peak:.12,att:.02,dec:.35,f0:200,f1:900,type:'bandpass',Q:1});
+        tone(t,{f:110,f2:70,type:'sine',peak:.12,att:.03,dec:.4});
+      }else if(kind==='lightning'){
+        tone(t,{f:1600,f2:2400,type:'square',peak:.03,dec:.12});
+        noise(t,{peak:.1,att:.002,dec:.18,f0:3000,f1:1200,type:'bandpass',Q:3});
+        tone(t+.06,{f:820,f2:1900,type:'sine',peak:.05,dec:.2});
+      }else{
+        tone(t,{f:1180,f2:1170,type:'sine',peak:.06,dec:.3});
+        tone(t+.09,{f:1560,f2:1550,type:'sine',peak:.05,dec:.35});
+        tone(t+.2,{f:2090,f2:2080,type:'sine',peak:.04,dec:.4});
+      }},
+    fireHit(){const t=now();
+      noise(t,{peak:.14,att:.006,dec:.2,f0:300,f1:1400,type:'bandpass',Q:1});
+      tone(t,{f:90,f2:50,type:'sine',peak:.1,dec:.15});},
+    zapHit(){const t=now();
+      noise(t,{peak:.16,att:.001,dec:.1,f0:4200,f1:900,type:'bandpass',Q:2});
+      tone(t,{f:2300,f2:400,type:'square',peak:.035,dec:.09});},
+    iceHit(){const t=now();
+      noise(t,{peak:.1,att:.001,dec:.09,f0:5200,f1:2400,type:'bandpass',Q:4});
+      tone(t,{f:1870,f2:1400,type:'sine',peak:.05,dec:.14});
+      tone(t+.03,{f:2350,f2:1700,type:'sine',peak:.04,dec:.12});},
     // gulp, gulp, warm ember settling in the chest
     flask(){const t=now();
       tone(t,{f:320,f2:180,type:'sine',peak:.1,dec:.09});
@@ -1036,16 +1060,11 @@ const Input=(()=>{
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
   $('prompt2').addEventListener('pointerdown',e=>{e.preventDefault();st.interact2Pressed=true;});
 
-  /* omnidirectional flicks: the upper half attacks, the lower half rolls.
-     Straight up (within 30° of vertical) is the forward stab; beyond that
-     the diagonals are directional swings. Horizontal-and-below rolls in
-     the swipe's direction. */
+  /* a flick in ANY direction is a dodge roll that way;
+     a tap is the sword — repeated taps chain the combo */
   function classifySwipe(dx,dy){
-    const dist=Math.hypot(dx,dy)||1,sx=dx/dist,sy=dy/dist;
-    if(dy>=0)return{kind:'dodge',atype:null,sx,sy};
-    const ang=Math.atan2(-dy,dx);          // 0 = right, PI/2 = straight up
-    const atype=ang>Math.PI*2/3?'left':ang<Math.PI/3?'right':'stab';
-    return{kind:'atk',atype,sx,sy};
+    const dist=Math.hypot(dx,dy)||1;
+    return{kind:'dodge',atype:null,sx:dx/dist,sy:dy/dist};
   }
 
   const ctl=$('controls');
@@ -1125,9 +1144,6 @@ const Input=(()=>{
   addEventListener('keydown',e=>{
     if(e.repeat)return;keys[e.code]=true;st.anyPressed=true;
     if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};
-    if(e.code==='KeyU')st.swipe={kind:'atk',atype:'left',sx:null,sy:null};
-    if(e.code==='KeyO')st.swipe={kind:'atk',atype:'right',sx:null,sy:null};
-    if(e.code==='KeyI')st.swipe={kind:'atk',atype:'stab',sx:null,sy:null};
     if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
     if(e.code==='KeyE')st.interactPressed=true;
     if(e.code==='KeyB')st.interact2Pressed=true;
@@ -2489,6 +2505,110 @@ function throwBone(x,z,tx,tz,dmg){
   }});
 }
 
+/* ---------------- elements: fire, lightning, ice ----------------
+   Fallen horrors sometimes shed a mote of the power that moved them.
+   Walk into it and the blade takes the element for a while. */
+const ELEMENTS={
+  fire:{hue:0xff7a2a,lite:0xff6a1a,em:0x8a2408,msg:'the blade takes fire'},
+  lightning:{hue:0xffeaa0,lite:0xffd76a,em:0x8a7a22,msg:'the blade takes lightning'},
+  ice:{hue:0x9fe4ff,lite:0x6fc4ea,em:0x1e5a6e,msg:'the blade takes frost'},
+};
+function elemBurst(kind,x,y,z){
+  const pal=kind==='fire'?[0xff8c2a,0xff5f1a,0xffc46a]:
+            kind==='lightning'?[0xfff6d0,0xffe9a3,0xffffff]:
+                               [0xcdefff,0x9fe4ff,0xe8fbff];
+  const n=kind==='fire'?9:7;
+  for(let i=0;i<n;i++){
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
+      color:pal[(Math.random()*3)|0],transparent:true,opacity:.95,
+      depthWrite:false,blending:THREE.AdditiveBlending}));
+    const sc=.09+Math.random()*.11;
+    s.scale.set(sc,sc,1);s.position.set(x,y,z);scene.add(s);
+    const a=Math.random()*TAU,sp=kind==='lightning'?3+Math.random()*4:1+Math.random()*2;
+    const vx=Math.cos(a)*sp,vz=Math.sin(a)*sp;
+    let vy=kind==='fire'?1.4+Math.random()*2:kind==='ice'?.6+Math.random():Math.random()*2-.5;
+    let life=0;const dur=kind==='lightning'?.14+Math.random()*.08:.32+Math.random()*.22;
+    effects.push({update(dt){
+      life+=dt;
+      if(kind==='fire')vy+=2.6*dt;         // fire lifts
+      else if(kind==='ice')vy-=10*dt;      // shards drop
+      s.position.x+=vx*dt;s.position.y+=vy*dt;s.position.z+=vz*dt;
+      const k=Math.max(0,1-life/dur);
+      s.material.opacity=k;s.scale.set(sc*k+.03,sc*k+.03,1);
+      if(life>dur||s.position.y<0){scene.remove(s);s.material.dispose();return false;}
+      return true;
+    }});
+  }
+}
+function elemFleck(kind,x,y,z){ // one mote drifting off the imbued blade
+  const E=ELEMENTS[kind];
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
+    color:E.hue,transparent:true,opacity:.8,depthWrite:false,
+    blending:THREE.AdditiveBlending}));
+  const sc=.07+Math.random()*.06;
+  s.scale.set(sc,sc,1);s.position.set(x,y,z);scene.add(s);
+  let life=0;const dur=kind==='lightning'?.12:.4;
+  const vx=rr3(-.3,.3),vz=rr3(-.3,.3);
+  let vy=kind==='fire'?1.2:kind==='ice'?-.7:0;
+  effects.push({update(dt){
+    life+=dt;
+    if(kind==='lightning'){ // sparks jitter, they don't drift
+      s.position.x=x+rr3(-.12,.12);s.position.y=y+rr3(-.12,.12);s.position.z=z+rr3(-.12,.12);
+    }else{s.position.x+=vx*dt;s.position.y+=vy*dt;s.position.z+=vz*dt;}
+    s.material.opacity=.8*Math.max(0,1-life/dur);
+    if(life>dur){scene.remove(s);s.material.dispose();return false;}
+    return true;
+  }});
+}
+function boltArc(x1,y1,z1,x2,y2,z2){
+  // a jagged white-hot thread between two points
+  const pts=[],N=7;
+  for(let i=0;i<=N;i++){
+    const t=i/N,mid=i>0&&i<N;
+    pts.push(new THREE.Vector3(
+      x1+(x2-x1)*t+(mid?rr3(-.28,.28):0),
+      y1+(y2-y1)*t+(mid?rr3(-.2,.32):0),
+      z1+(z2-z1)*t+(mid?rr3(-.28,.28):0)));
+  }
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  const m=new THREE.LineBasicMaterial({color:0xf2f8ff,transparent:true,opacity:1,
+    blending:THREE.AdditiveBlending,depthWrite:false});
+  const line=new THREE.Line(g,m);scene.add(line);
+  let t=0;
+  effects.push({update(dt){
+    t+=dt;m.opacity=Math.max(0,1-t/.16);
+    if(t>.16){scene.remove(line);g.dispose();m.dispose();return false;}
+    return true;
+  }});
+}
+const elemDrops=[];
+function spawnElemDrop(x,z,kind){
+  kind=kind||['fire','lightning','ice'][(Math.random()*3)|0];
+  const E=ELEMENTS[kind];
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:E.hue,
+    transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
+  s.scale.set(.68,.68,1);s.position.set(x,.8,z);scene.add(s);
+  const l=new THREE.PointLight(E.lite,1.1,6,2);
+  l.position.set(x,1.1,z);scene.add(l);
+  elemDrops.push({x,z,kind,s,l,t:Math.random()*9});
+  if(elemDrops.length>4){const o=elemDrops.shift();scene.remove(o.s);scene.remove(o.l);}
+}
+function updateElemDrops(dt){
+  for(let i=elemDrops.length-1;i>=0;i--){
+    const d=elemDrops[i];d.t+=dt;
+    d.s.position.y=.78+Math.sin(d.t*2.6)*.13;
+    d.s.material.rotation=d.t*1.4;
+    const pu=1+Math.sin(d.t*5)*.12;
+    d.s.scale.set(.68*pu,.68*pu,1);
+    if(Math.random()<dt*4)elemFleck(d.kind,d.x+rr3(-.15,.15),d.s.position.y,d.z+rr3(-.15,.15));
+    if(G.mode==='play'&&player.state!=='dead'&&
+       Math.hypot(player.x-d.x,player.z-d.z)<1.1){
+      elemDrops.splice(i,1);scene.remove(d.s);scene.remove(d.l);
+      player.setElement(d.kind);
+    }
+  }
+}
+
 /* ---------------- global game state ---------------- */
 const G={
   mode:'title',        // title | play | dead | victory
@@ -2507,8 +2627,8 @@ const G={
 const player={
   rig:null,x:0,z:-1,facing:0,
   hp:100,maxHp:100,marrow:0,
-  state:'free',t:0,combo:0,queued:false,qDir:null,qType:0,chain:0,
-  altSlash:false,hitDone:false,
+  state:'free',t:0,combo:0,queued:false,qDir:null,chain:0,hitDone:false,
+  element:null,elementT:0,elemTrailT:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
   armed:true,sheathT:0,
@@ -2522,6 +2642,10 @@ const player={
     this.lamp.position.y=2.2;
     this.rig.root.add(this.lamp);
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
+    // an imbued element lights the blade from within
+    this.bladeLight=new THREE.PointLight(0xffffff,0,4,2);
+    this.bladeLight.position.set(0,-1.1,0);
+    this.rig.weapon.add(this.bladeLight);
     this.respawn();
   },
   respawn(){
@@ -2531,11 +2655,28 @@ const player={
     this.facing=0;
     this.rig.root.rotation.x=0;
     this.armed=true;
+    this.clearElement(); // death lets the element go
     G.lockTarget=null;
+  },
+  setElement(kind){
+    this.element=kind;this.elementT=22;
+    const E=ELEMENTS[kind];
+    this.rig.bladeMesh.material.emissive.setHex(E.em);
+    this.bladeLight.color.setHex(E.lite);this.bladeLight.intensity=.9;
+    AudioSys.elemPickup(kind);G.vibr(30);
+    toast(E.msg);
+    shockRing(this.x,this.z,E.hue,2.2,.5);
+  },
+  clearElement(){
+    this.element=null;this.elementT=0;
+    if(this.rig&&this.rig.bladeMesh)this.rig.bladeMesh.material.emissive.setHex(0x000000);
+    if(this.bladeLight)this.bladeLight.intensity=0;
   },
   draw(){},
   flash(on){
     for(const m of this.mats)m.emissive.setHex(on?0x77140f:0x000000);
+    if(!on&&this.element) // don't let the hurt-flash wipe the imbue glow
+      this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
   },
   iframes(){return this.state==='roll'&&this.t>.03&&this.t<.38;},
   takeHit(dmg,fx,fz,heavy){
@@ -2587,6 +2728,8 @@ const player={
   },
   meleeHit(dmg,reach,arc,poise,kb){
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+    const el=this.element;
+    if(el)dmg+=el==='fire'?6:el==='lightning'?5:4;
     let hitAny=false;
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant')continue;
@@ -2596,6 +2739,25 @@ const player={
       if(ang>arc)continue;
       e.takeHit(dmg,poise,this.x,this.z,kb);
       sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,dmg>20?11:7);
+      if(el){
+        elemBurst(el,(this.x+e.x)/2,1.2,(this.z+e.z)/2);
+        if(el==='fire')AudioSys.fireHit();
+        else if(el==='ice'){AudioSys.iceHit();e.chillT=3;}      // frost slows them
+        else{ // lightning leaps to the next horror
+          AudioSys.zapHit();
+          let best=null,bd=4.5;
+          for(const o of enemies){
+            if(o===e||o.hp<=0||o.state==='dormant')continue;
+            const d2=Math.hypot(o.x-e.x,o.z-e.z);
+            if(d2<bd){bd=d2;best=o;}
+          }
+          if(best){
+            boltArc(e.x,1.4,e.z,best.x,1.4,best.z);
+            best.takeHit(6,0,e.x,e.z,.3);
+            elemBurst('lightning',best.x,1.2,best.z);
+          }else boltArc(e.x,1.4,e.z,e.x+rr3(-.9,.9),3.4,e.z+rr3(-.9,.9));
+        }
+      }
       hitAny=true;
     }
     if(hitAny){
@@ -2613,6 +2775,24 @@ const player={
     this.t+=dt;
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
     this.postRollT+=dt;
+
+    // an imbued element burns down, sheds motes off the blade, and
+    // gutters out in a flicker at the end
+    if(this.element){
+      this.elementT-=dt;
+      if(this.elementT<=0){this.clearElement();toast('the blade cools');}
+      else{
+        this.bladeLight.intensity=
+          this.elementT<3?.3+.6*Math.abs(Math.sin(G.time*9)):.9;
+        this.elemTrailT-=dt;
+        if(this.elemTrailT<=0){
+          this.elemTrailT=.09;
+          const v=new THREE.Vector3(0,-(.7+Math.random()*1.1),0)
+            .applyMatrix4(this.rig.weapon.matrixWorld);
+          elemFleck(this.element,v.x,v.y,v.z);
+        }
+      }
+    }
 
     // desired move vector in world space (camera-relative)
     let mvx=0,mvz=0,mAmt=Math.hypot(IN.mx,IN.mz);
@@ -2640,16 +2820,7 @@ const player={
       else if(d!==null&&d!==undefined)this.facing=d;
       // else: keeps the roll's own heading
     };
-    // the swipe's direction picks the swing: straight up stabs, the
-    // diagonals sweep that way, a tap alternates left/right cuts
-    const swingOf=s=>{
-      const at=s&&s.atype;
-      if(at==='stab')return 3;
-      if(at==='left')return 0;
-      if(at==='right')return 1;
-      this.altSlash=!this.altSlash;
-      return this.altSlash?0:1;
-    };
+    // taps chain the combo: slash, backhand, overhead, thrust, and around
     const startAttack=(s)=>{
       if(this.postRollT<.2){ // fresh out of a roll — the cut rises with you
         startRollAtk(s&&s.sx!==null?swipeWorld(s):null);
@@ -2657,7 +2828,7 @@ const player={
       }
       this.draw();
       this.state='attack';
-      this.t=0;this.combo=swingOf(s);this.chain=0;
+      this.t=0;this.combo=0;this.chain=0;
       this.queued=false;this.qDir=null;this.hitDone=false;
       this.sfxDone=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
@@ -2733,12 +2904,12 @@ const player={
         if(hit)AudioSys.hit();
       }
       if(IN.swipe&&IN.swipe.kind==='atk'&&this.t>.15){
-        this.queued=true;this.qType=swingOf(IN.swipe);
+        this.queued=true;
         this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
       }
       if(p>=1){
         if(this.queued){ // flows on into the normal chain
-          this.state='attack';this.t=0;this.combo=this.qType;this.chain=1;
+          this.state='attack';this.t=0;this.combo=0;this.chain=1;
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null&&this.qDir!==undefined)this.facing=this.qDir;
           this.qDir=null;
@@ -2750,7 +2921,7 @@ const player={
       const p=this.t/DUR;
       if(IN.swipe){
         if(IN.swipe.kind==='atk'&&this.t>.15){
-          this.queued=true;this.qType=swingOf(IN.swipe);
+          this.queued=true;
           this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
         }else if(IN.swipe.kind==='dodge'&&p>.65){
           startDodge(IN.swipe);return this.post(dt);
@@ -2774,15 +2945,16 @@ const player={
         Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
       if(!this.hitDone&&p>=.58){
         this.hitDone=true;
-        // the stab reaches deep but narrow; sweeps cut wide
-        const stab=this.combo===3,
-          dmg=(stab?17:14)+Math.min(6,this.chain*2);
-        const hit=this.meleeHit(dmg,stab?3.0:2.6,stab?.6:1.15,1,.35);
+        // the chain climbs: sweeps cut wide, the overhead crushes,
+        // the thrust reaches deep but narrow
+        const stab=this.combo===3,over=this.combo===2,
+          dmg=(stab?17:over?16:14)+Math.min(6,this.chain*2);
+        const hit=this.meleeHit(dmg,stab?3.0:2.6,stab?.6:1.15,over?2:1,over?.55:.35);
         if(hit)AudioSys.hit();
       }
       if(p>=1){
         if(this.queued){
-          this.combo=this.qType;this.chain++;this.t=0;
+          this.combo=(this.combo+1)%4;this.chain++;this.t=0;
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
@@ -2860,7 +3032,7 @@ class Enemy{
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
     this.marrow=this.boss?800:this.big?120:this.caster?45:35;
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
-    this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;
+    this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;this.chillT=0;
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
     this.rig=this.boss?makeWardenRig():makeHollowRig(this.big,this.caster);
@@ -2923,6 +3095,8 @@ class Enemy{
     player.marrow+=this.marrow;
     AudioSys.marrow();
     toast('+'+this.marrow+' marrow');
+    // sometimes the power that moved them stays behind
+    if(!this.boss&&Math.random()<.3)spawnElemDrop(this.x,this.z);
     boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
     if(this.boss)onBossDead();
   }
@@ -2938,6 +3112,14 @@ class Enemy{
     this.t+=dt;
     const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
     const faceP=(rate)=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),rate*dt);};
+    // frost drags at them; mist bleeds off while it holds
+    this.chillT=Math.max(0,this.chillT-dt);
+    const baseSpeed=this.speed;
+    if(this.chillT>0){
+      this.speed=baseSpeed*.45;
+      if(Math.random()<dt*3)
+        elemFleck('ice',this.x+rr3(-.3,.3),.9+rr3(0,.8),this.z+rr3(-.3,.3));
+    }
 
     switch(this.state){
       case 'dormant':
@@ -3038,6 +3220,7 @@ class Enemy{
       case 'dead':
         break;
     }
+    this.speed=baseSpeed;
     // knockback drift for non-stagger states (boss dashes own its velocity)
     if(this.state==='chase'||this.state==='recover'||
        (!this.boss&&(this.state==='windup'||this.state==='strike'))){
@@ -3107,7 +3290,8 @@ class Enemy{
         const on=((G.time*11)|0)%2===0;
         const hex=this.heavyHitter?(on?0x2e0c06:0x180503):(on?0x241704:0x120b02);
         for(const m of this.mats)m.emissive.setHex(hex);
-      }else for(const m of this.mats)m.emissive.setHex(0x000000);
+      }else for(const m of this.mats)
+        m.emissive.setHex(this.chillT>0?0x0d3542:0x000000); // frost-bitten glow
     }
     // the jaw hangs slack, gapes through the windup, snaps on the strike
     if(r.jaw)r.jaw.rotation.x=
@@ -3480,6 +3664,7 @@ function frame(now){
     }
     updateLock();
     updateMarrowDrop();
+    updateElemDrops(wdt);
     updateInteract();
     updateHUD();
   }
@@ -3497,7 +3682,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 // debug/testing handle
-window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal};
+window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop};
 
 })(); /* end BONEPATH */
 </script>

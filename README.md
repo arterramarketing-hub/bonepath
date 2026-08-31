@@ -11,21 +11,18 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Phone**: serve the repo with any static host (GitHub Pages works) and open
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
-- **Desktop**: just open `index.html`. WASD to move — J/Space quick strike,
-  U/O left/right swing, I stab, K/Shift roll, E interact, B offerings,
+- **Desktop**: just open `index.html`. WASD to move — J/Space strike
+  (repeat for the combo), K/Shift roll, E interact, B offerings,
   Z/C orbit camera.
 
 ## Controls (touch)
 
 - **Left thumb** — floating joystick, movement only
-- **Right thumb — omnidirectional flicks.** The upper half attacks,
-  the lower half rolls:
-  - **flick straight up** — a deep forward stab
-  - **flick up-left / up-right** — a sweeping swing that way
-  - **tap** — quick strike, alternating left and right cuts
-  - **flick down or sideways** — dodge roll with i-frames in the
-    swipe's direction (chain flicks mid-swing to keep the combo going)
-- **Rolling attack** — strike during a roll (or right as it ends) and
+- **Right thumb — tap to fight, flick to live:**
+  - **tap** — swing the sword; keep tapping and the combo climbs:
+    slash, backhand, crushing overhead, deep thrust, and around again
+  - **flick in ANY direction** — dodge roll with i-frames that way
+- **Rolling attack** — tap during a roll (or right as it ends) and
   the knight rises out of the tuck with a fast upward cut that flows
   into the normal chain
 - **Right thumb, hold & drag** — turn the camera
@@ -48,6 +45,16 @@ before they land; bone-throwers with green eyes lob shots you can
 sidestep or roll through. Break a small horror's poise to stun it,
 then land one more blow and it goes sprawling flat on the path —
 kicked while it's down, it stays down.
+
+## Elements
+
+Fallen horrors sometimes shed a mote of the power that moved them —
+**fire**, **lightning**, or **frost**. Walk into the light and the
+blade takes it for a while, glowing and shedding sparks: fire hits
+harder and bursts into rising embers, lightning arcs from your victim
+to the next horror in reach, and frost slows whatever it bites while
+mist bleeds off them. The element gutters out after a time — or is
+lost with your life.
 
 ## The loop
 
