@@ -45,7 +45,9 @@ thicken your marrow for more vigor (max HP, at rising cost). Die and
 you drop every unspent shard where you fell —
 one corpse-run to win it back. Enemy windups flash amber and rasp
 before they land; bone-throwers with green eyes lob shots you can
-sidestep or roll through.
+sidestep or roll through. Break a small horror's poise to stun it,
+then land one more blow and it goes sprawling flat on the path —
+kicked while it's down, it stays down.
 
 ## The loop
 

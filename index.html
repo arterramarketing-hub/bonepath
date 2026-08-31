@@ -911,11 +911,13 @@ const AudioSys=(()=>{
   return {
     bossMusic,
     start,
-    // blade whips the air: crossing band-swept noise layers + a faint whistle
+    // a colossal blade tearing the air: deep displaced-air layers under
+    // the whistle — the mass reads in the low end
     swing(){const t=now();
-      noise(t,{peak:.16,att:.05,dec:.13,f0:500,f1:2400,type:'bandpass',Q:2});
-      noise(t+.02,{peak:.12,att:.03,dec:.1,f0:2800,f1:900,type:'bandpass',Q:1.4});
-      tone(t+.03,{f:rr2(680,760),f2:1500,type:'sine',peak:.02,dec:.1});},
+      noise(t,{peak:.2,att:.06,dec:.2,f0:220,f1:1600,type:'bandpass',Q:1.6});
+      noise(t+.03,{peak:.13,att:.04,dec:.16,f0:2400,f1:600,type:'bandpass',Q:1.4});
+      tone(t,{f:95,f2:48,type:'sine',peak:.1,att:.04,dec:.2});
+      tone(t+.04,{f:rr2(620,700),f2:1400,type:'sine',peak:.018,dec:.1});},
     heavySwing(){const t=now();
       noise(t,{peak:.24,att:.09,dec:.24,f0:280,f1:1500,type:'bandpass',Q:1.6});
       noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
@@ -942,7 +944,17 @@ const AudioSys=(()=>{
       noise(t,{peak:.12,att:.01,dec:.1,f0:900,f1:280});
       noise(t+.09,{peak:.16,att:.008,dec:.16,f0:340,f1:90});
       tone(t+.1,{f:95,f2:55,type:'sine',peak:.1,dec:.12});},
-    step(){noise(now(),{peak:.045,att:.002,dec:.07,f0:rr2(420,560),f1:150});},
+    // armored footfall: boot on dirt, ground thump, and a whisper of mail
+    step(v){v=v===undefined?1:v;const t=now();
+      noise(t,{peak:.055*v,att:.002,dec:.06,f0:rr2(360,520),f1:110});
+      tone(t,{f:rr2(56,68),f2:38,type:'sine',peak:.06*v,dec:.07});
+      if(Math.random()<.65)
+        noise(t+.014,{peak:.02*v,att:.001,dec:.04,f0:rr2(2300,3200),f1:1500,type:'bandpass',Q:6});},
+    // a body slammed flat onto the path
+    bodyfall(){const t=now();
+      noise(t,{peak:.15,att:.004,dec:.12,f0:320,f1:80});
+      tone(t+.01,{f:72,f2:36,type:'sine',peak:.2,dec:.16});
+      noise(t+.07,{peak:.06,att:.003,dec:.09,f0:900,f1:200});},
     // gulp, gulp, warm ember settling in the chest
     flask(){const t=now();
       tone(t,{f:320,f2:180,type:'sine',peak:.1,dec:.09});
@@ -1847,7 +1859,8 @@ function poseIdle(r,t){
 }
 function poseWalk(r,t,sp,shamble){
   const f=shamble?5.2:7.5,amp=shamble?.5:.62;
-  const w=Math.sin(t*f)*amp*sp,w2=Math.cos(t*f)*amp*sp;
+  const s=Math.sin(t*f),c=Math.cos(t*f);
+  const w=s*amp*sp,w2=c*amp*sp;
   r.legR.rotation.x=w;r.legL.rotation.x=-w;
   r.kneeR.rotation.x=Math.max(0,-w2)*.9;r.kneeL.rotation.x=Math.max(0,w2)*.9;
   if(!r.armed){ // unarmed rigs swing their arms; the knight keeps both hands on the grip
@@ -1855,11 +1868,22 @@ function poseWalk(r,t,sp,shamble){
     r.foreR.rotation.x+=-Math.max(0,w)*.35;
     r.armL.rotation.x+=w*.5;
     r.foreL.rotation.x+=-Math.max(0,-w)*.35; // elbow trails
+  }else{
+    // the carried greatsword rides the stride: arms pump a few degrees
+    // so the whole blade bobs and sways instead of hanging frozen
+    r.armR.rotation.x+=w*.055;
+    r.foreR.rotation.x+=c*.04*sp;
   }
-  r.body.rotation.y=Math.sin(t*f)*.07*sp;             // hips swing...
-  r.torso.rotation.y=-Math.sin(t*f)*.13*sp;           // ...shoulders answer
-  r.head.rotation.y=Math.sin(t*f)*.05*sp;             // gaze stays level
-  r.body.position.y=r.baseY+Math.abs(Math.cos(t*f))*.05*sp*r.s;
+  r.body.rotation.y=s*.07*sp;                         // hips swing...
+  r.torso.rotation.y=-s*.13*sp;                       // ...shoulders answer
+  r.torso.rotation.z=-s*.035*sp;                      // weight shifts over the planted foot
+  r.torso.rotation.x+=.09*sp;                         // leaning into the march
+  r.head.rotation.y=s*.05*sp;                         // gaze stays level
+  r.head.rotation.x-=.07*sp;
+  // rise over the planted leg, then a hard drop into each heel strike
+  const strike=Math.pow(Math.abs(s),14);              // spikes at leg extremes
+  r.body.position.y=r.baseY+(Math.abs(c)*.055-strike*.035)*sp*r.s;
+  r._heel=strike*sp;                                  // read by the game for footfalls
   if(shamble){
     r.torso.rotation.z=Math.sin(t*f*.5)*.1;
     r.body.rotation.z=Math.sin(t*f*.5)*.06;
@@ -1906,7 +1930,9 @@ function seg4(p,W,H,S,A,B,C){
 // Every swing hauls the blade OFF the shoulder carry (seg4 blends from
 // CARRY), both hands stay on the grip, and the trunk throws the weight.
 function poseLight(r,p,combo){
-  const W=.34,H=.64;
+  // long deliberate windup, violent whip, dragging follow-through —
+  // the mass of the blade lives in the timing contrast
+  const W=.42,H=.68;
   const C=CARRY;
   if(combo===2){ // overhead: the blade lifts straight off the shoulder and falls
     r.armR.rotation.x=seg4(p,W,H,C.aRx,-2.45,.8,-.3);
@@ -2082,6 +2108,21 @@ function poseRollAtk(r,p){
   r.armL.rotation.z=seg4(p,W,H,C.aLz,-.35,-.2,C.aLz);
   r.foreL.rotation.x=seg4(p,W,H,-1.4,-.6,-.2,-.75);
   r.head.rotation.y=-ty*.6;
+}
+/* floored: knocked flat on the back, a beat of struggling, then up */
+function poseKnockdown(r,p){
+  const fall=easeIn(clamp(p/.2,0,1));
+  const rise=easeInOut(clamp((p-.7)/.3,0,1));
+  const k=fall*(1-rise);
+  r.body.rotation.x=-1.35*k;                          // flat on the back
+  r.body.position.y=r.baseY*(1-.76*k)+.02*k;
+  r.legR.rotation.x=(-.35+Math.sin(p*21)*.08)*k;      // legs kick weakly
+  r.legL.rotation.x=(-.6-Math.sin(p*17)*.08)*k;
+  r.kneeR.rotation.x=.55*k;r.kneeL.rotation.x=.75*k;
+  r.armR.rotation.x=-1.9*k;r.armL.rotation.x=-1.6*k;  // arms flung wide
+  r.armR.rotation.z=.55*k;r.armL.rotation.z=-.55*k;
+  r.head.rotation.x=.55*k;                            // head strains up
+  if(rise>0&&rise<1)r.torso.rotation.x+=.6*rise*(1-rise); // shoves itself upright
 }
 function poseStagger(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
@@ -2649,9 +2690,14 @@ const player={
         const sp=4.5*Math.min(1,mAmt*1.2);
         this.x+=mvx*sp*dt;this.z+=mvz*sp*dt;
         if(!foe)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
-        this.stepT+=dt*sp;
-        if(this.stepT>1.6){this.stepT=0;AudioSys.step();}
       }
+      // footfalls ride the ACTUAL heel strikes of the walk cycle
+      const heel=this.rig._heel||0;
+      if(heel>.45&&!this._heelOn){
+        this._heelOn=true;
+        AudioSys.step(Math.min(1,this.moveAmt+.3));
+        if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
+      }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
       if(mAmt>0){this.moveX=mvx;this.moveZ=mvz;} // the follow camera reads this
       if(foe)this.facing=angLerp(this.facing,
@@ -2700,21 +2746,23 @@ const player={
       }
     }
     else if(this.state==='attack'){
-      const DUR=.58;
+      const DUR=.68;
       const p=this.t/DUR;
       if(IN.swipe){
         if(IN.swipe.kind==='atk'&&this.t>.15){
           this.queued=true;this.qType=swingOf(IN.swipe);
           this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
-        }else if(IN.swipe.kind==='dodge'&&p>.6){
+        }else if(IN.swipe.kind==='dodge'&&p>.65){
           startDodge(IN.swipe);return this.post(dt);
         }
       }
-      // the whoosh rides the whip, not the button press
-      if(!this.sfxDone&&p>=.28){this.sfxDone=true;AudioSys.swing();}
+      // the whoosh rides the whip, and the camera flinches at the mass
+      // of the blade even when it finds nothing
+      if(!this.sfxDone&&p>=.36){this.sfxDone=true;AudioSys.swing();
+        G.camShake=Math.max(G.camShake,.09);}
       // lunge through the cut — the blade goes and finds them,
       // but only strides hard when something is there to reach
-      if(p>.28&&p<.62){
+      if(p>.34&&p<.68){
         let sp=3.2;
         for(const e of enemies){
           if(e.hp<=0||e.state==='dormant')continue;
@@ -2722,9 +2770,9 @@ const player={
         }
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
       }
-      if(foe&&p<.3)this.facing=angLerp(this.facing,
+      if(foe&&p<.35)this.facing=angLerp(this.facing,
         Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
-      if(!this.hitDone&&p>=.52){
+      if(!this.hitDone&&p>=.58){
         this.hitDone=true;
         // the stab reaches deep but narrow; sweeps cut wide
         const stab=this.combo===3,
@@ -2780,7 +2828,7 @@ const player={
       r.armR.rotation.x=-1.2;r.armL.rotation.x=-1.2;
       r.foreR.rotation.x=-1.4;r.foreL.rotation.x=-1.4;
     }
-    else if(this.state==='attack')poseLight(r,Math.min(1,this.t/.58),this.combo);
+    else if(this.state==='attack')poseLight(r,Math.min(1,this.t/.68),this.combo);
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/.44));
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
@@ -2846,7 +2894,16 @@ class Enemy{
     if(this.hp<=0){this.die();return;}
     this.poise+=poise;
     const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
-    if(this.poise>=this.poiseMax){
+    if(this.state==='stagger'&&!this.big&&!this.boss){
+      // a blow landed on a stunned little horror slams it flat
+      this.state='down';this.t=0;this.poise=0;
+      this.vx=dx/l*(kb*7+3);this.vz=dz/l*(kb*7+3);
+      AudioSys.bodyfall();G.vibr(35);
+      boneBurst(this.x,.2,this.z,0x4a463a,6,1.6);     // dirt kicked up
+    }else if(this.state==='down'){
+      this.t=Math.min(this.t,.45);                    // kicking them keeps them down
+      this.vx=dx/l*kb*3;this.vz=dz/l*kb*3;
+    }else if(this.poise>=this.poiseMax){
       this.poise=0;this.state='stagger';this.t=0;
       this.vx=dx/l*kb*4;this.vz=dz/l*kb*4;
     }else if(!this.boss){
@@ -2973,6 +3030,11 @@ class Enemy{
         this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
         if(this.t>=(this.boss?1.1:.85)){this.state='chase';this.t=0;}
         break;
+      case 'down':
+        this.x+=this.vx*dt;this.z+=this.vz*dt;
+        this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+        if(this.t>=1.9){this.state='chase';this.t=0;}
+        break;
       case 'dead':
         break;
     }
@@ -3023,6 +3085,7 @@ class Enemy{
         break;}
       case 'recover':poseIdle(r,t);break;
       case 'stagger':poseStagger(r,this.t/(this.boss?1.1:.85));break;
+      case 'down':poseKnockdown(r,Math.min(1,this.t/1.9));break;
       case 'dead':
         poseDead(r,this.t);
         // the fallen come apart into the soil
