@@ -31,8 +31,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Right thumb, hold & drag** — turn the camera
 - **The eye never closes** — lock-on is automatic and buttonless: the
   closest live horror is always marked (skeletons still clawing out of
-  the ground don't count until they're up). When nothing stalks you, an
-  ember waymark floats ahead, pointing down the path — to the fog gate,
+  the ground don't count until they're up). When nothing stalks you,
+  the lock falls on the objective itself and the camera quietly keeps
+  it in frame as you walk — the view points the way to the fog gate,
   and after the Warden falls, to the altar
 
 No flask. No stamina. Only nerve.

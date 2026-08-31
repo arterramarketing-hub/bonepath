@@ -1867,7 +1867,7 @@ function poseWalk(r,t,sp,shamble){
    at the shoulder, blade rising ~30° over it toward the back, broad
    face showing from the side (wy twist). Swings haul it off the
    shoulder (seg4 blends from here) and settle back toward it. */
-const CARRY={aRx:-1.15,aRz:-.02,fRx:-.25,wx:-2.8,wy:1.4,wz:0,
+const CARRY={aRx:-1.0,aRz:-.02,fRx:-.25,wx:-2.95,wy:1.4,wz:0,
   aLx:-.6,aLz:-.45,fLx:-.85};
 /* swap the greatsword between the back scabbard and the hands */
 function attachWeapon(r,toHand){
@@ -3129,11 +3129,16 @@ function updateCamera(dt){
     G.camYaw-=IN.camDX*.0062;
     G.camPitch=clamp(G.camPitch+IN.camDY*.002,.12,.6);
     if(camIdle>.5){
-      // the camera minds itself: pitch drifts home, yaw eases in behind
-      // your run — the drag becomes a correction, not a chore
+      // the camera minds itself: pitch drifts home, and the yaw keeps its
+      // eye on the objective while you walk — no marker needed, the frame
+      // itself points the way. With no objective it eases in behind your run.
       const moving=player.moveAmt>.3&&player.state!=='dead';
       G.camPitch=lerp(G.camPitch,.34,Math.min(1,(moving?1.1:.35)*dt));
-      if(moving){
+      const obj=G.lockTarget&&G.lockTarget.objective?G.lockTarget:null;
+      if(obj){
+        const want=Math.atan2(player.x-obj.x,player.z-obj.z);
+        G.camYaw=angLerp(G.camYaw,want,Math.min(1,(moving?1.2:.4)*dt));
+      }else if(moving){
         const wantYaw=Math.atan2(-player.moveX,-player.moveZ);
         const off=Math.abs(wrapA(wantYaw-G.camYaw));
         if(off<2.45) // never spin when running toward the camera
@@ -3200,22 +3205,13 @@ function updateLock(){
   }
   G.lockTarget=foe||(G.bossDead?OBJ_ALTAR:OBJ_GATE);
   const c=G.lockTarget;
-  lockMarker.visible=G.mode==='play';
-  if(c.objective){
-    // the waymark floats a few strides ahead, pointing down the path —
-    // parked on the objective itself it would drown in the fog
-    const dx=c.x-player.x,dz=c.z-player.z,d=Math.hypot(dx,dz)||1;
-    const k=Math.min(1,6.5/d);
-    lockMarker.position.set(player.x+dx*k,
-      d<7?c.y:2.3+Math.sin(G.time*1.6)*.18,player.z+dz*k);
-    lockMarker.material.color.setHex(0xd0762b);   // ember waymark
-    lockMarker.scale.set(.62,.62,1);
-  }else{
+  // the eye only draws itself over prey — an objective lock steers the
+  // camera instead, so it needs no orb
+  lockMarker.visible=G.mode==='play'&&!c.objective;
+  if(!c.objective){
     lockMarker.position.set(c.x,(c.boss?3.6:c.big?2.3:1.9),c.z);
-    lockMarker.material.color.setHex(0xcfc4a3);   // bone eye on prey
-    lockMarker.scale.set(.34,.34,1);
+    lockMarker.material.rotation=G.time*2;
   }
-  lockMarker.material.rotation=G.time*2;
 }
 
 /* ---------------- HUD & messaging ---------------- */
