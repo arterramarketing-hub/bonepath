@@ -2512,6 +2512,7 @@ const ELEMENTS={
   fire:{hue:0xff7a2a,lite:0xff6a1a,em:0x8a2408,msg:'the blade takes fire'},
   lightning:{hue:0xffeaa0,lite:0xffd76a,em:0x8a7a22,msg:'the blade takes lightning'},
   ice:{hue:0x9fe4ff,lite:0x6fc4ea,em:0x1e5a6e,msg:'the blade takes frost'},
+  health:{hue:0xff6a72,lite:0xd94a52,em:0,msg:''}, // drop only — never imbues
 };
 function elemBurst(kind,x,y,z){
   const pal=kind==='fire'?[0xff8c2a,0xff5f1a,0xffc46a]:
@@ -2603,8 +2604,16 @@ function updateElemDrops(dt){
     if(Math.random()<dt*4)elemFleck(d.kind,d.x+rr3(-.15,.15),d.s.position.y,d.z+rr3(-.15,.15));
     if(G.mode==='play'&&player.state!=='dead'&&
        Math.hypot(player.x-d.x,player.z-d.z)<1.1){
+      // a health mote waits on the path until you're actually wounded
+      if(d.kind==='health'&&player.hp>=player.maxHp)continue;
       elemDrops.splice(i,1);scene.remove(d.s);scene.remove(d.l);
-      player.setElement(d.kind);
+      if(d.kind==='health'){
+        player.hp=Math.min(player.maxHp,player.hp+35);
+        AudioSys.flask();G.vibr(25);
+        toast('the marrow mends you');
+        boneBurst(player.x,1.2,player.z,0xd0762b,7,1);
+        shockRing(player.x,player.z,0xff6a72,1.8,.45);
+      }else player.setElement(d.kind);
     }
   }
 }
@@ -3095,8 +3104,13 @@ class Enemy{
     player.marrow+=this.marrow;
     AudioSys.marrow();
     toast('+'+this.marrow+' marrow');
-    // sometimes the power that moved them stays behind
-    if(!this.boss&&Math.random()<.3)spawnElemDrop(this.x,this.z);
+    // sometimes the power that moved them stays behind — or a little
+    // of the life it stole
+    if(!this.boss){
+      const r=Math.random();
+      if(r<.3)spawnElemDrop(this.x,this.z);
+      else if(r<.52)spawnElemDrop(this.x,this.z,'health');
+    }
     boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
     if(this.boss)onBossDead();
   }

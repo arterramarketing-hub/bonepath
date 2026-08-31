@@ -49,8 +49,11 @@ kicked while it's down, it stays down.
 ## Elements
 
 Fallen horrors sometimes shed a mote of the power that moved them —
-**fire**, **lightning**, or **frost**. Walk into the light and the
-blade takes it for a while, glowing and shedding sparks: fire hits
+**fire**, **lightning**, or **frost** — or a warm red mote of the
+**life they stole**: walk into that one wounded and it mends 35
+vigor on the spot (at full health it waits on the path for you).
+The elemental motes imbue the blade for a while, glowing and
+shedding sparks: fire hits
 harder and bursts into rising embers, lightning arcs from your victim
 to the next horror in reach, and frost slows whatever it bites while
 mist bleeds off them. The element gutters out after a time — or is
