@@ -74,8 +74,6 @@
   .btn span.t{font-size:8px;margin-top:2px;}
   .btn.pressed{background:radial-gradient(circle at 38% 32%, rgba(120,104,70,.9), rgba(30,26,18,.9) 72%);
     color:var(--bone);border-color:var(--bone-dim);}
-  /* the one button rides the top edge, clear of the thumbs' swipe space */
-  #btnLock{width:50px;height:50px;right:calc(20px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));}
   #swipeHint{position:absolute;right:calc(34px + env(safe-area-inset-right));
     bottom:calc(64px + env(safe-area-inset-bottom));pointer-events:none;text-align:center;
     font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-faint);
@@ -173,8 +171,7 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div class="btn" id="btnLock"><span class="g">&#9678;</span><span class="t">target</span></div>
-  <div id="swipeHint">tap / flick &#8593; &mdash; strike &nbsp; flick &#8595; &mdash; roll<br>hold &amp; drag &mdash; camera &nbsp; &#9678; &mdash; switch target</div>
+  <div id="swipeHint">flick &#8593; &mdash; stab &nbsp; flick &#8598;/&#8599; &mdash; swing &nbsp; tap &mdash; strike<br>flick &#8595;/&#8592;/&#8594; &mdash; roll &nbsp; hold &amp; drag &mdash; camera</div>
 </div>
 <div id="prompt"></div>
 <div id="prompt2"></div>
@@ -196,9 +193,9 @@
   <div id="begin">touch to begin</div>
   <div class="hint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
-    tap &mdash; strike &middot; flick up &mdash; aimed strike &middot; flick down &mdash; roll where you swipe<br>
-    the roll has grace &mdash; roll through every blow<br>
-    the eye marks your prey &mdash; or the way forward &middot; offer marrow at the fire<br>
+    flick up &mdash; stab &middot; flick diagonally &mdash; swing that way &middot; tap &mdash; quick strike<br>
+    flick down or sideways &mdash; roll that way; the roll has grace<br>
+    the eye marks the nearest horror &mdash; or the way forward &middot; offer marrow at the fire<br>
     no flask, no stamina, only nerve &middot; best in landscape
   </div>
 </div>
@@ -1004,8 +1001,7 @@ const Input=(()=>{
   const st={
     mx:0,mz:0,            // move vector (screen-relative, magnitude<=1)
     camDX:0,camDY:0,      // camera drag deltas this frame
-    swipe:null,           // {kind:'atk'|'dodge', sx,sy} — sx/sy null for keyboard
-    lockPressed:false,
+    swipe:null,           // {kind:'atk'|'dodge', atype, sx,sy} — sx/sy null for keyboard
     interactPressed:false,interact2Pressed:false,
     anyPressed:false,
   };
@@ -1025,9 +1021,20 @@ const Input=(()=>{
     el.addEventListener('pointerup',release);
     el.addEventListener('pointercancel',release);
   }
-  bindBtn($('btnLock'),()=>{st.lockPressed=true;});
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
   $('prompt2').addEventListener('pointerdown',e=>{e.preventDefault();st.interact2Pressed=true;});
+
+  /* omnidirectional flicks: the upper half attacks, the lower half rolls.
+     Straight up (within 30° of vertical) is the forward stab; beyond that
+     the diagonals are directional swings. Horizontal-and-below rolls in
+     the swipe's direction. */
+  function classifySwipe(dx,dy){
+    const dist=Math.hypot(dx,dy)||1,sx=dx/dist,sy=dy/dist;
+    if(dy>=0)return{kind:'dodge',atype:null,sx,sy};
+    const ang=Math.atan2(-dy,dx);          // 0 = right, PI/2 = straight up
+    const atype=ang>Math.PI*2/3?'left':ang<Math.PI/3?'right':'stab';
+    return{kind:'atk',atype,sx,sy};
+  }
 
   const ctl=$('controls');
   let camLX=null,camLY=null;
@@ -1067,12 +1074,9 @@ const Input=(()=>{
         const dx=e.clientX-g.x0,dy=e.clientY-g.y0;
         const dist=Math.hypot(dx,dy),ms=performance.now()-g.t0;
         if(dist>=SWIPE_DIST&&ms<=SWIPE_MS){
-          // a flick: up = strike, down = dodge; direction carries into the
-          // action. Near-horizontal flicks are camera intent, not actions.
-          if(Math.abs(dy)>=dist*.38){
-            st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
-            g.mode='done';
-          }else{g.mode='cam';g.lx=e.clientX;g.ly=e.clientY;}
+          // a flick is always an action now; camera turning is hold & drag
+          st.swipe=classifySwipe(dx,dy);
+          g.mode='done';
         }else if(ms>SWIPE_MS){
           g.mode='cam';g.lx=e.clientX;g.ly=e.clientY;
         }
@@ -1093,10 +1097,10 @@ const Input=(()=>{
       if(gesture&&gesture.mode==='pending'){
         const dx=e.clientX-gesture.x0,dy=e.clientY-gesture.y0;
         const dist=Math.hypot(dx,dy),ms=performance.now()-gesture.t0;
-        if(dist>=SWIPE_DIST&&ms<=SWIPE_MS+90&&Math.abs(dy)>=dist*.38)
-          st.swipe={kind:dy<0?'atk':'dodge',sx:dx/dist,sy:dy/dist};
+        if(dist>=SWIPE_DIST&&ms<=SWIPE_MS+90)
+          st.swipe=classifySwipe(dx,dy);
         else if(dist<14&&ms<=260)
-          st.swipe={kind:'atk',sx:null,sy:null}; // plain tap = straight strike
+          st.swipe={kind:'atk',atype:'tap',sx:null,sy:null}; // plain tap = quick strike
       }
       camId=null;gesture=null;
     }
@@ -1108,9 +1112,11 @@ const Input=(()=>{
   // keyboard fallback for desktop testing
   addEventListener('keydown',e=>{
     if(e.repeat)return;keys[e.code]=true;st.anyPressed=true;
-    if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',sx:null,sy:null};
-    if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',sx:null,sy:null};
-    if(e.code==='KeyQ'||e.code==='Tab'){st.lockPressed=true;e.preventDefault();}
+    if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};
+    if(e.code==='KeyU')st.swipe={kind:'atk',atype:'left',sx:null,sy:null};
+    if(e.code==='KeyO')st.swipe={kind:'atk',atype:'right',sx:null,sy:null};
+    if(e.code==='KeyI')st.swipe={kind:'atk',atype:'stab',sx:null,sy:null};
+    if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
     if(e.code==='KeyE')st.interactPressed=true;
     if(e.code==='KeyB')st.interact2Pressed=true;
   });
@@ -1131,7 +1137,6 @@ const Input=(()=>{
   }
   function consume(){
     st.swipe=null;
-    st.lockPressed=false;
     st.interactPressed=false;st.interact2Pressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
@@ -1862,7 +1867,7 @@ function poseWalk(r,t,sp,shamble){
    at the shoulder, blade rising ~30° over it toward the back, broad
    face showing from the side (wy twist). Swings haul it off the
    shoulder (seg4 blends from here) and settle back toward it. */
-const CARRY={aRx:-1.15,aRz:-.2,fRx:-.25,wx:-2.8,wy:1.4,wz:0,
+const CARRY={aRx:-1.15,aRz:-.02,fRx:-.25,wx:-2.8,wy:1.4,wz:0,
   aLx:-.6,aLz:-.45,fLx:-.85};
 /* swap the greatsword between the back scabbard and the hands */
 function attachWeapon(r,toHand){
@@ -2449,7 +2454,8 @@ const G={
 const player={
   rig:null,x:0,z:-1,facing:0,
   hp:100,maxHp:100,marrow:0,
-  state:'free',t:0,combo:0,queued:false,qDir:null,hitDone:false,
+  state:'free',t:0,combo:0,queued:false,qDir:null,qType:0,chain:0,
+  altSlash:false,hitDone:false,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
   armed:true,sheathT:0,
@@ -2581,6 +2587,16 @@ const player={
       else if(d!==null&&d!==undefined)this.facing=d;
       // else: keeps the roll's own heading
     };
+    // the swipe's direction picks the swing: straight up stabs, the
+    // diagonals sweep that way, a tap alternates left/right cuts
+    const swingOf=s=>{
+      const at=s&&s.atype;
+      if(at==='stab')return 3;
+      if(at==='left')return 0;
+      if(at==='right')return 1;
+      this.altSlash=!this.altSlash;
+      return this.altSlash?0:1;
+    };
     const startAttack=(s)=>{
       if(this.postRollT<.2){ // fresh out of a roll — the cut rises with you
         startRollAtk(s&&s.sx!==null?swipeWorld(s):null);
@@ -2588,7 +2604,8 @@ const player={
       }
       this.draw();
       this.state='attack';
-      this.t=0;this.combo=0;this.queued=false;this.qDir=null;this.hitDone=false;
+      this.t=0;this.combo=swingOf(s);this.chain=0;
+      this.queued=false;this.qDir=null;this.hitDone=false;
       this.sfxDone=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       else if(s&&s.sx!==null)this.facing=swipeWorld(s);
@@ -2658,12 +2675,12 @@ const player={
         if(hit)AudioSys.hit();
       }
       if(IN.swipe&&IN.swipe.kind==='atk'&&this.t>.15){
-        this.queued=true;
+        this.queued=true;this.qType=swingOf(IN.swipe);
         this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
       }
       if(p>=1){
         if(this.queued){ // flows on into the normal chain
-          this.state='attack';this.t=0;this.combo=0;
+          this.state='attack';this.t=0;this.combo=this.qType;this.chain=1;
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null&&this.qDir!==undefined)this.facing=this.qDir;
           this.qDir=null;
@@ -2675,7 +2692,7 @@ const player={
       const p=this.t/DUR;
       if(IN.swipe){
         if(IN.swipe.kind==='atk'&&this.t>.15){
-          this.queued=true;
+          this.queued=true;this.qType=swingOf(IN.swipe);
           this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
         }else if(IN.swipe.kind==='dodge'&&p>.6){
           startDodge(IN.swipe);return this.post(dt);
@@ -2697,13 +2714,16 @@ const player={
         Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
       if(!this.hitDone&&p>=.52){
         this.hitDone=true;
-        const hit=this.meleeHit(13+this.combo*3,this.combo===3?2.95:2.55,1.15,1,.35);
+        // the stab reaches deep but narrow; sweeps cut wide
+        const stab=this.combo===3,
+          dmg=(stab?17:14)+Math.min(6,this.chain*2);
+        const hit=this.meleeHit(dmg,stab?3.0:2.6,stab?.6:1.15,1,.35);
         if(hit)AudioSys.hit();
       }
       if(p>=1){
-        if(this.queued&&this.combo<3){
-          this.combo++;this.t=0;this.queued=false;this.hitDone=false;
-          this.sfxDone=false;
+        if(this.queued){
+          this.combo=this.qType;this.chain++;this.t=0;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
         }else this.state='free';
@@ -3159,28 +3179,26 @@ let lockMarker=null;
 const OBJ_GATE={x:GATE_B[0],z:GATE_B[1],y:2.1,objective:true};
 const OBJ_ALTAR={x:ARENA[0],z:ARENA[1]+ARENA_R-2.4,y:1.5,objective:true};
 function lockCands(){
+  // only horrors that are truly LIVE — still clawing out of the grave
+  // (dormant or rising) doesn't count
   return enemies
-    .filter(e=>e.hp>0&&e.state!=='dormant'&&Math.hypot(e.x-player.x,e.z-player.z)<15)
+    .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'
+      &&Math.hypot(e.x-player.x,e.z-player.z)<15)
     .sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
 }
-function toggleLock(){
-  // the button only switches between live targets
-  const cands=lockCands();
-  if(!cands.length)return;
-  const i=cands.indexOf(G.lockTarget);
-  G.lockTarget=cands[(i+1)%cands.length];
-  AudioSys.parryTick();
-}
 function updateLock(){
-  const t=G.lockTarget;
-  if(t&&!t.objective&&(t.hp<=0||t.state==='dormant'
-      ||Math.hypot(t.x-player.x,t.z-player.z)>17))
-    G.lockTarget=null;
-  if(!G.lockTarget||G.lockTarget.objective){
-    const cands=lockCands();
-    if(cands.length)G.lockTarget=cands[0];
-    else G.lockTarget=G.bossDead?OBJ_ALTAR:OBJ_GATE;
+  // the eye holds the CLOSEST live horror, with a little stickiness so
+  // two circling enemies don't make it flicker
+  const cands=lockCands(),t=G.lockTarget;
+  let foe=null;
+  if(cands.length){
+    foe=cands[0];
+    if(t&&!t.objective&&t!==foe&&cands.includes(t)&&
+       Math.hypot(t.x-player.x,t.z-player.z)
+         <Math.hypot(foe.x-player.x,foe.z-player.z)+.6)
+      foe=t;
   }
+  G.lockTarget=foe||(G.bossDead?OBJ_ALTAR:OBJ_GATE);
   const c=G.lockTarget;
   lockMarker.visible=G.mode==='play';
   if(c.objective){
@@ -3377,7 +3395,6 @@ function frame(now){
 
   if(G.mode==='play'||G.mode==='dead'){
     if(G.mode==='play'){
-      if(IN.lockPressed)toggleLock();
       if(IN.swipe)$('swipeHint').style.opacity=0;
       player.update(wdt);
       // fog gate trigger

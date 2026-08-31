@@ -11,26 +11,29 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Phone**: serve the repo with any static host (GitHub Pages works) and open
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
-- **Desktop**: just open `index.html`. WASD to move — J/Space strike,
-  K/Shift roll, Q switch target, E interact, B offerings, Z/C orbit camera.
+- **Desktop**: just open `index.html`. WASD to move — J/Space quick strike,
+  U/O left/right swing, I stab, K/Shift roll, E interact, B offerings,
+  Z/C orbit camera.
 
 ## Controls (touch)
 
 - **Left thumb** — floating joystick, movement only
-- **Right thumb, tap** — quick strike ahead (or at your lock-on target)
-- **Right thumb, flick up** — aimed strike along your swipe
-  (tap or flick again mid-swing for a 3-hit combo)
-- **Right thumb, flick down** — dodge roll with i-frames, in the
-  direction of your swipe (neutral keyboard roll is a backstep)
+- **Right thumb — omnidirectional flicks.** The upper half attacks,
+  the lower half rolls:
+  - **flick straight up** — a deep forward stab
+  - **flick up-left / up-right** — a sweeping swing that way
+  - **tap** — quick strike, alternating left and right cuts
+  - **flick down or sideways** — dodge roll with i-frames in the
+    swipe's direction (chain flicks mid-swing to keep the combo going)
 - **Rolling attack** — strike during a roll (or right as it ends) and
   the knight rises out of the tuck with a fast upward cut that flows
-  into the normal combo
+  into the normal chain
 - **Right thumb, hold & drag** — turn the camera
-- **The eye never closes** — lock-on is always active: any horror in
-  range is marked automatically, and the **target** button switches
-  between them. When nothing stalks you, an ember waymark floats ahead,
-  pointing down the path — to the fog gate, and after the Warden falls,
-  to the altar
+- **The eye never closes** — lock-on is automatic and buttonless: the
+  closest live horror is always marked (skeletons still clawing out of
+  the ground don't count until they're up). When nothing stalks you, an
+  ember waymark floats ahead, pointing down the path — to the fog gate,
+  and after the Warden falls, to the altar
 
 No flask. No stamina. Only nerve.
 
