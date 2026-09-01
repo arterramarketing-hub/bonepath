@@ -35,6 +35,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     begin. Held too briefly, it's just a strike. You are wide open while
     you wind it.
   - **flick in ANY direction** — dodge roll with i-frames that way
+  - **the finishing cut** — break a small or medium horror's poise and
+    a bright blade-mark hangs over it while it reels. Tap with it in
+    reach and the knight steps in, hauls the greatsword overhead while
+    the world holds its breath, and brings it down: the body is cleaved
+    clean in two, the halves toppling apart, the screen jolting with the
+    weight of it. Brutes included; the Warden and the two that are not
+    hollows are beyond it
 - **Rolling attack** — tap during a roll (or right as it ends) and
   the knight rises out of the tuck with a fast upward cut that flows
   into the normal chain
@@ -89,7 +96,7 @@ Two things in the field are worse than the host, and each borrows the
 Warden's bar while it hunts you.
 
 - **The Fallen One** comes down out of the sky wherever you are the
-  moment your marrow reaches 500. It is an angel only by the shape of
+  moment your marrow reaches 800. It is an angel only by the shape of
   it — a neck far too long with the head hung off it at a broken
   angle, three pale eyes behind a bone mask, a cracked halo hung
   askew, claws for hands, knees bent the wrong way, and wings of bare

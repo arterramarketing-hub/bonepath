@@ -174,7 +174,7 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; lunge &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: dash cut) &nbsp; hold &amp; drag &mdash; camera</div>
+  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; lunge &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: dash cut) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
 </div>
 <div id="prompt"></div>
 
@@ -687,6 +687,16 @@ function buildTextures(){
   });
 
   /* -- soft round glow sprite (fire, wisps, marrow) -- */
+  /* -- the finishing mark: a downward blade, bright, for a stunned foe -- */
+  makeTex('mark',64,(ctx,S)=>{
+    ctx.clearRect(0,0,S,S);
+    ctx.fillStyle='#ffe9b0';
+    ctx.fillRect(S/2-3,6,6,38);                                   // blade
+    ctx.beginPath();ctx.moveTo(S/2-3,44);ctx.lineTo(S/2+3,44);ctx.lineTo(S/2,54);ctx.fill(); // point
+    ctx.fillRect(S/2-12,10,24,5);                                 // guard
+    ctx.fillStyle='#c93a2a';ctx.fillRect(S/2-2,2,4,6);            // pommel
+  });
+  texCache.mark.encoding=THREE.LinearEncoding;
   makeTex('glow',64,(ctx,S)=>{
     const g=ctx.createRadialGradient(S/2,S/2,1,S/2,S/2,S/2);
     g.addColorStop(0,'rgba(255,255,255,1)');
@@ -716,6 +726,7 @@ const canvas=$('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.setPixelRatio(1);
+renderer.localClippingEnabled=true;   // the finishing cut halves a body with clipping planes
 const FOGC=0x090d12;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(FOGC);
@@ -832,10 +843,12 @@ const AudioSys=(()=>{
      saturation, a dull low-pass and a stone-room reverb — so nothing
      comes out clean. Old console, old cathedral. */
   function crushCurve(){
-    const n=2048,c=new Float32Array(n),steps=22;                 // coarse steps = a crushed, gritty edge
+    const n=2048,c=new Float32Array(n),steps=40;                 // coarse steps = a crushed, gritty edge
     for(let i=0;i<n;i++){const x=i/(n-1)*2-1;
-      const sat=Math.tanh(x*2.2)/Math.tanh(2.2);                   // tape-ish saturation
-      c[i]=Math.round(sat*steps)/steps*.92+sat*.08;}
+      // unity gain for quiet signals (so ambience stays quiet), soft
+      // saturation only as things get loud
+      const sat=Math.tanh(x*1.6)/1.6*1.08;
+      c[i]=Math.round(sat*steps)/steps*.85+sat*.15;}
     return c;
   }
   function makeImpulse(sec,decay,tone){
@@ -879,21 +892,21 @@ const AudioSys=(()=>{
     // graveyard wind: looped noise through a slowly wandering lowpass
     const src=ac.createBufferSource();src.buffer=noiseBuf;src.loop=true;
     const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=320;f.Q.value=.8;
-    const g=ac.createGain();g.gain.value=.03;                     // faint: a breath at the edge of hearing
+    const g=ac.createGain();g.gain.value=.007;                    // faint: a breath at the edge of hearing
     src.connect(f).connect(g).connect(master);src.start();
     const lfo=ac.createOscillator();lfo.frequency.value=.07;
     const lg=ac.createGain();lg.gain.value=190;
     lfo.connect(lg).connect(f.frequency);lfo.start();
     const lfo2=ac.createOscillator();lfo2.frequency.value=.045;
-    const lg2=ac.createGain();lg2.gain.value=.014;
+    const lg2=ac.createGain();lg2.gain.value=.003;
     lfo2.connect(lg2).connect(g.gain);lfo2.start();
     // a second, higher wind band: grit and grass hiss riding over the low moan
     const src2=ac.createBufferSource();src2.buffer=noiseBuf;src2.loop=true;src2.playbackRate.value=1.9;
     const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1400;f2.Q.value=.7;
-    const g2=ac.createGain();g2.gain.value=.009;
+    const g2=ac.createGain();g2.gain.value=.002;
     src2.connect(f2).connect(g2).connect(master);src2.start();
     const lfo3=ac.createOscillator();lfo3.frequency.value=.11;
-    const lg3=ac.createGain();lg3.gain.value=.007;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
+    const lg3=ac.createGain();lg3.gain.value=.0015;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
     // the field is never silent: far-off creaks, a crow, a chain — sparse and random
     const farOff=()=>{
       if(!ac)return;const t=now(),r=Math.random();
@@ -904,7 +917,7 @@ const AudioSys=(()=>{
     };
     setTimeout(farOff,4000);
     // sub drone, two detuned sines
-    [[55,.045],[55.7,.04],[110,.018]].forEach(([hz,v])=>{
+    [[55,.03],[55.7,.027],[110,.012]].forEach(([hz,v])=>{
       const o=ac.createOscillator();o.frequency.value=hz;
       const og=ac.createGain();og.gain.value=v;
       o.connect(og).connect(master);o.start();
@@ -1184,6 +1197,16 @@ const AudioSys=(()=>{
     windup(){const t=now();
       noise(t,{peak:.1,att:.15,dec:.13,f0:260,f1:2100,type:'bandpass',Q:2.4});
       tone(t+.05,{f:180,f2:330,type:'triangle',peak:.03,att:.1,dec:.12});},
+    // the finishing cut: a colossal downstroke, a wet cleave, and a bell for the dead
+    cleave(){const t=now();
+      noise(t,{peak:.3,att:.12,dec:.3,f0:160,f1:1400,type:'bandpass',Q:1.4});  // the blade comes down
+      tone(t,{f:70,f2:32,type:'sine',peak:.3,att:.08,dec:.35});
+      tone(t+.3,{f:150,f2:38,type:'sine',peak:.45,dec:.32});                   // the body
+      noise(t+.3,{peak:.4,att:.001,dec:.16,f0:2600,f1:400});                   // bone parting
+      noise(t+.32,{peak:.28,att:.002,dec:.28,f0:700,f1:150});                   // the wet of it
+      for(let i=0;i<5;i++)noise(t+.34+i*.03,{peak:.08,att:.001,dec:.03,f0:rr2(1400,3000),f1:700,type:'bandpass',Q:4});
+      [1,2.76,4.07].forEach((r,i)=>tone(t+.32,{f:118*r,f2:118*r*.985,type:'sine',peak:.12/(i+1),dec:1.6})); // the bell
+    },
     // the fallen one's voice: a glass-edged shriek bending down into a choir of wrong notes
     screech(){const t=now();
       tone(t,{f:1900,f2:620,type:'sawtooth',peak:.14,att:.02,dec:.9});
@@ -1641,14 +1664,16 @@ function buildWorld(){
       addWisp(px2+Math.cos(a)*.35,2.38,pz2+Math.sin(a)*.35,0xd0762b,.16);
       addObstacle(px2,pz2,.22);
     }
-    const nave=new THREE.PointLight(0xd0762b,.03,9,2);            // the nave is a dark place
+    // the one light in the dark nave: the moon, straight down through
+    // the rose window onto the centre of the floor
+    const nave=new THREE.PointLight(0xb8c8dc,.85,15,2);
     nave.position.set(0,3,0);
-    addHaze(0,3,0,0xe8b070,4,.03);
+    addHaze(0,3.2,0,0xb8c8dc,7,.14);
     scene.add(nave);
     // a pillar of moonlight stands over the nave — the one landmark
     // the murk can never swallow
     const beam=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3.6,52,12,1,true),
-      new THREE.MeshBasicMaterial({color:0x9cb2c4,transparent:true,opacity:.02,
+      new THREE.MeshBasicMaterial({color:0x9cb2c4,transparent:true,opacity:.05,
         blending:THREE.AdditiveBlending,depthWrite:false,fog:false,
         side:THREE.DoubleSide}));
     beam.position.set(0,26,0);
@@ -3330,7 +3355,7 @@ const player={
   hp:100,maxHp:100,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,chain:0,hitDone:false,
   sprintT:0,sprinting:false,chargeT:0,chargeFull:false,readyDone:false,
-  poisonT:0,poisonTick:0,
+  poisonT:0,poisonTick:0,execT:null,
   element:null,elementT:0,elemTrailT:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
@@ -3423,6 +3448,16 @@ const player={
         setTimeout(()=>$('fade').style.opacity=0,150);
       },1100);
     },2400);
+  },
+  // a stunned small or medium horror within reach can be finished
+  execTarget(){
+    let best=null,bd=2.7;
+    for(const e of enemies){
+      if(e.hp<=0||e.boss||e.mini||e.crow||e.state!=='stagger'||e.untouchable)continue;
+      const d=Math.hypot(e.x-this.x,e.z-this.z);
+      if(d<bd){bd=d;best=e;}
+    }
+    return best;
   },
   poison(sec){ // the rot takes hold — and every fresh dose keeps it going
     if(this.state==='dead'||G.mode!=='play')return;
@@ -3607,6 +3642,17 @@ const player={
       boneBurst(this.x,.12,this.z,0x4a463a,4,1.4);   // skid dust
     };
 
+    // THE FINISHING CUT: the foe is held, the blade goes up slow and
+    // comes down fast, and what it meets it parts
+    const startExecute=(e)=>{
+      this.draw();
+      this.state='execute';this.t=0;this.execT=e;this.hitDone=false;this.sfxDone=false;
+      this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
+      e.state='held';e.t=0;e.vx=0;e.vz=0;
+      this.facing=Math.atan2(e.x-this.x,e.z-this.z);
+      G.slowMo=.42;                                    // the world holds its breath
+      AudioSys.cleave();G.vibr(30);
+    };
     if(this.state==='free'){
       // past three-quarters on the stick the walk breaks into a sprint
       const run=mAmt>.78;
@@ -3635,10 +3681,35 @@ const player={
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(IN.swipe){
         if(IN.swipe.kind==='atk'){
-          if(this.sprintT>.3)startSprintAtk();   // at full stride the tap becomes the dash cut
+          const ex=this.execTarget();
+          if(ex)startExecute(ex);                // a stunned foe in reach: finish it
+          else if(this.sprintT>.3)startSprintAtk();   // at full stride the tap becomes the dash cut
           else startAttack(IN.swipe);
         }
         else startDodge(IN.swipe);
+      }
+    }
+    else if(this.state==='execute'){
+      const DUR=.9,p=this.t/DUR,e=this.execT;
+      if(!e||e.hp<=0&&!this.hitDone){this.state='free';G.slowMo=1;}
+      else{
+        // step in to the killing distance during the wind-up
+        if(p<.5){
+          const tx=e.x-Math.sin(this.facing)*1.15,tz=e.z-Math.cos(this.facing)*1.15;
+          this.x+=(tx-this.x)*Math.min(1,9*dt);this.z+=(tz-this.z)*Math.min(1,9*dt);
+          this.facing=Math.atan2(e.x-this.x,e.z-this.z);
+        }
+        if(p>=.5)G.slowMo=1;                            // and then it happens fast
+        if(!this.hitDone&&p>=.66){
+          this.hitDone=true;
+          G.camShake=1.1;G.hitstop=.24;G.vibr([90,40,140]);
+          splitEnemy(e,this.facing);
+          sparkBurst(e.x,1.2,e.z,18);
+          bloodSpray(e.x,1.3,e.z,22,1.6);
+          bloodDecal(e.x,e.z,.9);bloodDecal(e.x+rr3(-.6,.6),e.z+rr3(-.6,.6),.5);
+          e.die();e.crumbled=true;e.rig.root.visible=false;
+        }
+        if(p>=1){this.state='free';this.execT=null;}
       }
     }
     else if(this.state==='charge'){
@@ -3780,6 +3851,8 @@ const player={
         if(hit)AudioSys.hit();
       }
       if(p>=1){
+        const ex=this.queued?this.execTarget():null;
+        if(ex){startExecute(ex);return this.post(dt);}
         if(this.queued){
           this.combo=(this.combo+1)%4;this.chain++;this.t=0;
           this.atkDur=this.element==='lightning'?.5:.68;
@@ -3809,7 +3882,7 @@ const player={
     // ---- pose ----
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
-    r.ikLeftArm=['free','attack','rollatk','charge','lunge','sprintatk'].includes(this.state);
+    r.ikLeftArm=['free','attack','rollatk','charge','lunge','sprintatk','execute'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -3820,6 +3893,7 @@ const player={
     else if(this.state==='charge')poseCharge(r,this.chargeT/.6,t);
     else if(this.state==='lunge')poseLunge(r,Math.min(1,this.t/.62));
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/.5));
+    else if(this.state==='execute')poseHeavy(r,Math.min(1,this.t/.9));
     else if(this.state==='roll'){
       const TUMBLE=.46,DUR=.58,C=CARRY;
       const p=Math.min(1,this.t/TUMBLE);                          // the tumble
@@ -4071,6 +4145,9 @@ class Enemy{
         this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
         if(this.t>=(this.boss?1.1:.85)){this.state='chase';this.t=0;}
         break;
+      case 'held': // in the pilgrim's grip for the finishing cut; it only shudders
+        if(this.t>2){this.state='chase';this.t=0;}   // (safety: never held forever)
+        break;
       case 'down':
         this.x+=this.vx*dt;this.z+=this.vz*dt;
         this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
@@ -4135,6 +4212,7 @@ class Enemy{
         break;}
       case 'recover':case 'guard':poseIdle(r,t);break;
       case 'stagger':poseStagger(r,this.t/(this.boss?1.1:.85));break;
+      case 'held':poseStagger(r,.55+Math.sin(t*40)*.03);break;
       case 'down':poseKnockdown(r,Math.min(1,this.t/1.9));break;
       case 'dead':
         poseDead(r,this.t);
@@ -4381,8 +4459,8 @@ function featherShard(x,z,ang,dmg){
   }});
 }
 
-/* ---------------- THE FALLEN ONE: the mini-boss of the five-hundredth marrow ----------------
-   It descends wherever the pilgrim is when their marrow reaches 500.
+/* ---------------- THE FALLEN ONE: the mini-boss of the eight-hundredth marrow ----------------
+   It descends wherever the pilgrim is when their marrow reaches 800.
    Three moves: WINGBLADE (both wings scythe forward), PLUNGE (it rises,
    hangs, and drops on your position), LAMENT (a shriek that flings a
    ring of feather-shards, then a fan aimed at you). */
@@ -4738,6 +4816,53 @@ class GraveGhoul{
   }
 }
 
+/* the finishing cut halves a body: two clones of the rig, each clipped
+   to one side of the blade's plane, fall apart from each other, then
+   fade into the soil */
+function splitEnemy(e,facing){
+  const r=e.rig,gh=heightAt(e.x,e.z);
+  const n=new THREE.Vector3(Math.cos(facing),0,-Math.sin(facing));      // across the cut
+  const c=new THREE.Vector3(e.x,0,e.z);
+  const halves=[];
+  for(const side of [1,-1]){
+    const h=r.root.clone(true);
+    const plane=new THREE.Plane(n.clone().multiplyScalar(side),-n.dot(c)*side);
+    h.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.clippingPlanes=[plane];
+      o.material.transparent=true;o.material.side=THREE.DoubleSide;}});
+    h.position.set(e.x,gh,e.z);h.rotation.set(0,e.facing,0);
+    scene.add(h);halves.push({h,side,plane,mats:[]});
+    h.traverse(o=>{if(o.isMesh)halves[halves.length-1].mats.push(o.material);});
+  }
+  let life=0;
+  effects.push({update(dt){
+    life+=dt;
+    for(const H of halves){
+      const fall=Math.min(1,life/.75),q=fall*fall;
+      // each half topples outward from the cut, sliding a little on the way down
+      H.h.rotation.z=-H.side*1.35*q*Math.cos(facing);
+      H.h.rotation.x=H.side*1.35*q*Math.sin(facing);
+      H.h.position.x=e.x+n.x*H.side*(.15+.5*q);H.h.position.z=e.z+n.z*H.side*(.15+.5*q);
+      H.h.position.y=gh-.25*q;
+      // the plane rides with the half so the clipped face stays true
+      H.plane.constant=-n.dot(new THREE.Vector3(H.h.position.x,0,H.h.position.z))*H.side+.02;
+      if(life>1.6)for(const m of H.mats)m.opacity=Math.max(0,1-(life-1.6)/.7);
+    }
+    if(life>.05&&life<.35&&Math.random()<dt*20)bloodSpray(e.x,1.0,e.z,3,.8);
+    if(life>2.3){for(const H of halves){scene.remove(H.h);for(const m of H.mats)m.dispose();}
+      boneCollapse(e.x,e.z,e.big?1.25:.9);return false;}
+    return true;
+  }});
+}
+function updateExecMark(){
+  const e=G.mode==='play'&&(player.state==='free'||player.state==='attack')?player.execTarget():null;
+  if(e){
+    if(!execMark.visible){AudioSys.parryTick();G.vibr(12);}
+    execMark.visible=true;
+    execMark.position.set(e.x,heightAt(e.x,e.z)+(e.big?2.6:2.15)+Math.sin(G.time*6)*.08,e.z);
+    const s=.5+Math.sin(G.time*9)*.06;execMark.scale.set(s,s,1);
+    execMark.material.opacity=.75+Math.sin(G.time*9)*.25;
+  }else execMark.visible=false;
+}
 /* fire clings: an imbued hit leaves them burning — two life every half
    second, shedding embers — until it gutters out */
 function tickBurn(e,dt){
@@ -5058,6 +5183,10 @@ makeFogGate();
 player.init();
 spawnEnemies();
 makeGrain();
+// the finishing mark hangs over a stunned foe you can reach
+const execMark=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.mark,color:0xffe9b0,
+  transparent:true,opacity:.95,depthTest:false,depthWrite:false}));
+execMark.scale.set(.55,.55,1);execMark.visible=false;execMark.renderOrder=6;scene.add(execMark);
 lockMarker=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
   color:0xf0e6c8,transparent:true,opacity:.9,depthWrite:false}));
 lockMarker.scale.set(.34,.34,1);lockMarker.visible=false;
@@ -5077,6 +5206,7 @@ function frame(now){
   let dt=Math.min(.05,(now-last)/1000);last=now;
   let wdt=dt;
   if(G.hitstop>0){G.hitstop-=dt;wdt=dt*.08;}
+  else if(G.slowMo&&G.slowMo<1)wdt=dt*G.slowMo;        // the finishing cut's held breath
   G.time+=wdt;
   Input.poll(dt);
 
@@ -5086,8 +5216,8 @@ function frame(now){
       player.update(wdt);
       // enough marrow held calls the cathedral open
       if(!G.cathedralOpen&&player.marrow>=G.marrowGoal)openCathedral();
-      // at the five-hundredth marrow, something with a cracked halo comes down
-      if(!G.angelCame&&player.marrow>=500&&!G.bossActive){G.angelCame=true;summonAngel();}
+      // at the eight-hundredth marrow, something with a cracked halo comes down
+      if(!G.angelCame&&player.marrow>=800&&!G.bossActive){G.angelCame=true;summonAngel();}
       // stepping into the nave wakes the Warden
       if(G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
          Math.hypot(player.x,player.z)<ARENA_R-1)startBossFight();
@@ -5102,6 +5232,7 @@ function frame(now){
       if(e.burnT>0&&e.hp>0&&!e.untouchable&&G.mode==='play')tickBurn(e,wdt);
     }
     updateLock();
+    updateExecMark();
     updateMarrowDrop();
     updateElemDrops(wdt);
     updatePuddles(wdt);
@@ -5109,6 +5240,7 @@ function frame(now){
     updateHUD();
   }
   for(let i=effects.length-1;i>=0;i--)if(!effects[i].update(wdt))effects.splice(i,1);
+  if(player.state!=='execute')G.slowMo=1;
   updateAmbient(G.time,wdt);
   heroLight.position.set(player.x,heightAt(player.x,player.z)+2.2,player.z);
   // the glow is the charge meter: it draws in tight and burns hotter as
@@ -5125,7 +5257,7 @@ function frame(now){
   // picture sinks a stop darker
   worldLights.hemi.intensity=.26*(1-.88*G.naveDim);
   worldLights.moon.intensity=.21*(1-.94*G.naveDim);
-  gradeMat.uniforms.uExpo.value=1.04*(1-.3*G.naveDim);
+  gradeMat.uniforms.uExpo.value=1.04*(1-.22*G.naveDim);
   AudioSys.setSpace(G.naveDim);
   AudioSys.setMusic(G.bossActive||G.mode==='victory'?0:G.mode==='dead'?.35:1);
   // the hazes ride their lights (the hero carries none: the light alone reads better)
