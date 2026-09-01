@@ -12,8 +12,7 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
 - **Desktop**: just open `index.html`. WASD to move — J/Space strike
-  (repeat for the combo), K/Shift roll, E interact, B offerings,
-  Z/C orbit camera.
+  (repeat for the combo), K/Shift roll, E interact, Z/C orbit camera.
 
 ## Controls (touch)
 
@@ -36,10 +35,11 @@ No flask. No stamina. Only nerve.
 
 ## Marrow
 
-Everything you fell pays marrow, and the marrowfires accept it:
-thicken your marrow for more vigor (max HP, at rising cost). Die and
-you drop every unspent shard where you fell —
-one corpse-run to win it back. Enemy windups flash amber and rasp
+Everything you fell pays marrow — the toll that opens the cathedral.
+Die and you drop every shard where you fell, and wake again at the
+pilgrim's gate on the far southern edge — one long corpse-run to win
+it back. There is no rest and no fire to kindle: the only mending is
+what the fallen shed. Enemy windups flash amber and rasp
 before they land; bone-throwers with green eyes lob shots you can
 sidestep or roll through. Break a small horror's poise to stun it,
 then land one more blow and it goes sprawling flat on the path —
@@ -63,9 +63,10 @@ The element gutters out after a time — or is lost with your life.
 
 Every swing also carries a chance of a **telling blow** — near double
 damage with a golden ring and a crack like a bell — and a telling
-blow blasts a small skeleton clean apart into a heap of bones. If
-life remains in it, the bones crawl back together and it climbs
-upright to come at you again.
+blow blasts a small skeleton clean apart: real bones and a skull go
+flying, tumble, and lie scattered on the path. If life remains in
+it, the bones drag themselves back together and it climbs upright
+to come at you again.
 
 ## The loop
 
@@ -75,14 +76,16 @@ its center under a pillar of moonlight you can steer by from anywhere.
 A flagstone ring road circles the nave with straight roads running out
 to the quarters: the pilgrim's approach in the south, the ordered
 grave rows in the east, the hollow wood's groves in the west, the
-ruins and fallen tower in the north — a marrowfire on three of the
-four roads. The dead never stop coming — hollows claw out of the
-soil, bone-throwers post up, brutes lumber in, and now and then a
-lone carrion crow wheels overhead and stoops at you — and the field
-thickens as your marrow grows. **Survive and harvest 1000 marrow** and
-the cathedral's veil burns away. Kindle the marrowfires to rest, heal,
-and set your checkpoint; die and you drop your marrow where you fell —
-one corpse-run to win it back. Step through the portal and the
+ruins and fallen tower in the north — iron lanterns burning warm at
+the crossings and along the roads, the only kindness in the dark.
+You start your pilgrimage at the field's far southern edge, the
+cathedral a distant beacon. The dead never stop coming — hollows
+claw out of the soil, bone-throwers post up, brutes lumber in, and
+now and then a lone carrion crow wheels overhead and stoops at you —
+and the field thickens as your marrow grows. **Survive and harvest
+1000 marrow** and the cathedral's veil burns away. There are no
+fires to rest at: die and you wake at the pilgrim's gate, your
+marrow lying where you fell. Step through the portal and the
 **Gravewarden of the Bonefield** rises, with a second phase when its
 rage remembers itself. Fell it, claim the altar under the rose window,
 and the field is yours.
@@ -101,7 +104,8 @@ Everything is generated at boot inside the one file:
   laid out in quarters around a ring road: an ordered cemetery, groves
   of dead trees, roofless ruins and a fallen tower (all with real
   collision), the land shearing off into dark void at the hexagon's
-  edge, mist banks crawling over the ground, and the cathedral — bone wainscot,
+  edge, mist banks crawling over the ground, iron lanterns along the
+  roads casting real flickering point-light, and the cathedral — bone wainscot,
   lancet glass, rose window, a moonbeam standing over it — at the
   center.
 - **Characters** — low-poly articulated rigs (armored knight with cape,

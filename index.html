@@ -174,13 +174,6 @@
   <div id="swipeHint">tap &mdash; strike &nbsp; keep tapping &mdash; combo<br>flick any way &mdash; roll &nbsp; hold &amp; drag &mdash; camera</div>
 </div>
 <div id="prompt"></div>
-<div id="prompt2"></div>
-<div id="shop">
-  <div class="shopTitle">Offer Marrow</div>
-  <div class="shopBal">marrow held &mdash; <span id="shopMarrow">0</span></div>
-  <button id="buyVigor"></button>
-  <button id="shopLeave">leave</button>
-</div>
 
 <div id="banner"><div class="big" id="bannerBig"></div><div class="rule"></div><div class="sm" id="bannerSm"></div></div>
 <div id="toast"></div>
@@ -195,7 +188,7 @@
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
     tap &mdash; strike &middot; keep tapping &mdash; the combo climbs &middot; flick any way &mdash; roll that way<br>
     survive the bonefield &middot; harvest 1000 marrow to open the cathedral<br>
-    fell the warden within &middot; fallen horrors shed fire, lightning, frost, and life<br>
+    no rest, no fires &mdash; only what the fallen shed: fire, lightning, frost, and life<br>
     no flask, no stamina, only nerve &middot; best in landscape
   </div>
 </div>
@@ -1043,7 +1036,7 @@ const Input=(()=>{
     mx:0,mz:0,            // move vector (screen-relative, magnitude<=1)
     camDX:0,camDY:0,      // camera drag deltas this frame
     swipe:null,           // {kind:'atk'|'dodge', atype, sx,sy} — sx/sy null for keyboard
-    interactPressed:false,interact2Pressed:false,
+    interactPressed:false,
     anyPressed:false,
   };
   const keys={};
@@ -1063,7 +1056,6 @@ const Input=(()=>{
     el.addEventListener('pointercancel',release);
   }
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
-  $('prompt2').addEventListener('pointerdown',e=>{e.preventDefault();st.interact2Pressed=true;});
 
   /* a flick in ANY direction is a dodge roll that way;
      a tap is the sword — repeated taps chain the combo */
@@ -1151,7 +1143,6 @@ const Input=(()=>{
     if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};
     if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
     if(e.code==='KeyE')st.interactPressed=true;
-    if(e.code==='KeyB')st.interact2Pressed=true;
   });
   addEventListener('keyup',e=>{keys[e.code]=false;});
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
@@ -1170,7 +1161,7 @@ const Input=(()=>{
   }
   function consume(){
     st.swipe=null;
-    st.interactPressed=false;st.interact2Pressed=false;
+    st.interactPressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
   return {st,poll,consume};
@@ -1193,7 +1184,7 @@ const CATH_R=10;                      // cathedral outer wall radius
 const ARENA=[0,0],ARENA_R=8.6;        // the nave: the boss ground
 const DOOR_A=Math.PI/2;               // the portal faces SOUTH (+z)
 const ALTAR=[0,-(ARENA_R-2.4)];       // altar under the rose window
-const START=[0,16];
+const START=[0,50];
 
 /* broad, gentle elevations: flat at the heart and the rim,
    long rolling swells in the field between */
@@ -1248,9 +1239,8 @@ function pushOut(p,selfR){
 
 /* ---------------- build the world ---------------- */
 const world=new THREE.Group();scene.add(world);
-let fireSystems=[];   // animated flames
 let wispSystems=[];
-const bonfires=[];    // rest points
+const bonfires=[];    // (the marrowfires are gone — the field gives no rest)
 const roads=[];       // road segments — decor keeps off them
 
 function box(w,h,d,m,x,y,z,ry){
@@ -1276,8 +1266,6 @@ function clearSpot(x,z,pad){
   if(d<CATH_R+3||d>HEX_AP-2.4)return false;
   if(Math.hypot(x-START[0],z-START[1])<4.5)return false;
   if(nearRoad(x,z))return false;
-  for(const b of bonfires)
-    if(Math.hypot(x-b.x,z-b.z)<3)return false;
   for(const o of obstacles)
     if(Math.hypot(x-o.x,z-o.z)<o.r+pad)return false;
   return true;
@@ -1639,10 +1627,43 @@ function buildWorld(){
     wispSystems.push({sprite:s,y0:s.position.y,ph:rr(0,TAU),mist:true});
   }
 
-  // marrowfires: one on each quarter's road
-  makeBonfire(2.4,16.5,0);              // the pilgrim's approach (south)
-  makeBonfire(36,3,1);                  // by the grave rows (east)
-  makeBonfire(-38,-4,2);                // in the hollow wood (west)
+  /* iron lanterns line the roads — small warm islands in the murk */
+  {
+    const RING=CATH_R+3.2;
+    const spots=[];
+    for(const a of [Math.PI/2,0,Math.PI,-Math.PI/2]){ // road junctions at the ring
+      spots.push([Math.cos(a)*(RING+1.6),Math.sin(a)*(RING+1.6)]);
+      // midway and far down each quarter road
+      spots.push([Math.cos(a)*32,Math.sin(a)*32,true]);
+      if(a===Math.PI/2)spots.push([Math.cos(a)*47,Math.sin(a)*47,true]); // lighting the spawn walk
+    }
+    for(const s of spots)makeLantern(s[0]+(s[2]?1.9:0),s[1]+(s[2]?.4:0));
+  }
+}
+
+const lanternLights=[];
+function makeLantern(x,z){
+  const gy=heightAt(x,z);
+  const ironM=mat('iron');
+  const grp=new THREE.Group();
+  grp.add(cyl(.05,.08,2.7,5,ironM,0,1.35,0));            // post
+  const arm=box(.5,.05,.05,ironM,.22,2.62,0);grp.add(arm); // hook arm
+  const cage=box(.2,.28,.2,ironM,.42,2.4,0);grp.add(cage); // hanging cage
+  const core=new THREE.Mesh(new THREE.BoxGeometry(.11,.15,.11),
+    new THREE.MeshBasicMaterial({color:0xf0a648}));
+  core.position.set(.42,2.4,0);grp.add(core);              // the flame within
+  grp.rotation.y=Math.random()*TAU;
+  grp.position.set(x,gy,z);
+  world.add(grp);
+  addObstacle(x,z,.3);
+  // warm halo + true light, flickered in updateAmbient
+  const wx=x+Math.sin(grp.rotation.y)*0+.42*Math.cos(grp.rotation.y),
+        wz=z-.42*Math.sin(grp.rotation.y);
+  addWisp(wx,gy+2.4,wz,0xf0a648,.55);
+  const l=new THREE.PointLight(0xe8913c,.8,8,2);
+  l.position.set(wx,gy+2.45,wz);
+  scene.add(l);
+  lanternLights.push({l,ph:Math.random()*TAU});
 }
 
 function addWisp(x,y,z,color,size){
@@ -1655,62 +1676,9 @@ function addWisp(x,y,z,color,size){
   return s;
 }
 
-const FIRE_NAMES=['THE FIRST VERTEBRA','THE GRAVE ROWS','THE HOLLOW WOOD'];
-function makeBonfire(x,z,id){
-  const gy=heightAt(x,z);
-  const grp=new THREE.Group();
-  const boneM=mat('bone'),ironM=mat('iron'),bladeM=mat('blade');
-  srand(3000+id);
-  for(let i=0;i<7;i++){
-    const b=box(rr(.4,.8),.1,.1,boneM,rr(-.35,.35),.07+i*.03,rr(-.35,.35),rnd()*TAU);
-    b.rotation.z=rr(-.2,.2);grp.add(b);
-  }
-  const sk=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),boneM);
-  sk.position.set(.3,.2,.2);grp.add(sk);
-  const sw=new THREE.Group();
-  const bl=box(.07,1.15,.02,bladeM,0,.85,0);
-  const guard=box(.34,.05,.06,ironM,0,.34,0);
-  const grip=box(.05,.3,.05,ironM,0,.18,0);
-  bl.position.y=.9;sw.add(bl,guard,grip);
-  sw.rotation.z=.06;sw.rotation.x=-.04;
-  grp.add(sw);
-  grp.position.set(x,gy,z);
-  world.add(grp);
-  addObstacle(x,z,.55);
-
-  const light=new THREE.PointLight(0xff8630,0,9,2); // dark until kindled
-  light.position.set(x,gy+1.1,z);
-  scene.add(light);
-
-  const N=26,pts=new Float32Array(N*3),life=new Float32Array(N);
-  for(let i=0;i<N;i++){pts[i*3]=x;pts[i*3+1]=gy+.3;pts[i*3+2]=z;life[i]=Math.random();}
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
-  const pm=new THREE.PointsMaterial({map:texCache.glow,color:0xf0a648,size:.32,
-    transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
-  const P=new THREE.Points(geo,pm);
-  scene.add(P);
-  const fs={x,z,gy,pts:P,life,light,lit:false,mat:pm};
-  fireSystems.push(fs);
-  bonfires.push({x,z,id,fs,lit:false,name:FIRE_NAMES[id]||'THE FAR FIRE'});
-}
-
 function updateAmbient(t,dt){
-  for(const f of fireSystems){
-    if(!f.lit)continue;
-    const attr=f.pts.geometry.attributes.position;
-    for(let i=0;i<f.life.length;i++){
-      f.life[i]+=dt*rr3(0.8,1.4);
-      if(f.life[i]>1)f.life[i]-=1;
-      const li=f.life[i];
-      attr.array[i*3]=f.x+Math.sin(li*9+i)*0.09*(1-li);
-      attr.array[i*3+1]=(f.gy||0)+0.25+li*1.05;
-      attr.array[i*3+2]=f.z+Math.cos(li*7+i*2)*0.09*(1-li);
-    }
-    attr.needsUpdate=true;
-    f.light.intensity=1.15+Math.sin(t*11+f.x)*.16+Math.sin(t*23)*.08;
-    f.mat.opacity=.85;
-  }
+  for(const L of lanternLights)
+    L.l.intensity=.72+Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06;
   for(const w of wispSystems){
     if(w.dust){
       const attr=w.pts.geometry.attributes.position;
@@ -2722,6 +2690,47 @@ function boltArc(x1,y1,z1,x2,y2,z2){
     return true;
   }});
 }
+/* a crit blasts a skeleton into REAL bones: pieces fly, bounce, lie on
+   the path for the scatter, then drag themselves back into the body */
+function scatterBones(x,z){
+  const bm=mat('bone');
+  const n=8+((Math.random()*3)|0);
+  for(let i=0;i<n;i++){
+    const skull=i===0;
+    const piece=new THREE.Mesh(
+      skull?GSph(.13,6,5):GBox(.32,.075,.075),bm.clone());
+    piece.material.transparent=true;
+    piece.position.set(x,heightAt(x,z)+.6+Math.random()*.5,z);
+    piece.rotation.set(Math.random()*TAU,Math.random()*TAU,0);
+    scene.add(piece);
+    const a=Math.random()*TAU,sp=1.2+Math.random()*2.2;
+    let vx=Math.cos(a)*sp,vz=Math.sin(a)*sp;
+    let vy=2+Math.random()*2.5,life=0,rs=(Math.random()-.5)*12;
+    let phase=0,rx=0,ry=0,rz=0; // rest position once landed
+    effects.push({update(dt){
+      life+=dt;
+      const gy=heightAt(piece.position.x,piece.position.z)+.055;
+      if(phase===0){ // ballistic out of the blast
+        vy-=11*dt;
+        piece.position.x+=vx*dt;piece.position.y+=vy*dt;piece.position.z+=vz*dt;
+        piece.rotation.x+=rs*dt;piece.rotation.z+=rs*.7*dt;
+        if(piece.position.y<=gy&&vy<0){piece.position.y=gy;phase=1;
+          rx=piece.position.x;ry=gy;rz=piece.position.z;}
+      }else if(phase===1){ // lying still on the path
+        if(life>1.55)phase=2;
+      }else{ // called home into the re-forming body
+        const k=Math.min(1,7*dt);
+        piece.position.x+=(x-piece.position.x)*k;
+        piece.position.y+=((heightAt(x,z)+.7)-piece.position.y)*k;
+        piece.position.z+=(z-piece.position.z)*k;
+        piece.rotation.y+=6*dt;
+        if(life>2.1)piece.material.opacity=Math.max(0,1-(life-2.1)*4);
+        if(life>2.4){scene.remove(piece);piece.material.dispose();return false;}
+      }
+      return true;
+    }});
+  }
+}
 /* scattered bones drag themselves back together */
 function boneConverge(x,z){
   for(let i=0;i<13;i++){
@@ -2836,8 +2845,7 @@ const G={
   camYaw:0,camPitch:.34,camShake:0,
   hitstop:0,
   lockTarget:null,
-  checkpoint:{x:1.2,z:18},
-  vigorCost:200,
+  checkpoint:{x:0,z:50},
   bossActive:false,bossDead:false,
   cathedralOpen:false,marrowGoal:1000,spawnT:2.5,
   marrowDrop:null,
@@ -2846,7 +2854,7 @@ const G={
 
 /* ---------------- the player ---------------- */
 const player={
-  rig:null,x:0,z:16,facing:0,
+  rig:null,x:0,z:50,facing:0,
   hp:100,maxHp:100,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,chain:0,hitDone:false,
   element:null,elementT:0,elemTrailT:0,
@@ -2901,7 +2909,7 @@ const player={
   },
   iframes(){return this.state==='roll'&&this.t>.03&&this.t<.38;},
   takeHit(dmg,fx,fz,heavy){
-    if(this.state==='dead'||this.state==='rest'||G.mode!=='play')return 'immune';
+    if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
     if(this.hurtGrace>0)return 'immune';
     this.hp-=dmg;
@@ -3202,9 +3210,6 @@ const player={
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(this.t>=(this.hurtDur||.38))this.state='free';
     }
-    else if(this.state==='rest'){
-      if(this.t>=2.2)this.state='free';
-    }
 
     // spatial constraints
     if(this.state!=='dead'){
@@ -3240,7 +3245,6 @@ const player={
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/.44));
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
-    else if(this.state==='rest')poseRest(r,Math.min(1,this.t));
 
     r.root.position.set(this.x,heightAt(this.x,this.z),this.z);
     r.root.rotation.y=this.facing;
@@ -3304,8 +3308,8 @@ class Enemy{
     this.vx=0;this.vz=0;
     this.rig.root.visible=false;
     AudioSys.bodyfall();
-    boneBurst(this.x,1.05,this.z,0xcfc4a3,18,3.4);
-    boneBurst(this.x,.4,this.z,0xb8ad8f,10,2);
+    scatterBones(this.x,this.z);
+    boneBurst(this.x,.5,this.z,0xb8ad8f,8,1.8); // dust of the blast
     bloodDecal(this.x,this.z,.4);
   }
   takeHit(dmg,poise,fx,fz,kb){
@@ -3476,7 +3480,6 @@ class Enemy{
       case 'scatter':
         // a heap of bones on the path... then they crawl back together
         if(this.t>=1.6){
-          boneConverge(this.x,this.z);
           AudioSys.windup();
           this.rig.root.visible=true;
           this.state='rise';this.t=0; // the rise doubles as re-forming
@@ -3701,9 +3704,9 @@ function spawnFoe(kind,x,z){
 function spawnEnemies(){
   boss=new Enemy('boss',0,-2.2,{});
   enemies.push(boss);
-  spawnFoe('hollow',6,21);
-  spawnFoe('hollow',-8,18);
-  spawnFoe('hollow',2,27);
+  spawnFoe('hollow',6,44);
+  spawnFoe('hollow',-7,47);
+  spawnFoe('hollow',2,38);
 }
 function updateSpawner(dt){
   if(G.mode!=='play'||G.bossActive||G.bossDead)return;
@@ -3748,8 +3751,8 @@ function respawnWorld(){
     scene.remove(e.rig.root);enemies.splice(i,1);
   }
   G.spawnT=3;
-  spawnFoe('hollow',6,21);
-  spawnFoe('hollow',-8,18);
+  spawnFoe('hollow',6,44);
+  spawnFoe('hollow',-7,47);
 }
 
 /* ---------------- the sealed cathedral & the boss ---------------- */
@@ -3914,83 +3917,24 @@ function toast(msg){
 }
 
 /* ---------------- interaction & offerings ---------------- */
-let promptAction=null,shopOpen=false,shopBonfire=null;
-function refreshShop(){
-  $('shopMarrow').textContent=player.marrow;
-  $('buyVigor').textContent='thicken the marrow — +15 vigor — '+G.vigorCost;
-  $('buyVigor').disabled=player.marrow<G.vigorCost;
-}
-function openShop(){shopOpen=true;$('shop').style.display='block';refreshShop();}
-function closeShop(){shopOpen=false;$('shop').style.display='none';}
-$('shopLeave').addEventListener('click',closeShop);
-$('buyVigor').addEventListener('click',()=>{
-  if(player.marrow<G.vigorCost)return;
-  player.marrow-=G.vigorCost;
-  player.maxHp+=15;player.hp+=15;
-  G.vigorCost=Math.round(G.vigorCost*1.5/10)*10;
-  AudioSys.chargeReady();refreshShop();updateHUD();
-  toast('the marrow thickens');
-});
+let promptAction=null;
 function updateInteract(){
-  const pr=$('prompt'),pr2=$('prompt2');
+  const pr=$('prompt');
   promptAction=null;
-  let offerHere=null;
   if(player.state==='free'&&G.mode==='play'){
-    // bonfires
-    for(const b of bonfires){
-      if(Math.hypot(player.x-b.x,player.z-b.z)<2.3){
-        let danger=false;
-        for(const e of enemies)if(e.hp>0&&e.state!=='dormant'&&e.state!=='rise'
-          &&!(e.crow&&e.state!=='dive')
-          &&Math.hypot(e.x-b.x,e.z-b.z)<9)danger=true;
-        if(!danger){
-          promptAction={type:b.lit?'rest':'kindle',b};
-          pr.textContent=b.lit?'rest':'kindle the marrowfire';
-          if(b.lit)offerHere=b;
-        }
-        break;
-      }
-    }
-    // final altar
-    if(!promptAction&&G.bossDead&&altarGlow){
+    // the one thing left to touch: the altar, once the Warden falls
+    if(G.bossDead&&altarGlow){
       if(Math.hypot(player.x-ALTAR[0],player.z-ALTAR[1])<2.4){
         promptAction={type:'altar'};
-        pr.textContent='claim the bone path';
+        pr.textContent='claim the bonefield';
       }
     }
   }
-  // walking away closes the offerings
-  if(shopOpen&&(!shopBonfire||Math.hypot(player.x-shopBonfire.x,player.z-shopBonfire.z)>3.2))
-    closeShop();
-  pr.style.display=promptAction&&!shopOpen?'block':'none';
-  pr2.textContent='offer marrow';
-  pr2.style.display=offerHere&&!shopOpen?'block':'none';
-  if(shopOpen)return;
-  if(offerHere&&IN.interact2Pressed){shopBonfire=offerHere;openShop();return;}
+  pr.style.display=promptAction?'block':'none';
   if(promptAction&&IN.interactPressed)doInteract();
 }
 function doInteract(){
-  const a=promptAction;
-  if(!a)return;
-  if(a.type==='kindle'||a.type==='rest'){
-    const b=a.b;
-    player.state='rest';player.t=0;
-    player.x=b.x+ (player.x-b.x)*0.4; // settle beside the fire
-    player.facing=Math.atan2(b.x-player.x,b.z-player.z);
-    if(!b.lit){
-      b.lit=true;b.fs.lit=true;
-      AudioSys.kindle();
-      bannerShow('MARROWFIRE KINDLED',b.name.toLowerCase());
-    }else{
-      AudioSys.kindle();
-      bannerShow('REST',b.name.toLowerCase());
-    }
-    G.checkpoint={x:b.x+1.2,z:b.z+1.2};
-    player.hp=player.maxHp;
-    respawnWorld();
-  }else if(a.type==='altar'){
-    endGame();
-  }
+  if(promptAction&&promptAction.type==='altar')endGame();
 }
 function endGame(){
   G.mode='victory';
