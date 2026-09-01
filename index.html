@@ -1477,11 +1477,13 @@ function buildWorld(){
       world.add(cyl(.05,.09,2.3,5,ironM2,px2,1.15,pz2));
       world.add(box(.8,.06,.06,ironM2,px2,2.25,pz2,a));
       addWisp(px2,2.42,pz2,0xd0762b,.4);
+      addHaze(px2,2.4,pz2,0xd0762b,2.2,.14);
       addWisp(px2+Math.cos(a)*.35,2.38,pz2+Math.sin(a)*.35,0xd0762b,.3);
       addObstacle(px2,pz2,.22);
     }
     const nave=new THREE.PointLight(0xd0762b,.4,17,2);
     nave.position.set(0,3,0);
+    addHaze(0,3,0,0xd0762b,6.5,.1);
     scene.add(nave);
     // a pillar of moonlight stands over the nave — the one landmark
     // the murk can never swallow
@@ -1606,6 +1608,7 @@ function buildWorld(){
     stub.rotation.z=1.35;world.add(stub);
     addObstacle(tx,tz,1.8);addObstacle(tx+3.4,tz+1,1.4);
     addWisp(tx,heightAt(tx,tz)+th+.5,tz,0x88b7a8,.55);
+    addHaze(tx,heightAt(tx,tz)+th+.5,tz,0x88b7a8,2.6,.1);
   }
 
   // bone piles: thickest among the grave rows, scarce elsewhere
@@ -1702,9 +1705,17 @@ function makeLantern(x,z){
   const l=new THREE.PointLight(0xe8913c,.8,8,2);
   l.position.set(wx,gy+2.45,wz);
   scene.add(l);
-  lanternLights.push({l,ph:Math.random()*TAU});
+  const hz=addHaze(wx,gy+2.4,wz,0xf0a648,4.4,.2);
+  lanternLights.push({l,ph:Math.random()*TAU,hz});
 }
 
+/* a soft haze around a light: a big, faint additive disc that ignores
+   depth so it blooms over whatever the lamp sits in */
+function addHaze(x,y,z,color,size,op){
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,transparent:true,
+    opacity:op,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
+  s.scale.set(size,size,1);s.position.set(x,y,z);s.renderOrder=5;scene.add(s);return s;
+}
 function addWisp(x,y,z,color,size){
   const s=new THREE.Sprite(new THREE.SpriteMaterial({
     map:texCache.glow,color,transparent:true,opacity:.5,depthWrite:false,
@@ -1716,8 +1727,10 @@ function addWisp(x,y,z,color,size){
 }
 
 function updateAmbient(t,dt){
-  for(const L of lanternLights)
+  for(const L of lanternLights){
     L.l.intensity=.72+Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06;
+    L.hz.material.opacity=.16+(L.l.intensity-.72)*.5;             // the haze breathes with the flame
+  }
   for(const w of wispSystems){
     if(w.dust){
       const attr=w.pts.geometry.attributes.position;
@@ -1753,15 +1766,16 @@ function M(geo,m,x,y,z){const me=new THREE.Mesh(geo,m);me.position.set(x||0,y||0
 function buildHumanoid(o){
   const s=o.scale||1,sk=o.skeletal;
   const rig={s};
+  const SOCK=lam({color:0x07070a});                                 // the dark inside a skull
   const root=new THREE.Group();rig.root=root;
   const body=new THREE.Group();body.position.y=0.92*s;root.add(body);rig.body=body;
   const limb=o.limbMat;
 
   /* pelvis & spine */
   if(sk){
-    body.add(M(GBox(.36*s,.14*s,.2*s),limb,0,-.04*s,0));           // pelvis
-    body.add(M(GBox(.09*s,.06*s,.09*s),limb,0,.05*s,0));           // lumbar
-    body.add(M(GBox(.08*s,.06*s,.08*s),limb,0,.12*s,-.01*s));      // spine
+    const pel=M(GSph(.19*s,6,4),limb,0,-.04*s,0);pel.scale.set(1,.42,.65);body.add(pel); // pelvic bowl
+    body.add(M(GSph(.05*s,5,4),limb,0,.05*s,0));                   // lumbar knob
+    body.add(M(GSph(.045*s,5,4),limb,0,.12*s,-.01*s));             // spine knob
   }else{
     body.add(M(GCyl(.2*s,.23*s,.14*s,6),limb,0,-.02*s,0));         // hip girdle
     body.add(M(GCyl(.21*s,.31*s,.24*s,6),o.torsoMat,0,-.15*s,0));  // flared fauld skirt
@@ -1772,7 +1786,8 @@ function buildHumanoid(o){
   if(sk){
     const cage=M(GCyl(.21*s,.15*s,.5*s,6),o.torsoMat,0,.3*s,0);    // tapered ribcage
     torso.add(cage);
-    torso.add(M(GBox(.34*s,.05*s,.07*s),limb,0,.52*s,.05*s));      // clavicle
+    const cl=M(GCyl(.025*s,.025*s,.36*s,5),limb,0,.52*s,.05*s);
+    cl.rotation.z=Math.PI/2;torso.add(cl);                          // clavicle
   }else{
     // V-tapered cuirass: broad chest over a narrow waist
     const chest=M(GCyl(.3*s,.17*s,.54*s,7),o.chestMat||o.torsoMat,0,.28*s,0);
@@ -1787,10 +1802,13 @@ function buildHumanoid(o){
   const head=new THREE.Group();head.position.y=.58*s;torso.add(head);rig.head=head;
   head.add(M(GCyl(.06*s,.07*s,.1*s,5),limb,0,.03*s,0));            // neck
   if(sk){
-    const headMesh=M(GBox(.28*s,.3*s,.28*s),o.headMat,0,.22*s,0);  // skull reads best square
-    head.add(headMesh);
+    const skull=M(GSph(.15*s,7,5),limb,0,.23*s,0);                 // rounded cranium
+    skull.scale.set(1,1.1,1.02);head.add(skull);
+    // real sockets and a nasal hollow instead of a painted face
+    for(const side of[1,-1])head.add(M(GSph(.045*s,5,4),SOCK,.06*s*side,.23*s,.12*s));
+    head.add(M(GSph(.025*s,4,3),SOCK,0,.17*s,.145*s));
     const jaw=new THREE.Group();jaw.position.set(0,.1*s,.03*s);head.add(jaw);
-    jaw.add(M(GBox(.22*s,.07*s,.2*s),limb,0,-.03*s,.03*s));
+    const jm=M(GSph(.11*s,6,4),limb,0,-.03*s,.03*s);jm.scale.set(1,.4,.95);jaw.add(jm);
     jaw.rotation.x=.08;rig.jaw=jaw;
   }else{
     // rounded barbute, slightly smaller for knightly proportions
@@ -1831,6 +1849,8 @@ function buildHumanoid(o){
     const el=new THREE.Group();el.position.y=-.34*s;sh.add(el);
     el.add(M(GCyl(armThick[1]*s,armThick[1]*.85*s,.3*s,5),limb,0,-.15*s,0));
     if(!sk)el.add(M(GSph(.065*s,5,4),limb,0,-.34*s,0));             // gauntlet fist
+    else{el.add(M(GSph(.045*s,5,4),limb,0,0,0));                     // elbow knob
+      el.add(M(GSph(.04*s,4,3),limb,0,-.31*s,0));}                   // knuckled hand
     return {sh,el};
   }
   // mirrorArms puts the weapon arm on the OTHER side of the body — the
@@ -3034,6 +3054,7 @@ const dropLights=[];
 for(let i=0;i<4;i++){
   const l=new THREE.PointLight(0xffffff,0,6,2);
   l.position.set(0,-50,0);l.free=true;scene.add(l);dropLights.push(l);
+  l.haze=addHaze(0,-50,0,0xffffff,2.1,.16);l.haze.visible=false;
 }
 function borrowLight(){
   const l=dropLights.find(l=>l.free)||dropLights[0];
@@ -3120,7 +3141,6 @@ function updateElemDrops(dt){
         AudioSys.flask();G.vibr(25);
         toast('the marrow mends you');
         boneBurst(player.x,1.2,player.z,0xd0762b,7,1);
-        shockRing(player.x,player.z,0xff6a72,1.8,.45);
       }else player.setElement(d.kind);
     }
   }
@@ -3180,7 +3200,6 @@ const player={
     this.bladeLight.color.setHex(E.lite);this.bladeLight.intensity=.55;
     AudioSys.elemPickup(kind);G.vibr(30);
     toast(E.msg);
-    shockRing(this.x,this.z,E.hue,2.2,.5);
   },
   clearElement(){
     this.element=null;this.elementT=0;
@@ -3250,7 +3269,7 @@ const player={
     opts=opts||{};
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
     const el=this.element;
-    if(el)dmg+=el==='fire'?6:el==='lightning'?5:4;
+    if(el)dmg+=el==='fire'?4:el==='lightning'?5:4;   // fire's real bite is the burn that follows
     // every swing carries a chance of a telling blow
     const crit=Math.random()<.15;
     if(crit)dmg=Math.round(dmg*1.8);
@@ -3274,7 +3293,7 @@ const player={
       }
       if(el){
         elemBurst(el,(this.x+e.x)/2,1.2,(this.z+e.z)/2);
-        if(el==='fire')AudioSys.fireHit();
+        if(el==='fire'){AudioSys.fireHit();e.burnT=4;e.burnTick=Math.min(e.burnTick||0,.3);} // it catches
         else if(el==='ice'){AudioSys.iceHit();e.chillT=6;}      // frost slows them, long
         else{ // lightning leaps to the next horror
           AudioSys.zapHit();
@@ -4548,6 +4567,18 @@ class GraveGhoul{
   }
 }
 
+/* fire clings: an imbued hit leaves them burning — two life every half
+   second, shedding embers — until it gutters out */
+function tickBurn(e,dt){
+  e.burnT-=dt;e.burnTick=(e.burnTick||0)-dt;
+  const gy=e.crow?e.y:heightAt(e.x,e.z);
+  if(Math.random()<dt*9)elemFleck('fire',e.x+rr3(-.35,.35),gy+.5+rr3(0,1.2),e.z+rr3(-.35,.35));
+  if(e.burnTick<=0){
+    e.burnTick=.5;e.hp-=2;e.flash();
+    if(e.boss)$('bossfill').style.width=clamp(e.hp/e.maxHp*100,0,100)+'%';
+    if(e.hp<=0){e.burnT=0;e.die();}
+  }
+}
 /* ---------------- population: a finite, sleeping host ---------------- */
 let boss=null;
 function spawnFoe(kind,x,z){
@@ -4601,7 +4632,7 @@ function respawnWorld(){
       continue;
     }
     if(e.hp<=0){scene.remove(e.rig.root);enemies.splice(i,1);continue;}
-    e.reset();
+    e.reset();e.burnT=0;
   }
 }
 
@@ -4651,6 +4682,7 @@ function onBossDead(){
     bannerShow('THE WARDEN FALLS','claim the bonefield at the altar');
     AudioSys.victory();
     altarGlow=addWisp(ALTAR[0],1.1,ALTAR[1],0xf0a648,1.4);
+    addHaze(ALTAR[0],1.3,ALTAR[1],0xf0a648,3.8,.18);
     altarLight.intensity=1.4;
   },1400);
 }
@@ -4865,6 +4897,9 @@ resize();
 // that breathes gently and pools on the ground around them
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
+const heroHaze=addHaze(0,0,0,0xd9b072,5.2,.16);           // the glow's soft body
+const bladeHaze=addHaze(0,-50,0,0xffffff,1.5,.22);bladeHaze.visible=false;
+const _bv=new THREE.Vector3();
 
 let last=performance.now(),grainT=0;
 function frame(now){
@@ -4894,6 +4929,7 @@ function frame(now){
     }
     for(const e of enemies){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
+      if(e.burnT>0&&e.hp>0&&!e.untouchable&&G.mode==='play')tickBurn(e,wdt);
     }
     updateLock();
     updateMarrowDrop();
@@ -4911,6 +4947,20 @@ function frame(now){
   G.glowFlash=Math.max(0,(G.glowFlash||0)-dt*3.5);
   heroLight.intensity=2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash;
   heroLight.distance=17-6*cg+5*G.glowFlash;
+  // the hazes ride their lights
+  heroHaze.position.copy(heroLight.position);heroHaze.position.y-=.7;
+  const hs=4.6-1.6*cg+2.4*G.glowFlash;heroHaze.scale.set(hs,hs,1);
+  heroHaze.material.opacity=.15+.1*cg+.22*G.glowFlash;
+  for(const l of dropLights){
+    l.haze.visible=l.intensity>0&&!l.free;
+    if(l.haze.visible){l.haze.position.copy(l.position);l.haze.material.color.copy(l.color);
+      l.haze.material.opacity=.1+.06*l.intensity;}
+  }
+  if(player.element&&player.bladeLight.intensity>0){
+    player.bladeLight.getWorldPosition(_bv);bladeHaze.position.copy(_bv);
+    bladeHaze.material.color.setHex(ELEMENTS[player.element].hue);
+    bladeHaze.material.opacity=.14+.25*player.bladeLight.intensity;bladeHaze.visible=true;
+  }else bladeHaze.visible=false;
   updateCamera(dt);
 
   grainT+=dt;

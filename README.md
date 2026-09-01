@@ -69,8 +69,9 @@ Each mote wears its nature: fire flickers restlessly and streams
 embers, lightning jitters and spits little bolts, frost hangs cold
 and still with sparkles wheeling around it, and the health mote
 beats like a heart. The elemental motes imbue the blade for a while,
-glowing and shedding sparks: fire hits
-harder and bursts into rising embers, lightning arcs from your victim
+glowing and shedding sparks: fire sets whatever it bites **burning** —
+a chip of life every half-second for four seconds, shedding embers,
+the way the Unburied's poison works on you — lightning arcs from your victim
 to the next horror in reach — and quickens your arm while it rides
 the blade — and frost slows whatever it bites for six long seconds.
 The element gutters out after a time — or is lost with your life.
@@ -154,7 +155,8 @@ Everything is generated at boot inside the one file:
   of dead trees, roofless ruins and a fallen tower (all with real
   collision), the land shearing off into dark void at the hexagon's
   edge, a starfield night lit only by a low moon, iron lanterns along
-  the roads casting real flickering point-light, the hero's own warm
+  the roads casting real flickering point-light, a soft additive haze
+  blooming around every light source, the hero's own warm
   glow pooling around them, and the cathedral — bone wainscot,
   lancet glass, rose window, a moonbeam standing over it — at the
   center.
@@ -162,9 +164,9 @@ Everything is generated at boot inside the one file:
   barbute helm, and an ultra greatsword with a long two-hand haft,
   carried DS3-style — arm extended on the haft, guard at the shoulder,
   blade rising over it toward the back — swinging edge-first with the
-  left hand IK-planted on the haft; jawed skeletal
-  hollows with ribcages and joint
-  knobs; wheeling carrion crows;
+  left hand IK-planted on the haft; skeletal hollows with rounded
+  crania, true eye sockets, hinged jaws, ribcages and knuckled joints;
+  wheeling carrion crows;
   the horned Warden with a burning heart) with fully procedural
   animation: counter-rotating walk cycles, telegraphed windups, combos,
   rolls, clawing-from-the-grave rises, and deaths that buckle at the
