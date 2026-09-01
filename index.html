@@ -969,6 +969,11 @@ const AudioSys=(()=>{
         tone(t+.09,{f:1560,f2:1550,type:'sine',peak:.05,dec:.35});
         tone(t+.2,{f:2090,f2:2080,type:'sine',peak:.04,dec:.4});
       }},
+    // a telling blow: bright ring over a deep body thump
+    crit(){const t=now();
+      tone(t,{f:1750,f2:900,type:'square',peak:.05,dec:.14});
+      noise(t,{peak:.2,att:.002,dec:.14,f0:2600,f1:500,type:'bandpass',Q:1.6});
+      tone(t+.02,{f:88,f2:42,type:'sine',peak:.22,dec:.2});},
     fireHit(){const t=now();
       noise(t,{peak:.14,att:.006,dec:.2,f0:300,f1:1400,type:'bandpass',Q:1});
       tone(t,{f:90,f2:50,type:'sine',peak:.1,dec:.15});},
@@ -2509,10 +2514,10 @@ function throwBone(x,z,tx,tz,dmg){
    Fallen horrors sometimes shed a mote of the power that moved them.
    Walk into it and the blade takes the element for a while. */
 const ELEMENTS={
-  fire:{hue:0xff7a2a,lite:0xff6a1a,em:0x8a2408,msg:'the blade takes fire'},
+  fire:{hue:0xff6a12,lite:0xff5c0a,em:0x8a2408,msg:'the blade takes fire'},
   lightning:{hue:0xffeaa0,lite:0xffd76a,em:0x8a7a22,msg:'the blade takes lightning'},
   ice:{hue:0x9fe4ff,lite:0x6fc4ea,em:0x1e5a6e,msg:'the blade takes frost'},
-  health:{hue:0xff6a72,lite:0xd94a52,em:0,msg:''}, // drop only — never imbues
+  health:{hue:0xf03a4e,lite:0xc22e3c,em:0,msg:''}, // drop only — never imbues
 };
 function elemBurst(kind,x,y,z){
   const pal=kind==='fire'?[0xff8c2a,0xff5f1a,0xffc46a]:
@@ -2582,7 +2587,32 @@ function boltArc(x1,y1,z1,x2,y2,z2){
     return true;
   }});
 }
+/* scattered bones drag themselves back together */
+function boneConverge(x,z){
+  for(let i=0;i<13;i++){
+    const a=Math.random()*TAU,r=1.1+Math.random()*1.3;
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
+      color:[0xcfc4a3,0xb8ad8f,0xe8e0c8][(Math.random()*3)|0],
+      transparent:true,opacity:.9,depthWrite:false}));
+    const sc=.09+Math.random()*.08;
+    s.scale.set(sc,sc,1);
+    const sx=x+Math.cos(a)*r,sy=.08+Math.random()*.5,sz=z+Math.sin(a)*r;
+    s.position.set(sx,sy,sz);scene.add(s);
+    let life=0;const dur=.38+Math.random()*.22,ty=.5+Math.random()*.6;
+    effects.push({update(dt){
+      life+=dt;const p=Math.min(1,life/dur),e=p*p;
+      s.position.set(sx+(x-sx)*e,sy+(ty-sy)*e,sz+(z-sz)*e);
+      s.material.opacity=.9*(1-p*.55);
+      if(p>=1){scene.remove(s);s.material.dispose();return false;}
+      return true;
+    }});
+  }
+}
 const elemDrops=[];
+function dropCleanup(d){
+  scene.remove(d.s);scene.remove(d.l);
+  if(d.extra)for(const e of d.extra)scene.remove(e);
+}
 function spawnElemDrop(x,z,kind){
   kind=kind||['fire','lightning','ice'][(Math.random()*3)|0];
   const E=ELEMENTS[kind];
@@ -2591,22 +2621,67 @@ function spawnElemDrop(x,z,kind){
   s.scale.set(.68,.68,1);s.position.set(x,.8,z);scene.add(s);
   const l=new THREE.PointLight(E.lite,1.1,6,2);
   l.position.set(x,1.1,z);scene.add(l);
-  elemDrops.push({x,z,kind,s,l,t:Math.random()*9});
-  if(elemDrops.length>4){const o=elemDrops.shift();scene.remove(o.s);scene.remove(o.l);}
+  const d={x,z,kind,s,l,t:Math.random()*9,zapT:.4,extra:null};
+  if(kind==='ice'){ // two frost sparkles slowly orbit the cold heart
+    d.extra=[0,1].map(()=>{
+      const o=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
+        color:0xe8fbff,transparent:true,opacity:.9,depthWrite:false,
+        blending:THREE.AdditiveBlending}));
+      o.scale.set(.16,.16,1);scene.add(o);return o;
+    });
+  }
+  elemDrops.push(d);
+  if(elemDrops.length>4)dropCleanup(elemDrops.shift());
 }
 function updateElemDrops(dt){
   for(let i=elemDrops.length-1;i>=0;i--){
     const d=elemDrops[i];d.t+=dt;
-    d.s.position.y=.78+Math.sin(d.t*2.6)*.13;
     d.s.material.rotation=d.t*1.4;
-    const pu=1+Math.sin(d.t*5)*.12;
+    let pu;
+    if(d.kind==='fire'){
+      // a restless flame: fast uneven flicker, embers streaming upward
+      d.s.position.set(d.x,.78+Math.sin(d.t*2.6)*.1,d.z);
+      pu=1+Math.sin(d.t*13)*.16+Math.sin(d.t*29)*.09;
+      if(Math.random()<dt*8)
+        elemFleck('fire',d.x+rr3(-.18,.18),d.s.position.y+.1,d.z+rr3(-.18,.18));
+    }else if(d.kind==='lightning'){
+      // a trapped storm: the orb jitters and spits micro-bolts
+      d.s.position.set(d.x+rr3(-.05,.05),.82+Math.sin(d.t*2.6)*.1+rr3(-.04,.04),
+        d.z+rr3(-.05,.05));
+      pu=1+rr3(-.1,.14);
+      d.zapT-=dt;
+      if(d.zapT<=0){
+        d.zapT=.3+Math.random()*.45;
+        boltArc(d.x,d.s.position.y,d.z,
+          d.x+rr3(-.8,.8),d.s.position.y+rr3(-.4,.7),d.z+rr3(-.8,.8));
+      }
+    }else if(d.kind==='ice'){
+      // a still, cold heart: slow calm bob, sparkles wheeling around it
+      d.s.position.set(d.x,.8+Math.sin(d.t*1.3)*.07,d.z);
+      pu=1+Math.sin(d.t*2)*.05;
+      for(let k=0;k<2;k++){
+        const a=d.t*1.6+k*Math.PI;
+        d.extra[k].position.set(d.x+Math.cos(a)*.42,
+          d.s.position.y+Math.sin(d.t*2.2+k*2)*.16,d.z+Math.sin(a)*.42);
+      }
+      if(Math.random()<dt*3)
+        elemFleck('ice',d.x+rr3(-.2,.2),d.s.position.y-.1,d.z+rr3(-.2,.2));
+    }else{
+      // health: a living heartbeat — lub-dub, warm motes drifting up
+      const ph=(d.t*1.4)%1;
+      const th=(a,b)=>ph>a&&ph<b?Math.sin((ph-a)/(b-a)*Math.PI):0;
+      pu=1+.3*th(0,.12)+.2*th(.18,.3);
+      d.s.position.set(d.x,.78+Math.sin(d.t*2.2)*.09,d.z);
+      d.l.intensity=1.1+.5*th(0,.12);
+      if(Math.random()<dt*2.5)
+        elemFleck('health',d.x+rr3(-.15,.15),d.s.position.y+.05,d.z+rr3(-.15,.15));
+    }
     d.s.scale.set(.68*pu,.68*pu,1);
-    if(Math.random()<dt*4)elemFleck(d.kind,d.x+rr3(-.15,.15),d.s.position.y,d.z+rr3(-.15,.15));
     if(G.mode==='play'&&player.state!=='dead'&&
        Math.hypot(player.x-d.x,player.z-d.z)<1.1){
       // a health mote waits on the path until you're actually wounded
       if(d.kind==='health'&&player.hp>=player.maxHp)continue;
-      elemDrops.splice(i,1);scene.remove(d.s);scene.remove(d.l);
+      elemDrops.splice(i,1);dropCleanup(d);
       if(d.kind==='health'){
         player.hp=Math.min(player.maxHp,player.hp+35);
         AudioSys.flask();G.vibr(25);
@@ -2739,19 +2814,28 @@ const player={
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
     const el=this.element;
     if(el)dmg+=el==='fire'?6:el==='lightning'?5:4;
+    // every swing carries a chance of a telling blow
+    const crit=Math.random()<.15;
+    if(crit)dmg=Math.round(dmg*1.8);
     let hitAny=false;
     for(const e of enemies){
-      if(e.hp<=0||e.state==='dormant')continue;
+      if(e.hp<=0||e.state==='dormant'||e.state==='scatter')continue;
       const dx=e.x-this.x,dz=e.z-this.z,d=Math.hypot(dx,dz);
       if(d>reach+e.radius)continue;
       const ang=Math.acos(clamp((dx*fx+dz*fz)/(d||1),-1,1));
       if(ang>arc)continue;
       e.takeHit(dmg,poise,this.x,this.z,kb);
-      sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,dmg>20?11:7);
+      sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?16:dmg>20?11:7);
+      if(crit){
+        shockRing(e.x,e.z,0xffd45e,1.6,.3);
+        // a telling blow blasts a small skeleton clean apart —
+        // if life remains in it, the bones will crawl back together
+        if(e.hp>0&&!e.big&&!e.boss)e.scatter();
+      }
       if(el){
         elemBurst(el,(this.x+e.x)/2,1.2,(this.z+e.z)/2);
         if(el==='fire')AudioSys.fireHit();
-        else if(el==='ice'){AudioSys.iceHit();e.chillT=3;}      // frost slows them
+        else if(el==='ice'){AudioSys.iceHit();e.chillT=6;}      // frost slows them, long
         else{ // lightning leaps to the next horror
           AudioSys.zapHit();
           let best=null,bd=4.5;
@@ -2770,9 +2854,10 @@ const player={
       hitAny=true;
     }
     if(hitAny){
-      G.hitstop=Math.max(G.hitstop,dmg>20?.13:.08);
-      G.camShake=Math.max(G.camShake,dmg>20?.35:.18);
-      G.vibr(dmg>20?50:25);
+      G.hitstop=Math.max(G.hitstop,crit?.17:dmg>20?.13:.08);
+      G.camShake=Math.max(G.camShake,crit?.5:dmg>20?.35:.18);
+      G.vibr(crit?70:dmg>20?50:25);
+      if(crit)AudioSys.crit();
     }
     slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xd8b34a:0x8a8877);
     return hitAny;
@@ -2837,6 +2922,8 @@ const player={
       }
       this.draw();
       this.state='attack';
+      // lightning in the blade quickens the arm
+      this.atkDur=this.element==='lightning'?.5:.68;
       this.t=0;this.combo=0;this.chain=0;
       this.queued=false;this.qDir=null;this.hitDone=false;
       this.sfxDone=false;
@@ -2926,7 +3013,7 @@ const player={
       }
     }
     else if(this.state==='attack'){
-      const DUR=.68;
+      const DUR=this.atkDur||.68;
       const p=this.t/DUR;
       if(IN.swipe){
         if(IN.swipe.kind==='atk'&&this.t>.15){
@@ -2964,6 +3051,7 @@ const player={
       if(p>=1){
         if(this.queued){
           this.combo=(this.combo+1)%4;this.chain++;this.t=0;
+          this.atkDur=this.element==='lightning'?.5:.68;
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
@@ -2984,7 +3072,7 @@ const player={
       constrain(this,G.bossActive);
       pushOut(this,.35);
       for(const e of enemies){ // soft body-block against living enemies
-        if(e.hp<=0||e.state==='dormant')continue;
+        if(e.hp<=0||e.state==='dormant'||e.state==='scatter')continue;
         const dx=this.x-e.x,dz=this.z-e.z,d=Math.hypot(dx,dz),m=.32+e.radius;
         if(d<m&&d>1e-4){this.x=e.x+dx/d*m;this.z=e.z+dz/d*m;}
       }
@@ -3009,7 +3097,7 @@ const player={
       r.armR.rotation.x=-1.2;r.armL.rotation.x=-1.2;
       r.foreR.rotation.x=-1.4;r.foreL.rotation.x=-1.4;
     }
-    else if(this.state==='attack')poseLight(r,Math.min(1,this.t/.68),this.combo);
+    else if(this.state==='attack')poseLight(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/.44));
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
@@ -3066,8 +3154,18 @@ class Enemy{
       e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:0x2c4a42);
   }
   flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
+  scatter(){
+    // blasted clean apart into a heap of bones
+    this.state='scatter';this.t=0;this.poise=0;
+    this.vx=0;this.vz=0;
+    this.rig.root.visible=false;
+    AudioSys.bodyfall();
+    boneBurst(this.x,1.05,this.z,0xcfc4a3,18,3.4);
+    boneBurst(this.x,.4,this.z,0xb8ad8f,10,2);
+    bloodDecal(this.x,this.z,.4);
+  }
   takeHit(dmg,poise,fx,fz,kb){
-    if(this.hp<=0)return;
+    if(this.hp<=0||this.state==='scatter')return; // a bone heap can't be cut
     this.hp-=dmg;this.flash();
     boneBurst(this.x,1.1*(this.boss?1.8:1),this.z,0xcfc4a3,5,2);
     if(this.state==='dormant')this.wake();
@@ -3230,6 +3328,15 @@ class Enemy{
         this.x+=this.vx*dt;this.z+=this.vz*dt;
         this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
         if(this.t>=1.9){this.state='chase';this.t=0;}
+        break;
+      case 'scatter':
+        // a heap of bones on the path... then they crawl back together
+        if(this.t>=1.6){
+          boneConverge(this.x,this.z);
+          AudioSys.windup();
+          this.rig.root.visible=true;
+          this.state='rise';this.t=0; // the rise doubles as re-forming
+        }
         break;
       case 'dead':
         break;
@@ -3460,7 +3567,7 @@ function lockCands(){
   // only horrors that are truly LIVE — still clawing out of the grave
   // (dormant or rising) doesn't count
   return enemies
-    .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'
+    .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&e.state!=='scatter'
       &&Math.hypot(e.x-player.x,e.z-player.z)<15)
     .sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
 }

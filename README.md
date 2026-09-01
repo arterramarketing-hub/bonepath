@@ -52,12 +52,21 @@ Fallen horrors sometimes shed a mote of the power that moved them —
 **fire**, **lightning**, or **frost** — or a warm red mote of the
 **life they stole**: walk into that one wounded and it mends 35
 vigor on the spot (at full health it waits on the path for you).
-The elemental motes imbue the blade for a while, glowing and
-shedding sparks: fire hits
+Each mote wears its nature: fire flickers restlessly and streams
+embers, lightning jitters and spits little bolts, frost hangs cold
+and still with sparkles wheeling around it, and the health mote
+beats like a heart. The elemental motes imbue the blade for a while,
+glowing and shedding sparks: fire hits
 harder and bursts into rising embers, lightning arcs from your victim
-to the next horror in reach, and frost slows whatever it bites while
-mist bleeds off them. The element gutters out after a time — or is
-lost with your life.
+to the next horror in reach — and quickens your arm while it rides
+the blade — and frost slows whatever it bites for six long seconds.
+The element gutters out after a time — or is lost with your life.
+
+Every swing also carries a chance of a **telling blow** — near double
+damage with a golden ring and a crack like a bell — and a telling
+blow blasts a small skeleton clean apart into a heap of bones. If
+life remains in it, the bones crawl back together and it climbs
+upright to come at you again.
 
 ## The loop
 
