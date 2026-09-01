@@ -100,8 +100,8 @@ Everything is generated at boot inside the one file:
 - **World** — a vast hexagonal field with broad procedural elevations,
   laid out in quarters around a ring road: an ordered cemetery, groves
   of dead trees, roofless ruins and a fallen tower (all with real
-  collision), brick ramparts and corner towers on every edge, mist
-  banks crawling over the ground, and the cathedral — bone wainscot,
+  collision), the land shearing off into dark void at the hexagon's
+  edge, mist banks crawling over the ground, and the cathedral — bone wainscot,
   lancet glass, rose window, a moonbeam standing over it — at the
   center.
 - **Characters** — low-poly articulated rigs (armored knight with cape,

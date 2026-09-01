@@ -1309,13 +1309,26 @@ function buildWorld(){
     grave:mat('grave'),bone:mat('bone'),bark:mat('bark'),iron:mat('iron'),
   };
 
-  // rolling ground (unsnapped — see matNS), displaced by heightAt
+  // rolling ground (unsnapped — see matNS), displaced by heightAt.
+  // Past the hexagon's edge the land simply ENDS — the ground shears
+  // away and falls into the dark. (The invisible hex clamp stops
+  // anyone a stride short of the drop.)
   {
-    const geo=new THREE.PlaneGeometry(150,150,52,52);
+    const geo=new THREE.PlaneGeometry(150,150,56,56);
     geo.rotateX(-Math.PI/2);
     const pos=geo.attributes.position;
-    for(let i=0;i<pos.count;i++)
-      pos.setY(i,heightAt(pos.getX(i),pos.getZ(i)));
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),z=pos.getZ(i);
+      let excess=0;
+      for(let e=0;e<6;e++){
+        const a=Math.PI/6+e*Math.PI/3;
+        const dd=x*Math.cos(a)+z*Math.sin(a)-(HEX_AP-.3);
+        if(dd>excess)excess=dd;
+      }
+      pos.setY(i,excess>0
+        ?-(excess*1.1+excess*excess*.5)   // the world falls away
+        :heightAt(x,z));
+    }
     geo.computeVertexNormals();
     const gm=matNS('dirt');
     M.dirt.map.repeat.set(30,30);
@@ -1349,34 +1362,9 @@ function buildWorld(){
     }
   }
 
-  // the hexagon rim: brick ramparts along all six edges, towers at corners
+  // (no rampart — the land's own shorn edge is the boundary)
   M.wall.map.repeat.set(2,1);
   srand(777);
-  for(let e=0;e<6;e++){
-    const a=Math.PI/6+e*Math.PI/3;
-    const nx=Math.cos(a),nz=Math.sin(a);
-    const tx=-nz,tz=nx;
-    const SEG=12,LEN=HEX_R;
-    for(let s=0;s<SEG;s++){
-      const t=(s+.5)/SEG-.5;
-      const cx=nx*HEX_AP+tx*t*LEN,cz=nz*HEX_AP+tz*t*LEN;
-      const h=rr(1.9,2.6),len=LEN/SEG+.3;
-      const w=box(len,h,.7,M.wall,cx,heightAt(cx,cz)+h/2,cz,Math.atan2(tx,tz)+Math.PI/2);
-      w.rotation.z=rr(-.02,.02);
-      world.add(w);
-      if(rnd()<.3){
-        const sk=new THREE.Mesh(new THREE.SphereGeometry(.15,6,5),M.bone);
-        sk.position.set(cx+rr(-1,1)*tx,heightAt(cx,cz)+h+.13,cz+rr(-1,1)*tz);
-        world.add(sk);
-      }
-    }
-    const ca=e*Math.PI/3;
-    const kx=Math.cos(ca)*HEX_R*.985,kz=Math.sin(ca)*HEX_R*.985;
-    const th=rr(3.8,4.8);
-    world.add(cyl(1.1,1.35,th,7,M.wall,kx,heightAt(kx,kz)+th/2,kz));
-    world.add(cyl(1.5,1.1,.5,7,M.wall,kx,heightAt(kx,kz)+th+.2,kz));
-    addWisp(kx,heightAt(kx,kz)+th+.55,kz,0x88b7a8,.5); // corpse-lights on the towers
-  }
 
   /* the cathedral, heart of the field: bone wainscot below, great
      ashlar above, lancet glass between buttresses, a rose window over
