@@ -720,10 +720,10 @@ const canvas=$('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.setPixelRatio(1);
-const FOGC=0x172122;
+const FOGC=0x11181a;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(FOGC);
-scene.fog=new THREE.FogExp2(FOGC,0.046);
+scene.fog=new THREE.FogExp2(FOGC,0.058);
 const camera=new THREE.PerspectiveCamera(68,16/9,0.1,220);
 
 /* grade pass — the PSX color pipeline:
@@ -750,7 +750,7 @@ const gradeMat=new THREE.ShaderMaterial({
     '  vec3 avg=(c*2.0+nb)/6.0;',
     '  float br=max(avg.r,max(avg.g,avg.b));',
     '  c+=avg*smoothstep(.5,.95,br)*.6;',
-    '  c*=1.18;',
+    '  c*=1.04;',
     '  c=mix(c,c*c*(3.0-2.0*c),.62);',
     '  float l=dot(c,vec3(.299,.587,.114));',
     '  c=mix(vec3(l),c,.92);',
@@ -1178,11 +1178,16 @@ const Input=(()=>{
 const IN=Input.st;
 /* ---------------- level geometry & walkable space ----------------
    THE BONEFIELD: one giant hexagon of haunted ground with the ruined
-   cathedral at its heart. The whole field is playable, 360 degrees
-   around the cathedral; gentle rises and hollows roll the terrain.
-   The cathedral is sealed until enough marrow is held; inside waits
-   the Warden, and past him the altar. */
-const HEX_R=34;                       // hexagon circumradius
+   cathedral at its heart, four times the old field. The land is laid
+   out in quarters, not scattered at random:
+     SOUTH  — the pilgrim's approach: spawn, the first fire, open ground
+     EAST   — the grave rows: an ordered cemetery, ranks facing the nave
+     WEST   — the hollow wood: groves of dead trees, a fire among them
+     NORTH  — the ruins: broken buildings and a fallen tower
+   A flagstone ring road circles the cathedral, with straight roads
+   running out to each quarter. A pillar of moonlight stands over the
+   cathedral so it can be found through the murk. */
+const HEX_R=68;                       // hexagon circumradius (4x the area)
 const HEX_AP=HEX_R*Math.cos(Math.PI/6); // apothem (edge distance)
 const CATH_R=10;                      // cathedral outer wall radius
 const ARENA=[0,0],ARENA_R=8.6;        // the nave: the boss ground
@@ -1190,16 +1195,16 @@ const DOOR_A=Math.PI/2;               // the portal faces SOUTH (+z)
 const ALTAR=[0,-(ARENA_R-2.4)];       // altar under the rose window
 const START=[0,16];
 
-/* gentle elevations: flat at the heart, rolling in the field,
-   settling flat again at the rim */
+/* broad, gentle elevations: flat at the heart and the rim,
+   long rolling swells in the field between */
 function heightAt(x,z){
   const d=Math.hypot(x,z);
   if(d<CATH_R+1.5)return 0;
-  const inFade=Math.min(1,(d-(CATH_R+1.5))/5.5);
-  const outFade=Math.max(0,1-Math.max(0,d-26)/7);
+  const inFade=Math.min(1,(d-(CATH_R+1.5))/6);
+  const outFade=Math.max(0,1-Math.max(0,d-(HEX_AP-16))/13);
   return inFade*outFade*
-    (Math.sin(x*.21+1.7)*Math.cos(z*.17+.4)*.5
-     +Math.sin(x*.07-z*.11+2.1)*.34+.42)*.95;
+    (Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6
+     +Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1;
 }
 
 /* clamp into the hexagon; the cathedral ring blocks until it opens
@@ -1246,6 +1251,7 @@ const world=new THREE.Group();scene.add(world);
 let fireSystems=[];   // animated flames
 let wispSystems=[];
 const bonfires=[];    // rest points
+const roads=[];       // road segments — decor keeps off them
 
 function box(w,h,d,m,x,y,z,ry){
   const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
@@ -1256,14 +1262,45 @@ function cyl(rt,rb,h,seg,m,x,y,z){
   const me=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),m);
   me.position.set(x,y,z);return me;
 }
-// is a point clear of the cathedral, the spawn, and other obstacles?
+function nearRoad(x,z){
+  for(const s of roads){
+    const dx=s.bx-s.ax,dz=s.bz-s.az;
+    const t=clamp(((x-s.ax)*dx+(z-s.az)*dz)/(dx*dx+dz*dz||1),0,1);
+    if(Math.hypot(x-(s.ax+dx*t),z-(s.az+dz*t))<2.6)return true;
+  }
+  return false;
+}
+// is a point clear of the cathedral, spawn, fires, roads, other props?
 function clearSpot(x,z,pad){
   const d=Math.hypot(x,z);
-  if(d<CATH_R+2||d>HEX_AP-2.2)return false;
-  if(Math.hypot(x-START[0],z-START[1])<4)return false;
+  if(d<CATH_R+3||d>HEX_AP-2.4)return false;
+  if(Math.hypot(x-START[0],z-START[1])<4.5)return false;
+  if(nearRoad(x,z))return false;
+  for(const b of bonfires)
+    if(Math.hypot(x-b.x,z-b.z)<3)return false;
   for(const o of obstacles)
     if(Math.hypot(x-o.x,z-o.z)<o.r+pad)return false;
   return true;
+}
+// a flat flagstone ribbon laid over the terrain between two points
+function layRoad(ax,az,bx,bz,w){
+  roads.push({ax,az,bx,bz});
+  const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);
+  const ux=dx/len,uz=dz/len,nx=-uz,nz=ux;
+  const N=Math.max(2,Math.ceil(len/3));
+  const pos=[],uv=[],idx=[];
+  for(let i=0;i<=N;i++){
+    const t=i/N,px=ax+dx*t,pz=az+dz*t;
+    const y=heightAt(px,pz)+.05;
+    pos.push(px+nx*w,y,pz+nz*w, px-nx*w,y,pz-nz*w);
+    uv.push(0,t*len/4, 1,t*len/4);
+    if(i>0){const a=(i-1)*2;idx.push(a,a+1,a+2, a+1,a+3,a+2);}
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  g.setIndex(idx);g.computeVertexNormals();
+  world.add(new THREE.Mesh(g,matNS('flag')));
 }
 
 function buildWorld(){
@@ -1274,14 +1311,14 @@ function buildWorld(){
 
   // rolling ground (unsnapped — see matNS), displaced by heightAt
   {
-    const geo=new THREE.PlaneGeometry(84,84,46,46);
+    const geo=new THREE.PlaneGeometry(150,150,52,52);
     geo.rotateX(-Math.PI/2);
     const pos=geo.attributes.position;
     for(let i=0;i<pos.count;i++)
       pos.setY(i,heightAt(pos.getX(i),pos.getZ(i)));
     geo.computeVertexNormals();
     const gm=matNS('dirt');
-    M.dirt.map.repeat.set(17,17);
+    M.dirt.map.repeat.set(30,30);
     world.add(new THREE.Mesh(geo,gm));
   }
   // worn flagstone apron around and inside the cathedral
@@ -1294,15 +1331,32 @@ function buildWorld(){
     world.add(disc);
   }
 
-  // the hexagon rim: brick walls along all six edges, towers at corners.
-  // (the hex clamp in constrain() is the collision — no walking through)
+  /* the roads: a ring around the cathedral, and one straight way out
+     to each quarter. Angle convention: (cos a, sin a) -> (x, z), so
+     south = PI/2, east = 0, west = PI, north = -PI/2. */
+  {
+    const RING=CATH_R+3.2;
+    const SEG=18;
+    for(let i=0;i<SEG;i++){
+      const a0=(i/SEG)*TAU,a1=((i+1)/SEG)*TAU;
+      layRoad(Math.cos(a0)*RING,Math.sin(a0)*RING,
+              Math.cos(a1)*RING,Math.sin(a1)*RING,1.3);
+    }
+    const QUARTERS=[Math.PI/2,0,Math.PI,-Math.PI/2]; // S, E, W, N
+    for(const a of QUARTERS){
+      layRoad(Math.cos(a)*RING,Math.sin(a)*RING,
+              Math.cos(a)*(HEX_AP-6),Math.sin(a)*(HEX_AP-6),1.5);
+    }
+  }
+
+  // the hexagon rim: brick ramparts along all six edges, towers at corners
   M.wall.map.repeat.set(2,1);
   srand(777);
   for(let e=0;e<6;e++){
     const a=Math.PI/6+e*Math.PI/3;
-    const nx=Math.cos(a),nz=Math.sin(a);       // edge outward normal
-    const tx=-nz,tz=nx;                        // edge tangent
-    const SEG=7,LEN=HEX_R; // edge length == circumradius for a hexagon
+    const nx=Math.cos(a),nz=Math.sin(a);
+    const tx=-nz,tz=nx;
+    const SEG=12,LEN=HEX_R;
     for(let s=0;s<SEG;s++){
       const t=(s+.5)/SEG-.5;
       const cx=nx*HEX_AP+tx*t*LEN,cz=nz*HEX_AP+tz*t*LEN;
@@ -1310,24 +1364,23 @@ function buildWorld(){
       const w=box(len,h,.7,M.wall,cx,heightAt(cx,cz)+h/2,cz,Math.atan2(tx,tz)+Math.PI/2);
       w.rotation.z=rr(-.02,.02);
       world.add(w);
-      if(rnd()<.35){ // skulls watch from the coping
+      if(rnd()<.3){
         const sk=new THREE.Mesh(new THREE.SphereGeometry(.15,6,5),M.bone);
         sk.position.set(cx+rr(-1,1)*tx,heightAt(cx,cz)+h+.13,cz+rr(-1,1)*tz);
         world.add(sk);
       }
     }
-    // corner tower
     const ca=e*Math.PI/3;
     const kx=Math.cos(ca)*HEX_R*.985,kz=Math.sin(ca)*HEX_R*.985;
-    const th=rr(3.6,4.6);
+    const th=rr(3.8,4.8);
     world.add(cyl(1.1,1.35,th,7,M.wall,kx,heightAt(kx,kz)+th/2,kz));
     world.add(cyl(1.5,1.1,.5,7,M.wall,kx,heightAt(kx,kz)+th+.2,kz));
     addWisp(kx,heightAt(kx,kz)+th+.55,kz,0x88b7a8,.5); // corpse-lights on the towers
   }
 
-  /* the cathedral, now the heart of the field.
-     Bone wainscot below, great ashlar above, lancet glass between
-     buttresses, a rose window over the altar, portal facing south. */
+  /* the cathedral, heart of the field: bone wainscot below, great
+     ashlar above, lancet glass between buttresses, a rose window over
+     the altar, portal facing south. */
   {
     const cathM=mat('cathedral');
     cathM.map.repeat.set(1.4,2.2);
@@ -1403,49 +1456,57 @@ function buildWorld(){
     const nave=new THREE.PointLight(0xd0762b,.4,17,2);
     nave.position.set(0,3,0);
     scene.add(nave);
+    // a pillar of moonlight stands over the nave — the one landmark
+    // the murk can never swallow
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3.6,52,12,1,true),
+      new THREE.MeshBasicMaterial({color:0x9cb2c4,transparent:true,opacity:.05,
+        blending:THREE.AdditiveBlending,depthWrite:false,fog:false,
+        side:THREE.DoubleSide}));
+    beam.position.set(0,26,0);
+    scene.add(beam);
   }
 
-  // gravestones sown across the whole field
+  /* EAST QUARTER — the grave rows: an ordered cemetery.
+     Ranks of stones in arcs, every one facing the cathedral. */
   const graveGeo=new THREE.BoxGeometry(.7,1.1,.16);
   const crossV=new THREE.BoxGeometry(.16,1.2,.16);
   const crossH=new THREE.BoxGeometry(.6,.16,.16);
   const slabGeo=new THREE.BoxGeometry(.8,.18,1.6);
   srand(888);
-  let placed=0;
-  for(let i=0;i<220&&placed<58;i++){
-    const a=rnd()*TAU,d=CATH_R+3+rnd()*(HEX_AP-CATH_R-6);
-    const px=Math.cos(a)*d,pz=Math.sin(a)*d;
-    if(!clearSpot(px,pz,1.1))continue;
-    placed++;
-    const kind=rnd();
-    let m;
-    if(kind<.55)m=new THREE.Mesh(graveGeo,M.grave);
-    else if(kind<.8){
-      m=new THREE.Group();
-      const v=new THREE.Mesh(crossV,M.grave),hh=new THREE.Mesh(crossH,M.grave);
-      hh.position.y=.35;v.add(hh);m.add(v);v.position.y=.6;
-    }else{
-      m=new THREE.Mesh(slabGeo,M.grave);m.position.y=.09;
+  {
+    for(let row=0;row<5;row++){
+      const rad=24+row*5.5;
+      const span=.62-row*.05;                 // arcs narrow with distance
+      const n=6+row;
+      for(let i=0;i<n;i++){
+        const a=(-span/2+span*i/(n-1))+0;     // centred on EAST (a=0)
+        const px=Math.cos(a)*rad,pz=Math.sin(a)*rad;
+        if(!clearSpot(px,pz,.9))continue;
+        const kind=rnd();
+        let m;
+        if(kind<.6)m=new THREE.Mesh(graveGeo,M.grave);
+        else if(kind<.85){
+          m=new THREE.Group();
+          const v=new THREE.Mesh(crossV,M.grave),hh=new THREE.Mesh(crossH,M.grave);
+          hh.position.y=.35;v.add(hh);m.add(v);v.position.y=.6;
+        }else{
+          m=new THREE.Mesh(slabGeo,M.grave);m.position.y=.09;
+        }
+        if(m.isMesh&&kind<.6)m.position.y=.5;
+        m.position.x=px;m.position.z=pz;m.position.y+=heightAt(px,pz);
+        m.rotation.y=Math.atan2(-px,-pz);     // every stone faces the nave
+        m.rotation.z=rr(-.08,.08);m.rotation.x=rr(-.05,.05);
+        world.add(m);
+        addObstacle(px,pz,.5);
+      }
     }
-    if(m.isMesh&&kind<.55)m.position.y=.5;
-    const gy=heightAt(px,pz);
-    m.position.x=px;m.position.z=pz;m.position.y+=gy;
-    m.rotation.y=rnd()*TAU;
-    m.rotation.z=rr(-.14,.14);m.rotation.x=rr(-.08,.08);
-    world.add(m);
-    addObstacle(px,pz,.55);
   }
 
-  // dead trees, a real wood of them now
+  /* WEST QUARTER — the hollow wood: groves of dead trees. */
   srand(999);
-  placed=0;
-  for(let i=0;i<160&&placed<22;i++){
-    const a=rnd()*TAU,d=CATH_R+4+rnd()*(HEX_AP-CATH_R-7);
-    const px=Math.cos(a)*d,pz=Math.sin(a)*d;
-    if(!clearSpot(px,pz,1.6))continue;
-    placed++;
+  function tree(px,pz,tall){
     const tr=new THREE.Group();
-    const h=rr(3.6,6);
+    const h=tall?rr(4.5,6.5):rr(3.4,4.6);
     tr.add(cyl(.14,.32,h,5,M.bark,0,h/2,0));
     const nb=2+((rnd()*4)|0);
     for(let bI=0;bI<nb;bI++){
@@ -1456,43 +1517,78 @@ function buildWorld(){
       br.translateY(.6);
       tr.add(br);
     }
-    // a crow's nest of twigs in a few of them
-    if(rnd()<.3)tr.add(cyl(.34,.22,.16,6,M.bark,rr(-.3,.3),h*rr(.7,.9),rr(-.3,.3)));
+    if(rnd()<.25)tr.add(cyl(.34,.22,.16,6,M.bark,rr(-.3,.3),h*rr(.7,.9),rr(-.3,.3)));
     tr.position.set(px,heightAt(px,pz),pz);
     tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
     world.add(tr);
     addObstacle(px,pz,.55);
   }
+  {
+    const GROVES=[[Math.PI*.86,30],[Math.PI*1.1,40],[Math.PI*.97,52]];
+    for(const[ga,gd]of GROVES){
+      const gx=Math.cos(ga)*gd,gz=Math.sin(ga)*gd;
+      let planted=0;
+      for(let i=0;i<40&&planted<8;i++){
+        const px=gx+rr(-6.5,6.5),pz=gz+rr(-6.5,6.5);
+        if(!clearSpot(px,pz,1.5))continue;
+        planted++;tree(px,pz,rnd()<.4);
+      }
+    }
+    // a few lone sentinels out on the moor
+    let lone=0;
+    for(let i=0;i<60&&lone<7;i++){
+      const a=rnd()*TAU,d=CATH_R+8+rnd()*(HEX_AP-CATH_R-13);
+      const px=Math.cos(a)*d,pz=Math.sin(a)*d;
+      if(!clearSpot(px,pz,2.4))continue;
+      lone++;tree(px,pz,true);
+    }
+  }
 
-  // ruined free-standing walls out in the field — WITH colliders
+  /* NORTH QUARTER — the ruins: two roofless buildings and a fallen
+     tower, walls with proper collider chains. */
   srand(551);
-  placed=0;
-  for(let i=0;i<80&&placed<7;i++){
-    const a=rnd()*TAU,d=CATH_R+6+rnd()*(HEX_AP-CATH_R-11);
-    const px=Math.cos(a)*d,pz=Math.sin(a)*d;
-    if(!clearSpot(px,pz,3))continue;
-    placed++;
-    const ry=rnd()*TAU,len=rr(3.2,5.2),h=rr(1,1.7);
+  function ruinWall(px,pz,len,ry,h){
     const w=box(len,h,.55,M.wall,px,heightAt(px,pz)+h/2,pz,ry);
-    w.rotation.z=rr(-.04,.04);
+    w.rotation.z=rr(-.03,.03);
     world.add(w);
-    // colliders every stride along the wall's length
     const dx=Math.sin(ry),dz=Math.cos(ry);
     const n=Math.ceil(len/1.1);
     for(let k=0;k<n;k++){
       const t=(k+.5)/n-.5;
-      addObstacle(px+dx*t*len,pz+dz*t*len,.62);
+      addObstacle(px+dx*t*len,pz+dz*t*len,.6);
     }
   }
+  function ruinHouse(cx,cz,ry,wLen,dLen){
+    const dx=Math.sin(ry),dz=Math.cos(ry),nx=Math.cos(ry),nz=-Math.sin(ry);
+    // two long walls; one short wall; the fourth side fell long ago
+    ruinWall(cx+nx*dLen/2,cz+nz*dLen/2,wLen,ry,rr(1.5,2.1));
+    ruinWall(cx-nx*dLen/2,cz-nz*dLen/2,wLen*rr(.55,.8),ry,rr(1,1.6));
+    ruinWall(cx+dx*wLen/2,cz+dz*wLen/2,dLen,ry+Math.PI/2,rr(1.3,1.9));
+  }
+  {
+    const a1=-Math.PI/2-.28,a2=-Math.PI/2+.3;
+    ruinHouse(Math.cos(a1)*30,Math.sin(a1)*30,a1+.4,8,6);
+    ruinHouse(Math.cos(a2)*42,Math.sin(a2)*42,a2-.7,9,7);
+    // the fallen tower
+    const tx=Math.cos(-Math.PI/2)*52,tz=Math.sin(-Math.PI/2)*52;
+    const th=5.5;
+    world.add(cyl(1.4,1.7,th,7,M.wall,tx,heightAt(tx,tz)+th/2,tz));
+    const stub=cyl(1.2,1.4,4,7,M.wall,tx+3.4,heightAt(tx+3.4,tz+1)+.7,tz+1);
+    stub.rotation.z=1.35;world.add(stub);
+    addObstacle(tx,tz,1.8);addObstacle(tx+3.4,tz+1,1.4);
+    addWisp(tx,heightAt(tx,tz)+th+.5,tz,0x88b7a8,.55);
+  }
 
-  // bone piles wherever the dead were left
+  // bone piles: thickest among the grave rows, scarce elsewhere
   srand(1234);
-  placed=0;
-  for(let i=0;i<90&&placed<16;i++){
-    const a=rnd()*TAU,d=CATH_R+3+rnd()*(HEX_AP-CATH_R-6);
+  let piles=0;
+  for(let i=0;i<80&&piles<12;i++){
+    const east=rnd()<.6;
+    const a=east?rr(-.5,.5):rnd()*TAU;
+    const d=CATH_R+5+rnd()*(HEX_AP-CATH_R-10);
     const px=Math.cos(a)*d,pz=Math.sin(a)*d;
     if(!clearSpot(px,pz,.4))continue;
-    placed++;
+    piles++;
     const pile=new THREE.Group();
     const n=2+((rnd()*4)|0);
     for(let k=0;k<n;k++){
@@ -1506,14 +1602,14 @@ function buildWorld(){
     pile.position.set(px,heightAt(px,pz),pz);world.add(pile);
   }
 
-  // moonlight & ambience
-  const hemi=new THREE.HemisphereLight(0x4f6472,0x2b2620,1.0);
-  const moonL=new THREE.DirectionalLight(0x9cb2c4,.85);
+  // moonlight & ambience — dimmer now; the fires matter more
+  const hemi=new THREE.HemisphereLight(0x4f6472,0x2b2620,.72);
+  const moonL=new THREE.DirectionalLight(0x9cb2c4,.58);
   moonL.position.set(28,52,-34);
   scene.add(hemi,moonL);
 
   // the night sky: a star-dome the fog can't touch
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(150,16,10),
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(210,16,10),
     new THREE.MeshBasicMaterial({map:texCache.sky,side:THREE.BackSide,
       fog:false,depthWrite:false}));
   dome.position.set(0,0,0);dome.renderOrder=-2;
@@ -1522,15 +1618,15 @@ function buildWorld(){
   // the moon itself, huge and haloed
   const moon=new THREE.Sprite(new THREE.SpriteMaterial({
     map:texCache.moon,transparent:true,opacity:.95,fog:false,depthWrite:false}));
-  moon.scale.set(28,28,1);moon.position.set(46,42,-70);
+  moon.scale.set(34,34,1);moon.position.set(64,56,-98);
   scene.add(moon);
 
   // drifting grave-dust
   {
-    const N=150,pts=new Float32Array(N*3),drift=[];
+    const N=170,pts=new Float32Array(N*3),drift=[];
     srand(2025);
     for(let i=0;i<N;i++){
-      pts[i*3]=rr(-30,30);pts[i*3+1]=rr(.2,6);pts[i*3+2]=rr(-30,30);
+      pts[i*3]=rr(-55,55);pts[i*3+1]=rr(.2,6);pts[i*3+2]=rr(-55,55);
       drift.push(rr(.05,.25),rr(0,TAU));
     }
     const geo=new THREE.BufferGeometry();
@@ -1541,10 +1637,24 @@ function buildWorld(){
     scene.add(P);
     wispSystems.push({dust:true,pts:P,drift});
   }
+  // low mist banks crawling over the field
+  srand(4141);
+  for(let i=0;i<16;i++){
+    const a=rr(0,TAU),d=rr(CATH_R+4,HEX_AP-6);
+    const mx=Math.cos(a)*d,mz=Math.sin(a)*d;
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
+      color:0x51605c,transparent:true,opacity:.16,depthWrite:false}));
+    const sc=rr(9,16);
+    s.scale.set(sc,sc*.32,1);
+    s.position.set(mx,heightAt(mx,mz)+.7,mz);
+    scene.add(s);
+    wispSystems.push({sprite:s,y0:s.position.y,ph:rr(0,TAU),mist:true});
+  }
 
-  // bonfires (marrowfires) on opposite sides of the field
-  makeBonfire(2.4,17.5,0);
-  makeBonfire(-14.5,-13.5,1);
+  // marrowfires: one on each quarter's road
+  makeBonfire(2.4,16.5,0);              // the pilgrim's approach (south)
+  makeBonfire(36,3,1);                  // by the grave rows (east)
+  makeBonfire(-38,-4,2);                // in the hollow wood (west)
 }
 
 function addWisp(x,y,z,color,size){
@@ -1557,6 +1667,7 @@ function addWisp(x,y,z,color,size){
   return s;
 }
 
+const FIRE_NAMES=['THE FIRST VERTEBRA','THE GRAVE ROWS','THE HOLLOW WOOD'];
 function makeBonfire(x,z,id){
   const gy=heightAt(x,z);
   const grp=new THREE.Group();
@@ -1593,7 +1704,7 @@ function makeBonfire(x,z,id){
   scene.add(P);
   const fs={x,z,gy,pts:P,life,light,lit:false,mat:pm};
   fireSystems.push(fs);
-  bonfires.push({x,z,id,fs,lit:false,name:id===0?'THE FIRST VERTEBRA':'THE KNEELING PLACE'});
+  bonfires.push({x,z,id,fs,lit:false,name:FIRE_NAMES[id]||'THE FAR FIRE'});
 }
 
 function updateAmbient(t,dt){
@@ -1621,6 +1732,11 @@ function updateAmbient(t,dt){
         if(attr.array[i*3+1]>6.5)attr.array[i*3+1]=.2;
       }
       attr.needsUpdate=true;
+    }else if(w.mist){
+      // mist banks breathe and creep
+      w.sprite.position.y=w.y0+Math.sin(t*.5+w.ph)*.12;
+      w.sprite.position.x+=Math.sin(t*.13+w.ph)*.004;
+      w.sprite.material.opacity=.12+Math.sin(t*.7+w.ph)*.05;
     }else{
       w.sprite.position.y=w.y0+Math.sin(t*1.4+w.ph)*.06;
       w.sprite.material.opacity=.35+Math.sin(t*2.2+w.ph)*.18;
@@ -3597,9 +3713,9 @@ function spawnFoe(kind,x,z){
 function spawnEnemies(){
   boss=new Enemy('boss',0,-2.2,{});
   enemies.push(boss);
-  spawnFoe('hollow',6,20);
-  spawnFoe('hollow',-7,17);
-  spawnFoe('crow',12,10);
+  spawnFoe('hollow',6,21);
+  spawnFoe('hollow',-8,18);
+  spawnFoe('hollow',2,27);
 }
 function updateSpawner(dt){
   if(G.mode!=='play'||G.bossActive||G.bossDead)return;
@@ -3616,13 +3732,18 @@ function updateSpawner(dt){
   const alive=enemies.filter(e=>!e.boss&&e.hp>0).length;
   const cap=4+Math.min(4,Math.floor(player.marrow/220)); // the field thickens
   if(alive>=cap)return;
+  // the field is vast now: the dead rise NEAR the prey, out of sight
   for(let tries=0;tries<10;tries++){
-    const a=Math.random()*TAU,d=CATH_R+4+Math.random()*15;
-    const p={x:Math.cos(a)*d,z:Math.sin(a)*d};
-    if(Math.hypot(p.x-player.x,p.z-player.z)<9)continue;
+    const a=Math.random()*TAU,d=13+Math.random()*13;
+    const p={x:player.x+Math.cos(a)*d,z:player.z+Math.sin(a)*d};
+    if(Math.hypot(p.x,p.z)<CATH_R+3)continue;      // never inside the ring road
     constrain(p,false);pushOut(p,.6);
+    if(Math.hypot(p.x-player.x,p.z-player.z)<10)continue;
     const r=Math.random();
-    spawnFoe(r<.48?'hollow':r<.66?'caster':r<.8?'big':'crow',p.x,p.z);
+    let kind=r<.52?'hollow':r<.72?'caster':r<.9?'big':'crow';
+    // crows are a rare menace: never more than one in the air
+    if(kind==='crow'&&enemies.some(e=>e.crow&&e.hp>0))kind='hollow';
+    spawnFoe(kind,p.x,p.z);
     return;
   }
 }
@@ -3639,8 +3760,8 @@ function respawnWorld(){
     scene.remove(e.rig.root);enemies.splice(i,1);
   }
   G.spawnT=3;
-  spawnFoe('hollow',6,20);
-  spawnFoe('crow',-12,8);
+  spawnFoe('hollow',6,21);
+  spawnFoe('hollow',-8,18);
 }
 
 /* ---------------- the sealed cathedral & the boss ---------------- */

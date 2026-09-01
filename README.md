@@ -69,10 +69,16 @@ upright to come at you again.
 
 ## The loop
 
-The Bonefield is one giant hexagon of rolling, haunted ground with the
-ruined cathedral sealed at its center. The dead never stop coming —
-hollows claw out of the soil, bone-throwers post up, brutes lumber in,
-and carrion crows wheel overhead and stoop at you — and the field
+The Bonefield is one giant hexagon of rolling, haunted, fog-drowned
+ground — over 130 meters across — with the ruined cathedral sealed at
+its center under a pillar of moonlight you can steer by from anywhere.
+A flagstone ring road circles the nave with straight roads running out
+to the quarters: the pilgrim's approach in the south, the ordered
+grave rows in the east, the hollow wood's groves in the west, the
+ruins and fallen tower in the north — a marrowfire on three of the
+four roads. The dead never stop coming — hollows claw out of the
+soil, bone-throwers post up, brutes lumber in, and now and then a
+lone carrion crow wheels overhead and stoops at you — and the field
 thickens as your marrow grows. **Survive and harvest 1000 marrow** and
 the cathedral's veil burns away. Kindle the marrowfires to rest, heal,
 and set your checkpoint; die and you drop your marrow where you fell —
@@ -91,10 +97,13 @@ Everything is generated at boot inside the one file:
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
-- **World** — a hexagonal field with gentle procedural elevations, a
-  wooded graveyard of dead trees, ruins, and bone piles (all with real
-  collision), brick ramparts and corner towers on every edge, and the
-  cathedral — bone wainscot, lancet glass, rose window — at the center.
+- **World** — a vast hexagonal field with broad procedural elevations,
+  laid out in quarters around a ring road: an ordered cemetery, groves
+  of dead trees, roofless ruins and a fallen tower (all with real
+  collision), brick ramparts and corner towers on every edge, mist
+  banks crawling over the ground, and the cathedral — bone wainscot,
+  lancet glass, rose window, a moonbeam standing over it — at the
+  center.
 - **Characters** — low-poly articulated rigs (armored knight with cape,
   barbute helm, and an ultra greatsword with a long two-hand haft,
   carried DS3-style — arm extended on the haft, guard at the shoulder,
