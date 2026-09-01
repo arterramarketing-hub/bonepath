@@ -1180,9 +1180,9 @@ const IN=Input.st;
 const HEX_R=68;                       // hexagon circumradius (4x the area)
 const HEX_AP=HEX_R*Math.cos(Math.PI/6); // apothem (edge distance)
 const CATH_R=10;                      // cathedral outer wall radius
-const ARENA=[0,0],ARENA_R=8.6;        // the nave: the boss ground
+const ARENA=[0,0],ARENA_R=9.6;        // the nave: the boss ground (inner wall face ~10.2)
 const DOOR_A=Math.PI/2;               // the portal faces SOUTH (+z)
-const ALTAR=[0,-(ARENA_R-2.4)];       // altar under the rose window
+const ALTAR=[0,-6.2];                 // altar under the rose window
 const START=[0,50];
 
 /* broad, gentle elevations: flat at the heart and the rim,
@@ -1211,10 +1211,11 @@ function constrain(p,arenaOnly){
     const dd=p.x*nx+p.z*nz,ap=HEX_AP-.9;
     if(dd>ap){p.x-=(dd-ap)*nx;p.z-=(dd-ap)*nz;}
   }
-  const d=Math.hypot(p.x,p.z),R=CATH_R+.6;
+  // the wall slab spans ~10.1..11.1; hold actors clear of both faces
+  const d=Math.hypot(p.x,p.z),R=CATH_R+1.4;
   if(d<R){
     const ang=Math.atan2(p.z,p.x);
-    const inDoor=Math.abs(wrapA(ang-DOOR_A))<.2;
+    const inDoor=Math.abs(wrapA(ang-DOOR_A))<.16;
     if(!G.cathedralOpen){
       const l=d||1;p.x*=R/l;p.z*=R/l;          // sealed: the walls refuse you
     }else if(!inDoor&&d>=ARENA_R-.2){
@@ -1228,11 +1229,19 @@ function constrain(p,arenaOnly){
 // solid obstacles push actors out
 const obstacles=[];
 function addObstacle(x,z,r){obstacles.push({x,z,r});}
+// a wall is a thick line: actors are held off the segment by r
+function addWall(ax,az,bx,bz,r){obstacles.push({seg:true,ax,az,bx,bz,r});}
 function pushOut(p,selfR){
   for(const o of obstacles){
-    const dx=p.x-o.x,dz=p.z-o.z;
+    let ox=o.x,oz=o.z;
+    if(o.seg){ // nearest point on the wall's centreline
+      const sx=o.bx-o.ax,sz=o.bz-o.az;
+      const t=clamp(((p.x-o.ax)*sx+(p.z-o.az)*sz)/(sx*sx+sz*sz||1),0,1);
+      ox=o.ax+sx*t;oz=o.az+sz*t;
+    }
+    const dx=p.x-ox,dz=p.z-oz;
     const d=Math.hypot(dx,dz),m=o.r+selfR;
-    if(d<m&&d>1e-4){p.x=o.x+dx/d*m;p.z=o.z+dz/d*m;}
+    if(d<m&&d>1e-4){p.x=ox+dx/d*m;p.z=oz+dz/d*m;}
   }
 }
 
@@ -1265,8 +1274,13 @@ function clearSpot(x,z,pad){
   if(d<CATH_R+3||d>HEX_AP-2.4)return false;
   if(Math.hypot(x-START[0],z-START[1])<4.5)return false;
   if(nearRoad(x,z))return false;
-  for(const o of obstacles)
-    if(Math.hypot(x-o.x,z-o.z)<o.r+pad)return false;
+  for(const o of obstacles){
+    if(o.seg){ // walls: keep clear of the whole span
+      const sx=o.bx-o.ax,sz=o.bz-o.az;
+      const t=clamp(((x-o.ax)*sx+(z-o.az)*sz)/(sx*sx+sz*sz||1),0,1);
+      if(Math.hypot(x-(o.ax+sx*t),z-(o.az+sz*t))<o.r+pad)return false;
+    }else if(Math.hypot(x-o.x,z-o.z)<o.r+pad)return false;
+  }
   return true;
 }
 // a flat flagstone ribbon laid over the terrain between two points
@@ -1426,7 +1440,7 @@ function buildWorld(){
       world.add(box(.8,.06,.06,ironM2,px2,2.25,pz2,a));
       addWisp(px2,2.42,pz2,0xd0762b,.4);
       addWisp(px2+Math.cos(a)*.35,2.38,pz2+Math.sin(a)*.35,0xd0762b,.3);
-      addObstacle(px2,pz2,.35);
+      addObstacle(px2,pz2,.22);
     }
     const nave=new THREE.PointLight(0xd0762b,.4,17,2);
     nave.position.set(0,3,0);
@@ -1472,7 +1486,10 @@ function buildWorld(){
         m.rotation.y=Math.atan2(-px,-pz);     // every stone faces the nave
         m.rotation.z=rr(-.08,.08);m.rotation.x=rr(-.05,.05);
         world.add(m);
-        addObstacle(px,pz,.5);
+        { // a stone is a thin slab, not a pillar: a short wall across its face
+          const ry=m.rotation.y,lx=Math.cos(ry),lz=-Math.sin(ry);
+          addWall(px-lx*.32,pz-lz*.32,px+lx*.32,pz+lz*.32,.2);
+        }
       }
     }
   }
@@ -1496,7 +1513,7 @@ function buildWorld(){
     tr.position.set(px,heightAt(px,pz),pz);
     tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
     world.add(tr);
-    addObstacle(px,pz,.55);
+    addObstacle(px,pz,.4);
   }
   {
     const GROVES=[[Math.PI*.86,30],[Math.PI*1.1,40],[Math.PI*.97,52]];
@@ -1526,19 +1543,18 @@ function buildWorld(){
     const w=box(len,h,.55,M.wall,px,heightAt(px,pz)+h/2,pz,ry);
     w.rotation.z=rr(-.03,.03);
     world.add(w);
-    const dx=Math.sin(ry),dz=Math.cos(ry);
-    const n=Math.ceil(len/1.1);
-    for(let k=0;k<n;k++){
-      const t=(k+.5)/n-.5;
-      addObstacle(px+dx*t*len,pz+dz*t*len,.6);
-    }
+    // a box rotated ry about Y runs along (cos ry, -sin ry): one true
+    // wall collider along that length, half a slab thick
+    const lx=Math.cos(ry),lz=-Math.sin(ry);
+    addWall(px-lx*len/2,pz-lz*len/2,px+lx*len/2,pz+lz*len/2,.3);
   }
   function ruinHouse(cx,cz,ry,wLen,dLen){
-    const dx=Math.sin(ry),dz=Math.cos(ry),nx=Math.cos(ry),nz=-Math.sin(ry);
+    // L runs along the long walls, N across them
+    const lx=Math.cos(ry),lz=-Math.sin(ry),nx=Math.sin(ry),nz=Math.cos(ry);
     // two long walls; one short wall; the fourth side fell long ago
     ruinWall(cx+nx*dLen/2,cz+nz*dLen/2,wLen,ry,rr(1.5,2.1));
     ruinWall(cx-nx*dLen/2,cz-nz*dLen/2,wLen*rr(.55,.8),ry,rr(1,1.6));
-    ruinWall(cx+dx*wLen/2,cz+dz*wLen/2,dLen,ry+Math.PI/2,rr(1.3,1.9));
+    ruinWall(cx+lx*wLen/2,cz+lz*wLen/2,dLen,ry+Math.PI/2,rr(1.3,1.9));
   }
   {
     const a1=-Math.PI/2-.28,a2=-Math.PI/2+.3;
@@ -1640,7 +1656,7 @@ function makeLantern(x,z){
   grp.rotation.y=Math.random()*TAU;
   grp.position.set(x,gy,z);
   world.add(grp);
-  addObstacle(x,z,.3);
+  addObstacle(x,z,.18);
   // warm halo + true light, flickered in updateAmbient
   const wx=x+Math.sin(grp.rotation.y)*0+.42*Math.cos(grp.rotation.y),
         wz=z-.42*Math.sin(grp.rotation.y);
@@ -2733,8 +2749,21 @@ function boneConverge(x,z){
   }
 }
 const elemDrops=[];
+// Lights are never added or removed once the scene is built: a change in
+// the light count makes three.js recompile every lit shader mid-frame,
+// which shows as a black flash on a phone. Drops borrow from this pool.
+const dropLights=[];
+for(let i=0;i<4;i++){
+  const l=new THREE.PointLight(0xffffff,0,6,2);
+  l.position.set(0,-50,0);l.free=true;scene.add(l);dropLights.push(l);
+}
+function borrowLight(){
+  const l=dropLights.find(l=>l.free)||dropLights[0];
+  l.free=false;return l;
+}
 function dropCleanup(d){
-  scene.remove(d.s);scene.remove(d.l);
+  scene.remove(d.s);
+  d.l.intensity=0;d.l.position.y=-50;d.l.free=true;
   if(d.extra)for(const e of d.extra)scene.remove(e);
 }
 function spawnElemDrop(x,z,kind){
@@ -2744,8 +2773,9 @@ function spawnElemDrop(x,z,kind){
     transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
   const gy=heightAt(x,z);
   s.scale.set(.68,.68,1);s.position.set(x,gy+.8,z);scene.add(s);
-  const l=new THREE.PointLight(E.lite,1.1,6,2);
-  l.position.set(x,gy+1.1,z);scene.add(l);
+  const l=borrowLight();
+  l.color.setHex(E.lite);l.intensity=1.1;
+  l.position.set(x,gy+1.1,z);
   const d={x,z,gy,kind,s,l,t:Math.random()*9,zapT:.4,extra:null};
   if(kind==='ice'){ // two frost sparkles slowly orbit the cold heart
     d.extra=[0,1].map(()=>{
@@ -2846,13 +2876,9 @@ const player={
     this.rig=makeKnightRig();
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
-    // a pale grave-light clings to the cursed — and keeps the phone screen readable
-    this.lamp=new THREE.PointLight(0xb8c8c2,.55,8,2);
-    this.lamp.position.y=2.2;
-    this.rig.root.add(this.lamp);
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
     // an imbued element lights the blade from within
-    this.bladeLight=new THREE.PointLight(0xffffff,0,4,2);
+    this.bladeLight=new THREE.PointLight(0xffffff,0,2.2,2); // blade-only: keeps the pool warm
     this.bladeLight.position.set(0,-1.1,0);
     this.rig.weapon.add(this.bladeLight);
     this.respawn();
@@ -2871,7 +2897,7 @@ const player={
     this.element=kind;this.elementT=22;
     const E=ELEMENTS[kind];
     this.rig.bladeMesh.material.emissive.setHex(E.em);
-    this.bladeLight.color.setHex(E.lite);this.bladeLight.intensity=.9;
+    this.bladeLight.color.setHex(E.lite);this.bladeLight.intensity=.55;
     AudioSys.elemPickup(kind);G.vibr(30);
     toast(E.msg);
     shockRing(this.x,this.z,E.hue,2.2,.5);
@@ -3004,7 +3030,7 @@ const player={
       if(this.elementT<=0){this.clearElement();toast('the blade cools');}
       else{
         this.bladeLight.intensity=
-          this.elementT<3?.3+.6*Math.abs(Math.sin(G.time*9)):.9;
+          this.elementT<3?.2+.35*Math.abs(Math.sin(G.time*9)):.55;
         this.elemTrailT-=dt;
         if(this.elemTrailT<=0){
           this.elemTrailT=.09;
@@ -3756,6 +3782,8 @@ function respawnWorld(){
 
 /* ---------------- the sealed cathedral & the boss ---------------- */
 let fogGate=null,altarGlow=null;
+const altarLight=new THREE.PointLight(0xf0a648,0,10,2);
+altarLight.position.set(ALTAR[0],1.4,ALTAR[1]);scene.add(altarLight);
 function makeFogGate(){
   // the sealed door: a pale veil across the portal until the marrow calls
   fogGate=new THREE.Mesh(new THREE.PlaneGeometry(4.4,5.2),
@@ -3798,9 +3826,7 @@ function onBossDead(){
     bannerShow('THE WARDEN FALLS','claim the bonefield at the altar');
     AudioSys.victory();
     altarGlow=addWisp(ALTAR[0],1.1,ALTAR[1],0xf0a648,1.4);
-    const l=new THREE.PointLight(0xf0a648,1.4,10,2);
-    l.position.set(ALTAR[0],1.4,ALTAR[1]);
-    scene.add(l);
+    altarLight.intensity=1.4;
   },1400);
 }
 
