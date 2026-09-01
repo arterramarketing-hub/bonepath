@@ -178,7 +178,11 @@ Everything is generated at boot inside the one file:
   a stone-room reverb that deepens inside the nave): two bands of
   graveyard wind, a sub drone, far-off creaks and crows, heavy armoured
   footfalls, whooshes, bone-splintering hits, the death gong, the
-  Warden's roar, the Fallen One's shriek, the Unburied's retch.
+  Warden's roar, the Fallen One's shriek, the Unburied's retch — and
+  the theme: a sad, decrepit piano in D minor at 58 bpm, built from
+  detuned partials with a hammer click and played through a slow tape
+  wow, its notes arriving late, soft, or not at all. It steps aside
+  for the Warden.
 - **No dependencies fetched at runtime.** Works offline.
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can
