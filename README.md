@@ -173,8 +173,12 @@ Everything is generated at boot inside the one file:
   knees and crumble into bone piles — all run through critically-damped
   pose smoothing so every joint eases instead of snapping. Capes drag
   with movement.
-- **Audio** — synthesized WebAudio: graveyard wind, sub drone, whooshes,
-  clangs, the death gong, the Warden's roar.
+- **Audio** — synthesized WebAudio, run through a deliberately grimy
+  master chain (a coarse bit-crush, tape saturation, a dull low-pass and
+  a stone-room reverb that deepens inside the nave): two bands of
+  graveyard wind, a sub drone, far-off creaks and crows, heavy armoured
+  footfalls, whooshes, bone-splintering hits, the death gong, the
+  Warden's roar, the Fallen One's shriek, the Unburied's retch.
 - **No dependencies fetched at runtime.** Works offline.
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can

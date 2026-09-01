@@ -743,16 +743,16 @@ const postScene=new THREE.Scene();
 const postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const gradeMat=new THREE.ShaderMaterial({
   uniforms:{tex:{value:rt.texture},uPx:{value:new THREE.Vector2(1/240,1/135)},
-    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0}},
+    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0},uExpo:{value:1.04}},
   depthTest:false,depthWrite:false,
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
   fragmentShader:[
     'precision mediump float;',
-    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform float uHazeOn;uniform vec2 uPx;varying vec2 vUv;',
+    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform float uHazeOn;uniform float uExpo;uniform vec2 uPx;varying vec2 vUv;',
     'float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}',
     'void main(){',
     '  vec3 c=texture2D(tex,vUv).rgb;',
-    '  c*=1.04;',
+    '  c*=uExpo;',
     '  c=mix(c,c*c*(3.0-2.0*c),.62);',
     '  float l=dot(c,vec3(.299,.587,.114));',
     '  c=mix(vec3(l),c,.92);',
@@ -827,15 +827,42 @@ function matNS(name,extra){
 /* ---------------- audio: tiny haunted synth ---------------- */
 const AudioSys=(()=>{
   let ac=null,master=null,noiseBuf=null,started=false;
+  let verbSend=null,verbWet=null,space=0;
+  /* the whole mix goes through a grimy chain — a 4-bit-ish crush, tape
+     saturation, a dull low-pass and a stone-room reverb — so nothing
+     comes out clean. Old console, old cathedral. */
+  function crushCurve(){
+    const n=2048,c=new Float32Array(n),steps=22;                 // coarse steps = a crushed, gritty edge
+    for(let i=0;i<n;i++){const x=i/(n-1)*2-1;
+      const sat=Math.tanh(x*2.2)/Math.tanh(2.2);                   // tape-ish saturation
+      c[i]=Math.round(sat*steps)/steps*.92+sat*.08;}
+    return c;
+  }
+  function makeImpulse(sec,decay,tone){
+    const len=Math.floor(ac.sampleRate*sec),b=ac.createBuffer(2,len,ac.sampleRate);
+    for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);let lp=0;
+      for(let i=0;i<len;i++){const t=i/len;
+        const w=(Math.random()*2-1)*Math.pow(1-t,decay);
+        lp+=(w-lp)*tone;d[i]=lp*(i<400?i/400:1);}}                  // dull, stony tail
+    return b;
+  }
   function ensure(){
     if(ac)return;
     ac=new (window.AudioContext||window.webkitAudioContext)();
-    master=ac.createGain();master.gain.value=.55;
-    // a gentle bus compressor glues the layered synth voices together
+    master=ac.createGain();master.gain.value=.7;
+    const crush=ac.createWaveShaper();crush.curve=crushCurve();crush.oversample='none';
+    const dull=ac.createBiquadFilter();dull.type='lowpass';dull.frequency.value=6800;dull.Q.value=.6;
+    const rumble=ac.createBiquadFilter();rumble.type='highpass';rumble.frequency.value=32;
     const comp=ac.createDynamicsCompressor();
-    comp.threshold.value=-16;comp.knee.value=18;comp.ratio.value=4;
-    comp.attack.value=.004;comp.release.value=.22;
-    master.connect(comp);comp.connect(ac.destination);
+    comp.threshold.value=-18;comp.knee.value=14;comp.ratio.value=5;
+    comp.attack.value=.003;comp.release.value=.18;
+    // reverb: a stone room, sent from the master so every voice sits in it
+    const verb=ac.createConvolver();verb.buffer=makeImpulse(2.6,3.2,.25);
+    verbSend=ac.createGain();verbSend.gain.value=.16;
+    verbWet=ac.createGain();verbWet.gain.value=1;
+    master.connect(crush);crush.connect(dull);dull.connect(rumble);rumble.connect(comp);
+    master.connect(verbSend);verbSend.connect(verb);verb.connect(verbWet);verbWet.connect(comp);
+    comp.connect(ac.destination);
     const len=ac.sampleRate*2;
     noiseBuf=ac.createBuffer(1,len,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);
@@ -860,6 +887,22 @@ const AudioSys=(()=>{
     const lfo2=ac.createOscillator();lfo2.frequency.value=.045;
     const lg2=ac.createGain();lg2.gain.value=.05;
     lfo2.connect(lg2).connect(g.gain);lfo2.start();
+    // a second, higher wind band: grit and grass hiss riding over the low moan
+    const src2=ac.createBufferSource();src2.buffer=noiseBuf;src2.loop=true;src2.playbackRate.value=1.9;
+    const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1400;f2.Q.value=.7;
+    const g2=ac.createGain();g2.gain.value=.035;
+    src2.connect(f2).connect(g2).connect(master);src2.start();
+    const lfo3=ac.createOscillator();lfo3.frequency.value=.11;
+    const lg3=ac.createGain();lg3.gain.value=.03;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
+    // the field is never silent: far-off creaks, a crow, a chain — sparse and random
+    const farOff=()=>{
+      if(!ac)return;const t=now(),r=Math.random();
+      if(r<.4)tone(t,{f:rr2(70,110),f2:rr2(40,60),type:'sawtooth',peak:.03,att:.5,dec:1.6}); // timber creak
+      else if(r<.7){for(let i=0;i<3;i++)noise(t+i*.13,{peak:.03,att:.01,dec:.09,f0:rr2(1100,1600),f1:600,type:'bandpass',Q:5});} // a crow, far
+      else{for(let i=0;i<4;i++)tone(t+i*.06+Math.random()*.03,{f:rr2(2400,3600),f2:2000,type:'triangle',peak:.012,dec:.08});} // chain
+      setTimeout(farOff,6000+Math.random()*10000);
+    };
+    setTimeout(farOff,4000);
     // sub drone, two detuned sines
     [[55,.045],[55.7,.04],[110,.018]].forEach(([hz,v])=>{
       const o=ac.createOscillator();o.frequency.value=hz;
@@ -894,6 +937,11 @@ const AudioSys=(()=>{
   }
   const rr2=(a,b)=>a+Math.random()*(b-a);
   const now=()=>ac?ac.currentTime:0;
+  // how much stone is around the pilgrim: 0 = open field, 1 = inside the nave
+  function setSpace(x){
+    if(!ac||Math.abs(x-space)<.01)return;space=x;
+    verbSend.gain.setTargetAtTime(.16+.42*x,ac.currentTime,.3);
+  }
   // boss fight layer: tremolo drone that quickens with the Warden's rage
   let bossN=null;
   function bossMusic(level){
@@ -925,24 +973,27 @@ const AudioSys=(()=>{
   }
   return {
     bossMusic,
-    start,
+    start,setSpace,
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
     swing(){const t=now();
-      noise(t,{peak:.2,att:.06,dec:.2,f0:220,f1:1600,type:'bandpass',Q:1.6});
-      noise(t+.03,{peak:.13,att:.04,dec:.16,f0:2400,f1:600,type:'bandpass',Q:1.4});
-      tone(t,{f:95,f2:48,type:'sine',peak:.1,att:.04,dec:.2});
-      tone(t+.04,{f:rr2(620,700),f2:1400,type:'sine',peak:.018,dec:.1});},
+      noise(t,{peak:.26,att:.06,dec:.22,f0:180,f1:1500,type:'bandpass',Q:1.4});
+      noise(t+.03,{peak:.14,att:.04,dec:.16,f0:2200,f1:500,type:'bandpass',Q:1.2});
+      tone(t,{f:80,f2:40,type:'sine',peak:.16,att:.04,dec:.24});
+      tone(t+.01,{f:60,f2:35,type:'sawtooth',peak:.03,att:.05,dec:.18});     // the haft groans
+      tone(t+.04,{f:rr2(560,660),f2:1300,type:'sine',peak:.015,dec:.1});},
     heavySwing(){const t=now();
       noise(t,{peak:.24,att:.09,dec:.24,f0:280,f1:1500,type:'bandpass',Q:1.6});
       noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});},
     // steel into old bone: low body, mid crunch, dry crack
     hit(){const t=now();
-      tone(t,{f:rr2(140,170),f2:48,type:'sine',peak:.3,dec:.16});
-      noise(t,{peak:.3,att:.001,dec:.09,f0:3200,f1:700});
-      noise(t+.015,{peak:.16,att:.002,dec:.14,f0:900,f1:250});
-      tone(t+.005,{f:rr2(900,1200),f2:500,type:'square',peak:.045,dec:.05});},
+      tone(t,{f:rr2(130,160),f2:42,type:'sine',peak:.36,dec:.18});
+      noise(t,{peak:.34,att:.001,dec:.1,f0:3000,f1:600});
+      noise(t+.015,{peak:.2,att:.002,dec:.16,f0:800,f1:200});
+      tone(t+.005,{f:rr2(700,1000),f2:400,type:'square',peak:.06,dec:.06});
+      for(let i=0;i<3;i++)noise(t+.03+i*.025,{peak:.06,att:.001,dec:.03,f0:rr2(1400,2600),f1:700,type:'bandpass',Q:4}); // bone splinters
+    },
     // ringing steel: inharmonic partials, slow decay, bright tick on top
     clang(){const t=now();
       [538,1310,2140,2860].forEach((f,i)=>
@@ -950,21 +1001,29 @@ const AudioSys=(()=>{
       noise(t,{peak:.22,att:.001,dec:.05,f0:6000,f1:1800});},
     // taking a wound: formant grunt over a dull body thud
     hurt(){const t=now();
-      tone(t,{f:165,f2:62,type:'sawtooth',peak:.2,att:.01,dec:.24});
-      tone(t,{f:330,f2:110,type:'square',peak:.07,att:.01,dec:.14});
-      noise(t,{peak:.2,att:.003,dec:.16,f0:650,f1:130});
-      tone(t+.02,{f:82,f2:40,type:'sine',peak:.22,dec:.18});},
+      tone(t,{f:150,f2:55,type:'sawtooth',peak:.24,att:.01,dec:.26});
+      tone(t,{f:300,f2:95,type:'square',peak:.08,att:.01,dec:.15});
+      noise(t,{peak:.26,att:.003,dec:.18,f0:600,f1:120});
+      noise(t+.03,{peak:.08,att:.01,dec:.12,f0:1800,f1:500,type:'bandpass',Q:2}); // breath torn out
+      tone(t+.02,{f:76,f2:36,type:'sine',peak:.28,dec:.2});},
     // cloth and armor tumbling over dirt
     roll(){const t=now();
-      noise(t,{peak:.12,att:.01,dec:.1,f0:900,f1:280});
-      noise(t+.09,{peak:.16,att:.008,dec:.16,f0:340,f1:90});
-      tone(t+.1,{f:95,f2:55,type:'sine',peak:.1,dec:.12});},
+      noise(t,{peak:.16,att:.01,dec:.1,f0:900,f1:280});
+      noise(t+.09,{peak:.24,att:.008,dec:.18,f0:320,f1:80});
+      tone(t+.1,{f:85,f2:45,type:'sine',peak:.2,dec:.16});
+      for(let i=0;i<3;i++)noise(t+.12+i*.05,{peak:.04,att:.001,dec:.03,f0:rr2(2200,3400),f1:1400,type:'bandpass',Q:5}); // mail and plates
+    },
     // armored footfall: boot on dirt, ground thump, and a whisper of mail
     step(v){v=v===undefined?1:v;const t=now();
-      noise(t,{peak:.055*v,att:.002,dec:.06,f0:rr2(360,520),f1:110});
-      tone(t,{f:rr2(56,68),f2:38,type:'sine',peak:.06*v,dec:.07});
-      if(Math.random()<.65)
-        noise(t+.014,{peak:.02*v,att:.001,dec:.04,f0:rr2(2300,3200),f1:1500,type:'bandpass',Q:6});},
+      // heel: a low ground thump you feel more than hear
+      tone(t,{f:rr2(64,80),f2:34,type:'sine',peak:.26*v,dec:.11});
+      // the boot itself: gravel and packed dirt giving under armour
+      noise(t,{peak:.2*v,att:.002,dec:.09,f0:rr2(700,1000),f1:160});
+      noise(t+.01,{peak:.11*v,att:.001,dec:.05,f0:rr2(1800,2600),f1:900,type:'bandpass',Q:1.6});
+      // mail and plate settling with the stride
+      noise(t+.02,{peak:.05*v,att:.001,dec:.05,f0:rr2(2600,3600),f1:1600,type:'bandpass',Q:5});
+      if(Math.random()<.35)tone(t+.03,{f:rr2(1900,2600),f2:1500,type:'triangle',peak:.012*v,dec:.04}); // a bone chip underfoot
+    },
     // a body slammed flat onto the path
     bodyfall(){const t=now();
       noise(t,{peak:.15,att:.004,dec:.12,f0:320,f1:80});
@@ -1014,9 +1073,11 @@ const AudioSys=(()=>{
       noise(t,{peak:.09,att:.4,dec:1.3,f0:300,f1:1100});},
     // essence taken: a glassy rising arpeggio
     marrow(){const t=now();
-      tone(t,{f:880,f2:1320,type:'sine',peak:.05,dec:.3});
-      tone(t+.03,{f:1318,f2:1976,type:'sine',peak:.035,dec:.4});
-      tone(t+.08,{f:2093,f2:2093,type:'sine',peak:.02,dec:.5});},
+      tone(t,{f:440,f2:660,type:'triangle',peak:.07,dec:.35});
+      tone(t+.04,{f:659,f2:988,type:'triangle',peak:.05,dec:.45});
+      tone(t+.1,{f:1046,f2:1040,type:'sine',peak:.03,dec:.6});
+      noise(t,{peak:.04,att:.05,dec:.4,f0:600,f1:1800,type:'bandpass',Q:2}); // a breath drawn out of the bones
+    },
     // the bell tolls: inharmonic bell stack over a falling sub
     deathGong(){const t=now();
       [1,2.76,4.07,5.43,6.79].forEach((r,i)=>
@@ -1433,7 +1494,7 @@ function buildWorld(){
     const cathM=mat('cathedral');
     cathM.map.repeat.set(1.4,2.2);
     M.oss.map.repeat.set(1.6,.9);
-    const glassM=new THREE.MeshBasicMaterial({map:texCache.glass,color:0x4c4c56}); // dim: only the moon behind it
+    const glassM=new THREE.MeshBasicMaterial({map:texCache.glass,color:0x2e2e38}); // dim: only the moon behind it
     const R=CATH_R+.6,SEGS=14;
     const doorA=DOOR_A;
     for(let i=0;i<SEGS;i++){
@@ -1502,7 +1563,7 @@ function buildWorld(){
       addWisp(px2+Math.cos(a)*.35,2.38,pz2+Math.sin(a)*.35,0xd0762b,.16);
       addObstacle(px2,pz2,.22);
     }
-    const nave=new THREE.PointLight(0xd0762b,.06,11,2);           // the nave is a dark place
+    const nave=new THREE.PointLight(0xd0762b,.03,9,2);            // the nave is a dark place
     nave.position.set(0,3,0);
     addHaze(0,3,0,0xe8b070,4,.03);
     scene.add(nave);
@@ -4979,12 +5040,15 @@ function frame(now){
   // inside the nave the glow draws in: the arena stays a dark place
   const inNave=Math.hypot(player.x,player.z)<CATH_R+1;
   G.naveDim=lerp(G.naveDim||0,inNave?1:0,Math.min(1,3*dt));
-  heroLight.intensity=(2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash)*(1-.5*G.naveDim);
-  heroLight.distance=(17-6*cg+5*G.glowFlash)*(1-.5*G.naveDim);
+  heroLight.intensity=(2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash)*(1-.62*G.naveDim);
+  heroLight.distance=(17-6*cg+5*G.glowFlash)*(1-.58*G.naveDim);
   // the nave has a roof, as far as the light is concerned: the sky's
-  // glow and the moon drain away as you step inside
-  worldLights.hemi.intensity=.26*(1-.75*G.naveDim);
-  worldLights.moon.intensity=.21*(1-.85*G.naveDim);
+  // glow and the moon drain away as you step inside, and the whole
+  // picture sinks a stop darker
+  worldLights.hemi.intensity=.26*(1-.88*G.naveDim);
+  worldLights.moon.intensity=.21*(1-.94*G.naveDim);
+  gradeMat.uniforms.uExpo.value=1.04*(1-.3*G.naveDim);
+  AudioSys.setSpace(G.naveDim);
   // the hazes ride their lights (the hero carries none: the light alone reads better)
   for(const l of dropLights){
     if(!l.haze)continue;
