@@ -659,9 +659,9 @@ function buildTextures(){
     const grd=ctx.createLinearGradient(0,0,0,S);
     grd.addColorStop(0,'#060a14');
     grd.addColorStop(.5,'#0d1522');
-    grd.addColorStop(.72,'#121c26');
-    grd.addColorStop(.85,'#172122'); // meets the fog at the horizon
-    grd.addColorStop(1,'#172122');
+    grd.addColorStop(.72,'#0e161e');
+    grd.addColorStop(.85,'#0f1518'); // sinks into the dark at the horizon
+    grd.addColorStop(1,'#0f1518');
     ctx.fillStyle=grd;ctx.fillRect(0,0,S,S);
     srand(181);
     for(let i=0;i<240;i++){
@@ -713,10 +713,9 @@ const canvas=$('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.setPixelRatio(1);
-const FOGC=0x11181a;
+const FOGC=0x090d12;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(FOGC);
-scene.fog=new THREE.FogExp2(FOGC,0.058);
 const camera=new THREE.PerspectiveCamera(68,16/9,0.1,220);
 
 /* grade pass — the PSX color pipeline:
@@ -1579,8 +1578,8 @@ function buildWorld(){
   }
 
   // moonlight & ambience — dimmer now; the fires matter more
-  const hemi=new THREE.HemisphereLight(0x4f6472,0x2b2620,.72);
-  const moonL=new THREE.DirectionalLight(0x9cb2c4,.58);
+  const hemi=new THREE.HemisphereLight(0x46596a,0x201d18,.3);
+  const moonL=new THREE.DirectionalLight(0x9cb2c4,.24);
   moonL.position.set(28,52,-34);
   scene.add(hemi,moonL);
 
@@ -1613,20 +1612,6 @@ function buildWorld(){
     scene.add(P);
     wispSystems.push({dust:true,pts:P,drift});
   }
-  // low mist banks crawling over the field
-  srand(4141);
-  for(let i=0;i<16;i++){
-    const a=rr(0,TAU),d=rr(CATH_R+4,HEX_AP-6);
-    const mx=Math.cos(a)*d,mz=Math.sin(a)*d;
-    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
-      color:0x51605c,transparent:true,opacity:.16,depthWrite:false}));
-    const sc=rr(9,16);
-    s.scale.set(sc,sc*.32,1);
-    s.position.set(mx,heightAt(mx,mz)+.7,mz);
-    scene.add(s);
-    wispSystems.push({sprite:s,y0:s.position.y,ph:rr(0,TAU),mist:true});
-  }
-
   /* iron lanterns line the roads — small warm islands in the murk */
   {
     const RING=CATH_R+3.2;
@@ -1688,11 +1673,6 @@ function updateAmbient(t,dt){
         if(attr.array[i*3+1]>6.5)attr.array[i*3+1]=.2;
       }
       attr.needsUpdate=true;
-    }else if(w.mist){
-      // mist banks breathe and creep
-      w.sprite.position.y=w.y0+Math.sin(t*.5+w.ph)*.12;
-      w.sprite.position.x+=Math.sin(t*.13+w.ph)*.004;
-      w.sprite.material.opacity=.12+Math.sin(t*.7+w.ph)*.05;
     }else{
       w.sprite.position.y=w.y0+Math.sin(t*1.4+w.ph)*.06;
       w.sprite.material.opacity=.35+Math.sin(t*2.2+w.ph)*.18;
@@ -3296,7 +3276,7 @@ class Enemy{
     this.rig.root.rotation.x=0;
     if(this.rig.heart){this.rig.heart.material.color.setHex(0x2a0a06);
       this.rig.heartOn=false;this.rig.heart.scale.setScalar(1);}
-    this.rig.root.position.y=this.boss?0:-1.6;   // hollows wait under the soil
+    this.rig.root.position.y=this.boss?0:heightAt(this.x,this.z)-1.6; // under the soil
     if(this.boss)this.facing=0;                  // kneeling, facing the south door
     if(this.rig.eyes)for(const e of this.rig.eyes)
       e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:0x2c4a42);
@@ -3413,15 +3393,20 @@ class Enemy{
             this.begin(this.big?(Math.random()<.4?'sweep':'chop'):'chop');
           }
         }
-        // the field hunts far and wide; only the boss fight calls them off
-        if(!this.boss&&(dist>30||G.bossActive)){this.state='return';}
+        // stray too far and they lose interest; the boss fight calls them off
+        if(!this.boss&&(dist>26||G.bossActive)){this.state='return';}
         break;}
       case 'return':{
         const hx=this.homeX-this.x,hz=this.homeZ-this.z,hl=Math.hypot(hx,hz);
-        if(hl<.4||dist<9){this.state='chase';break;}
+        if(dist<this.aggroR){this.state='chase';this.t=0;break;}
+        if(hl<.6){this.state='guard';this.t=0;break;}
         this.facing=angLerp(this.facing,Math.atan2(hx,hz),6*dt);
         this.x+=hx/hl*this.speed*.8*dt;this.z+=hz/hl*this.speed*.8*dt;
         break;}
+      case 'guard':
+        // home again: it stands its ground and waits for the prey to return
+        if(dist<this.aggroR&&G.mode==='play'){this.state='chase';this.t=0;}
+        break;
       case 'windup':{
         const wd=this.windDur();
         if(this.attack!=='lunge')faceP(this.attack==='slam'?2.5:4);
@@ -3534,7 +3519,7 @@ class Enemy{
         }
         else poseChop(r,p,.8);
         break;}
-      case 'recover':poseIdle(r,t);break;
+      case 'recover':case 'guard':poseIdle(r,t);break;
       case 'stagger':poseStagger(r,this.t/(this.boss?1.1:.85));break;
       case 'down':poseKnockdown(r,Math.min(1,this.t/1.9));break;
       case 'dead':
@@ -3596,11 +3581,18 @@ class Crow{
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
   }
+  reset(){
+    this.x=this.homeX;this.z=this.homeZ;this.hp=this.maxHp;
+    this.state='roost';this.t=0;this.vx=0;this.vz=0;this.crumbled=false;
+    this.rig.root.visible=true;this._oa=undefined;
+    this.y=heightAt(this.x,this.z)+.25;
+  }
   flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
   takeHit(dmg,poise,fx,fz,kb){
     if(this.hp<=0)return;
     this.hp-=dmg;this.flash();
     boneBurst(this.x,this.y,this.z,0x23232c,5,2);       // black feathers
+    if(this.state==='roost'){this.state='fly';this.t=0;} // startled aloft
     if(this.hp<=0){this.die();return;}
     const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
     this.vx=dx/l*kb*6;this.vz=dz/l*kb*6;
@@ -3628,7 +3620,19 @@ class Crow{
     const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
     this.flap+=dt*(this.state==='dive'?26:14)*sp;
     switch(this.state){
+      case 'roost': // hunched on its perch, one red eye on the road
+        this.y+=((gh+.25)-this.y)*Math.min(1,6*dt);
+        if(dist<11&&G.mode==='play'){this.state='fly';this.t=0;AudioSys.windup();}
+        break;
       case 'fly':{ // wheel around the prey, waiting for the moment
+        if(dist>24){ // prey out of reach: wing back to the perch
+          const hx=this.homeX-this.x,hz=this.homeZ-this.z,hl=Math.hypot(hx,hz);
+          if(hl<1.5){this.state='roost';this.t=0;break;}
+          this.x+=hx/hl*6*dt;this.z+=hz/hl*6*dt;
+          this.y+=((gh+2.6)-this.y)*Math.min(1,3*dt);
+          this.facing=Math.atan2(hx,hz);this._oa=undefined;
+          break;
+        }
         if(this._oa===undefined)this._oa=Math.atan2(this.x-P.x,this.z-P.z);
         this._oa+=this.orbitDir*dt*.85*sp;
         const tx=P.x+Math.sin(this._oa)*6,tz=P.z+Math.cos(this._oa)*6;
@@ -3685,7 +3689,7 @@ class Crow{
     r.root.rotation.y=this.facing;
     r.root.rotation.x=this.state==='dive'?.55:this.state==='dead'?.9:0;
     r.root.rotation.z=this.state==='fly'?-.22*this.orbitDir:0;
-    const grounded=this.state==='downed'||this.state==='dead';
+    const grounded=this.state==='downed'||this.state==='dead'||this.state==='roost';
     const f=grounded?1.15:.15+.8*Math.sin(this.flap);
     r.wingL.rotation.z=f;r.wingR.rotation.z=-f;
     if(G.time>=this.flashUntil)for(const m of this.mats)
@@ -3694,7 +3698,7 @@ class Crow{
   }
 }
 
-/* ---------------- population: the field never empties ---------------- */
+/* ---------------- population: a finite, sleeping host ---------------- */
 let boss=null;
 function spawnFoe(kind,x,z){
   const e=kind==='crow'?new Crow(x,z):new Enemy(kind,x,z,{spawned:true});
@@ -3704,12 +3708,29 @@ function spawnFoe(kind,x,z){
 function spawnEnemies(){
   boss=new Enemy('boss',0,-2.2,{});
   enemies.push(boss);
-  spawnFoe('hollow',6,44);
-  spawnFoe('hollow',-7,47);
-  spawnFoe('hollow',2,38);
+  // A fixed host, sown across the quarters, asleep under the soil —
+  // just enough marrow among them (1170) to call the cathedral open.
+  // They only stir when the pilgrim comes near.
+  const sow=(kind,x,z)=>{const e=new Enemy(kind,x,z,{});enemies.push(e);return e;};
+  const roost=(x,z)=>{const c=new Crow(x,z);c.state='roost';
+    c.y=heightAt(x,z)+.25;enemies.push(c);return c;};
+  // the pilgrim's approach (south)
+  sow('hollow',3,42);sow('hollow',-4,36);sow('hollow',2,28);sow('hollow',-3,21);
+  // the ring road crossings
+  sow('hollow',13,6);sow('hollow',-11,-9);
+  // the grave rows (east)
+  sow('hollow',26,4);sow('hollow',33,-5);sow('hollow',40,7);
+  sow('caster',30,10);sow('caster',43,-3);sow('big',36,1);
+  roost(34,6);
+  // the hollow wood (west)
+  sow('hollow',-27,-3);sow('hollow',-35,6);sow('hollow',-44,-5);
+  sow('caster',-31,-9);sow('caster',-41,4);sow('big',-37,-2);
+  roost(-38,3);
+  // the ruins and the fallen tower (north)
+  sow('hollow',-6,-30);sow('hollow',5,-38);
+  sow('caster',-3,-44);sow('caster',8,-33);sow('big',0,-40);
 }
-function updateSpawner(dt){
-  if(G.mode!=='play'||G.bossActive||G.bossDead)return;
+function pruneFallen(){
   // bury the long-dead so the field doesn't fill with ghosts
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
@@ -3717,29 +3738,9 @@ function updateSpawner(dt){
       scene.remove(e.rig.root);enemies.splice(i,1);
     }
   }
-  G.spawnT-=dt;
-  if(G.spawnT>0)return;
-  G.spawnT=2.4+Math.random()*2.4;
-  const alive=enemies.filter(e=>!e.boss&&e.hp>0).length;
-  const cap=4+Math.min(4,Math.floor(player.marrow/220)); // the field thickens
-  if(alive>=cap)return;
-  // the field is vast now: the dead rise NEAR the prey, out of sight
-  for(let tries=0;tries<10;tries++){
-    const a=Math.random()*TAU,d=13+Math.random()*13;
-    const p={x:player.x+Math.cos(a)*d,z:player.z+Math.sin(a)*d};
-    if(Math.hypot(p.x,p.z)<CATH_R+3)continue;      // never inside the ring road
-    constrain(p,false);pushOut(p,.6);
-    if(Math.hypot(p.x-player.x,p.z-player.z)<10)continue;
-    const r=Math.random();
-    let kind=r<.52?'hollow':r<.72?'caster':r<.9?'big':'crow';
-    // crows are a rare menace: never more than one in the air
-    if(kind==='crow'&&enemies.some(e=>e.crow&&e.hp>0))kind='hollow';
-    spawnFoe(kind,p.x,p.z);
-    return;
-  }
 }
 function respawnWorld(){
-  // the field resets: spawner stock is cleared, the Warden re-kneels
+  // the living host slips back under its soil; the fallen stay fallen
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     if(e.boss){
@@ -3748,11 +3749,9 @@ function respawnWorld(){
         fogGate.visible=!G.cathedralOpen;AudioSys.bossMusic(0);}
       continue;
     }
-    scene.remove(e.rig.root);enemies.splice(i,1);
+    if(e.hp<=0){scene.remove(e.rig.root);enemies.splice(i,1);continue;}
+    e.reset();
   }
-  G.spawnT=3;
-  spawnFoe('hollow',6,44);
-  spawnFoe('hollow',-7,47);
 }
 
 /* ---------------- the sealed cathedral & the boss ---------------- */
@@ -4003,6 +4002,11 @@ lockMarker.scale.set(.34,.34,1);lockMarker.visible=false;
 scene.add(lockMarker);
 resize();
 
+// the pilgrim carries their own light: a soft warm halo, souls-fashion,
+// that breathes gently and pools on the ground around them
+const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
+scene.add(heroLight);
+
 let last=performance.now(),grainT=0;
 function frame(now){
   requestAnimationFrame(frame);
@@ -4021,7 +4025,7 @@ function frame(now){
       // stepping into the nave wakes the Warden
       if(G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
          Math.hypot(player.x,player.z)<ARENA_R-1)startBossFight();
-      updateSpawner(wdt);
+      pruneFallen();
     }else{
       player.t+=wdt;
       resetPose(player.rig);poseDead(player.rig,player.t);
@@ -4038,6 +4042,8 @@ function frame(now){
   }
   for(let i=effects.length-1;i>=0;i--)if(!effects[i].update(wdt))effects.splice(i,1);
   updateAmbient(G.time,wdt);
+  heroLight.position.set(player.x,heightAt(player.x,player.z)+2.2,player.z);
+  heroLight.intensity=2.2+Math.sin(G.time*1.6)*.12;
   updateCamera(dt);
 
   grainT+=dt;

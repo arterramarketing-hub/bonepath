@@ -70,8 +70,8 @@ to come at you again.
 
 ## The loop
 
-The Bonefield is one giant hexagon of rolling, haunted, fog-drowned
-ground — over 130 meters across — with the ruined cathedral sealed at
+The Bonefield is one giant hexagon of rolling, haunted ground under
+true night — over 130 meters across — with the ruined cathedral sealed at
 its center under a pillar of moonlight you can steer by from anywhere.
 A flagstone ring road circles the nave with straight roads running out
 to the quarters: the pilgrim's approach in the south, the ordered
@@ -79,11 +79,15 @@ grave rows in the east, the hollow wood's groves in the west, the
 ruins and fallen tower in the north — iron lanterns burning warm at
 the crossings and along the roads, the only kindness in the dark.
 You start your pilgrimage at the field's far southern edge, the
-cathedral a distant beacon. The dead never stop coming — hollows
-claw out of the soil, bone-throwers post up, brutes lumber in, and
-now and then a lone carrion crow wheels overhead and stoops at you —
-and the field thickens as your marrow grows. **Survive and harvest
-1000 marrow** and the cathedral's veil burns away. There are no
+cathedral a distant beacon, carrying your own soft glow — a warm
+pool of light that walks with you through the dark, souls-fashion.
+A finite host sleeps under the soil, sown across the quarters —
+hollows, bone-throwers, brutes, two roosting carrion crows — and
+each one stirs only when you come near: wander wide of them and
+they let you pass, stray too far mid-chase and they give up and
+trudge home to stand guard. There are just enough of them, all
+told, to pay the toll. **Harvest 1000 marrow** from the sleeping
+host and the cathedral's veil burns away. There are no
 fires to rest at: die and you wake at the pilgrim's gate, your
 marrow lying where you fell. Step through the portal and the
 **Gravewarden of the Bonefield** rises, with a second phase when its
@@ -95,7 +99,7 @@ and the field is yours.
 Everything is generated at boot inside the one file:
 
 - **Renderer** — three.js r128 (inlined), rendered at ~240p and upscaled with
-  nearest-neighbor, clip-space vertex snapping for the PSX wobble, exp2 fog,
+  nearest-neighbor, clip-space vertex snapping for the PSX wobble,
   film grain and vignette overlays.
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
@@ -104,8 +108,9 @@ Everything is generated at boot inside the one file:
   laid out in quarters around a ring road: an ordered cemetery, groves
   of dead trees, roofless ruins and a fallen tower (all with real
   collision), the land shearing off into dark void at the hexagon's
-  edge, mist banks crawling over the ground, iron lanterns along the
-  roads casting real flickering point-light, and the cathedral — bone wainscot,
+  edge, a starfield night lit only by a low moon, iron lanterns along
+  the roads casting real flickering point-light, the hero's own warm
+  glow pooling around them, and the cathedral — bone wainscot,
   lancet glass, rose window, a moonbeam standing over it — at the
   center.
 - **Characters** — low-poly articulated rigs (armored knight with cape,
