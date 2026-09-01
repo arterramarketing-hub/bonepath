@@ -171,7 +171,7 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div id="swipeHint">tap &mdash; strike &nbsp; keep tapping &mdash; combo<br>flick any way &mdash; roll &nbsp; hold &amp; drag &mdash; camera</div>
+  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; lunge &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: dash cut) &nbsp; hold &amp; drag &mdash; camera</div>
 </div>
 <div id="prompt"></div>
 
@@ -1035,6 +1035,8 @@ const Input=(()=>{
     mx:0,mz:0,            // move vector (screen-relative, magnitude<=1)
     camDX:0,camDY:0,      // camera drag deltas this frame
     swipe:null,           // {kind:'atk'|'dodge', atype, sx,sy} — sx/sy null for keyboard
+    chargeHeld:false,     // right thumb (or L) held still: the heavy is winding
+    chargeRelease:false,  // ...and let go this frame
     interactPressed:false,
     anyPressed:false,
   };
@@ -1044,6 +1046,8 @@ const Input=(()=>{
   const base=$('stickBase'),nub=$('stickNub');
   const RADIUS=52;
   const SWIPE_DIST=26,SWIPE_MS=220; // a flick: fast and short
+  const HOLD_MS=240;                // held past this: a still finger charges, a moving one turns the camera
+  let touchCharge=false;
 
   function bindBtn(el,down,up){
     el.addEventListener('pointerdown',e=>{
@@ -1078,7 +1082,7 @@ const Input=(()=>{
       // right-side gesture: undecided until it's a flick or a hold
       camId=e.pointerId;
       gesture={t0:performance.now(),x0:e.clientX,y0:e.clientY,
-               lx:e.clientX,ly:e.clientY,mode:'pending'};
+               lx:e.clientX,ly:e.clientY,mode:'pending',maxD:0};
     }
   });
   ctl.addEventListener('pointermove',e=>{
@@ -1100,13 +1104,12 @@ const Input=(()=>{
       if(g.mode==='pending'){
         const dx=e.clientX-g.x0,dy=e.clientY-g.y0;
         const dist=Math.hypot(dx,dy),ms=performance.now()-g.t0;
+        g.maxD=Math.max(g.maxD,dist);
         if(dist>=SWIPE_DIST&&ms<=SWIPE_MS){
           // a flick is always an action now; camera turning is hold & drag
           st.swipe=classifySwipe(dx,dy);
           g.mode='done';
-        }else if(ms>SWIPE_MS){
-          g.mode='cam';g.lx=e.clientX;g.ly=e.clientY;
-        }
+        }else if(ms>HOLD_MS)settleHold(g,e.clientX,e.clientY);
       }
       if(g.mode==='cam'){
         st.camDX+=e.clientX-g.lx;st.camDY+=e.clientY-g.ly;
@@ -1114,6 +1117,12 @@ const Input=(()=>{
       }
     }
   });
+  // a hold decides itself: a finger that stayed put is winding the
+  // heavy; one that wandered is turning the camera
+  function settleHold(g,x,y){
+    if(g.maxD<14){g.mode='charge';touchCharge=true;}
+    else{g.mode='cam';g.lx=x;g.ly=y;}
+  }
   function endPtr(e){
     if(e.pointerId===stickId){
       stickId=null;st.mx=0;st.mz=0;
@@ -1126,9 +1135,11 @@ const Input=(()=>{
         const dist=Math.hypot(dx,dy),ms=performance.now()-gesture.t0;
         if(dist>=SWIPE_DIST&&ms<=SWIPE_MS+90)
           st.swipe=classifySwipe(dx,dy);
-        else if(dist<14&&ms<=260)
+        else if(dist<14&&ms<=HOLD_MS)
           st.swipe={kind:'atk',atype:'tap',sx:null,sy:null}; // plain tap = quick strike
+        else if(dist<14)settleHold(gesture,e.clientX,e.clientY); // held still, never moved: charge
       }
+      if(gesture&&gesture.mode==='charge'){touchCharge=false;st.chargeRelease=true;}
       camId=null;gesture=null;
     }
   }
@@ -1143,7 +1154,10 @@ const Input=(()=>{
     if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
     if(e.code==='KeyE')st.interactPressed=true;
   });
-  addEventListener('keyup',e=>{keys[e.code]=false;});
+  addEventListener('keyup',e=>{
+    keys[e.code]=false;
+    if(e.code==='KeyL')st.chargeRelease=true;   // L held = charge, let go = lunge
+  });
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
 
   function poll(dt){
@@ -1153,13 +1167,19 @@ const Input=(()=>{
     if(keys.KeyS||keys.ArrowDown)kz+=1;
     if(keys.KeyA||keys.ArrowLeft)kx-=1;
     if(keys.KeyD||keys.ArrowRight)kx+=1;
-    if(kx||kz){const l=Math.hypot(kx,kz);st.mx=kx/l;st.mz=kz/l;}
+    // keys walk unless R is held — the stick sprints past ~3/4 deflection
+    if(kx||kz){const l=Math.hypot(kx,kz)/(keys.KeyR?1:.62);st.mx=kx/l;st.mz=kz/l;}
     else if(stickId===null){st.mx=0;st.mz=0;}
+    // a still finger that never moved gets no pointermove: settle it here
+    if(gesture&&gesture.mode==='pending'&&performance.now()-gesture.t0>HOLD_MS){
+      const g=gesture;settleHold(g,g.lx,g.ly);
+    }
+    st.chargeHeld=touchCharge||!!keys.KeyL;
     if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
   }
   function consume(){
-    st.swipe=null;
+    st.swipe=null;st.chargeRelease=false;
     st.interactPressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
@@ -2205,6 +2225,98 @@ function poseRollAtk(r,p){
   r.foreL.rotation.x=seg4(p,W,H,-1.4,-.6,-.2,-.75);
   r.head.rotation.y=-ty*.6;
 }
+/* full sprint: a driving run — long low strides, trunk pitched into
+   it, the greatsword hauled back along the hip so it trails the runner */
+function poseRun(r,t){
+  const f=10.5,amp=1.0,C=CARRY;
+  const s=Math.sin(t*f),c=Math.cos(t*f);
+  r.legR.rotation.x=s*amp;r.legL.rotation.x=-s*amp;
+  r.kneeR.rotation.x=Math.max(0,-c)*1.5;r.kneeL.rotation.x=Math.max(0,c)*1.5;
+  r.body.rotation.y=s*.12;
+  r.torso.rotation.y=-s*.2;
+  r.torso.rotation.z=-s*.05;
+  r.torso.rotation.x+=.42;                              // pitched hard into the run
+  r.head.rotation.x-=.3;
+  r.head.rotation.y=s*.06;
+  // the blade rides low and back, pumping with the stride
+  r.armR.rotation.x=C.aRx+.55+s*.08;
+  r.foreR.rotation.x=C.fRx-.2+c*.06;
+  r.armL.rotation.x=C.aLx+.3;
+  r.weapon.rotation.x=C.wx+.35;
+  const strike=Math.pow(Math.abs(s),10);
+  r.body.position.y=r.baseY+(Math.abs(c)*.1-strike*.05)*r.s;
+  r._heel=strike;
+  r._spNow=1.6;
+}
+/* the charged lunge's wind-up: the blade drawn back along the right
+   hip, point levelled at the prey, the whole body coiled onto the
+   rear leg. q = how full the charge is; the coil tightens with it */
+function poseCharge(r,q,t){
+  const C=CARRY,e=easeOut(Math.min(1,q));
+  const tr=Math.sin(t*38)*.012*e;                       // strain tremor at full coil
+  r.torso.rotation.y=.6*e;r.body.rotation.y=.3*e;
+  r.torso.rotation.x+=.12*e;
+  r.armR.rotation.x=C.aRx+(-.55-C.aRx)*e+tr;
+  r.armR.rotation.z=C.aRz+(-.2-C.aRz)*e;
+  r.foreR.rotation.x=C.fRx+(-1.05-C.fRx)*e;
+  r.weapon.rotation.x=C.wx+(.15-C.wx)*e;
+  r.weapon.rotation.y=C.wy+(.5-C.wy)*e;
+  r.weapon.rotation.z=C.wz;
+  r.armL.rotation.x=C.aLx+(-.85-C.aLx)*e;
+  r.armL.rotation.z=C.aLz;
+  r.foreL.rotation.x=C.fLx+(-.75-C.fLx)*e;
+  r.legR.rotation.x=.25*e;r.kneeR.rotation.x=.35*e;    // weight sunk onto the rear leg
+  r.legL.rotation.x=-.2*e;r.kneeL.rotation.x=.25*e;
+  r.head.rotation.y=-.35*e;
+  r.body.position.y=r.baseY-.08*e*r.s;
+}
+/* the heavy lunge itself: out of the coil, the whole body fires
+   forward behind the point, hangs at full extension, then hauls back */
+function poseLunge(r,p){
+  const C=CARRY;
+  const A={ty:.6,tx:.12,aR:-.55,aRz:-.2,fR:-1.05,wx:.15,wy:.5,aL:-.85,fL:-.75,lR:.25,lL:-.2,kL:.25,kR:.35};
+  const B={ty:-.95,tx:.42,aR:-1.75,aRz:.05,fR:.05,wx:.5,wy:0,aL:-1.35,fL:-.15,lR:-.75,lL:.55,kL:.6,kR:.1};
+  const E={ty:-.22,tx:.12,aR:C.aRx,aRz:C.aRz,fR:C.fRx,wx:C.wx,wy:C.wy,aL:C.aLx,fL:C.fLx,lR:-.1,lL:.1,kL:.2,kR:0};
+  let from,to,q;
+  if(p<.3){from=A;to=B;q=easeIn(p/.3);}                // explodes off the rear leg
+  else if(p<.55){from=B;to=B;q=0;}                      // hangs at full reach
+  else{from=B;to=E;q=easeOut((p-.55)/.45);}             // and drags itself back
+  const L=k=>from[k]+(to[k]-from[k])*q;
+  r.torso.rotation.y=L('ty');r.body.rotation.y=L('ty')*.5;
+  r.torso.rotation.x+=L('tx');
+  r.armR.rotation.x=L('aR');r.armR.rotation.z=L('aRz');r.foreR.rotation.x=L('fR');
+  r.weapon.rotation.x=L('wx');r.weapon.rotation.y=L('wy');r.weapon.rotation.z=C.wz;
+  r.armL.rotation.x=L('aL');r.armL.rotation.z=C.aLz;r.foreL.rotation.x=L('fL');
+  r.legR.rotation.x=L('lR');r.kneeR.rotation.x=L('kR');
+  r.legL.rotation.x=L('lL');r.kneeL.rotation.x=L('kL');
+  r.head.rotation.y=-L('ty')*.6;
+  r.body.position.y=r.baseY-(p<.55?.16:.16*(1-q))*r.s;
+}
+/* the dash cut: straight out of a sprint, the lead foot plants and
+   skids while the blade whips through a wide, low, level sweep */
+function poseSprintAtk(r,p){
+  const W=.3,H=.55,C=CARRY;
+  const ty=seg4(p,W,H,.45,-1.3,1.7,.35);               // trunk whips through wide
+  r.torso.rotation.y=ty;r.body.rotation.y=seg4(p,W,H,.2,-.55,.85,.15);
+  r.torso.rotation.x+=seg4(p,W,H,.42,.3,.38,.15);      // stays low out of the run
+  r.torso.rotation.z=seg4(p,W,H,0,.08,-.16,0);
+  r.armR.rotation.x=seg4(p,W,H,C.aRx+.55,-1.0,-1.25,C.aRx);
+  r.armR.rotation.z=seg4(p,W,H,C.aRz,-.55,.15,C.aRz);
+  r.foreR.rotation.x=seg4(p,W,H,C.fRx-.2,-.4,-.1,C.fRx);
+  r.weapon.rotation.x=seg4(p,W,H,C.wx+.35,.3,-.1,C.wx);
+  r.weapon.rotation.z=seg4(p,W,H,0,.3,-.12,0);
+  r.weapon.rotation.y=seg4(p,W,H,C.wy,0,0,C.wy);        // edge leads the level cut
+  r.armL.rotation.x=seg4(p,W,H,C.aLx+.3,-.9,-1.15,C.aLx);
+  r.armL.rotation.z=seg4(p,W,H,C.aLz,-.45,-.05,C.aLz);
+  r.foreL.rotation.x=seg4(p,W,H,C.fLx,-.6,-.2,C.fLx);
+  // the skid: lead leg thrown forward and planted, rear leg dragging
+  r.legL.rotation.x=seg4(p,W,H,-.6,-.9,-.7,0);
+  r.kneeL.rotation.x=seg4(p,W,H,.6,.4,.5,0);
+  r.legR.rotation.x=seg4(p,W,H,.7,.9,.6,0);
+  r.kneeR.rotation.x=seg4(p,W,H,.3,.2,.3,0);
+  r.head.rotation.y=-ty*.6;
+  r.body.position.y=r.baseY-seg4(p,W,H,.05,.16,.22,.04)*r.s;
+}
 /* floored: knocked flat on the back, a beat of struggling, then up */
 function poseKnockdown(r,p){
   const fall=easeIn(clamp(p/.2,0,1));
@@ -2867,6 +2979,7 @@ const player={
   rig:null,x:0,z:50,facing:0,
   hp:100,maxHp:100,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,chain:0,hitDone:false,
+  sprintT:0,sprinting:false,chargeT:0,chargeFull:false,readyDone:false,
   element:null,elementT:0,elemTrailT:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
@@ -2961,7 +3074,8 @@ const player={
       },1100);
     },2400);
   },
-  meleeHit(dmg,reach,arc,poise,kb){
+  meleeHit(dmg,reach,arc,poise,kb,opts){
+    opts=opts||{};
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
     const el=this.element;
     if(el)dmg+=el==='fire'?6:el==='lightning'?5:4;
@@ -2977,7 +3091,8 @@ const player={
       if(d>reach+e.radius)continue;
       const ang=Math.acos(clamp((dx*fx+dz*fz)/(d||1),-1,1));
       if(ang>arc)continue;
-      e.takeHit(dmg,poise,this.x,this.z,kb);
+      // the charged lunge breaks anything that isn't the Warden outright
+      e.takeHit(dmg,opts.staggerAll&&!e.boss?99:poise,this.x,this.z,kb);
       sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?16:dmg>20?11:7);
       if(crit){
         shockRing(e.x,e.z,0xffd45e,1.6,.3);
@@ -3012,7 +3127,8 @@ const player={
       G.vibr(crit?70:dmg>20?50:25);
       if(crit)AudioSys.crit();
     }
-    slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xd8b34a:0x8a8877);
+    if(hitAny||!opts.quietMiss)
+      slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xd8b34a:0x8a8877);
     return hitAny;
   },
   update(dt){
@@ -3105,29 +3221,127 @@ const player={
     };
 
     // ---- state machine ----
+    // the charged heavy: coil while the thumb holds, fire on release
+    const startCharge=()=>{
+      this.draw();
+      this.state='charge';this.t=0;this.chargeT=0;this.chargeFull=false;this.readyDone=false;
+      this.sprintT=0;this.sprinting=false;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      AudioSys.windup();
+    };
+    const startLunge=()=>{
+      this.state='lunge';this.t=0;this.hitDone=false;this.queued=false;this.qDir=null;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      AudioSys.heavySwing();G.glowFlash=1;G.camShake=Math.max(G.camShake,.12);
+      boneBurst(this.x,.15,this.z,0x4a463a,5,1.6);   // the rear foot tears the ground
+    };
+    // the dash cut: a wide low sweep flung straight out of a full sprint
+    const startSprintAtk=()=>{
+      this.draw();
+      this.state='sprintatk';this.t=0;this.hitDone=false;this.sfxDone=false;
+      this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      boneBurst(this.x,.12,this.z,0x4a463a,4,1.4);   // skid dust
+    };
+
     if(this.state==='free'){
+      // past three-quarters on the stick the walk breaks into a sprint
+      const run=mAmt>.78;
+      this.sprinting=run;
+      this.sprintT=run?this.sprintT+dt:0;
       if(mAmt>0){
-        const sp=4.5*Math.min(1,mAmt*1.2);
+        const sp=run?7.2:4.3*Math.min(1,mAmt*1.35);
         this.x+=mvx*sp*dt;this.z+=mvz*sp*dt;
-        if(!foe)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
+        // a sprint always faces where it's going; a walk keeps its eye on the foe
+        if(!foe||run)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
       }
+      if(IN.chargeHeld){startCharge();return this.post(dt);}
       // footfalls ride the ACTUAL heel strikes of the walk cycle
       const heel=this.rig._heel||0;
       if(heel>.45&&!this._heelOn){
         this._heelOn=true;
-        AudioSys.step(Math.min(1,this.moveAmt+.3));
+        AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)));
         if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
       }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
       if(mAmt>0){this.moveX=mvx;this.moveZ=mvz;} // the follow camera reads this
-      if(foe)this.facing=angLerp(this.facing,
+      if(foe&&!this.sprinting)this.facing=angLerp(this.facing,
         Math.atan2(foe.x-this.x,foe.z-this.z),10*dt);
       // block pushback drift
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(IN.swipe){
-        if(IN.swipe.kind==='atk')startAttack(IN.swipe);
+        if(IN.swipe.kind==='atk'){
+          if(this.sprintT>.3)startSprintAtk();   // at full stride the tap becomes the dash cut
+          else startAttack(IN.swipe);
+        }
         else startDodge(IN.swipe);
+      }
+    }
+    else if(this.state==='charge'){
+      this.chargeT+=dt;
+      // the coil can creep, slowly, and keeps its point on the prey
+      if(mAmt>0){this.x+=mvx*1.1*dt;this.z+=mvz*1.1*dt;}
+      if(foe)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),9*dt);
+      else if(mAmt>0)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),6*dt);
+      if(!this.readyDone&&this.chargeT>=.6){ // fully wound: a ring and a chime
+        this.readyDone=true;AudioSys.chargeReady();G.vibr(20);
+        shockRing(this.x,this.z,0xf0c060,1.3,.25);
+      }
+      const released=IN.chargeRelease||!IN.chargeHeld;
+      if(released||this.chargeT>1.8){
+        if(this.chargeT<.3)startAttack(null);   // barely held: it's just a strike
+        else startLunge();
+      }
+    }
+    else if(this.state==='lunge'){
+      const DUR=.62,p=this.t/DUR;
+      // fires off the rear leg and covers ~4m, dying off through the extension
+      if(p<.42){
+        const sp=15*(1-easeIn(p/.42)*.85);
+        this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
+      }
+      // the point is live through the drive: it finds whatever it reaches first
+      if(!this.hitDone&&p>=.12&&p<.6){
+        const hit=this.meleeHit(this.chargeFull?34:24,2.7,.75,4,1.1,{staggerAll:true,quietMiss:true});
+        if(hit){this.hitDone=true;AudioSys.hit();
+          G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.15);}
+      }
+      if(!this.hitDone&&p>=.6){this.hitDone=true;
+        slashArc(this.x+Math.sin(this.facing)*.9,this.z+Math.cos(this.facing)*.9,1.05,this.facing,0x8a8877);}
+      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.55){
+        this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
+      }
+      if(p>=1){
+        if(this.queued){ // flows on into the chain
+          this.state='attack';this.t=0;this.combo=0;this.chain=1;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
+        }else this.state='free';
+      }
+    }
+    else if(this.state==='sprintatk'){
+      const DUR=.5,p=this.t/DUR;
+      if(!this.sfxDone&&p>=.12){this.sfxDone=true;AudioSys.swing();G.camShake=Math.max(G.camShake,.1);}
+      if(p<.5){ // the skid carries the run's momentum into the cut
+        const sp=9*(1-p);
+        this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
+      }
+      if(!this.hitDone&&p>=.4){
+        this.hitDone=true;
+        const hit=this.meleeHit(22,2.9,1.6,3,.8);   // wide, level, and hard
+        if(hit)AudioSys.hit();
+      }
+      if(IN.swipe&&IN.swipe.kind==='atk'&&this.t>.15){
+        this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
+      }
+      if(p>=1){
+        if(this.queued){
+          this.state='attack';this.t=0;this.combo=0;this.chain=1;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
+        }else this.state='free';
       }
     }
     else if(this.state==='roll'){
@@ -3231,13 +3445,17 @@ const player={
     // ---- pose ----
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
-    r.ikLeftArm=this.state==='free'||this.state==='attack'||this.state==='rollatk';
+    r.ikLeftArm=['free','attack','rollatk','charge','lunge','sprintatk'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
-      if(this.moveAmt>.05)poseWalk(r,t,this.moveAmt,false);
+      if(this.sprinting&&this.moveAmt>.5)poseRun(r,t);
+      else if(this.moveAmt>.05)poseWalk(r,t,Math.min(1,this.moveAmt/.78),false);
       else poseIdle(r,t);
     }
+    else if(this.state==='charge')poseCharge(r,this.chargeT/.6,t);
+    else if(this.state==='lunge')poseLunge(r,Math.min(1,this.t/.62));
+    else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/.5));
     else if(this.state==='roll'){
       const p=Math.min(1,this.t/.46);
       r.body.position.y=r.baseY-.34+Math.sin(p*Math.PI)*.05;
@@ -4069,7 +4287,12 @@ function frame(now){
   for(let i=effects.length-1;i>=0;i--)if(!effects[i].update(wdt))effects.splice(i,1);
   updateAmbient(G.time,wdt);
   heroLight.position.set(player.x,heightAt(player.x,player.z)+2.2,player.z);
-  heroLight.intensity=2.2+Math.sin(G.time*1.6)*.12;
+  // the glow is the charge meter: it draws in tight and burns hotter as
+  // the heavy winds, then flares out the instant it fires
+  const cg=player.state==='charge'?Math.min(1,player.chargeT/.6):0;
+  G.glowFlash=Math.max(0,(G.glowFlash||0)-dt*3.5);
+  heroLight.intensity=2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash;
+  heroLight.distance=17-6*cg+5*G.glowFlash;
   updateCamera(dt);
 
   grainT+=dt;

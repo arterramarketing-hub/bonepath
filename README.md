@@ -11,15 +11,29 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Phone**: serve the repo with any static host (GitHub Pages works) and open
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
-- **Desktop**: just open `index.html`. WASD to move — J/Space strike
-  (repeat for the combo), K/Shift roll, E interact, Z/C orbit camera.
+- **Desktop**: just open `index.html`. WASD to move (hold R to sprint) —
+  J/Space strike (repeat for the combo), hold L and release for the
+  charged lunge, K/Shift roll, E interact, Z/C orbit camera.
 
 ## Controls (touch)
 
-- **Left thumb** — floating joystick, movement only
-- **Right thumb — tap to fight, flick to live:**
+- **Left thumb** — floating joystick. Push it past three-quarters and
+  the walk breaks into a **sprint** — the knight pitches forward and
+  the greatsword trails along the hip
+- **Right thumb — tap to fight, hold to break them, flick to live:**
   - **tap** — swing the sword; keep tapping and the combo climbs:
     slash, backhand, crushing overhead, deep thrust, and around again
+  - **tap at full sprint** — the **dash cut**: the lead foot plants and
+    skids while the blade whips through a wide, low, level sweep
+  - **hold still, then release** — the **charged lunge**. The knight
+    coils onto the rear leg with the point levelled at the prey; your
+    own glow draws in tight and burns hotter as the charge fills (a ring
+    and a chime at full). Let go and the whole body fires forward four
+    metres behind the point. A full charge hits ~2.5× a light strike
+    and **staggers anything that isn't the Warden outright** — brutes
+    included — and a stagger is where the knockdowns and telling blows
+    begin. Held too briefly, it's just a strike. You are wide open while
+    you wind it.
   - **flick in ANY direction** — dodge roll with i-frames that way
 - **Rolling attack** — tap during a roll (or right as it ends) and
   the knight rises out of the tuck with a fast upward cut that flows
