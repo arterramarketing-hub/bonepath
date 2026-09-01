@@ -727,15 +727,28 @@ const camera=new THREE.PerspectiveCamera(68,16/9,0.1,220);
 const rt=new THREE.WebGLRenderTarget(4,4,{
   minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
 rt.texture.encoding=THREE.sRGBEncoding;
+/* the haze pass: the lights' soft glow is drawn AFTER the PSX grade, in
+   its own buffer that shares the scene's depth — so it is never
+   quantized or dithered (no stray coloured pixels) and walls still
+   hide it. Without depth-texture support it falls back into the scene. */
+const HAZE_SEP=!!(renderer.capabilities.isWebGL2||renderer.extensions.get('WEBGL_depth_texture'));
+if(HAZE_SEP)rt.depthTexture=new THREE.DepthTexture(4,4,THREE.UnsignedIntType);
+const hazeRT=new THREE.WebGLRenderTarget(4,4,{
+  minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true});
+hazeRT.texture.encoding=THREE.sRGBEncoding;
+if(HAZE_SEP)hazeRT.depthTexture=rt.depthTexture;
+const hazeScene=HAZE_SEP?new THREE.Scene():scene;
+renderer.setClearColor(0x000000,1);
 const postScene=new THREE.Scene();
 const postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const gradeMat=new THREE.ShaderMaterial({
-  uniforms:{tex:{value:rt.texture},uPx:{value:new THREE.Vector2(1/240,1/135)}},
+  uniforms:{tex:{value:rt.texture},uPx:{value:new THREE.Vector2(1/240,1/135)},
+    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0}},
   depthTest:false,depthWrite:false,
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
   fragmentShader:[
     'precision mediump float;',
-    'uniform sampler2D tex;uniform vec2 uPx;varying vec2 vUv;',
+    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform float uHazeOn;uniform vec2 uPx;varying vec2 vUv;',
     'float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}',
     'void main(){',
     '  vec3 c=texture2D(tex,vUv).rgb;',
@@ -754,12 +767,20 @@ const gradeMat=new THREE.ShaderMaterial({
     '  c*=vec3(.975,1.025,.99);',
     '  float d=bayer2(gl_FragCoord.xy*.5)*.25+bayer2(gl_FragCoord.xy);',
     '  c=floor(clamp(c,0.,1.)*63.0+d)/63.0;',
+    // the haze rides on top, untouched by the grade: just soft light
+    '  c+=texture2D(hazeTex,vUv).rgb*uHazeOn;',
     '  gl_FragColor=vec4(c,1.0);',
     '}'].join('\n')});
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
 function renderFrame(){
   renderer.setRenderTarget(rt);
   renderer.render(scene,camera);
+  if(HAZE_SEP){
+    renderer.setRenderTarget(hazeRT);
+    renderer.autoClearDepth=false;   // keep the scene's depth: walls hide the haze
+    renderer.render(hazeScene,camera);
+    renderer.autoClearDepth=true;
+  }
   renderer.setRenderTarget(null);
   renderer.render(postScene,postCam);
 }
@@ -770,7 +791,7 @@ function resize(){
   const w=innerWidth,h=innerHeight;
   const ih=Math.min(INTERNAL_H,h), iw=Math.round(ih*w/h);
   renderer.setSize(iw,ih,false);
-  rt.setSize(iw,ih);
+  rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
   gradeMat.uniforms.uPx.value.set(2/iw,2/ih);
   camera.aspect=w/h;camera.updateProjectionMatrix();
   snapUniform.value.set(iw/2,ih/2);
@@ -1709,12 +1730,12 @@ function makeLantern(x,z){
   lanternLights.push({l,ph:Math.random()*TAU,hz});
 }
 
-/* a soft haze around a light: a big, faint additive disc that ignores
-   depth so it blooms over whatever the lamp sits in */
+/* a soft haze around a light: a big, faint additive disc drawn in the
+   haze pass (after the grade, depth-tested against the scene) */
 function addHaze(x,y,z,color,size,op){
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,transparent:true,
-    opacity:op,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
-  s.scale.set(size,size,1);s.position.set(x,y,z);s.renderOrder=5;scene.add(s);return s;
+    opacity:op,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending}));
+  s.scale.set(size,size,1);s.position.set(x,y,z);hazeScene.add(s);return s;
 }
 function addWisp(x,y,z,color,size){
   const s=new THREE.Sprite(new THREE.SpriteMaterial({
@@ -3054,10 +3075,11 @@ const dropLights=[];
 for(let i=0;i<4;i++){
   const l=new THREE.PointLight(0xffffff,0,6,2);
   l.position.set(0,-50,0);l.free=true;scene.add(l);dropLights.push(l);
-  l.haze=addHaze(0,-50,0,0xffffff,2.1,.16);l.haze.visible=false;
+  l.haze=null;   // its haze is made on first use, once the glow texture exists
 }
 function borrowLight(){
   const l=dropLights.find(l=>l.free)||dropLights[0];
+  if(!l.haze){l.haze=addHaze(0,-50,0,0xffffff,2.1,.16);l.haze.visible=false;}
   l.free=false;return l;
 }
 function dropCleanup(d){
@@ -4952,6 +4974,7 @@ function frame(now){
   const hs=4.6-1.6*cg+2.4*G.glowFlash;heroHaze.scale.set(hs,hs,1);
   heroHaze.material.opacity=.15+.1*cg+.22*G.glowFlash;
   for(const l of dropLights){
+    if(!l.haze)continue;
     l.haze.visible=l.intensity>0&&!l.free;
     if(l.haze.visible){l.haze.position.copy(l.position);l.haze.material.color.copy(l.color);
       l.haze.material.opacity=.1+.06*l.intensity;}
