@@ -82,6 +82,37 @@ flying, tumble, and lie scattered on the path. If life remains in
 it, the bones drag themselves back together and it climbs upright
 to come at you again.
 
+## The two that are not hollows
+
+Two things in the field are worse than the host, and each borrows the
+Warden's bar while it hunts you.
+
+- **The Fallen One** comes down out of the sky wherever you are the
+  moment your marrow reaches 500. It is an angel only by the shape of
+  it — a neck far too long with the head hung off it at a broken
+  angle, three pale eyes behind a bone mask, a cracked halo hung
+  askew, claws for hands, knees bent the wrong way, and wings of bare
+  bone spars with the membrane rotted half away. It never touches the
+  ground, and its head snaps sideways when you aren't looking. Three
+  moves: the **wingblade** (both wings scythe forward across the
+  ground), the **plunge** (it rises, hangs over your position, and
+  drops like a stone — roll out from under it), and the **lament** (a
+  shriek that flings a ring of black feather-shards, then a fan aimed
+  straight at you). Fell it for 220 marrow and a mote of life.
+- **The Unburied** sleeps under the grave rows in the east and erupts
+  when you walk its row. A grave-thing, contorted and mutated: the
+  spine wrenched a quarter turn with vertebrae tearing out of the
+  back, a swollen boiled belly, the head hung sideways off the shoulder
+  with the jaw unhinged, one arm monstrously long and dragging a claw,
+  the other twisted behind its back, and a third, vestigial arm pawing
+  from the collarbone. It lurches in surges, and **it poisons**: the
+  **rake** of the long arm, the **retch** (three globs of bile lobbed
+  at you that burst into puddles — don't stand in them), and the
+  **burrow** (it sinks, travels under the soil, and erupts again behind
+  you in a cloud of rot). Poison ticks your life away for seconds and
+  can't be rolled off — only outlasted. Fell it for 200 marrow and a
+  mote of life; its belly bursts when it dies, so step back.
+
 ## The loop
 
 The Bonefield is one giant hexagon of rolling, haunted ground under

@@ -35,6 +35,8 @@
   #grain{position:fixed;inset:-64px;pointer-events:none;z-index:4;opacity:.02;}
   #hurt{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .35s;
     background:radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(120,10,10,.55) 100%);}
+  #poison{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .4s;
+    background:radial-gradient(ellipse at 50% 50%, rgba(40,90,20,0) 38%, rgba(60,130,25,.5) 100%);}
   #lowhp{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;
     background:radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(90,8,8,.5) 100%);
     animation:lowpulse 1.6s ease-in-out infinite;animation-play-state:paused;}
@@ -155,6 +157,7 @@
 <div id="vig"></div>
 <div id="grain"></div>
 <div id="hurt"></div>
+<div id="poison"></div>
 <div id="lowhp"></div>
 
 <div id="hud">
@@ -1022,6 +1025,21 @@ const AudioSys=(()=>{
     windup(){const t=now();
       noise(t,{peak:.1,att:.15,dec:.13,f0:260,f1:2100,type:'bandpass',Q:2.4});
       tone(t+.05,{f:180,f2:330,type:'triangle',peak:.03,att:.1,dec:.12});},
+    // the fallen one's voice: a glass-edged shriek bending down into a choir of wrong notes
+    screech(){const t=now();
+      tone(t,{f:1900,f2:620,type:'sawtooth',peak:.14,att:.02,dec:.9});
+      tone(t+.05,{f:2400,f2:700,type:'square',peak:.06,att:.02,dec:.7});
+      tone(t+.1,{f:311,f2:296,type:'triangle',peak:.08,att:.2,dec:1.4});
+      tone(t+.1,{f:466,f2:440,type:'triangle',peak:.06,att:.2,dec:1.4});
+      noise(t,{peak:.12,att:.03,dec:.8,f0:3000,f1:900,type:'bandpass',Q:3});},
+    // the unburied: a wet, gurgling heave
+    retch(){const t=now();
+      for(let i=0;i<5;i++)noise(t+i*.07,{peak:.14,att:.01,dec:.09,f0:rr2(300,700),f1:120,type:'bandpass',Q:1.5});
+      tone(t,{f:140,f2:60,type:'sawtooth',peak:.12,att:.05,dec:.6});
+      noise(t+.3,{peak:.1,att:.1,dec:.5,f0:1400,f1:300});},
+    poisoned(){const t=now();
+      tone(t,{f:520,f2:380,type:'sine',peak:.06,att:.02,dec:.35});
+      noise(t,{peak:.05,att:.05,dec:.3,f0:900,f1:400,type:'bandpass',Q:2});},
     victory(){const t=now();
       [220,277,330,440,554,659].forEach((f,i)=>{
         tone(t+i*.2,{f,f2:f,type:'triangle',peak:.1,dec:1.8});
@@ -2568,6 +2586,152 @@ function boneCollapse(x,z,s){
     }});
   }
 }
+
+/* ===== THE FALLEN ONE: a demonic angel, wrong in every proportion =====
+   overlong neck with the head hung off it at a broken angle, three
+   pale eyes behind a bone mask, a cracked halo hung askew, arms that
+   end in claws, knees bent the wrong way, and wings of bare bone spars
+   with half the membrane rotted away. It never touches the ground. */
+function makeAngelRig(){
+  const s=1.55;
+  const rig={s,eyes:[]};
+  const root=new THREE.Group();rig.root=root;
+  const skin=lam({color:0x2e2733}),skin2=lam({color:0x241d2a});
+  const boneM=mat('bone');
+  const memb=lam({color:0x14101a,side:THREE.DoubleSide});
+  const body=new THREE.Group();body.position.y=1.15*s;root.add(body);rig.body=body;rig.baseY=1.15*s;
+  body.add(M(GBox(.3*s,.12*s,.16*s),boneM,0,-.02*s,0));                  // starved pelvis
+  for(let i=0;i<4;i++)body.add(M(GBox(.07*s,.05*s,.07*s),boneM,0,(.06+i*.06)*s,-.02*s)); // knuckled spine
+  const torso=new THREE.Group();torso.position.y=.26*s;body.add(torso);rig.torso=torso;
+  torso.add(M(GCyl(.2*s,.13*s,.46*s,6),mat('ribs'),0,.22*s,0));         // gaunt cage
+  torso.add(M(GBox(.44*s,.05*s,.08*s),boneM,0,.46*s,.03*s));             // clavicle, too wide
+  const neck=new THREE.Group();neck.position.y=.48*s;torso.add(neck);rig.neck=neck;
+  neck.add(M(GCyl(.045*s,.055*s,.36*s,5),skin2,0,.18*s,0));              // the neck is far too long
+  const head=new THREE.Group();head.position.y=.36*s;neck.add(head);rig.head=head;
+  head.add(M(GBox(.2*s,.34*s,.22*s),skin,0,.16*s,0));                    // long smooth skull, no jaw
+  head.add(M(GBox(.17*s,.2*s,.05*s),boneM,0,.17*s,.11*s));               // bone mask
+  for(const [x,y] of [[-.05,.2],[.05,.2],[0,.29]]){                      // three eyes, one too many
+    const e=new THREE.Mesh(GSph(.022*s,5,4),new THREE.MeshBasicMaterial({color:0xdfe9ff}));
+    e.position.set(x*s,y*s,.14*s);head.add(e);rig.eyes.push(e);
+  }
+  const haloM=lam({color:0x6e6248,emissive:0x2a2210});
+  const halo=new THREE.Mesh(new THREE.TorusGeometry(.26*s,.022*s,4,14,5.3),haloM);
+  halo.position.y=.55*s;halo.rotation.x=Math.PI/2-.35;halo.rotation.z=.3;
+  head.add(halo);rig.halo=halo;rig.haloM=haloM;
+  const mkArm=(side)=>{
+    const arm=new THREE.Group();arm.position.set(.22*s*side,.44*s,0);torso.add(arm);
+    arm.add(M(GCyl(.05*s,.045*s,.5*s,5),skin,0,-.25*s,0));
+    const fore=new THREE.Group();fore.position.y=-.5*s;arm.add(fore);
+    fore.add(M(GCyl(.045*s,.035*s,.6*s,5),skin2,0,-.3*s,0));
+    for(let i=0;i<3;i++){                                                // three long claws
+      const c=M(GBox(.02*s,.28*s,.02*s),boneM,(i-1)*.035*s*side,-.72*s,.03*s);
+      c.rotation.x=-.3;fore.add(c);
+    }
+    return {arm,fore};
+  };
+  const aR=mkArm(1),aL=mkArm(-1);
+  rig.armR=aR.arm;rig.foreR=aR.fore;rig.armL=aL.arm;rig.foreL=aL.fore;
+  const mkLeg=(side)=>{
+    const leg=new THREE.Group();leg.position.set(.11*s*side,-.06*s,0);body.add(leg);
+    leg.add(M(GCyl(.055*s,.045*s,.5*s,5),skin,0,-.25*s,0));
+    const knee=new THREE.Group();knee.position.y=-.5*s;leg.add(knee);
+    knee.add(M(GCyl(.04*s,.03*s,.5*s,5),skin2,0,-.25*s,0));
+    knee.add(M(GBox(.06*s,.03*s,.18*s),boneM,0,-.5*s,.03*s));
+    return {leg,knee};
+  };
+  const lR=mkLeg(1),lL=mkLeg(-1);
+  rig.legR=lR.leg;rig.kneeR=lR.knee;rig.legL=lL.leg;rig.kneeL=lL.knee;
+  // wings: three bone spars fanning back from the shoulder blade, ragged
+  // membrane between the first two, rotted away past that
+  const mkWing=(side)=>{
+    const wing=new THREE.Group();wing.position.set(.14*s*side,.4*s,-.08*s);torso.add(wing);
+    const fans=[.35,.85,1.35],tilts=[.35,.1,-.2],lens=[1.5,1.3,1.0];
+    for(let i=0;i<3;i++){
+      const piv=new THREE.Group();wing.add(piv);
+      piv.rotation.y=-side*fans[i];piv.rotation.z=side*tilts[i];
+      const len=lens[i]*s;
+      piv.add(M(GBox(len,.035*s,.035*s),boneM,len/2*side,0,0));
+      piv.add(M(GSph(.05*s,4,3),boneM,len*side,0,0));                   // knuckle at the tip
+      if(i<2){
+        const m=M(new THREE.PlaneGeometry(len*.85,.55*s),memb,len*.45*side,-.02*s,-.3*s);
+        m.rotation.x=-Math.PI/2;m.rotation.y=side*.15;piv.add(m);
+        for(let k=0;k<2;k++){                                              // tatters hanging off the edge
+          const tat=M(new THREE.PlaneGeometry(.14*s,(.3+k*.15)*s),memb,(len*.3+k*len*.35)*side,-.2*s,-.55*s);
+          piv.add(tat);
+        }
+      }
+    }
+    return wing;
+  };
+  rig.wingR=mkWing(1);rig.wingL=mkWing(-1);
+  rig.mats=[];root.traverse(o=>{if(o.isMesh&&o.material.emissive)rig.mats.push(o.material);});
+  return rig;
+}
+
+/* ===== THE UNBURIED: a grave-thing, contorted, bloated, wrong =====
+   the spine is wrenched a quarter turn, vertebrae tearing out of the
+   back; the belly is swollen and boiled; the head hangs sideways off
+   the shoulder with the jaw unhinged; one arm is monstrously long and
+   drags a claw, the other is twisted behind the back, and a third,
+   vestigial arm paws from the collarbone. */
+function makeGhoulRig(){
+  const s=1.35;
+  const rig={s};
+  const root=new THREE.Group();rig.root=root;
+  const skin=lam({color:0x2f3a2c}),skin2=lam({color:0x263024});   // drowned grey-green
+  const belly=lam({color:0x3d4a32});
+  const boil=lam({color:0x66761e,emissive:0x1a2204});
+  const boneM=mat('bone');
+  const body=new THREE.Group();body.position.y=.95*s;root.add(body);rig.body=body;rig.baseY=.95*s;
+  body.add(M(GBox(.4*s,.16*s,.24*s),skin2,0,-.04*s,0));                  // pelvis
+  const torso=new THREE.Group();torso.position.y=.08*s;body.add(torso);rig.torso=torso;
+  rig.torsoBase=[.35,.5,.28];                                            // the spine is wrenched sideways
+  const bel=M(GSph(.27*s,7,6),belly,.05*s,.16*s,.1*s);bel.scale.set(1,1.15,1);torso.add(bel);rig.belly=bel;
+  torso.add(M(GCyl(.2*s,.17*s,.34*s,6),skin,0,.36*s,0));                 // chest
+  for(let i=0;i<5;i++){                                                  // vertebral spikes
+    const sp=M(GCone(.035*s,.16*s,4),boneM,0,(.1+i*.09)*s,-.2*s);
+    sp.rotation.x=-1.2-i*.1;torso.add(sp);
+  }
+  for(const [x,y,z,r] of [[.22,.1,.22,.06],[-.12,.28,.24,.045],[.2,.4,.1,.04],[-.2,.02,.15,.05]])
+    torso.add(M(GSph(r*s,5,4),boil,x*s,y*s,z*s));                        // boils
+  const head=new THREE.Group();head.position.set(.12*s,.56*s,.02*s);torso.add(head);rig.head=head;
+  rig.headBase=[.25,0,-.75];                                             // hung sideways off the shoulder
+  head.add(M(GCyl(.05*s,.06*s,.08*s,5),skin2,0,.03*s,0));
+  head.add(M(GBox(.26*s,.26*s,.27*s),skin,0,.2*s,0));
+  const jaw=new THREE.Group();jaw.position.set(0,.1*s,.05*s);head.add(jaw);rig.jaw=jaw;
+  jaw.add(M(GBox(.2*s,.06*s,.2*s),skin2,0,-.03*s,.03*s));
+  for(let i=0;i<4;i++)jaw.add(M(GCone(.015*s,.05*s,3),boneM,(i-1.5)*.045*s,.02*s,.12*s));
+  const eye=new THREE.Mesh(GSph(.03*s,5,4),new THREE.MeshBasicMaterial({color:0xd8dcb0}));
+  eye.position.set(-.07*s,.24*s,.135*s);head.add(eye);rig.eye=eye;      // one milky eye...
+  head.add(M(GBox(.05*s,.05*s,.02*s),lam({color:0x0a0a08}),.07*s,.24*s,.135*s)); // ...the other socket dark
+  const armR=new THREE.Group();armR.position.set(.24*s,.5*s,0);torso.add(armR);rig.armR=armR;
+  armR.add(M(GCyl(.07*s,.06*s,.5*s,5),skin,0,-.25*s,0));
+  const foreR=new THREE.Group();foreR.position.y=-.5*s;armR.add(foreR);rig.foreR=foreR;
+  foreR.add(M(GCyl(.06*s,.05*s,.8*s,5),skin2,0,-.4*s,0));                // the long arm
+  for(let i=0;i<3;i++){const c=M(GBox(.025*s,.3*s,.025*s),boneM,(i-1)*.04*s,-.92*s,.02*s);c.rotation.x=-.3;foreR.add(c);}
+  const armL=new THREE.Group();armL.position.set(-.22*s,.48*s,0);torso.add(armL);rig.armL=armL;
+  armL.add(M(GCyl(.06*s,.05*s,.32*s,5),skin,0,-.16*s,0));
+  const foreL=new THREE.Group();foreL.position.y=-.32*s;armL.add(foreL);rig.foreL=foreL;
+  foreL.add(M(GCyl(.05*s,.04*s,.3*s,5),skin2,0,-.15*s,0));
+  foreL.add(M(GBox(.08*s,.08*s,.05*s),skin2,0,-.32*s,0));
+  armL.rotation.set(1.3,0,.5);foreL.rotation.set(-1.6,0,0);              // wrenched behind the back
+  const vest=new THREE.Group();vest.position.set(-.1*s,.6*s,.12*s);torso.add(vest);rig.vest=vest;
+  vest.add(M(GCyl(.03*s,.025*s,.26*s,4),skin2,0,-.13*s,0));
+  vest.add(M(GBox(.05*s,.05*s,.04*s),skin,0,-.28*s,0));
+  vest.rotation.set(-1.1,0,.4);                                          // the third arm
+  const mkLeg=(side)=>{
+    const leg=new THREE.Group();leg.position.set(.13*s*side,-.06*s,0);body.add(leg);
+    leg.add(M(GCyl(.08*s,.065*s,.44*s,5),skin,0,-.22*s,0));
+    const knee=new THREE.Group();knee.position.y=-.44*s;leg.add(knee);
+    knee.add(M(GCyl(.065*s,.055*s,.42*s,5),skin2,0,-.21*s,0));
+    knee.add(M(GBox(.1*s,.05*s,.2*s),skin2,0,-.42*s,.04*s));
+    return {leg,knee};
+  };
+  const lR=mkLeg(1),lL=mkLeg(-1);
+  rig.legR=lR.leg;rig.kneeR=lR.knee;rig.legL=lL.leg;rig.kneeL=lL.knee;
+  rig.mats=[];root.traverse(o=>{if(o.isMesh&&o.material.emissive)rig.mats.push(o.material);});
+  return rig;
+}
 /* ---------------- effects ---------------- */
 const effects=[];
 function boneBurst(x,y,z,color,n,speed){
@@ -2729,10 +2893,12 @@ const ELEMENTS={
   lightning:{hue:0xffeaa0,lite:0xffd76a,em:0x8a7a22,msg:'the blade takes lightning'},
   ice:{hue:0x9fe4ff,lite:0x6fc4ea,em:0x1e5a6e,msg:'the blade takes frost'},
   health:{hue:0xf03a4e,lite:0xc22e3c,em:0,msg:''}, // drop only — never imbues
+  poison:{hue:0x6fbf2e,lite:0x4a9a1c,em:0x1f4a0c,msg:''}, // the unburied's rot — effects only
 };
 function elemBurst(kind,x,y,z){
   const pal=kind==='fire'?[0xff8c2a,0xff5f1a,0xffc46a]:
             kind==='lightning'?[0xfff6d0,0xffe9a3,0xffffff]:
+            kind==='poison'?[0x7ac83a,0x4f8a22,0xb6e06a]:
                                [0xcdefff,0x9fe4ff,0xe8fbff];
   const n=kind==='fire'?9:7;
   for(let i=0;i<n;i++){
@@ -2743,7 +2909,7 @@ function elemBurst(kind,x,y,z){
     s.scale.set(sc,sc,1);s.position.set(x,y,z);scene.add(s);
     const a=Math.random()*TAU,sp=kind==='lightning'?3+Math.random()*4:1+Math.random()*2;
     const vx=Math.cos(a)*sp,vz=Math.sin(a)*sp;
-    let vy=kind==='fire'?1.4+Math.random()*2:kind==='ice'?.6+Math.random():Math.random()*2-.5;
+    let vy=kind==='fire'?1.4+Math.random()*2:kind==='ice'?.6+Math.random():kind==='poison'?.3+Math.random()*.9:Math.random()*2-.5;
     let life=0;const dur=kind==='lightning'?.14+Math.random()*.08:.32+Math.random()*.22;
     effects.push({update(dt){
       life+=dt;
@@ -2766,7 +2932,7 @@ function elemFleck(kind,x,y,z){ // one mote drifting off the imbued blade
   s.scale.set(sc,sc,1);s.position.set(x,y,z);scene.add(s);
   let life=0;const dur=kind==='lightning'?.12:.4;
   const vx=rr3(-.3,.3),vz=rr3(-.3,.3);
-  let vy=kind==='fire'?1.2:kind==='ice'?-.7:0;
+  let vy=kind==='fire'?1.2:kind==='ice'?-.7:kind==='poison'?.5:0;
   effects.push({update(dt){
     life+=dt;
     if(kind==='lightning'){ // sparks jitter, they don't drift
@@ -2980,6 +3146,7 @@ const player={
   hp:100,maxHp:100,marrow:0,
   state:'free',t:0,combo:0,queued:false,qDir:null,chain:0,hitDone:false,
   sprintT:0,sprinting:false,chargeT:0,chargeFull:false,readyDone:false,
+  poisonT:0,poisonTick:0,
   element:null,elementT:0,elemTrailT:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
@@ -2999,7 +3166,7 @@ const player={
   respawn(){
     this.x=G.checkpoint.x;this.z=G.checkpoint.z;
     this.hp=this.maxHp;
-    this.state='free';this.t=0;this.hurtGrace=0;
+    this.state='free';this.t=0;this.hurtGrace=0;this.poisonT=0;
     this.facing=0;
     this.rig.root.rotation.x=0;
     this.armed=true;
@@ -3074,6 +3241,11 @@ const player={
       },1100);
     },2400);
   },
+  poison(sec){ // the rot takes hold — and every fresh dose keeps it going
+    if(this.state==='dead'||G.mode!=='play')return;
+    if(this.poisonT<=0){toast('poisoned');AudioSys.poisoned();G.vibr(25);}
+    this.poisonT=Math.max(this.poisonT,sec);
+  },
   meleeHit(dmg,reach,arc,poise,kb,opts){
     opts=opts||{};
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
@@ -3084,7 +3256,7 @@ const player={
     if(crit)dmg=Math.round(dmg*1.8);
     let hitAny=false;
     for(const e of enemies){
-      if(e.hp<=0||e.state==='dormant'||e.state==='scatter')continue;
+      if(e.hp<=0||(e.state==='dormant'||e.untouchable)||e.state==='scatter')continue;
       // a crow is only in blade-reach when it swoops low or is grounded
       if(e.crow&&e.y-heightAt(e.x,e.z)>2)continue;
       const dx=e.x-this.x,dz=e.z-this.z,d=Math.hypot(dx,dz);
@@ -3108,7 +3280,7 @@ const player={
           AudioSys.zapHit();
           let best=null,bd=4.5;
           for(const o of enemies){
-            if(o===e||o.hp<=0||o.state==='dormant')continue;
+            if(o===e||o.hp<=0||(o.state==='dormant'||o.untouchable))continue;
             const d2=Math.hypot(o.x-e.x,o.z-e.z);
             if(d2<bd){bd=d2;best=o;}
           }
@@ -3138,6 +3310,14 @@ const player={
     this.t+=dt;
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
     this.postRollT+=dt;
+    // poison ticks the life away, two at a time, and won't be rolled off
+    if(this.poisonT>0&&this.state!=='dead'){
+      this.poisonT-=dt;this.poisonTick-=dt;
+      if(Math.random()<dt*7)elemFleck('poison',this.x+rr3(-.35,.35),.5+rr3(0,1.1),this.z+rr3(-.35,.35));
+      if(this.poisonTick<=0){this.poisonTick=.5;this.hp-=2;
+        this.flash(true);setTimeout(()=>this.flash(false),70);
+        if(this.hp<=0){this.die();return this.post(dt);}}
+    }
 
     // an imbued element burns down, sheds motes off the blade, and
     // gutters out in a flicker at the end
@@ -3201,7 +3381,7 @@ const player={
       else{ // tap/keyboard: quietly square up to the nearest horror
         let best=null,bd=3.8;
         for(const e of enemies){
-          if(e.hp<=0||e.state==='dormant')continue;
+          if(e.hp<=0||(e.state==='dormant'||e.untouchable))continue;
           const d=Math.hypot(e.x-this.x,e.z-this.z);
           if(d<bd){bd=d;best=e;}
         }
@@ -3399,7 +3579,7 @@ const player={
       if(p>.34&&p<.68){
         let sp=3.2;
         for(const e of enemies){
-          if(e.hp<=0||e.state==='dormant')continue;
+          if(e.hp<=0||(e.state==='dormant'||e.untouchable))continue;
           if(Math.hypot(e.x-this.x,e.z-this.z)<5){sp=6.5;break;}
         }
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
@@ -3436,7 +3616,7 @@ const player={
       constrain(this,G.bossActive);
       pushOut(this,.35);
       for(const e of enemies){ // soft body-block against living enemies
-        if(e.hp<=0||e.state==='dormant'||e.state==='scatter'||e.crow)continue;
+        if(e.hp<=0||(e.state==='dormant'||e.untouchable)||e.state==='scatter'||e.crow)continue;
         const dx=this.x-e.x,dz=this.z-e.z,d=Math.hypot(dx,dz),m=.32+e.radius;
         if(d<m&&d>1e-4){this.x=e.x+dx/d*m;this.z=e.z+dz/d*m;}
       }
@@ -3729,7 +3909,7 @@ class Enemy{
       pushOut(this,this.radius);
       // don't stack on other enemies
       for(const e of enemies){
-        if(e===this||e.hp<=0||e.state==='dormant')continue;
+        if(e===this||e.hp<=0||(e.state==='dormant'||e.untouchable))continue;
         const ex=this.x-e.x,ez=this.z-e.z,d=Math.hypot(ex,ez),m=this.radius+e.radius;
         if(d<m&&d>1e-4){this.x+=ex/d*(m-d)*.5;this.z+=ez/d*(m-d)*.5;}
       }
@@ -3942,6 +4122,432 @@ class Crow{
   }
 }
 
+/* ---------------- poison: the unburied's gift ----------------
+   a slow rot that ticks the pilgrim's life away; puddles of bile keep
+   it fresh for anyone who stands in them */
+const puddles=[];let puddleGeo=null;
+function poisonPuddle(x,z,r,life){
+  if(!puddleGeo)puddleGeo=new THREE.CircleGeometry(1,9);
+  const m=new THREE.Mesh(puddleGeo,new THREE.MeshBasicMaterial({
+    color:0x0b2306,transparent:true,opacity:.82,depthWrite:false})); // displays as dark bile-green
+  m.rotation.x=-Math.PI/2;m.rotation.z=Math.random()*TAU;
+  m.position.set(x,heightAt(x,z)+.075,z);m.scale.set(r*(.8+Math.random()*.4),r,1);
+  scene.add(m);puddles.push({m,x,z,r,t:0,life:life||7});
+}
+function updatePuddles(dt){
+  for(let i=puddles.length-1;i>=0;i--){
+    const p=puddles[i];p.t+=dt;
+    if(Math.random()<dt*4)elemFleck('poison',p.x+rr3(-p.r,p.r)*.7,.15,p.z+rr3(-p.r,p.r)*.7);
+    if(p.t>p.life-1)p.m.material.opacity=.82*Math.max(0,p.life-p.t);
+    if(p.t>p.life){scene.remove(p.m);p.m.material.dispose();puddles.splice(i,1);continue;}
+    if(G.mode==='play'&&player.state!=='dead'&&!player.iframes()
+      &&Math.hypot(player.x-p.x,player.z-p.z)<p.r*.9)player.poison(4);
+  }
+}
+/* a lobbed glob of bile: bursts into a puddle wherever it lands */
+function bileGlob(x,z,tx,tz){
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0x7ac83a,
+    transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
+  s.scale.set(.42,.42,1);
+  const T=.8,y0=heightAt(x,z)+1.2,gyT=heightAt(tx,tz);
+  const vx=(tx-x)/T,vz=(tz-z)/T;let vy=(gyT-y0+.5*11.2*T*T)/T,y=y0;
+  s.position.set(x,y,z);scene.add(s);
+  let life=0;
+  effects.push({update(dt){
+    life+=dt;vy-=11.2*dt;y+=vy*dt;
+    s.position.x+=vx*dt;s.position.z+=vz*dt;s.position.y=y;
+    if(Math.random()<dt*10)elemFleck('poison',s.position.x,s.position.y,s.position.z);
+    const gy=heightAt(s.position.x,s.position.z);
+    const near=player.state!=='dead'&&y<gy+1.7&&
+      Math.hypot(player.x-s.position.x,player.z-s.position.z)<.75;
+    if(near){const r=player.takeHit(8,s.position.x,s.position.z,false);
+      if(r==='hit'||r==='dead')player.poison(6);}
+    if(y<=gy+.1||near||life>2.5){
+      poisonPuddle(s.position.x,s.position.z,1.1,7);
+      elemBurst('poison',s.position.x,gy+.3,s.position.z);
+      scene.remove(s);s.material.dispose();return false;
+    }
+    return true;
+  }});
+}
+/* a black feather-shard, flung straight and fast */
+let featherMat=null;
+function featherShard(x,z,ang,dmg){
+  if(!featherMat)featherMat=lam({color:0x15121a});
+  const m=new THREE.Mesh(new THREE.BoxGeometry(.07,.02,.5),featherMat);
+  const vx=Math.sin(ang)*9.5,vz=Math.cos(ang)*9.5;
+  m.position.set(x,heightAt(x,z)+1.3,z);m.rotation.y=ang;scene.add(m);
+  let life=0;
+  effects.push({update(dt){
+    life+=dt;m.position.x+=vx*dt;m.position.z+=vz*dt;m.rotation.z+=7*dt;
+    m.position.y=heightAt(m.position.x,m.position.z)+1.3-life*.35;
+    const done=()=>{scene.remove(m);m.geometry.dispose();return false;};
+    if(player.state!=='dead'&&Math.hypot(player.x-m.position.x,player.z-m.position.z)<.6){
+      const res=player.takeHit(dmg,m.position.x-vx*.2,m.position.z-vz*.2,false);
+      if(res!=='iframe')return done();
+    }
+    if(life>1.7)return done();
+    return true;
+  }});
+}
+
+/* ---------------- THE FALLEN ONE: the mini-boss of the five-hundredth marrow ----------------
+   It descends wherever the pilgrim is when their marrow reaches 500.
+   Three moves: WINGBLADE (both wings scythe forward), PLUNGE (it rises,
+   hangs, and drops on your position), LAMENT (a shriek that flings a
+   ring of feather-shards, then a fan aimed at you). */
+class FallenAngel{
+  constructor(x,z){
+    this.kind='angel';this.mini=true;this.name='THE FALLEN ONE';
+    this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;
+    this.radius=.7;this.maxHp=260;this.hp=260;this.dmg=18;this.marrow=220;
+    this.poise=0;this.poiseMax=8;this.chillT=0;this.speed=3.4;this.reach=3.3;
+    this.rig=makeAngelRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.state='descend';this.t=0;this.y=heightAt(x,z)+16;this.hitDone=false;
+    this.flashUntil=0;this.cool=1.2;this.twitchT=1;this.twitch=0;this.twitchS=1;this.flap=0;
+    this.crumbled=false;this.vx=0;this.vz=0;this.engaged=false;this.untouchable=true;
+    this.px=x;this.pz=z;this.haloHot=0;
+  }
+  reset(){
+    this.x=this.homeX;this.z=this.homeZ;this.hp=this.maxHp;this.poise=0;
+    this.state='wait';this.t=0;this.y=heightAt(this.x,this.z)+.9;
+    this.crumbled=false;this.rig.root.visible=true;this.rig.root.rotation.set(0,0,0);
+    this.engaged=false;this.untouchable=false;this.vx=0;this.vz=0;
+  }
+  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
+  scatter(){}
+  takeHit(dmg,poise,fx,fz,kb){
+    if(this.hp<=0||this.untouchable)return;
+    this.hp-=dmg;this.flash();
+    boneBurst(this.x,1.5,this.z,0x3a2a44,6,2.2);                     // black ichor
+    if(this.hp<=0){this.die();return;}
+    this.poise+=poise;
+    if(this.poise>=this.poiseMax&&this.state!=='plunge'){
+      this.poise=0;this.state='stagger';this.t=0;
+      const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
+      this.vx=dx/l*kb*3;this.vz=dz/l*kb*3;AudioSys.screech();
+    }
+  }
+  die(){
+    this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
+    player.marrow+=this.marrow;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    AudioSys.screech();G.hitstop=.3;G.camShake=.4;
+    setTimeout(()=>bannerShow('THE FALLEN ONE IS STILL','its halo lies in the dirt'),600);
+    spawnElemDrop(this.x,this.z,'health');
+    boneBurst(this.x,1.2,this.z,0x3a2a44,16,3);
+  }
+  begin(a){this.state=a;this.t=0;this.hitDone=false;AudioSys.windup();}
+  update(dt){
+    const P=player,r=this.rig;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);
+    const sp=this.chillT>0?.45:1;
+    const gh=heightAt(this.x,this.z);
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
+    const faceP=(k)=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
+    let hoverY=gh+.9+Math.sin(G.time*1.9)*.12,flapRate=5.5,wingSpread=0,wingBack=0;
+    switch(this.state){
+      case 'descend':{ // it comes down slowly, wings wide, and the ground answers
+        const q=easeInOut(Math.min(1,this.t/2.6));
+        this.y=gh+16-(15.1)*q;wingSpread=1;flapRate=2.2;faceP(3);
+        if(this.t>2.0)this.untouchable=false;
+        if(this.t>=2.6){this.state='hover';this.engaged=true;this.cool=1.0;
+          AudioSys.screech();G.camShake=Math.max(G.camShake,.4);G.vibr([40,30,80]);
+          boneBurst(this.x,.2,this.z,0x4a463a,12,2.4);
+          bannerShow('THE FALLEN ONE','');}
+        break;}
+      case 'wait':{ // hangs at its landing place until the pilgrim returns
+        const hx=this.homeX-this.x,hz=this.homeZ-this.z,hl=Math.hypot(hx,hz);
+        if(hl>.5){this.x+=hx/hl*5*dt;this.z+=hz/hl*5*dt;this.facing=Math.atan2(hx,hz);}
+        this.y+=(hoverY-this.y)*Math.min(1,3*dt);
+        if(dist<14&&G.mode==='play'&&!G.bossActive){this.state='hover';this.engaged=true;this.cool=.8;}
+        break;}
+      case 'hover':{
+        faceP(6);
+        this.y+=(hoverY-this.y)*Math.min(1,4*dt);
+        const l=dist||1;
+        if(dist>2.8){this.x+=dx/l*this.speed*sp*dt;this.z+=dz/l*this.speed*sp*dt;}
+        else{ // drifts sideways at close range, never quite still
+          const side=Math.sin(G.time*.7)>0?1:-1;
+          this.x+=-dz/l*side*.9*dt;this.z+=dx/l*side*.9*dt;
+        }
+        this.cool-=dt;
+        if(dist>30||G.bossActive){this.state='wait';this.engaged=false;break;} // the nave is the Warden's
+        if(this.cool<=0&&G.mode==='play'){
+          const roll=Math.random();
+          if(dist<3.4)this.begin(roll<.65?'wingblade':'plunge');
+          else if(dist>5&&roll<.45)this.begin('lament');
+          else this.begin('plunge');
+        }
+        break;}
+      case 'wingblade':{ // both wings scythe forward across the ground
+        const WD=.6,SD=.22;
+        if(this.t<WD){faceP(5);wingBack=this.t/WD;}
+        else{wingBack=-1;
+          if(!this.hitDone){this.hitDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.12);
+            const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
+            if(dist<this.reach&&ang<1.45)P.takeHit(this.dmg,this.x,this.z,true);
+            slashArc(this.x+Math.sin(this.facing)*1.2,this.z+Math.cos(this.facing)*1.2,1.6,this.facing,0x6a4a7a);}
+        }
+        if(this.t>=WD+SD+.5){this.state='hover';this.cool=.9+Math.random()*.6;}
+        break;}
+      case 'plunge':{ // rises, hangs over you, and falls like a dropped stone
+        if(this.t<.6){this.y+=((gh+5.5)-this.y)*Math.min(1,5*dt);wingSpread=1;flapRate=9;faceP(6);
+          this.px=P.x;this.pz=P.z;}
+        else if(this.t<.9){this.px+=(P.x-this.px)*Math.min(1,6*dt);this.pz+=(P.z-this.pz)*Math.min(1,6*dt);
+          this.y=heightAt(this.px,this.pz)+5.5;wingSpread=1;flapRate=12;}
+        else if(this.t<1.1){ // the drop
+          const q=(this.t-.9)/.2;
+          this.x+=(this.px-this.x)*Math.min(1,14*dt);this.z+=(this.pz-this.z)*Math.min(1,14*dt);
+          this.y=heightAt(this.x,this.z)+5.5-5.3*easeIn(q);wingBack=1;
+        }else{
+          this.y=gh+.2;wingBack=1;
+          if(!this.hitDone){this.hitDone=true;
+            AudioSys.slam();G.camShake=Math.max(G.camShake,.5);
+            shockRing(this.x,this.z,0x8a6aa0,3.4,.5);boneBurst(this.x,.2,this.z,0x4a463a,12,2.6);
+            if(Math.hypot(P.x-this.x,P.z-this.z)<3.0)P.takeHit(24,this.x,this.z,true);}
+          if(this.t>=1.95){this.state='hover';this.cool=1.3+Math.random()*.5;}
+        }
+        break;}
+      case 'lament':{ // the shriek: a ring of feathers, then a fan straight at you
+        faceP(4);this.haloHot=Math.min(1,this.t/.7);wingSpread=Math.min(1,this.t/.7);
+        if(!this.hitDone&&this.t>=.7){this.hitDone=true;AudioSys.screech();G.camShake=Math.max(G.camShake,.2);
+          for(let i=0;i<10;i++)featherShard(this.x,this.z,this.facing+i/10*TAU,9);}
+        if(!this.fan2&&this.t>=1.05){this.fan2=true;
+          for(let i=-1;i<=1;i++)featherShard(this.x,this.z,Math.atan2(dx,dz)+i*.22,9);}
+        if(this.t>=1.7){this.state='hover';this.cool=1.6+Math.random()*.6;this.fan2=false;this.haloHot=0;}
+        break;}
+      case 'stagger':
+        this.x+=this.vx*dt;this.z+=this.vz*dt;this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+        this.y+=((gh+.5)-this.y)*Math.min(1,6*dt);wingBack=-.6;
+        if(this.t>=.85){this.state='hover';this.cool=.5;}
+        break;
+      case 'dead':
+        this.y+=((gh+.15)-this.y)*Math.min(1,5*dt);
+        r.root.rotation.x=Math.min(1.35,this.t*2.2);              // falls on its face
+        r.halo.position.y=Math.max(-.2*r.s,r.halo.position.y-1.2*dt); // the halo slides off
+        if(!this.crumbled&&this.t>1.9){this.crumbled=true;r.root.visible=false;
+          boneCollapse(this.x,this.z,1.6);bloodDecal(this.x,this.z,.7);}
+        break;
+    }
+    if(this.state!=='dead'&&this.state!=='descend'){constrain(this,false);pushOut(this,this.radius);}
+    // ---- pose ----
+    this.flap+=dt*flapRate*sp;
+    const f=Math.sin(this.flap);
+    const wz=.25+f*.45*(1-Math.abs(wingBack))+wingSpread*.4+(wingBack>0?-.9*wingBack:0)+(wingBack<0?.5*-wingBack:0);
+    const wy=wingBack>0?-.7*wingBack:wingBack<0?.6*-wingBack:0;
+    r.wingR.rotation.z=-wz;r.wingL.rotation.z=wz;
+    r.wingR.rotation.y=wy;r.wingL.rotation.y=-wy;
+    // the head twitches: a sudden snap sideways, then it creeps back
+    this.twitchT-=dt;
+    if(this.twitchT<=0){this.twitchT=.7+Math.random()*2.2;this.twitch=1;this.twitchS=Math.random()<.5?1:-1;}
+    this.twitch*=Math.pow(.05,dt);
+    const lam2=this.state==='lament';
+    r.neck.rotation.z=.22;r.neck.rotation.x=lam2?-.5:.1;
+    r.head.rotation.z=-.4+this.twitchS*.55*this.twitch;
+    r.head.rotation.x=lam2?-.9:.2-.3*this.twitch;
+    r.head.rotation.y=this.twitchS*.3*this.twitch;
+    r.haloM.emissive.setHex(this.haloHot>.5?0x8a6a20:0x2a2210);
+    r.halo.rotation.y+=dt*(.6+this.haloHot*6);
+    // arms: raised for the wingblade, spread for the lament, hanging otherwise
+    const wb=this.state==='wingblade'?Math.min(1,this.t/.6):0;
+    r.armR.rotation.x=-.3-wb*1.6-(lam2?1.2:0);r.armL.rotation.x=-.3-wb*1.6-(lam2?1.2:0);
+    r.armR.rotation.z=-.25-wb*.5;r.armL.rotation.z=.25+wb*.5;
+    r.foreR.rotation.x=-.6-wb*.3;r.foreL.rotation.x=-.6-wb*.3;
+    // legs dangle and sway; on impact they fold
+    const dang=Math.sin(G.time*1.3)*.12;
+    const crouch=this.state==='plunge'&&this.t>1.1?1:0;
+    r.legR.rotation.x=.35+dang-crouch*.9;r.legL.rotation.x=.25-dang-crouch*.9;
+    r.kneeR.rotation.x=-.5+crouch*1.4;r.kneeL.rotation.x=-.45+crouch*1.4;    // knees bent the wrong way
+    r.torso.rotation.x=.18+(this.state==='plunge'&&this.t>=.9&&this.t<1.1?.8:0)+(lam2?-.3:0);
+    r.body.position.y=r.baseY;
+    r.root.position.set(this.x,this.y-.9,this.z);           // hovering: feet trail above the ground
+    r.root.rotation.y=this.facing;
+    if(this.state!=='dead')r.root.rotation.x=this.state==='plunge'&&this.t>=.9&&this.t<1.1?.5:0;
+    if(G.time>=this.flashUntil)for(const m of this.mats)
+      m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='wingblade'||this.state==='lament')&&!this.hitDone?0x2e0c06:0x000000);
+    if(r.haloM.emissive.getHex()===0x000000)r.haloM.emissive.setHex(0x2a2210);
+  }
+}
+function summonAngel(){
+  const a=Math.random()*TAU;
+  const p={x:player.x+Math.cos(a)*8,z:player.z+Math.sin(a)*8};
+  constrain(p,false);
+  const d=Math.hypot(p.x,p.z);if(d<CATH_R+4){const l=d||1;p.x*=(CATH_R+4)/l;p.z*=(CATH_R+4)/l;}
+  const e=new FallenAngel(p.x,p.z);enemies.push(e);
+  bannerShow('SOMETHING DESCENDS','its halo is cracked');
+  AudioSys.screech();G.camShake=Math.max(G.camShake,.2);
+  return e;
+}
+
+/* ---------------- THE UNBURIED: the thing in the grave rows ----------------
+   It sleeps under the cemetery and erupts when you walk its row.
+   Three moves: RAKE (the long arm, and it poisons), RETCH (three globs
+   of bile lobbed at you that leave puddles), BURROW (it sinks, travels
+   under the soil, and erupts again behind you). */
+class GraveGhoul{
+  constructor(x,z){
+    this.kind='ghoul';this.mini=true;this.name='THE UNBURIED';
+    this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=Math.random()*TAU;
+    this.radius=.6;this.maxHp=300;this.hp=300;this.dmg=16;this.marrow=200;
+    this.poise=0;this.poiseMax=7;this.chillT=0;this.speed=2.2;this.reach=2.5;this.aggroR=9;
+    this.rig=makeGhoulRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.state='buried';this.t=0;this.hitDone=false;this.flashUntil=0;this.cool=1;
+    this.burrowT=0;this.eruptDmg=8;this.crumbled=false;this.vx=0;this.vz=0;
+    this.engaged=false;this.untouchable=true;this.rig.root.visible=false;this.sink=1;
+  }
+  reset(){
+    this.x=this.homeX;this.z=this.homeZ;this.hp=this.maxHp;this.poise=0;
+    this.state='buried';this.t=0;this.crumbled=false;this.rig.root.visible=false;
+    this.rig.root.rotation.set(0,0,0);this.engaged=false;this.untouchable=true;this.sink=1;this.burrowT=0;
+  }
+  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
+  scatter(){}
+  takeHit(dmg,poise,fx,fz,kb){
+    if(this.hp<=0||this.untouchable)return;
+    this.hp-=dmg;this.flash();
+    boneBurst(this.x,1.1,this.z,0x3f4a22,6,2);                       // it bleeds bile
+    if(this.hp<=0){this.die();return;}
+    this.poise+=poise;this.burrowT+=.6;                                // pain makes it dig
+    if(this.poise>=this.poiseMax){
+      this.poise=0;this.state='stagger';this.t=0;
+      const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
+      this.vx=dx/l*kb*3;this.vz=dz/l*kb*3;
+    }
+  }
+  die(){
+    this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
+    player.marrow+=this.marrow;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    AudioSys.retch();G.hitstop=.3;G.camShake=.35;
+    setTimeout(()=>bannerShow('THE UNBURIED LIES STILL','the grave rows are quiet'),600);
+    spawnElemDrop(this.x,this.z,'health');
+    for(let i=0;i<3;i++)elemBurst('poison',this.x+rr3(-.5,.5),.9,this.z+rr3(-.5,.5));
+    poisonPuddle(this.x,this.z,1.8,9);                                // the belly bursts
+  }
+  begin(a){this.state=a;this.t=0;this.hitDone=false;AudioSys.windup();}
+  erupt(dmg){
+    this.state='erupt';this.t=0;this.hitDone=false;this.eruptDmg=dmg;this.sink=1;
+    this.rig.root.visible=true;this.engaged=true;
+    AudioSys.retch();G.camShake=Math.max(G.camShake,.3);G.vibr(40);
+    boneBurst(this.x,.2,this.z,0x4a463a,16,2.8);
+  }
+  update(dt){
+    const P=player,r=this.rig;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);
+    const sp=this.chillT>0?.45:1;
+    const gh=heightAt(this.x,this.z);
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
+    const faceP=(k)=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
+    let walk=0,armRaise=0,belly=1,jawOpen=.9;
+    switch(this.state){
+      case 'buried':
+        if(dist<this.aggroR&&G.mode==='play')this.erupt(8);
+        break;
+      case 'erupt':{ // claws up out of the soil in a cloud of rot
+        this.sink=1-easeOut(Math.min(1,this.t/1.3));armRaise=1-this.sink;jawOpen=1.2;
+        if(Math.random()<dt*14)boneBurst(this.x+rr3(-.6,.6),.1,this.z+rr3(-.6,.6),0x4a463a,2,1.2);
+        if(!this.hitDone&&this.t>.5){this.hitDone=true;
+          for(let i=0;i<3;i++)elemBurst('poison',this.x+rr3(-.4,.4),.6,this.z+rr3(-.4,.4));
+          if(dist<2.4){const res=P.takeHit(this.eruptDmg,this.x,this.z,true);if(res==='hit'||res==='dead')P.poison(6);}}
+        if(this.t>=1.3){this.state='lurch';this.untouchable=false;this.cool=.6;this.sink=0;}
+        break;}
+      case 'lurch':{ // it comes in surges, dragging the long arm
+        faceP(5);
+        const pulse=.3+.9*Math.max(0,Math.sin(this.t*5.5));walk=pulse;
+        const l=dist||1;
+        if(dist>this.reach*.7){this.x+=dx/l*this.speed*pulse*sp*dt;this.z+=dz/l*this.speed*pulse*sp*dt;}
+        this.cool-=dt;this.burrowT+=dt;
+        if(dist>26||G.bossActive){this.state='return';break;}
+        if(G.mode==='play'){
+          if(this.burrowT>9&&dist>3.5){this.begin('burrow');this.burrowT=0;}
+          else if(this.cool<=0){
+            if(dist<this.reach)this.begin('rake');
+            else if(dist>6.5||Math.random()<.3)this.begin('retch');
+            else this.cool=.4;
+          }
+        }
+        break;}
+      case 'rake':{ // the long arm comes over and down; a scratch is enough
+        const WD=.62,SD=.2;
+        if(this.t<WD){faceP(4);armRaise=this.t/WD;}
+        else{armRaise=-1;
+          if(!this.hitDone){this.hitDone=true;AudioSys.heavySwing();
+            const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
+            if(dist<this.reach&&ang<1.2){const res=P.takeHit(this.dmg,this.x,this.z,true);
+              if(res==='hit'||res==='dead')P.poison(7);}
+            slashArc(this.x+Math.sin(this.facing)*1.1,this.z+Math.cos(this.facing)*1.1,1.2,this.facing,0x6a8a2a);}
+        }
+        if(this.t>=WD+SD+.6){this.state='lurch';this.cool=.7+Math.random()*.5;}
+        break;}
+      case 'retch':{ // the belly swells, the head drops, and it heaves
+        faceP(2.5);belly=1+.35*Math.min(1,this.t/.75);jawOpen=1.4;
+        if(!this.hitDone&&this.t>=.75){this.hitDone=true;AudioSys.retch();
+          for(let i=-1;i<=1;i++){
+            const a=Math.atan2(dx,dz)+i*.28,dd=Math.min(9,dist+rr3(-.6,.6));
+            bileGlob(this.x,this.z,this.x+Math.sin(a)*dd,this.z+Math.cos(a)*dd);}}
+        if(this.t>=1.5){this.state='lurch';this.cool=1.2+Math.random()*.6;}
+        break;}
+      case 'burrow':{ // sinks, travels under the soil, and comes up behind you
+        this.sink=Math.min(1,this.t/.9);armRaise=-.5;
+        if(this.t>=.9){this.state='burrowed';this.t=0;this.untouchable=true;this.rig.root.visible=false;
+          this.bx=P.x-Math.sin(P.facing)*1.9;this.bz=P.z-Math.cos(P.facing)*1.9;}
+        break;}
+      case 'burrowed':{
+        const hx=this.bx-this.x,hz=this.bz-this.z,hl=Math.hypot(hx,hz);
+        if(hl>.3){this.x+=hx/hl*7.5*dt;this.z+=hz/hl*7.5*dt;}
+        if(Math.random()<dt*18)boneBurst(this.x,.05,this.z,0x4a463a,2,1.0); // the soil heaves along its path
+        if(hl<=.3||this.t>1.6){this.facing=Math.atan2(P.x-this.x,P.z-this.z);this.erupt(12);}
+        break;}
+      case 'return':{
+        const hx=this.homeX-this.x,hz=this.homeZ-this.z,hl=Math.hypot(hx,hz);
+        if(dist<this.aggroR){this.state='lurch';break;}
+        if(hl<.6){this.state='guard';this.engaged=false;break;}
+        this.facing=angLerp(this.facing,Math.atan2(hx,hz),5*dt);
+        this.x+=hx/hl*this.speed*.7*dt;this.z+=hz/hl*this.speed*.7*dt;walk=.6;
+        break;}
+      case 'guard':
+        if(dist<this.aggroR&&G.mode==='play'&&!G.bossActive){this.state='lurch';this.engaged=true;this.cool=.5;}
+        break;
+      case 'stagger':
+        this.x+=this.vx*dt;this.z+=this.vz*dt;this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+        armRaise=-.6;
+        if(this.t>=.85){this.state='lurch';this.cool=.5;}
+        break;
+      case 'dead':
+        r.root.rotation.x=Math.min(1.25,this.t*2);
+        if(!this.crumbled&&this.t>1.7){this.crumbled=true;r.root.visible=false;
+          boneCollapse(this.x,this.z,1.4);}
+        break;
+    }
+    if(this.state!=='dead'&&this.state!=='buried'&&this.state!=='burrowed'){constrain(this,false);pushOut(this,this.radius);}
+    // ---- pose ----
+    const t=G.time;
+    const tb=r.torsoBase,hb=r.headBase;
+    const lurchSway=Math.sin(t*5.5)*.12*walk;
+    r.torso.rotation.set(tb[0]+.1*walk,tb[1]+lurchSway,tb[2]+Math.sin(t*2.7)*.06);
+    r.head.rotation.set(hb[0]+Math.sin(t*9)*.05,hb[1]+Math.sin(t*3.1)*.15,hb[2]+Math.sin(t*1.7)*.1);
+    r.jaw.rotation.x=jawOpen+Math.abs(Math.sin(t*7))*.15;                 // the jaw chatters
+    r.belly.scale.set(belly,1.15*belly,belly);
+    // the long arm: dragging, then hauled up and brought down
+    const ar=armRaise>0?armRaise:0,dn=armRaise<0?-armRaise:0;
+    r.armR.rotation.x=.3-ar*3.0+dn*1.1;r.armR.rotation.z=-.35-ar*.4;
+    r.foreR.rotation.x=-.2-ar*.4+dn*.3;
+    r.vest.rotation.x=-1.1+Math.sin(t*6)*.25;                           // the little arm paws
+    // asymmetric lurch: the right leg strides, the left drags
+    const s1=Math.sin(t*5.5);
+    r.legR.rotation.x=s1*.9*walk;r.kneeR.rotation.x=Math.max(0,-Math.cos(t*5.5))*.9*walk;
+    r.legL.rotation.x=-s1*.35*walk+.15;r.kneeL.rotation.x=.4;
+    r.legL.rotation.z=.35;
+    r.body.position.y=r.baseY+Math.abs(Math.cos(t*5.5))*.06*walk;
+    r.root.position.set(this.x,gh-2.3*this.sink,this.z);
+    r.root.rotation.y=this.facing;
+    if(this.state!=='dead')r.root.rotation.x=0;
+    if(G.time>=this.flashUntil)for(const m of this.mats)
+      m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='rake'||this.state==='retch')&&!this.hitDone?0x2e0c06:0x000000);
+  }
+}
+
 /* ---------------- population: a finite, sleeping host ---------------- */
 let boss=null;
 function spawnFoe(kind,x,z){
@@ -3966,6 +4572,7 @@ function spawnEnemies(){
   sow('hollow',26,4);sow('hollow',33,-5);sow('hollow',40,7);
   sow('caster',30,10);sow('caster',43,-3);sow('big',36,1);
   roost(34,6);
+  enemies.push(new GraveGhoul(36,-9));               // the thing under the grave rows
   // the hollow wood (west)
   sow('hollow',-27,-3);sow('hollow',-35,6);sow('hollow',-44,-5);
   sow('caster',-31,-9);sow('caster',-41,4);sow('big',-37,-2);
@@ -4030,7 +4637,7 @@ function startBossFight(){
   AudioSys.bossMusic(1);
   setTimeout(()=>{
     AudioSys.roar();G.camShake=.5;G.vibr([60,40,120]);
-    $('bossbar').style.display='block';
+    $('bossbar').style.display='block';$('bossname').textContent='GRAVEWARDEN OF THE BONE PATH';
     $('bossfill').style.width='100%';
     bannerShow('GRAVEWARDEN OF THE BONEFIELD','');
   },900);
@@ -4109,7 +4716,7 @@ function lockCands(){
   // only horrors that are truly LIVE — still clawing out of the grave
   // (dormant or rising) doesn't count
   return enemies
-    .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&e.state!=='scatter'
+    .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&e.state!=='scatter'&&!e.untouchable
       &&Math.hypot(e.x-player.x,e.z-player.z)<15)
     .sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
 }
@@ -4144,6 +4751,14 @@ function updateHUD(){
   $('marrowN').textContent=G.cathedralOpen?player.marrow
     :player.marrow+' / '+G.marrowGoal;
   $('lowhp').style.animationPlayState=player.hp<player.maxHp*.3&&player.hp>0?'running':'paused';
+  $('poison').style.opacity=player.poisonT>0?Math.min(1,player.poisonT/2):0;
+  if(!G.bossActive){ // a mini-boss borrows the Warden's bar while it hunts you
+    const mb=enemies.find(e=>e.mini&&e.hp>0&&e.engaged);
+    const bb=$('bossbar');
+    if(mb){bb.style.display='block';$('bossname').textContent=mb.name;
+      $('bossfill').style.width=clamp(mb.hp/mb.maxHp*100,0,100)+'%';}
+    else if(bb.style.display==='block')bb.style.display='none';
+  }
 }
 let bannerTO=null;
 function bannerShow(big,sm){
@@ -4266,6 +4881,8 @@ function frame(now){
       player.update(wdt);
       // enough marrow held calls the cathedral open
       if(!G.cathedralOpen&&player.marrow>=G.marrowGoal)openCathedral();
+      // at the five-hundredth marrow, something with a cracked halo comes down
+      if(!G.angelCame&&player.marrow>=500&&!G.bossActive){G.angelCame=true;summonAngel();}
       // stepping into the nave wakes the Warden
       if(G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
          Math.hypot(player.x,player.z)<ARENA_R-1)startBossFight();
@@ -4281,6 +4898,7 @@ function frame(now){
     updateLock();
     updateMarrowDrop();
     updateElemDrops(wdt);
+    updatePuddles(wdt);
     updateInteract();
     updateHUD();
   }
@@ -4305,7 +4923,8 @@ function frame(now){
 requestAnimationFrame(frame);
 
 // debug/testing handle
-window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt};
+window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;}};
 
 })(); /* end BONEPATH */
 </script>
