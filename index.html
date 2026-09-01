@@ -2511,9 +2511,11 @@ function updateRigExtras(r,dt){
       const j=r[k];if(!j)continue;
       const p=r._sm[k];
       if(!p){r._sm[k]=[j.rotation.x,j.rotation.y,j.rotation.z];continue;}
-      p[0]+=(j.rotation.x-p[0])*a;
-      p[1]+=(j.rotation.y-p[1])*a;
-      p[2]+=(j.rotation.z-p[2])*a;
+      // blend by the shortest arc: a full turn and zero are the same pose,
+      // so a finished roll never unwinds itself backwards into standing
+      p[0]=wrapA(p[0]+wrapA(j.rotation.x-p[0])*a);
+      p[1]=wrapA(p[1]+wrapA(j.rotation.y-p[1])*a);
+      p[2]=wrapA(p[2]+wrapA(j.rotation.z-p[2])*a);
       j.rotation.set(p[0],p[1],p[2]);
     }
     if(r._smY===undefined)r._smY=r.body.position.y;
@@ -3565,15 +3567,18 @@ const player={
       }
     }
     else if(this.state==='roll'){
-      const p=this.t/.46;
-      const sp=12.5*(1-easeIn(Math.min(1,p))*.72);
+      // the tumble, then a beat of getting the feet back under the body
+      const TUMBLE=.46,DUR=.58;
+      const p=Math.min(1,this.t/TUMBLE);
+      const sp=this.t<TUMBLE?12.5*(1-easeIn(p)*.72)
+        :3.2*(1-(this.t-TUMBLE)/(DUR-TUMBLE));            // rides out on the feet
       this.x+=this.rollDX*sp*dt;this.z+=this.rollDZ*sp*dt;
       // attack pressed mid-roll banks a rolling attack
       if(IN.swipe&&IN.swipe.kind==='atk')
         this.rollAtkQueued={d:IN.swipe.sx!==null?swipeWorld(IN.swipe):null};
       if(this.rollAtkQueued&&p>=.55){
         startRollAtk(this.rollAtkQueued.d);
-      }else if(p>=1){this.state='free';this.postRollT=0;}
+      }else if(this.t>=DUR){this.state='free';this.postRollT=0;}
     }
     else if(this.state==='rollatk'){
       const DUR=.44,p=this.t/DUR;
@@ -3677,13 +3682,19 @@ const player={
     else if(this.state==='lunge')poseLunge(r,Math.min(1,this.t/.62));
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/.5));
     else if(this.state==='roll'){
-      const p=Math.min(1,this.t/.46);
-      r.body.position.y=r.baseY-.34+Math.sin(p*Math.PI)*.05;
-      r.body.rotation.x=p*TAU*.96;
-      r.legR.rotation.x=-1.6;r.kneeR.rotation.x=2.2;
-      r.legL.rotation.x=-1.6;r.kneeL.rotation.x=2.2;
-      r.armR.rotation.x=-1.2;r.armL.rotation.x=-1.2;
-      r.foreR.rotation.x=-1.4;r.foreL.rotation.x=-1.4;
+      const TUMBLE=.46,DUR=.58,C=CARRY;
+      const p=Math.min(1,this.t/TUMBLE);                          // the tumble
+      const e=easeOut(clamp((this.t-TUMBLE)/(DUR-TUMBLE),0,1));   // the get-up
+      r.body.position.y=r.baseY-.34*(1-e)+Math.sin(p*Math.PI)*.05;
+      r.body.rotation.x=p*TAU;                                     // one full turn — completed
+      // out of the tuck: the legs unfold under the body into a low
+      // crouch, the trunk leans into the rise, the arms find the carry
+      r.legR.rotation.x=-1.6*(1-e)+.35*e;r.kneeR.rotation.x=2.2*(1-e)+.55*e;
+      r.legL.rotation.x=-1.6*(1-e)-.25*e;r.kneeL.rotation.x=2.2*(1-e)+.35*e;
+      r.torso.rotation.x+=.5*Math.sin(e*Math.PI);
+      r.head.rotation.x-=.25*Math.sin(e*Math.PI);
+      r.armR.rotation.x=-1.2*(1-e)+C.aRx*e;r.armL.rotation.x=-1.2*(1-e)+C.aLx*e;
+      r.foreR.rotation.x=-1.4*(1-e)+C.fRx*e;r.foreL.rotation.x=-1.4*(1-e)+C.fLx*e;
     }
     else if(this.state==='attack')poseLight(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/.44));
