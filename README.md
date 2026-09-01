@@ -4,7 +4,7 @@
 
 A haunted PSX-style souls-like you can play on your phone. One self-contained
 HTML file — no build, no install, no server. Open `index.html` in any browser
-(or host it anywhere static) and walk the Bone Path.
+(or host it anywhere static) and survive the Bonefield.
 
 ## Playing it
 
@@ -29,9 +29,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **The eye never closes** — lock-on is automatic and buttonless: the
   closest live horror is always marked (skeletons still clawing out of
   the ground don't count until they're up). When nothing stalks you,
-  the lock falls on the objective itself and the camera quietly keeps
-  it in frame as you walk — the view points the way to the fog gate,
-  and after the Warden falls, to the altar
+  the camera locks onto the cathedral at the heart of the field and
+  keeps it framed as you walk — the goal is always in view
 
 No flask. No stamina. Only nerve.
 
@@ -70,12 +69,17 @@ upright to come at you again.
 
 ## The loop
 
-Kindle the marrowfire. Walk the path through the hollows. Rest to heal
-and set your checkpoint — but resting raises everything you killed, and
-the fires are the only healing there is. Die and you drop your marrow where you fell; walk back and reclaim
-it, or lose it to your next death. Past the fog gate the **Gravewarden of
-the Bone Path** waits, with a second phase when its rage remembers itself.
-Fell it, claim the altar, and the path is walked.
+The Bonefield is one giant hexagon of rolling, haunted ground with the
+ruined cathedral sealed at its center. The dead never stop coming —
+hollows claw out of the soil, bone-throwers post up, brutes lumber in,
+and carrion crows wheel overhead and stoop at you — and the field
+thickens as your marrow grows. **Survive and harvest 1000 marrow** and
+the cathedral's veil burns away. Kindle the marrowfires to rest, heal,
+and set your checkpoint; die and you drop your marrow where you fell —
+one corpse-run to win it back. Step through the portal and the
+**Gravewarden of the Bonefield** rises, with a second phase when its
+rage remembers itself. Fell it, claim the altar under the rose window,
+and the field is yours.
 
 ## How it's built
 
@@ -87,13 +91,18 @@ Everything is generated at boot inside the one file:
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
+- **World** — a hexagonal field with gentle procedural elevations, a
+  wooded graveyard of dead trees, ruins, and bone piles (all with real
+  collision), brick ramparts and corner towers on every edge, and the
+  cathedral — bone wainscot, lancet glass, rose window — at the center.
 - **Characters** — low-poly articulated rigs (armored knight with cape,
   barbute helm, and an ultra greatsword with a long two-hand haft,
   carried DS3-style — arm extended on the haft, guard at the shoulder,
   blade rising over it toward the back — swinging edge-first with the
   left hand IK-planted on the haft; jawed skeletal
   hollows with ribcages and joint
-  knobs; the horned Warden with a burning heart) with fully procedural
+  knobs; wheeling carrion crows;
+  the horned Warden with a burning heart) with fully procedural
   animation: counter-rotating walk cycles, telegraphed windups, combos,
   rolls, clawing-from-the-grave rises, and deaths that buckle at the
   knees and crumble into bone piles — all run through critically-damped
