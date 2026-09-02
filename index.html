@@ -2021,17 +2021,8 @@ function buildHumanoid(o){
     body.add(M(GSph(.05*s,5,4),limb,0,.05*s,0));                   // lumbar knob
     body.add(M(GSph(.045*s,5,4),limb,0,.12*s,-.01*s));             // spine knob
   }else{
-    const plate=o.plateMat||limb,dark=new THREE.MeshBasicMaterial({color:0x0e0f11});
-    body.add(M(GCyl(.22*s,.24*s,.14*s,8),o.torsoMat,0,-.02*s,0));   // mail girdle
-    body.add(M(GCyl(.24*s,.31*s,.46*s,8),o.torsoMat,0,-.27*s,0));   // mail skirt, nearly to the knee
-    for(const side of[1,-1]){                                        // the fauld: two broad hanging plates
-      const f=M(GBox(.25*s,.3*s,.06*s),plate,.17*s*side,-.17*s,.21*s);
-      f.rotation.z=-.1*side;f.rotation.x=.16;body.add(f);
-      for(const [rx,ry] of[[-.08,.09],[.08,.09],[-.08,-.09],[.08,-.09]])   // rivets
-        f.add(M(GBox(.02*s,.02*s,.02*s),dark,rx*s,ry*s,.035*s));
-      const b=M(GBox(.22*s,.26*s,.05*s),plate,.15*s*side,-.15*s,-.2*s);b.rotation.x=-.14;body.add(b); // rear plates
-    }
-    body.add(M(GBox(.3*s,.05*s,.06*s),plate,0,-.02*s,.23*s));         // the fauld's top lame across the front
+    body.add(M(GCyl(.2*s,.23*s,.14*s,6),limb,0,-.02*s,0));         // hip girdle
+    body.add(M(GCyl(.21*s,.31*s,.24*s,6),o.torsoMat,0,-.15*s,0));  // flared fauld skirt
   }
 
   /* torso */
@@ -2042,30 +2033,13 @@ function buildHumanoid(o){
     const cl=M(GCyl(.025*s,.025*s,.36*s,5),limb,0,.52*s,.05*s);
     cl.rotation.z=Math.PI/2;torso.add(cl);                          // clavicle
   }else{
-    const plate=o.plateMat||limb,cloth=o.clothMat||o.torsoMat;
-    // the cuirass: a broad breastplate tapering to the waist, a
-    // plackart under it, a centre ridge and the raised X of the reference
-    const chest=M(GCyl(.36*s,.2*s,.5*s,8),o.chestMat||o.torsoMat,0,.33*s,0);torso.add(chest);
-    torso.add(M(GCyl(.22*s,.26*s,.16*s,8),plate,0,.02*s,0));          // plackart
-    torso.add(M(GBox(.035*s,.5*s,.03*s),plate,0,.3*s,.31*s));          // centre ridge
-    for(const d of[1,-1]){
-      const ridge=M(GBox(.035*s,.4*s,.02*s),plate,0,.34*s,.32*s);ridge.rotation.z=.75*d;torso.add(ridge);}
-    torso.add(M(GCyl(.17*s,.19*s,.1*s,8),o.torsoMat,0,.6*s,0));       // mail standing collar
-    torso.add(M(GCyl(.28*s,.28*s,.07*s,8),plate,0,-.02*s,0));         // belt
-    torso.add(M(GBox(.08*s,.06*s,.03*s),plate,0,-.02*s,.28*s));        // buckle
-    // the mantle: a broad black cloth cowl over the shoulders and upper
-    // arms, its hem torn to points, with a bib hanging down the chest
-    const mantle=M(GCone(.56*s,.3*s,8),cloth,0,.62*s,0);mantle.material.side=THREE.DoubleSide;torso.add(mantle);
-    const bib=M(new THREE.PlaneGeometry(.36*s,.3*s),cloth,0,.42*s,.33*s);bib.rotation.x=-.12;
-    bib.material.side=THREE.DoubleSide;torso.add(bib);
-    for(let i=0;i<4;i++){const tp=M(GCone(.045*s,(.12+(i%2)*.08)*s,3),cloth,(i-1.5)*.09*s,.22*s,.33*s);
-      tp.rotation.x=Math.PI;torso.add(tp);}                          // the bib's torn points
-    torso.add(M(GCyl(.19*s,.22*s,.12*s,8),cloth,0,.7*s,0));           // the cowl, up round the neck
-    for(let i=0;i<9;i++){                                            // tatters round the hem
-      const a=i/9*TAU+.3,t=M(new THREE.PlaneGeometry(.12*s,(.12+((i*5)%3)*.05)*s),cloth,
-        Math.sin(a)*.5*s,.42*s,Math.cos(a)*.5*s);
-      t.rotation.y=a;t.material.side=THREE.DoubleSide;torso.add(t);
-    }
+    // V-tapered cuirass: broad chest over a narrow waist
+    const chest=M(GCyl(.3*s,.17*s,.54*s,7),o.chestMat||o.torsoMat,0,.28*s,0);
+    torso.add(chest);
+    torso.add(M(GCyl(.155*s,.175*s,.09*s,7),o.torsoMat,0,.6*s,0)); // chainmail collar
+    torso.add(M(GCyl(.27*s,.27*s,.06*s,7),limb,0,.04*s,0));        // belt ring
+    const tabard=M(GBox(.2*s,.42*s,.03*s),o.torsoMat,0,-.18*s,.15*s);
+    tabard.rotation.x=.05;torso.add(tabard);                       // hanging tabard
   }
 
   /* head */
@@ -2081,26 +2055,10 @@ function buildHumanoid(o){
     const jm=M(GSph(.11*s,6,4),limb,0,-.03*s,.03*s);jm.scale.set(1,.4,.95);jaw.add(jm);
     jaw.rotation.x=.08;rig.jaw=jaw;
   }else{
-    // the helm of the reference: a tall domed skull with three ridges
-    // running back over the crown to a point at the brow, a wedge
-    // visor coming down to the chin, the face a dark T — eye-line over
-    // a slit — with a barred grille beneath, cheeks flaring, and a
-    // mail aventail hanging round the neck
-    const hm=o.headMat,dark=new THREE.MeshBasicMaterial({color:0x050506});
-    head.add(M(GCyl(.13*s,.145*s,.22*s,8),hm,0,.17*s,0));                // the skull
-    const dome=M(GSph(.135*s,8,5),hm,0,.29*s,0);dome.scale.set(1,1.2,1.05);head.add(dome);
-    for(const [x,h] of[[0,.07],[.06,.045],[-.06,.045]]){                 // the three ridges
-      const rdg=M(GBox(.028*s,h*s,.3*s),hm,x*s,.41*s,-.02*s);rdg.rotation.x=-.2;head.add(rdg);}
-    const peak=M(GCone(.05*s,.14*s,4),hm,0,.36*s,.14*s);peak.rotation.x=Math.PI/2+.3;head.add(peak); // the brow's point
-    const visor=M(GBox(.24*s,.24*s,.1*s),hm,0,.14*s,.1*s);visor.rotation.x=.12;head.add(visor); // the wedge visor
-    head.add(M(GBox(.3*s,.035*s,.07*s),hm,0,.27*s,.13*s));              // brow ridge
-    head.add(M(GBox(.2*s,.03*s,.02*s),dark,0,.235*s,.16*s));             // the eye-line
-    head.add(M(GBox(.03*s,.17*s,.02*s),dark,0,.14*s,.16*s));             // the face slit
-    for(let i=0;i<4;i++)head.add(M(GBox(.012*s,.06*s,.02*s),dark,(i-1.5)*.04*s,.08*s,.16*s)); // the grille
-    for(const side of[1,-1]){                                            // flared cheeks
-      const c=M(GBox(.06*s,.18*s,.12*s),hm,.13*s*side,.12*s,.06*s);c.rotation.y=.4*side;c.rotation.z=-.1*side;head.add(c);}
-    const chin=M(GCone(.08*s,.1*s,5),hm,0,.0*s,.1*s);chin.rotation.x=Math.PI;head.add(chin);
-    head.add(M(GCyl(.15*s,.2*s,.12*s,8),o.torsoMat,0,-.02*s,0));         // mail aventail
+    // rounded barbute, slightly smaller for knightly proportions
+    head.add(M(GCyl(.135*s,.145*s,.22*s,7),o.headMat,0,.17*s,0));
+    head.add(M(GSph(.135*s,7,4),o.headMat,0,.28*s,0));
+    head.add(M(GBox(.028*s,.08*s,.24*s),limb,0,.39*s,-.02*s));
   }
   if(o.horns){
     for(const side of[1,-1]){
@@ -2126,28 +2084,17 @@ function buildHumanoid(o){
   rig.l1=.34*AL;rig.l2=.37*AL;
   function makeArm(side){
     const sh=new THREE.Group();
-    sh.position.set((sk?.3:.38)*s*side,.5*s,0);torso.add(sh);       // the knight's shoulders sit wide
-    if(!sk){
-      const plate=o.plateMat||limb;
-      // pauldron: a great domed cap with a raised rim, and two lames stepping down the arm
-      const cap=M(GSph(.2*s,7,5),plate,.02*s*side,.06*s,0);cap.scale.set(1.15,.62,1.05);sh.add(cap);
-      const rim=M(GSph(.215*s,7,5),plate,.02*s*side,.02*s,0);rim.scale.set(1.15,.22,1.05);sh.add(rim);
-      const l2=M(GSph(.17*s,6,4),plate,.05*s*side,-.08*s,0);l2.scale.set(1,.4,1);sh.add(l2);
-      const l3=M(GSph(.145*s,6,4),plate,.07*s*side,-.17*s,0);l3.scale.set(1,.38,1);sh.add(l3);
-      sh.add(M(GCyl(.085*s,.075*s,.2*s,7),plate,0,-.3*s,0));             // rerebrace band
+    sh.position.set(.3*s*side,.47*s,0);torso.add(sh);
+    if(!sk){                                                        // great pauldron rides the arm
+      const p=M(GSph(.165*s,6,4),limb,0,.04*s,0);
+      p.scale.y=.7;sh.add(p);
     }else{
       sh.add(M(GSph(.055*s,5,4),limb,0,0,0));                       // shoulder knob
     }
     sh.add(M(GCyl(armThick[0]*s,armThick[1]*s,.32*AL*s,5),limb,0,-.17*AL*s,0));
     const el=new THREE.Group();el.position.y=-.34*AL*s;sh.add(el);
     el.add(M(GCyl(armThick[1]*s,armThick[1]*.85*s,.3*AL*s,5),limb,0,-.15*AL*s,0));
-    if(!sk){const plate=o.plateMat||limb;
-      el.add(M(GSph(.085*s,6,4),plate,0,0,0));                          // couter (elbow cop)
-      const v=M(GCyl(.075*s,.09*s,.26*AL*s,7),plate,0,-.16*AL*s,0);el.add(v); // vambrace, flared to the wrist
-      el.add(M(GCyl(.095*s,.085*s,.05*s,7),plate,0,-.3*AL*s,0));          // cuff
-      const g=M(GBox(.11*s,.11*s,.1*s),plate,0,-.36*AL*s,.01*s);el.add(g); // gauntlet
-      for(let i=0;i<3;i++)el.add(M(GBox(.028*s,.07*s,.028*s),plate,(i-1)*.034*s,-.43*AL*s,.03*s)); // fingers
-    }
+    if(!sk)el.add(M(GSph(.065*s,5,4),limb,0,-.34*AL*s,0));         // gauntlet fist
     else{el.add(M(GSph(.045*s,5,4),limb,0,0,0));                     // elbow knob
       el.add(M(GSph(.04*s,4,3),limb,0,-.31*s,0));}                   // knuckled hand
     return {sh,el};
@@ -2230,17 +2177,8 @@ function buildHumanoid(o){
     const kn=new THREE.Group();kn.position.y=-.4*L*s;hip.add(kn);
     kn.add(M(GSph(sk?.05*s:.07*s,5,4),sk?limb:(o.plateMat||limb),0,0,0)); // knee knob / poleyn
     kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*L*s,5),limb,0,-.21*L*s,0));
-    if(!sk){const plate=o.plateMat||limb;
-      const cu=M(GCyl(.1*s,.115*s,.34*L*s,7),plate,0,-.2*L*s,.02*s);hip.add(cu);      // cuisse
-      hip.add(M(GBox(.2*s,.05*s,.1*s),plate,0,-.36*L*s,.03*s));                     // its lower lame
-      kn.add(M(GSph(.1*s,6,4),plate,0,0,.02*s));                                     // knee cop
-      kn.add(M(GCyl(.085*s,.1*s,.3*L*s,7),plate,0,-.2*L*s,.02*s));                   // greave
-      kn.add(M(GBox(.13*s,.07*s,.27*s),plate,0,-.42*L*s,.06*s));                     // sabaton
-      const toe=M(GCone(.05*s,.1*s,4),plate,0,-.43*L*s,.21*s);toe.rotation.x=Math.PI/2;kn.add(toe);
-    }else{
-      const foot=M(GSph(.075*s,5,4),limb,0,-.42*L*s,.05*s);
-      foot.scale.set(1.1,.55,1.7);kn.add(foot);
-    }
+    const foot=M(GSph(.075*s,5,4),limb,0,-.42*L*s,.05*s);           // rounded sabaton
+    foot.scale.set(1.1,.55,1.7);kn.add(foot);
     return {hip,kn};
   }
   const lR=makeLeg(1),lL=makeLeg(-1);
@@ -2851,16 +2789,13 @@ function updateRigExtras(r,dt){
 
 /* factory: the cast */
 function makeKnightRig(){
-  // the pilgrim: blackened plate over mail, a hooded mantle, a great
-  // helm with a comb and a face slit, and a cape torn to ribbons
   const r=buildHumanoid({
     scale:1,
-    torsoMat:mat('mail'),headMat:mat('helmB'),limbMat:mat('mail'),
-    plateMat:mat('blacksteel'),chestMat:mat('blacksteel'),
+    torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
-    weapon:'claymore',clothMat:mat('cloth'),
-    cape:mat('cloth'),capeRag:mat('capeRag'),
-    legLen:1.32,armLen:1.1,mirrorArms:true,                         // long in the leg and arm, like the reference
+    weapon:'claymore',clothMat:mat('rag'),
+    chestMat:mat('iron'),cape:mat('rag'),
+    legLen:1.15,mirrorArms:true,
   });
   return r;
 }
