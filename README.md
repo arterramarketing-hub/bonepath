@@ -50,8 +50,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     a bright blade-mark hangs over it while it reels. Tap with it in
     reach and the knight steps in, hauls the greatsword overhead while
     the world holds its breath, and brings it down: the body is cleaved
-    clean in two — truly in two, each half toppling its own way with the
-    cut face showing — to a wet, splintering, spattering mess of a sound,
+    clean in two — truly in two, each half flung its own way and flopping
+    down limp with the cut face showing — to a wet, splintering,
+    spattering mess of a sound,
     the screen jolting with the weight of it. You are untouchable for the
     whole of the cut. Brutes included; the Warden and the two that are
     not hollows are beyond it
@@ -76,8 +77,8 @@ it back. There is no rest and no fire to kindle: the only mending is
 what the fallen shed. Enemy windups flash amber and rasp
 before they land; bone-throwers with green eyes lob shots you can
 sidestep or roll through. Break a small horror's poise to stun it,
-then land one more blow and it goes sprawling flat on the path —
-kicked while it's down, it stays down.
+then land one more blow and it goes sprawling on the path — a real
+fall, limbs everywhere — and kicked while it's down, it stays down.
 
 ## Elements
 
@@ -200,7 +201,16 @@ Everything is generated at boot inside the one file:
   animation: counter-rotating walk cycles, telegraphed windups, combos,
   rolls, clawing-from-the-grave rises, and deaths that buckle at the
   knees and crumble into bone piles — all run through critically-damped
-  pose smoothing so every joint eases instead of snapping. The knight's
+  pose smoothing so every joint eases instead of snapping. When a
+  hollow or brute dies, or is slammed flat, its rig hands itself to a
+  **verlet ragdoll** — no physics library: point masses at the joints,
+  distance constraints for the bones, braces for the trunk, gravity,
+  the ground with friction, and the walls — and the body falls the way
+  the blow sent it, tumbles, and lies where it lands before the bones
+  come apart into the soil. The finishing cut's halves are two such
+  ragdoll fragments flung apart off the blade, the cut plane riding in
+  each one's hips. A broken pew comes apart into planks that fly,
+  bounce, settle flat and lie there. The knight's
   long, broad cape is a single strip of cloth pinned to a chain of five
   hinges that share one capped lift, so it streams out behind a sprint
   in one seamless piece instead of curling up over the back.
