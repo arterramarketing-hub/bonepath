@@ -82,7 +82,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Right thumb, hold & drag** — turn the camera
 - **The eye never closes** — lock-on is automatic and buttonless: the
   closest live horror is always marked (skeletons still clawing out of
-  the ground don't count until they're up). When nothing stalks you
+  the ground don't count until they're up). When the marked one falls,
+  the eye stays on it for half a second — the camera holds and you watch
+  it go down before the lock moves on. When nothing stalks you
   there is no lock at all: the camera eases in behind the way you are
   walking, and a drag of the right thumb is left exactly where you put
   it until you move again. The moonbeam over the nave does the pointing

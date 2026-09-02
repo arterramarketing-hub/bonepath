@@ -4217,8 +4217,9 @@ const player={
   },
   update(dt){
     const r=this.rig;
-    // the lock can rest on the objective marker; only a live horror steers aim
-    const foe=G.lockTarget&&!G.lockTarget.objective?G.lockTarget:null;
+    // only a LIVE horror steers aim — the eye may still be resting on one
+    // that has just fallen, but the blade won't be
+    const foe=G.lockTarget&&!G.lockTarget.objective&&G.lockTarget.hp>0?G.lockTarget:null;
     this.t+=dt;
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
     this.postRollT+=dt;
@@ -6110,6 +6111,20 @@ function updateLock(){
   // the eye holds the CLOSEST live horror, with a little stickiness so
   // two circling enemies don't make it flicker
   const cands=lockCands(),t=G.lockTarget;
+  // a horror that has just fallen keeps the eye for half a second — the
+  // camera stays on it, and you watch it go down before the lock moves on
+  if(t&&!t.objective&&t.hp<=0){
+    if(G.lockDeadAt===undefined)G.lockDeadAt=G.time;
+    if(G.time-G.lockDeadAt<.5){
+      lockMarker.visible=G.mode==='play';
+      const p=t.rig?t.rig.root.position:t;
+      lockMarker.position.set(p.x,heightAt(p.x,p.z)+(t.boss?3.6:t.big?1.6:1.3),p.z);
+      lockMarker.material.rotation=G.time*2;
+      lockMarker.material.opacity=1-(G.time-G.lockDeadAt)/.5;
+      return;
+    }
+  }
+  G.lockDeadAt=undefined;lockMarker.material.opacity=1;
   let foe=null;
   if(cands.length){
     foe=cands[0];
