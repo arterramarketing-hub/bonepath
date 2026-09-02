@@ -239,6 +239,7 @@
       <div><span class="k">hold still, release</span> — the charged attack chosen above</div>
       <div><span class="k">flick any way</span> — roll that way · tap in the roll — rolling cut</div>
       <div><span class="k">blade-mark over a stunned foe: tap</span> — the finishing cut</div>
+      <div><span class="k">behind an unwary foe: tap</span> — the backstab (small and medium horrors)</div>
       <div><span class="k">hold &amp; drag</span> — turn the camera · walk into a mote — take it</div>
       <div><span class="k">time a swing into theirs</span> — clash: sparks, and they reel</div>
     </div>
@@ -941,7 +942,11 @@ function resize(){
   renderer.setSize(iw,ih,false);
   rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
   gradeMat.uniforms.uPx.value.set(2/iw,2/ih);
-  camera.aspect=w/h;camera.updateProjectionMatrix();
+  camera.aspect=w/h;
+  // held upright, the phone sees less to either side: open the lens and
+  // (in the camera code) stand further back so the fight still fits
+  camera.fov=h>w?82:68;
+  camera.updateProjectionMatrix();
   snapUniform.value.set(iw/2,ih/2);
 }
 addEventListener('resize',resize);
@@ -2629,7 +2634,7 @@ function buildHumanoid(o){
     rig.backSocket=bs;rig.handSocket=aR.el;
   }
   rig.hunch=o.hunch||0;
-  rig.humanoid=true;rig.s=s;rig.AL=AL;rig.L=L;   // the ragdoll reads these
+  rig.humanoid=true;rig.s=s;rig.AL=AL;rig.L=L;rig.skeletal=!!sk;   // the ragdoll and the gore read these
   rig.baseY=(0.92+((o.legLen||1)-1)*.8)*s;
   rig.capeSway=0;rig._spNow=0;
   return rig;
@@ -2684,6 +2689,27 @@ function poseBowDraw(r,q,t){
   r.body.position.y=r.baseY-.05*e*r.s;
   if(r.bow){r.bow.nock.visible=q>.02;r.bow.nock.position.y=r.bow.tipY+.34*e*r.s;
     r.bow.string.scale.y=1;r.bow.string.position.y=r.bow.tipY+.17*e*r.s;}   // the string comes back with the hand
+}
+/* the backstab: up behind them, the blade drawn back low by the hip, then
+   driven straight through the spine and held there — and the foot shoves
+   the body off the steel */
+function poseBackstab(r,p){
+  const C=CARRY;
+  if(p<.32){                                        // closing in: the coil
+    poseCharge(r,easeOut(p/.32),0);
+  }else if(p<.42){                                  // the thrust
+    poseLight(r,.42+.26*((p-.32)/.1),3);
+  }else if(p<.68){                                  // held through them
+    poseLight(r,.68,3);
+    r.torso.rotation.x+=Math.sin(p*60)*.02;         // the strain
+  }else if(p<.86){                                  // the kick that frees the blade
+    poseLight(r,.68,3);
+    const k=Math.sin((p-.68)/.18*Math.PI);
+    r.legR.rotation.x=-1.25*k;r.kneeR.rotation.x=.4*k;
+    r.torso.rotation.x-=.25*k;r.body.position.y=r.baseY-.06*k*r.s;
+  }else{                                            // and back to the carry
+    poseLight(r,.68+.32*((p-.86)/.14),3);
+  }
 }
 /* the whirlwind: the blade held out level at the end of a sweep while the
    whole body turns under it — the pose is still, the spin is the rig's */
@@ -3532,7 +3558,14 @@ function boneBurst(x,y,z,color,n,speed){
     }});
   }
 }
-/* ---------------- gore & sparks ---------------- */
+/* ---------------- gore & sparks ----------------
+   Flesh bleeds. Bone does not: a skeleton sheds dust and chips of bone
+   instead, and leaves no stain. */
+function gore(e,x,y,z,n,pow){
+  if(e&&e.rig&&e.rig.skeletal)boneBurst(x,y,z,0xd8cfb4,Math.ceil(n*.7),(pow||1)*2.2);
+  else bloodSpray(x,y,z,n,pow);
+}
+function goreDecal(e,x,z,s){if(!(e&&e.rig&&e.rig.skeletal))bloodDecal(x,z,s);}
 const DECAL_MAX=42,decals=[];
 let decalGeo=null,decalMats=null;
 function bloodDecal(x,z,s){
@@ -4066,7 +4099,7 @@ const player={
       this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
   },
   // the roll's window, and the whole of the finishing cut: nothing touches the executioner
-  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute';},
+  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab';},
   takeHit(dmg,fx,fz,heavy){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
@@ -4128,6 +4161,22 @@ const player={
     },2400);
   },
   // a stunned small or medium horror within reach can be finished
+  // a horror with its back to you, close, and you squared up to it
+  backstabTarget(){
+    let best=null,bd=1.8;
+    const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+    for(const e of enemies){
+      if(e.hp<=0||e.boss||e.mini||e.crow||e.untouchable||e.rag)continue;
+      if(['dead','held','down','scatter','stagger','dormant','rise','buried'].includes(e.state))continue;
+      const dx=e.x-this.x,dz=e.z-this.z,d=Math.hypot(dx,dz);
+      if(d>bd||d<.2)continue;
+      const ex=Math.sin(e.facing),ez=Math.cos(e.facing);
+      if((dx*ex+dz*ez)/d<.45)continue;          // it is facing away from you
+      if((dx*fx+dz*fz)/d<.6)continue;           // and you are facing it
+      bd=d;best=e;
+    }
+    return best;
+  },
   execTarget(){
     let best=null,bd=2.7;
     for(const e of enemies){
@@ -4361,6 +4410,15 @@ const player={
       G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
       boneBurst(this.x,.15,this.z,0x4a463a,4,1.4);
     };
+    // the backstab: up behind an unwary horror, the blade through the spine
+    const startBackstab=(e)=>{
+      this.state='backstab';this.t=0;this.execT=e;this.hitDone=0;
+      this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
+      e.state='held';e.t=0;e.vx=0;e.vz=0;e.attack=null;
+      this.facing=e.facing;                          // square up to its back
+      if(this.weapon()==='bow')AudioSys.bowDraw();else AudioSys.windup();
+      G.vibr(20);
+    };
     // the double slash: the coil lets go into two fast cuts, forward and back
     const startDouble=()=>{
       this.state='dslash';this.t=0;this.hitDone=0;this.sfxDone=0;this.queued=false;this.qDir=null;
@@ -4417,8 +4475,9 @@ const player={
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(IN.swipe){
         if(IN.swipe.kind==='atk'){
-          const ex=this.execTarget();
+          const ex=this.execTarget(),bs=ex?null:this.backstabTarget();
           if(ex)startExecute(ex);                // a stunned foe in reach: finish it
+          else if(bs)startBackstab(bs);          // one with its back turned: through the spine
           else if(this.weapon()==='bow')startShoot(IN.swipe);
           else if(this.sprintT>.3)startSprintAtk();   // at full stride the tap becomes the dash cut
           else startAttack(IN.swipe);
@@ -4449,15 +4508,15 @@ const player={
             a.position.set(hp.x-fx*.3,hp.y+.22,hp.z-fz*.3);
             a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(fx,0,fz));
             e.rig.head.attach(a);
-            bloodSpray(hp.x,hp.y+.22,hp.z,18,1.4);bloodDecal(e.x,e.z,.7);
+            gore(e,hp.x,hp.y+.22,hp.z,18,1.4);goreDecal(e,e.x,e.z,.7);
             e.lastHit={dx:fx,dz:fz,kb:1.6,up:1.6};
             e.die();
           }else{
           AudioSys.gore();
           splitEnemy(e,this.facing);
           sparkBurst(e.x,1.2,e.z,18);
-          bloodSpray(e.x,1.3,e.z,22,1.6);
-          bloodDecal(e.x,e.z,.9);bloodDecal(e.x+rr3(-.6,.6),e.z+rr3(-.6,.6),.5);
+          gore(e,e.x,1.3,e.z,22,1.6);
+          goreDecal(e,e.x,e.z,.9);goreDecal(e,e.x+rr3(-.6,.6),e.z+rr3(-.6,.6),.5);
           e.noRag=true;e.die();e.crumbled=true;e.rig.root.visible=false;
           }
         }
@@ -4510,6 +4569,46 @@ const player={
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
+      }
+    }
+    else if(this.state==='backstab'){
+      const DUR=1.1,p=this.t/DUR,e=this.execT;
+      if(!e||(e.hp<=0&&!this.hitDone)){this.state='free';this.execT=null;}
+      else{
+        const ex=Math.sin(e.facing),ez=Math.cos(e.facing);
+        if(p<.3){ // close in to its back
+          const tx=e.x-ex*.95,tz=e.z-ez*.95;
+          this.x+=(tx-this.x)*Math.min(1,10*dt);this.z+=(tz-this.z)*Math.min(1,10*dt);
+          this.facing=e.facing;
+        }
+        if(this.hitDone<1&&p>=.4){ // the blade goes through
+          this.hitDone=1;
+          const bow=this.weapon()==='bow';
+          const dmg=(bow?40:48)+(this.element?6:0);
+          if(bow){AudioSys.loose(true);const [shM,hdM,flM]=arrowMats();const a=makeArrow(1,shM,hdM,flM);
+            a.position.set(e.x-ex*.2,heightAt(e.x,e.z)+1.15,e.z-ez*.2);
+            a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(ex,0,ez));
+            (e.rig.torso||e.rig.root).attach(a);e.arrows=e.arrows||[];e.arrows.push(a);}
+          else AudioSys.heavySwing();
+          AudioSys.hit();AudioSys.sever();
+          G.camShake=.7;G.hitstop=.14;G.vibr([60,30,90]);
+          const gy=heightAt(e.x,e.z);
+          gore(e,e.x+ex*.2,gy+1.2,e.z+ez*.2,16,1.3);goreDecal(e,e.x+ex*.3,e.z+ez*.3,.6);
+          sparkBurst(e.x,gy+1.2,e.z,8);
+          e.hp-=dmg;e.flash();e.poise=0;
+          if(this.element==='fire'){e.burnT=4;e.burnTick=.3;}else if(this.element==='ice')e.chillT=6;
+          if(e.hp<=0){e.lastHit={dx:ex,dz:ez,kb:1.4,up:1.4};e.die();}
+          else e.state='held';
+        }
+        if(this.hitDone<2&&p>=.72){ // the foot shoves it off the steel
+          this.hitDone=2;
+          if(e.hp>0){
+            e.state='down';e.t=0;e.poise=0;
+            e.lastHit={dx:ex,dz:ez,kb:1.5,up:1.2};
+            AudioSys.bodyfall();startRagdoll(e,ex,ez,7,1.6);
+          }
+        }
+        if(p>=1){this.state='free';this.execT=null;}
       }
     }
     else if(this.state==='shoot'){
@@ -4683,7 +4782,7 @@ const player={
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
     const bow=this.weapon()==='bow';
-    r.ikLeftArm=!bow&&['free','attack','rollatk','charge','dslash','spin','sprintatk','execute'].includes(this.state);
+    r.ikLeftArm=!bow&&['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -4696,6 +4795,8 @@ const player={
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
+    else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
+      if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
     else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/.64));
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/.5));
     else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseHeavy(r,Math.min(1,this.t/.9));}
@@ -4785,7 +4886,7 @@ class Enemy{
     AudioSys.bodyfall();
     scatterBones(this.x,this.z);
     boneBurst(this.x,.5,this.z,0xb8ad8f,8,1.8); // dust of the blast
-    bloodDecal(this.x,this.z,.4);
+    goreDecal(this,this.x,this.z,.4);
   }
   takeHit(dmg,poise,fx,fz,kb,hv){
     if(this.hp<=0||this.state==='scatter')return; // a bone heap can't be cut
@@ -5837,7 +5938,7 @@ function arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,through){
   e.arrows=e.arrows||[];e.arrows.push(stuck);
   if(e.arrows.length>6){const o=e.arrows.shift();if(o.parent)o.parent.remove(o);}
   AudioSys.arrowHit();
-  bloodSpray(cx,a.position.y,cz,kind==='light'?5:9,.9);
+  gore(e,cx,a.position.y,cz,kind==='light'?5:9,.9);
   const hv={dx,dz,up:kind==='knock'?1.4:.9};
   let d=dmg;if(el)d+=4;
   if(Math.random()<.1)d=Math.round(d*1.7);
@@ -5876,10 +5977,10 @@ function severLimb(e,trail,hv){
   loosePiece(g,key==='head'?.16*(r.s||1):.07*(r.s||1),
     hv.dx*2.4+rr3(-.8,.8),hv.dz*2.4+rr3(-.8,.8),2.6+Math.random()*1.6,true);
   e.hp-=key==='head'?6:4;
-  bloodSpray(wp.x,wp.y,wp.z,14,1.2);bloodDecal(e.x+rr3(-.4,.4),e.z+rr3(-.4,.4),.45);
+  gore(e,wp.x,wp.y,wp.z,14,1.2);goreDecal(e,e.x+rr3(-.4,.4),e.z+rr3(-.4,.4),.45);
   AudioSys.sever();G.camShake=Math.max(G.camShake,.3);G.hitstop=Math.max(G.hitstop,.08);G.vibr([20,15,50]);
   let t=0;effects.push({update(dt){t+=dt;if(e.hp<=0||t>1.1)return false;    // the stump spurts
-    if(Math.random()<dt*14){const p=stub.getWorldPosition(new THREE.Vector3());bloodSpray(p.x,p.y,p.z,3,.7);}return true;}});
+    if(Math.random()<dt*14){const p=stub.getWorldPosition(new THREE.Vector3());gore(e,p.x,p.y,p.z,3,.7);}return true;}});
   if(e.hp<=0)e.die();
   return true;
 }
@@ -5930,7 +6031,7 @@ function splitEnemy(e,facing){
       H.plane.copy(H.local).applyMatrix4(H.rag.rig.body.matrixWorld);
       if(life>2.1)for(const m of H.mats)m.opacity=Math.max(0,1-(life-2.1)/.7);
     }
-    if(life>.05&&life<.35&&Math.random()<dt*20)bloodSpray(e.x,1.0,e.z,3,.8);
+    if(life>.05&&life<.35&&Math.random()<dt*20)gore(e,e.x,1.0,e.z,3,.8);
     if(life>2.8){
       for(const H of halves){scene.remove(H.h);for(const m of H.mats)m.dispose();
         const i=ragdolls.indexOf(H.rag);if(i>=0)ragdolls.splice(i,1);
@@ -6096,7 +6197,7 @@ function updateCamera(dt){
     G.camYaw=angLerp(G.camYaw,want,5*dt);
     G.camPitch=lerp(G.camPitch,.3,4*dt);
   }
-  const dist=G.camDist||5.1,py=1.55;
+  const dist=G.camDist||(innerHeight>innerWidth?6.9:5.1),py=innerHeight>innerWidth?1.9:1.55;
   const hP=heightAt(player.x,player.z);
   let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist;
   let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist;
@@ -6269,7 +6370,7 @@ function makeGrain(){
 /* ---------------- boot & main loop ---------------- */
 function begin(){
   if(G.mode!=='title')return;
-  AudioSys.start();AudioSys.musicStart();
+  AudioSys.start();   // no theme: the wind, the creaks and the crows are the music
   G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');
   $('title').style.display='none';
   $('hud').style.display='block';

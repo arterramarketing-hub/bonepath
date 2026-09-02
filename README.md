@@ -76,6 +76,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the screen jolting with the weight of it. You are untouchable for the
     whole of the cut. Brutes included; the Warden and the two that are
     not hollows are beyond it
+- **the backstab** — get behind a small or medium horror that hasn't
+    turned to you, close, squared up to its back, and tap: the knight
+    steps in, drives the greatsword through its spine, holds it there,
+    and kicks the body off the steel — it goes sprawling, or dies. With
+    the bow it's a shaft in the back at point-blank. You can't be touched
+    while you do it. The Warden and the two that are not hollows can't be
+    taken from behind
 - **Rolling attack** — tap during a roll (or right as it ends) and
   the knight rises out of the tuck with a fast upward cut that flows
   into the normal chain
@@ -241,7 +248,8 @@ Everything is generated at boot inside the one file:
   the blade sent it — a sweep flings it sideways along the cut, a thrust
   straight back, an overhead down on its face — tumbles, and lies where
   it lands before the bones
-  come apart into the soil. The finishing cut's halves are two such
+  come apart into the soil. Bone doesn't bleed: a skeleton sheds dust and
+  chips instead of blood and leaves no stain. The finishing cut's halves are two such
   ragdoll fragments flung apart off the blade, the cut plane riding in
   each one's hips. A broken pew comes apart into planks that fly,
   bounce, settle flat and lie there. The knight's
@@ -253,15 +261,9 @@ Everything is generated at boot inside the one file:
   that deepens inside the nave): two bands of
   graveyard wind, a sub drone, far-off creaks and crows, heavy armoured
   footfalls, whooshes, bone-splintering hits, the death gong, the
-  Warden's roar, the Fallen One's shriek, the Unburied's retch — and
-  the theme: a sad, decrepit piano in D minor at 58 bpm, built from
-  detuned partials with a hammer click and played through a slow tape
-  wow, its notes arriving late, soft, once in a while a little off the
-  key, or not at all — heard faint and far off through an old radio, the
-  band a little narrowed and the speaker only just breaking up, with a
-  quiet needle crackle, a warbling echo, and the signal dropping away now
-  and then — and drowned in a long, dark hall reverb of its own. It steps
-  aside for the Warden.
+  Warden's roar, the Fallen One's shriek, the Unburied's retch. There
+  is no theme: the wind, the creaks and the crows are the music, and the
+  Warden brings a tremolo drone of his own.
 - **No dependencies fetched at runtime.** Works offline.
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can
