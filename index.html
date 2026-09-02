@@ -1093,7 +1093,7 @@ const AudioSys=(()=>{
      wavers; notes come a little late, a little soft, and some never
      come at all — a piece remembered by something that is falling apart. */
   let musicBus=null,radioBus=null,wow=null,musicOn=false,musicT0=0,musicIdx=0,musicLevel=1,crackleT=0,dropT=0;
-  const MUS_LVL=.72;
+  const MUS_LVL=.36;
   const BPS=58/60,LOOP_BEATS=64;
   const SCORE=(()=>{
     const ev=[];
@@ -1122,7 +1122,7 @@ const AudioSys=(()=>{
     const det=rr2(-11,11);                                       // an old, untuned instrument
     // partials slightly off their harmonics, and one that has no business
     // being there: the string is rusting and the note rings wrong
-    [[1,1,'triangle'],[2.006,.42,'triangle'],[3.02,.2,'sine'],[4.05,.09,'sine'],[5.1,.04,'sine'],[2.41,.11,'sine'],[6.73,.025,'square']].forEach(([r,a,ty],i)=>{
+    [[1,1,'triangle'],[2.006,.42,'triangle'],[3.02,.2,'sine'],[4.05,.09,'sine'],[5.1,.04,'sine'],[2.41,.05,'sine']].forEach(([r,a,ty],i)=>{
       const o=ac.createOscillator();o.type=ty;o.frequency.value=f*r;o.detune.value=det;
       wow.connect(o.detune);
       const og=ac.createGain();og.gain.setValueAtTime(a,t0);
@@ -1144,7 +1144,7 @@ const AudioSys=(()=>{
       if(t>now+1.4)break;
       if(Math.random()>.07){                                        // a note that never comes
         const late=Math.random()<.14?rr2(.03,.08):0;                 // a sticking key
-        const wrong=Math.random()<.08?(Math.random()<.5?-1:1)*rr2(.4,1):0;   // a key that has slipped
+        const wrong=Math.random()<.05?(Math.random()<.5?-1:1)*rr2(.4,1):0;   // a key that has slipped
         piano(t+late+rr2(-.01,.01),ev.n+wrong,ev.v*rr2(.72,1.05),ev.d/BPS);
       }
       musicIdx++;
@@ -1155,18 +1155,18 @@ const AudioSys=(()=>{
       if(crackleT<now)crackleT=now;
       // and now and then the signal falls away for a moment — a dip
       // with a burst of dust in it, then it comes back
-      if(dropT===0)dropT=now+rr2(6,14);
+      if(dropT===0)dropT=now+rr2(14,30);
       if(dropT<now+1.4){
         const g=radioBus.gain,d=rr2(.08,.45),t=dropT,lo=rr2(.04,.16);
         g.setValueAtTime(.5,t);g.linearRampToValueAtTime(lo,t+.025);
         g.setValueAtTime(lo,t+d);g.linearRampToValueAtTime(.5,t+d+.09);
         for(let i=0;i<5;i++)crackle(t+rr2(0,d),rr2(.03,.06));
-        dropT=t+d+rr2(5,15);
+        dropT=t+d+rr2(14,34);
       }
       while(crackleT<now+1.4){
         const burst=Math.random()<.12?3+Math.floor(Math.random()*4):1;
-        for(let i=0;i<burst;i++)crackle(crackleT+i*rr2(.012,.035),rr2(.012,.04)*(burst>1?1.4:1));
-        crackleT+=rr2(.05,.55);
+        for(let i=0;i<burst;i++)crackle(crackleT+i*rr2(.012,.035),rr2(.006,.02)*(burst>1?1.4:1));
+        crackleT+=rr2(.12,.9);
       }
     }
   }
@@ -1184,12 +1184,18 @@ const AudioSys=(()=>{
     // little speaker overdriving on the loud notes, mains hum under it, and
     // a slow unsteady drift of the volume as the signal wanders
     musicBus=ac.createGain();musicBus.gain.value=0;
-    const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=380;hp.Q.value=.7;
-    const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2300;lp.Q.value=1.4;
-    const pk=ac.createBiquadFilter();pk.type='peaking';pk.frequency.value=1100;pk.Q.value=1.1;pk.gain.value=5;
+    // the band is only a little narrowed and the speaker only just
+    // breaks up: the piano stays a piano — cold, distant, and drowned
+    // in a long stone reverb of its own
+    const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=170;hp.Q.value=.7;
+    const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3600;lp.Q.value=.8;
+    const pk=ac.createBiquadFilter();pk.type='peaking';pk.frequency.value=1100;pk.Q.value=1.1;pk.gain.value=1.5;
     const ws=ac.createWaveShaper();{const n=2048,c=new Float32Array(n);
-      for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*5.5+.35*x*x)/Math.tanh(5.5);}ws.curve=c;ws.oversample='2x';}
-    radioBus=ac.createGain();radioBus.gain.value=.5;
+      for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*1.5)/Math.tanh(1.5);}ws.curve=c;ws.oversample='2x';}
+    radioBus=ac.createGain();radioBus.gain.value=.42;
+    const mverb=ac.createConvolver();mverb.buffer=makeImpulse(4.6,2.0,.1);   // a long, dark hall
+    const mwet=ac.createGain();mwet.gain.value=1.0;
+    radioBus.connect(mverb).connect(mwet).connect(master);
     // a warbling tape echo under the signal: a short modulated delay that
     // feeds back on itself through a dull filter, so every note smears
     // and ghosts a little out of tune behind itself
@@ -1198,15 +1204,15 @@ const AudioSys=(()=>{
     wob.connect(wg).connect(dly.delayTime);wob.start();
     const wob2=ac.createOscillator();wob2.frequency.value=.11;const wg2=ac.createGain();wg2.gain.value=.004;
     wob2.connect(wg2).connect(dly.delayTime);wob2.start();
-    const fb=ac.createGain();fb.gain.value=.38;const fbf=ac.createBiquadFilter();fbf.type='lowpass';fbf.frequency.value=1400;
-    const dgain=ac.createGain();dgain.gain.value=.8;
+    const fb=ac.createGain();fb.gain.value=.22;const fbf=ac.createBiquadFilter();fbf.type='lowpass';fbf.frequency.value=1400;
+    const dgain=ac.createGain();dgain.gain.value=.45;
     musicBus.connect(hp).connect(lp).connect(pk).connect(ws).connect(radioBus).connect(master);
     pk.connect(dly);dly.connect(fbf).connect(fb).connect(dly);dly.connect(dgain).connect(ws);
-    const drift=ac.createOscillator();drift.frequency.value=.09;const dg=ac.createGain();dg.gain.value=.07;
+    const drift=ac.createOscillator();drift.frequency.value=.09;const dg=ac.createGain();dg.gain.value=.04;
     drift.connect(dg).connect(radioBus.gain);drift.start();
-    const flut=ac.createOscillator();flut.frequency.value=1.7;const fg=ac.createGain();fg.gain.value=.025;
+    const flut=ac.createOscillator();flut.frequency.value=1.7;const fg=ac.createGain();fg.gain.value=.01;
     flut.connect(fg).connect(radioBus.gain);flut.start();
-    [[50,.007],[100,.004],[150,.002]].forEach(([hz,a])=>{const o=ac.createOscillator();o.frequency.value=hz;
+    [[50,.003],[100,.0015],[150,.0008]].forEach(([hz,a])=>{const o=ac.createOscillator();o.frequency.value=hz;
       const g=ac.createGain();g.gain.value=a;o.connect(g).connect(radioBus);o.start();});
     musicBus.gain.linearRampToValueAtTime(MUS_LVL,ac.currentTime+4);
     // tape wow and flutter, shared by every note
@@ -1808,13 +1814,22 @@ function makePew(x,z,parent,woodM){
   g.add(box(3.2,.06,.4,woodM,0,.2,.05));               // kneeler
   addWall(x-1.65,z,x+1.65,z,.38);
   const obs=obstacles[obstacles.length-1];
-  breakables.push({g,x,z,hw:1.7,hd:.4,hp:2,obs,parent});
+  breakables.push({g,x,z,hw:1.7,hd:.4,hp:2,obs,parent,kind:'pew'});
 }
 function breakPew(b){
   const i=breakables.indexOf(b);if(i<0)return;
   breakables.splice(i,1);
   const oi=obstacles.indexOf(b.obs);if(oi>=0)obstacles.splice(oi,1);
   b.parent.remove(b.g);
+  if(b.kind==='grave'){
+    // a gravestone comes apart into chunks of weathered stone
+    const gy=heightAt(b.x,b.z);
+    boneBurst(b.x,gy+.6,b.z,0x8a8f86,10,2.6);boneBurst(b.x,gy+.4,b.z,0x3a3d38,6,1.8);
+    for(let i=0;i<5;i++)planetPiece(new THREE.BoxGeometry(rr3(.18,.4),rr3(.12,.3),.16),b.mat,
+      b.x+rr3(-.2,.2),gy+.5+i*.15,b.z+rr3(-.1,.1),.12,2.2);
+    AudioSys.clang();AudioSys.arrowStone();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.14);G.vibr(20);
+    return;
+  }
   const y=PH+.6;
   boneBurst(b.x,y,b.z,0x5a4326,10,3.2);boneBurst(b.x,y,b.z,0x2e2216,6,2);   // splinters
   // and the planks: the seat, back, ends and kneeler come apart into
@@ -1880,9 +1895,9 @@ function strikeBreakables(x,z,fx,fz,reach,arc){
   return hitAny;
 }
 // the Warden shoulders through anything in its path
-function trampleBreakables(x,z,r){
+function trampleBreakables(x,z,r,kind){
   for(const b of breakables.slice())
-    if(Math.abs(x-b.x)<b.hw+r&&Math.abs(z-b.z)<b.hd+r)breakPew(b);
+    if((!kind||b.kind===kind)&&Math.abs(x-b.x)<b.hw+r&&Math.abs(z-b.z)<b.hd+r)breakPew(b);
 }
 
 function buildWorld(){
@@ -2099,6 +2114,8 @@ function buildWorld(){
         { // a stone is a thin slab, not a pillar: a short wall across its face
           const ry=m.rotation.y,lx=Math.cos(ry),lz=-Math.sin(ry);
           addWall(px-lx*.32,pz-lz*.32,px+lx*.32,pz+lz*.32,.2);
+          // and two blows break it
+          breakables.push({g:m,x:px,z:pz,hw:.45,hd:.45,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'grave',mat:M.grave});
         }
       }
     }
@@ -2386,11 +2403,11 @@ function buildHumanoid(o){
   }else if(o.hood){
     // the thief's hood: a deep cowl of cloth over a face that is only
     // shadow, a peak folded back, and a short mantle over the shoulders
-    head.add(M(GSph(.15*s,7,5),o.headMat,0,.27*s,-.02*s));
-    const face=M(GSph(.105*s,6,4),SOCK,0,.25*s,.075*s);face.scale.set(1,1.15,.7);head.add(face);
-    const peak=M(GCone(.12*s,.26*s,6),o.headMat,0,.44*s,-.07*s);peak.rotation.x=.55;head.add(peak);
-    const brow=M(GCyl(.155*s,.13*s,.06*s,7),o.headMat,0,.31*s,.0);head.add(brow);
-    torso.add(M(GCyl(.19*s,.36*s,.2*s,7),o.headMat,0,.5*s,0));           // the mantle
+    head.add(M(GSph(.16*s,7,5),o.headMat,0,.17*s,-.02*s));
+    const face=M(GSph(.105*s,6,4),SOCK,0,.19*s,.09*s);face.scale.set(1,1.15,.7);head.add(face);
+    const peak=M(GCone(.12*s,.26*s,6),o.headMat,0,.37*s,-.07*s);peak.rotation.x=.55;head.add(peak);
+    const brow=M(GCyl(.165*s,.14*s,.06*s,7),o.headMat,0,.25*s,.0);head.add(brow);
+    torso.add(M(GCyl(.19*s,.36*s,.3*s,7),o.headMat,0,.47*s,0));           // the mantle, up under the hood
   }else{
     // rounded barbute, slightly smaller for knightly proportions
     head.add(M(GCyl(.135*s,.145*s,.22*s,7),o.headMat,0,.17*s,0));
@@ -2464,7 +2481,7 @@ function buildHumanoid(o){
       w.add(M(GCyl(.034*s,.034*s,.16*s,6),gripM,0,0,0));                 // leather grip
       for(const sd of[1,-1])w.add(M(GSph(.02*s,4,3),gripM,0,tipY,tipZ*sd)); // nocks
       // the nocked arrow: shown while the string is drawn
-      const nock=makeArrow(s,gripM,bladeM);nock.position.y=tipY;nock.visible=false;w.add(nock);
+      const nock=makeArrow(s,mat('bone'),bladeM,mat('rag',{color:0xe8e0c8}));nock.position.y=tipY;nock.visible=false;w.add(nock);
       rig.bow={string:str,nock,tipY,R};
       rig.reach=0;rig.bladeMesh=limbMesh;
     }else if(o.weapon==='claymore'){
@@ -2640,11 +2657,11 @@ function resetPose(r){
 }
 /* an arrow: shaft along -y from the nock at the origin, a barbed head at
    the far end, two fletches at the nock */
-function makeArrow(s,shaftM,headM){
+function makeArrow(s,shaftM,headM,fletchM){
   const a=new THREE.Group();
-  a.add(M(GCyl(.011*s,.011*s,.78*s,4),shaftM,0,-.39*s,0));
-  const hd=M(GCone(.028*s,.1*s,4),headM,0,-.82*s,0);hd.rotation.x=Math.PI;hd.rotation.y=Math.PI/4;a.add(hd);
-  for(const sd of[1,-1]){const f=M(GBox(.004*s,.11*s,.05*s),shaftM,0,-.07*s,.028*s*sd);f.rotation.x=.3*sd;a.add(f);}
+  a.add(M(GCyl(.02*s,.02*s,.95*s,5),shaftM,0,-.47*s,0));
+  const hd=M(GCone(.045*s,.14*s,4),headM,0,-1.0*s,0);hd.rotation.x=Math.PI;hd.rotation.y=Math.PI/4;a.add(hd);
+  for(const sd of[1,-1]){const f=M(GBox(.006*s,.17*s,.075*s),fletchM||shaftM,0,-.1*s,.04*s*sd);f.rotation.x=.3*sd;a.add(f);}
   return a;
 }
 /* the bow at rest: carried loose in the left hand, down along the leg */
@@ -2671,7 +2688,7 @@ function poseBowDraw(r,q,t){
 /* the whirlwind: the blade held out level at the end of a sweep while the
    whole body turns under it — the pose is still, the spin is the rig's */
 function poseSpin(r,p){
-  poseLight(r,.6,0);
+  poseLight(r,.6,1);                                    // the backhand leads a turn to the right
   r.torso.rotation.x+=.14;
   r.legR.rotation.x=.3;r.legL.rotation.x=-.3;r.kneeL.rotation.x=.35;
   r.body.position.y=r.baseY-.08*r.s;
@@ -4015,7 +4032,7 @@ const player={
     AudioSys.loose(heavy);G.vibr(heavy?25:12);
     if(heavy)G.camShake=Math.max(G.camShake,.18);
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
-    const spd=kind==='light'?24:kind==='knock'?30:34;
+    const spd=kind==='light'?19:kind==='knock'?24:27;
     const dmg=kind==='light'?14:kind==='knock'?26:22;
     shootArrow(this.x+fx*.6,heightAt(this.x,this.z)+1.35,this.z+fz*.6,fx,fz,spd,dmg,kind);
   },
@@ -4513,7 +4530,7 @@ const player={
     else if(this.state==='spin'){
       const DUR=.95,p=this.t/DUR;
       if(p>.08&&p<.83){
-        this.facing+=17.6*dt;                                   // two full turns
+        this.facing-=17.6*dt;                                   // two full turns, clockwise from above
         this.x+=Math.sin(this.facing)*1.6*dt;this.z+=Math.cos(this.facing)*1.6*dt;
         const n=Math.floor((this.t-.08*DUR)/.18)+1;
         if(n>this.hitDone&&n<=4){
@@ -4564,6 +4581,7 @@ const player={
       const sp=this.t<TUMBLE?12.5*(1-easeIn(p)*.72)
         :3.2*(1-(this.t-TUMBLE)/(DUR-TUMBLE));            // rides out on the feet
       this.x+=this.rollDX*sp*dt;this.z+=this.rollDZ*sp*dt;
+      if(this.t<TUMBLE)trampleBreakables(this.x,this.z,.5,'pew');   // a roll through a pew breaks it
       // attack pressed mid-roll banks a rolling attack
       if(IN.swipe&&IN.swipe.kind==='atk')
         this.rollAtkQueued={d:IN.swipe.sx!==null?swipeWorld(IN.swipe):null};
@@ -5765,16 +5783,25 @@ function endRagdoll(e){
    and keeps it — the arrow is planted in the body and rides with it
    through every pose and fall. Into the ground or the stone, it sticks. */
 let _arrowM=null;
-function arrowMats(){if(!_arrowM)_arrowM=[mat('bark',{color:0x9a8a70}),mat('iron')];return _arrowM;}
+function arrowMats(){if(!_arrowM)_arrowM=[mat('bone'),mat('blade'),mat('rag',{color:0xe8e0c8})];return _arrowM;}
 function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
-  const [shM,hdM]=arrowMats();
-  const a=makeArrow(1,shM,hdM);
+  const [shM,hdM,flM]=arrowMats();
+  const a=makeArrow(1,shM,hdM,flM);
   a.position.set(x,y,z);
   a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(dx,0,dz).normalize());
+  // a pale glow rides the shaft in flight so the eye can follow it through the dark
+  const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:kind==='light'?0xfff0c0:0xffc890,
+    transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending}));
+  gl.scale.set(.55,.55,1);gl.position.y=-.55;a.add(gl);a._glow=gl;
   scene.add(a);
+  let trailT=0;
   const hitSet=new Set();let life=0,pierced=0;
   effects.push({update(dt){
-    life+=dt;
+    life+=dt;trailT+=dt;
+    if(trailT>.03){trailT=0;   // a short streak of fading motes behind it
+      const t=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xfff0c0,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));
+      t.scale.set(.32,.32,1);t.position.copy(a.position);scene.add(t);let tl=0;
+      effects.push({update(d){tl+=d;t.material.opacity=.5*(1-tl/.22);if(tl>.22){scene.remove(t);t.material.dispose();return false;}return true;}});}
     const st=dt*spd,nx=a.position.x+dx*st,nz=a.position.z+dz*st;
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||hitSet.has(e))continue;
@@ -5792,7 +5819,7 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
     a.position.x=nx;a.position.z=nz;
     const gy=heightAt(nx,nz),probe={x:nx,z:nz};pushOut(probe,.05);constrain(probe,G.bossActive);
     if(a.position.y<gy+.05||Math.hypot(probe.x-nx,probe.z-nz)>.01||life>1.8){
-      AudioSys.arrowStone();
+      AudioSys.arrowStone();if(a._glow)a._glow.visible=false;
       if(a.position.y<gy+.05)a.position.y=gy+.05;
       let t2=0;effects.push({update(d){t2+=d;if(t2>18){scene.remove(a);return false;}return true;}});
       return false;
@@ -5803,6 +5830,7 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
 function arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,through){
   const el=player.element;
   const stuck=through?a.clone():a;
+  stuck.traverse(o=>{if(o.isSprite)o.visible=false;});     // the glow goes out in the body
   stuck.position.set(cx-dx*.3,a.position.y,cz-dz*.3);
   stuck.quaternion.copy(a.quaternion);
   (e.rig.torso||e.rig.root).attach(stuck);

@@ -194,8 +194,10 @@ lancet glass between the buttresses, eight tall iron candle stands down
 the aisles burning with real, breathing light, and at the far end the
 altar on its dais under the rose window, where the moon comes straight
 down. The pews break —
-two hard blows and one bursts into splinters, and the Warden shoulders
-through them as it comes. Walk the nave and the
+two hard blows and one bursts into splinters and planks, a roll through
+one does the same, and the Warden shoulders through them as it comes.
+The gravestones out in the east break too: two blows and the slab
+comes apart into chunks. Walk the nave and the
 **Gravewarden of the Bonefield** rises from before the altar, with a
 second phase when its rage remembers itself. Fell it, claim the altar,
 and the field is yours.
@@ -253,14 +255,13 @@ Everything is generated at boot inside the one file:
   footfalls, whooshes, bone-splintering hits, the death gong, the
   Warden's roar, the Fallen One's shriek, the Unburied's retch — and
   the theme: a sad, decrepit piano in D minor at 58 bpm, built from
-  detuned partials — one of them nowhere near a harmonic — with a hammer
-  click and played through a deep, sagging tape wow, its notes arriving
-  late, soft, a little off the key, or not at all — and heard through an
-  old radio: a narrow band with the bottom and the air gone, a honk in the
-  mids, a hard asymmetric overdrive, a warbling tape echo that ghosts each
-  note out of tune behind itself, mains hum, needle crackle, and a signal
-  that drifts and now and then drops away altogether. It steps aside for
-  the Warden.
+  detuned partials with a hammer click and played through a slow tape
+  wow, its notes arriving late, soft, once in a while a little off the
+  key, or not at all — heard faint and far off through an old radio, the
+  band a little narrowed and the speaker only just breaking up, with a
+  quiet needle crackle, a warbling echo, and the signal dropping away now
+  and then — and drowned in a long, dark hall reverb of its own. It steps
+  aside for the Warden.
 - **No dependencies fetched at runtime.** Works offline.
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can
