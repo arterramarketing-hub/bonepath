@@ -938,7 +938,11 @@ const snapUniform={value:new THREE.Vector2(80,60)};
 let INTERNAL_H=216;
 function resize(){
   const w=innerWidth,h=innerHeight;
-  const ih=Math.min(INTERNAL_H,h), iw=Math.round(ih*w/h);
+  // the internal frame is sized off the SHORT side of the screen, so a
+  // phone held upright gets the same pixel density as one held sideways
+  // (before, portrait was rendered ~100 pixels wide and stretched)
+  const short=Math.min(w,h),k=Math.min(INTERNAL_H,short)/short;
+  const iw=Math.round(w*k),ih=Math.round(h*k);
   renderer.setSize(iw,ih,false);
   rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
   gradeMat.uniforms.uPx.value.set(2/iw,2/ih);
