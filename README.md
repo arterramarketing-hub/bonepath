@@ -13,7 +13,7 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   fullscreen.
 - **Desktop**: just open `index.html`. WASD to move (hold R to sprint) —
   J/Space strike (repeat for the combo), hold L and release for the
-  charged lunge, K/Shift roll, E interact, Z/C orbit camera, Esc pause.
+  charged double slash, K/Shift roll, E interact, Z/C orbit camera, Esc pause.
 - **Pause** — the **II** button top-right (or Esc) freezes the field and
   shows the run's stats — marrow, horrors felled, host remaining,
   deaths, time, the state of the two mini-bosses, the Warden and the
@@ -30,15 +30,16 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   - **tap at full sprint** — the **running thrust**: the blade is drawn
     back along the hip mid-stride and driven forward point-first, the
     run's momentum carrying it deep — narrow, but it reaches
-  - **hold still, then release** — the **charged lunge**. The knight
-    coils onto the rear leg with the point levelled at the prey; your
-    own glow draws in tight and burns hotter as the charge fills (a ring
-    and a chime at full). Let go and the whole body fires forward four
-    metres behind the point. A full charge hits ~2.5× a light strike
-    and **staggers anything that isn't the Warden outright** — brutes
-    included — and a stagger is where the knockdowns and telling blows
-    begin. Held too briefly, it's just a strike. You are wide open while
-    you wind it.
+  - **hold still, then release** — the **charged double slash**. The
+    knight coils onto the rear leg with the point levelled at the prey;
+    your own glow draws in tight and burns hotter as the charge fills (a
+    ring and a chime at full). Let go and the coil comes out as two fast
+    cuts with a driving step under each: the forward sweep, then the
+    backhand straight back across the same line. A full charge's pair
+    hits ~3× a light strike and its second cut **staggers anything that
+    isn't the Warden outright** — brutes included — and a stagger is
+    where the knockdowns and telling blows begin. Held too briefly, it's
+    just a strike. You are wide open while you wind it.
   - **flick in ANY direction** — dodge roll with i-frames that way
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
@@ -188,7 +189,7 @@ Everything is generated at boot inside the one file:
   glow pooling around them, and the cathedral — bone wainscot,
   lancet glass, rose window, a moonbeam standing over it — at the
   center.
-- **Characters** — low-poly articulated rigs (armored knight with cape,
+- **Characters** — low-poly articulated rigs (armored knight with a one-piece cape,
   barbute helm, and an ultra greatsword with a long two-hand haft,
   carried DS3-style — arm extended on the haft, guard at the shoulder,
   blade rising over it toward the back — swinging edge-first with the
@@ -200,8 +201,9 @@ Everything is generated at boot inside the one file:
   rolls, clawing-from-the-grave rises, and deaths that buckle at the
   knees and crumble into bone piles — all run through critically-damped
   pose smoothing so every joint eases instead of snapping. The knight's
-  long, broad cape hangs in five hinged panels that share one capped lift,
-  so it streams out behind a sprint instead of curling up over the back.
+  long, broad cape is a single strip of cloth pinned to a chain of five
+  hinges that share one capped lift, so it streams out behind a sprint
+  in one seamless piece instead of curling up over the back.
 - **Audio** — synthesized WebAudio, run through a deliberately grimy
   master chain (tape saturation, a dull low-pass and a stone-room reverb
   that deepens inside the nave): two bands of
@@ -209,12 +211,14 @@ Everything is generated at boot inside the one file:
   footfalls, whooshes, bone-splintering hits, the death gong, the
   Warden's roar, the Fallen One's shriek, the Unburied's retch — and
   the theme: a sad, decrepit piano in D minor at 58 bpm, built from
-  detuned partials with a hammer click and played through a slow tape
-  wow, its notes arriving late, soft, or not at all — and heard through
-  an old radio: a narrow band with the bottom and the air gone, a honk in
-  the mids, the little speaker overdriving on the loud notes, mains hum,
-  needle crackle, and a slow wander of the volume as the signal drifts.
-  It steps aside for the Warden.
+  detuned partials — one of them nowhere near a harmonic — with a hammer
+  click and played through a deep, sagging tape wow, its notes arriving
+  late, soft, a little off the key, or not at all — and heard through an
+  old radio: a narrow band with the bottom and the air gone, a honk in the
+  mids, a hard asymmetric overdrive, a warbling tape echo that ghosts each
+  note out of tune behind itself, mains hum, needle crackle, and a signal
+  that drifts and now and then drops away altogether. It steps aside for
+  the Warden.
 - **No dependencies fetched at runtime.** Works offline.
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can

@@ -195,7 +195,7 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; lunge &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: running thrust) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
+  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; double slash &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: running thrust) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
 </div>
 <div id="prompt"></div>
 <div id="pauseBtn">II</div>
@@ -219,7 +219,7 @@
       <div><span class="k">left thumb</span> — move · <span class="k">push far</span> — sprint</div>
       <div><span class="k">tap</span> — strike · keep tapping — the combo</div>
       <div><span class="k">tap at full sprint</span> — running thrust</div>
-      <div><span class="k">hold still, release</span> — charged lunge (staggers all but the Warden)</div>
+      <div><span class="k">hold still, release</span> — charged double slash (a full charge's second cut staggers all but the Warden)</div>
       <div><span class="k">flick any way</span> — roll that way · tap in the roll — rolling cut</div>
       <div><span class="k">blade-mark over a stunned foe: tap</span> — the finishing cut</div>
       <div><span class="k">hold &amp; drag</span> — turn the camera · walk into a mote — take it</div>
@@ -229,7 +229,7 @@
       <h3>Keyboard</h3>
       <div><span class="k">W A S D</span> — move · <span class="k">R</span> (hold) — sprint</div>
       <div><span class="k">J</span> or <span class="k">Space</span> — strike · repeat — the combo</div>
-      <div><span class="k">L</span> (hold, release) — charged lunge</div>
+      <div><span class="k">L</span> (hold, release) — charged double slash</div>
       <div><span class="k">K</span> or <span class="k">Shift</span> — roll · J in the roll — rolling cut</div>
       <div><span class="k">E</span> — claim the altar · <span class="k">Z / C</span> — turn the camera</div>
       <div><span class="k">Esc</span> — pause</div>
@@ -1075,7 +1075,7 @@ const AudioSys=(()=>{
      with a hammer click, played through a slow tape wow so every note
      wavers; notes come a little late, a little soft, and some never
      come at all — a piece remembered by something that is falling apart. */
-  let musicBus=null,radioBus=null,wow=null,musicOn=false,musicT0=0,musicIdx=0,musicLevel=1,crackleT=0;
+  let musicBus=null,radioBus=null,wow=null,musicOn=false,musicT0=0,musicIdx=0,musicLevel=1,crackleT=0,dropT=0;
   const MUS_LVL=.72;
   const BPS=58/60,LOOP_BEATS=64;
   const SCORE=(()=>{
@@ -1102,8 +1102,10 @@ const AudioSys=(()=>{
     g.gain.exponentialRampToValueAtTime(.0001,end);
     const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=midi>70?2400:2000;lp.Q.value=.4;
     g.connect(lp).connect(musicBus);
-    const det=rr2(-9,9);                                         // an old, untuned instrument
-    [[1,1,'triangle'],[2.004,.42,'triangle'],[3.011,.2,'sine'],[4.02,.09,'sine'],[5.06,.04,'sine']].forEach(([r,a,ty],i)=>{
+    const det=rr2(-18,18);                                       // an old, untuned instrument
+    // partials slightly off their harmonics, and one that has no business
+    // being there: the string is rusting and the note rings wrong
+    [[1,1,'triangle'],[2.006,.42,'triangle'],[3.02,.2,'sine'],[4.05,.09,'sine'],[5.1,.04,'sine'],[2.41,.11,'sine'],[6.73,.025,'square']].forEach(([r,a,ty],i)=>{
       const o=ac.createOscillator();o.type=ty;o.frequency.value=f*r;o.detune.value=det;
       wow.connect(o.detune);
       const og=ac.createGain();og.gain.setValueAtTime(a,t0);
@@ -1125,7 +1127,8 @@ const AudioSys=(()=>{
       if(t>now+1.4)break;
       if(Math.random()>.07){                                        // a note that never comes
         const late=Math.random()<.14?rr2(.03,.08):0;                 // a sticking key
-        piano(t+late+rr2(-.01,.01),ev.n,ev.v*rr2(.72,1.05),ev.d/BPS);
+        const wrong=Math.random()<.08?(Math.random()<.5?-1:1)*rr2(.4,1):0;   // a key that has slipped
+        piano(t+late+rr2(-.01,.01),ev.n+wrong,ev.v*rr2(.72,1.05),ev.d/BPS);
       }
       musicIdx++;
     }
@@ -1133,6 +1136,16 @@ const AudioSys=(()=>{
     // then a burst of them — laid in over the piano, never in time with it
     if(radioBus){
       if(crackleT<now)crackleT=now;
+      // and now and then the signal falls away for a moment — a dip
+      // with a burst of dust in it, then it comes back
+      if(dropT===0)dropT=now+rr2(6,14);
+      if(dropT<now+1.4){
+        const g=radioBus.gain,d=rr2(.08,.45),t=dropT,lo=rr2(.04,.16);
+        g.setValueAtTime(.5,t);g.linearRampToValueAtTime(lo,t+.025);
+        g.setValueAtTime(lo,t+d);g.linearRampToValueAtTime(.5,t+d+.09);
+        for(let i=0;i<5;i++)crackle(t+rr2(0,d),rr2(.03,.06));
+        dropT=t+d+rr2(5,15);
+      }
       while(crackleT<now+1.4){
         const burst=Math.random()<.12?3+Math.floor(Math.random()*4):1;
         for(let i=0;i<burst;i++)crackle(crackleT+i*rr2(.012,.035),rr2(.012,.04)*(burst>1?1.4:1));
@@ -1157,10 +1170,21 @@ const AudioSys=(()=>{
     const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=380;hp.Q.value=.7;
     const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2300;lp.Q.value=1.4;
     const pk=ac.createBiquadFilter();pk.type='peaking';pk.frequency.value=1100;pk.Q.value=1.1;pk.gain.value=5;
-    const ws=ac.createWaveShaper();{const n=1024,c=new Float32Array(n);
-      for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*2.6)/Math.tanh(2.6);}ws.curve=c;ws.oversample='2x';}
+    const ws=ac.createWaveShaper();{const n=2048,c=new Float32Array(n);
+      for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*5.5+.45*x*x-.45)/Math.tanh(5.5);}ws.curve=c;ws.oversample='2x';}
     radioBus=ac.createGain();radioBus.gain.value=.5;
+    // a warbling tape echo under the signal: a short modulated delay that
+    // feeds back on itself through a dull filter, so every note smears
+    // and ghosts a little out of tune behind itself
+    const dly=ac.createDelay(.1);dly.delayTime.value=.021;
+    const wob=ac.createOscillator();wob.frequency.value=.73;const wg=ac.createGain();wg.gain.value=.0045;
+    wob.connect(wg).connect(dly.delayTime);wob.start();
+    const wob2=ac.createOscillator();wob2.frequency.value=.11;const wg2=ac.createGain();wg2.gain.value=.007;
+    wob2.connect(wg2).connect(dly.delayTime);wob2.start();
+    const fb=ac.createGain();fb.gain.value=.38;const fbf=ac.createBiquadFilter();fbf.type='lowpass';fbf.frequency.value=1400;
+    const dgain=ac.createGain();dgain.gain.value=.8;
     musicBus.connect(hp).connect(lp).connect(pk).connect(ws).connect(radioBus).connect(master);
+    pk.connect(dly);dly.connect(fbf).connect(fb).connect(dly);dly.connect(dgain).connect(ws);
     const drift=ac.createOscillator();drift.frequency.value=.09;const dg=ac.createGain();dg.gain.value=.07;
     drift.connect(dg).connect(radioBus.gain);drift.start();
     const flut=ac.createOscillator();flut.frequency.value=1.7;const fg=ac.createGain();fg.gain.value=.025;
@@ -1170,7 +1194,7 @@ const AudioSys=(()=>{
     musicBus.gain.linearRampToValueAtTime(MUS_LVL,ac.currentTime+4);
     // tape wow and flutter, shared by every note
     wow=ac.createGain();wow.gain.value=1;
-    [[.31,7],[.055,5],[4.7,1.2]].forEach(([hz,cents])=>{
+    [[.31,16],[.055,11],[5.3,2.4],[.017,22]].forEach(([hz,cents])=>{
       const l=ac.createOscillator();l.frequency.value=hz;
       const lg=ac.createGain();lg.gain.value=cents;l.connect(lg).connect(wow);l.start();});
     musicT0=ac.currentTime+1.5;musicIdx=0;
@@ -2416,17 +2440,30 @@ function buildHumanoid(o){
         }
       }
     }else{
+    // the hinges are empty groups: they only carry the angles. The cloth
+    // itself is ONE mesh — a strip of quads whose rows are pinned to the
+    // hinge chain every frame — so there are no seams and no gaps between
+    // the panels, and the light runs smoothly down its length
     for(let i=0;i<lens.length;i++){
       const g=new THREE.Group();
       g.position.set(0,py,i===0?-.2*s:0);
-      const seg=new THREE.Mesh(new THREE.PlaneGeometry((.7+.03*i)*s,lens[i]),
-        new THREE.MeshLambertMaterial({map:capeM.map,side:THREE.DoubleSide}));
-      psx(seg.material);
-      seg.position.y=-lens[i]/2;
-      g.add(seg);parent.add(g);
-      rig.cape.push(g);
+      parent.add(g);rig.cape.push(g);
       parent=g;py=-lens[i];
-    }}
+    }
+    const ROWS=lens.length+1,COLS=3;
+    const geo=new THREE.BufferGeometry();
+    const pos=new Float32Array(ROWS*COLS*3),uv=new Float32Array(ROWS*COLS*2),idx=[];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){uv[(r*COLS+c)*2]=c/(COLS-1);uv[(r*COLS+c)*2+1]=1-r/(ROWS-1);}
+    for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){
+      const a=r*COLS+c,b=a+1,d=a+COLS,e=d+1;idx.push(a,d,b,b,d,e);}
+    geo.setIndex(idx);
+    geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+    const cm=capeM.clone();cm.side=THREE.DoubleSide;psx(cm);
+    const mesh=new THREE.Mesh(geo,cm);mesh.frustumCulled=false;
+    torso.add(mesh);
+    rig.capeMesh=mesh;rig.capeLens=lens;rig.capeW=lens.map((_,i)=>(.7+.03*i)*s);rig.capeS=s;
+    }
   }
   if(o.heart){ // the Warden's ember, dim until phase two
     const h=new THREE.Mesh(GSph(.1*s,6,5),
@@ -2758,6 +2795,36 @@ function poseRun(r,t){
   r._heel=strike;
   r._spNow=1.6;
 }
+/* pin the one-piece cape's rows to the hinge chain: each row lies in its
+   hinge's frame, the hem hangs off the last hinge, the top rows wrap a
+   little forward around the shoulders */
+const _cm=new THREE.Matrix4(),_cv=new THREE.Vector3();
+function fitCape(r){
+  const pos=r.capeMesh.geometry.attributes.position,N=r.capeLens.length,s=r.capeS;
+  _cm.identity();
+  const put=(row,y)=>{
+    const w=r.capeW[Math.min(row,N-1)],wrap=.06*s*(1-row/N);
+    for(let c=0;c<3;c++){
+      _cv.set((c-1)*w/2,y,c===1?0:wrap).applyMatrix4(_cm);
+      pos.setXYZ(row*3+c,_cv.x,_cv.y,_cv.z);
+    }
+  };
+  for(let i=0;i<N;i++){
+    const g=r.cape[i];g.updateMatrix();_cm.multiply(g.matrix);
+    put(i,0);
+    if(i===N-1)put(N,-r.capeLens[i]);
+  }
+  pos.needsUpdate=true;
+  r.capeMesh.geometry.computeVertexNormals();
+}
+/* the double slash: out of the coil, two cuts flung one after the other
+   with almost no wind-up between them — the forward sweep, then the
+   backhand straight back across the same line */
+function poseDouble(r,p){
+  if(p<.5)poseLight(r,.3+.7*(p/.5),0);
+  else poseLight(r,.22+.78*((p-.5)/.5),1);
+  r.torso.rotation.x+=.1;                               // leaning into both
+}
 /* the charged lunge's wind-up: the blade drawn back along the right
    hip, point levelled at the prey, the whole body coiled onto the
    rear leg. q = how full the charge is; the coil tightens with it */
@@ -2988,6 +3055,7 @@ function updateRigExtras(r,dt){
       g.rotation.x=total*share[k]+Math.sin(t*(3.2+k)+k*1.7)*(.03+sw*.045);
       g.rotation.z=Math.sin(t*2.1+k*2.3)*.04*(1+sw)+(g._side||0)*(k===0?.07:.015);
     }
+    if(r.capeMesh)fitCape(r);
   }
   if(r.heart&&r.heartOn){
     const p=1+Math.sin(G.time*7)*.25;
@@ -3049,7 +3117,7 @@ function makeWardenRig(){
     torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:boneM,
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'great',skeletal:true,hunch:.14,horns:true,
-    eyes:0xff5533,cape:mat('rag'),heart:true,
+    eyes:0xff5533,heart:true,
   });
   return r;
 }
@@ -3863,7 +3931,7 @@ const player={
         AudioSys.clang();G.hitstop=Math.max(G.hitstop,.14);G.camShake=Math.max(G.camShake,.4);G.vibr([30,20,60]);
         dmg=Math.round(dmg*.5);
       }
-      // the charged lunge breaks anything that isn't the Warden outright
+      // a full charge's second cut breaks anything that isn't the Warden outright
       e.takeHit(dmg,opts.staggerAll&&!e.boss?99:poise,this.x,this.z,kb);
       if(parry&&e.hp>0&&e.state!=='down'&&e.state!=='scatter'){
         e.state='stagger';e.t=0;e.poise=0;e.attack=null;      // the parry opens them up
@@ -4011,12 +4079,13 @@ const player={
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       AudioSys.windup();
     };
-    const startLunge=()=>{
-      this.state='lunge';this.t=0;this.hitDone=false;this.queued=false;this.qDir=null;
+    // the double slash: the coil lets go into two fast cuts, forward and back
+    const startDouble=()=>{
+      this.state='dslash';this.t=0;this.hitDone=0;this.sfxDone=0;this.queued=false;this.qDir=null;
       this.chargeFull=this.chargeT>=.6;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
-      AudioSys.heavySwing();G.glowFlash=1;G.camShake=Math.max(G.camShake,.12);
-      boneBurst(this.x,.15,this.z,0x4a463a,5,1.6);   // the rear foot tears the ground
+      G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
+      boneBurst(this.x,.15,this.z,0x4a463a,4,1.4);   // the rear foot tears the ground
     };
     // the dash cut: a wide low sweep flung straight out of a full sprint
     const startSprintAtk=()=>{
@@ -4110,30 +4179,35 @@ const player={
       const released=IN.chargeRelease||!IN.chargeHeld;
       if(released||this.chargeT>1.8){
         if(this.chargeT<.3)startAttack(null);   // barely held: it's just a strike
-        else startLunge();
+        else startDouble();
       }
     }
-    else if(this.state==='lunge'){
-      const DUR=.62,p=this.t/DUR;
-      // fires off the rear leg and covers ~4m, dying off through the extension
-      if(p<.42){
-        const sp=15*(1-easeIn(p/.42)*.85);
+    else if(this.state==='dslash'){
+      const DUR=.64,p=this.t/DUR;
+      // a short driving step under each cut
+      if(p<.2||(p>.5&&p<.7)){
+        const sp=p<.2?7:6;
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
       }
-      // the point is live through the drive: it finds whatever it reaches first
-      if(!this.hitDone&&p>=.12&&p<.6){
-        const hit=this.meleeHit(this.chargeFull?34:24,2.7,.75,4,1.1,{staggerAll:true,quietMiss:true,trail:'thrust'});
-        if(hit){this.hitDone=true;AudioSys.hit();
-          G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.15);}
-      }
-      if(!this.hitDone&&p>=.6){this.hitDone=true;
-        slashArc(this.x+Math.sin(this.facing)*.9,this.z+Math.cos(this.facing)*.9,1.05,this.facing,0x8a8877);}
-      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.55){
+      if(foe&&p<.12)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
+      if(this.sfxDone<1&&p>=.08){this.sfxDone=1;AudioSys.swing();}
+      if(this.sfxDone<2&&p>=.6){this.sfxDone=2;AudioSys.swing();}
+      const dmg=this.chargeFull?22:16;
+      // the first cut sweeps right to left; the second comes straight back,
+      // and a full coil's second cut breaks anything that isn't the Warden
+      if(this.hitDone<1&&p>=.2){this.hitDone=1;
+        const hit=this.meleeHit(dmg,2.7,1.2,2,.45,{trail:'sweep',dir:1});
+        if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.25);}}
+      if(this.hitDone<2&&p>=.72){this.hitDone=2;
+        const hit=this.meleeHit(dmg,2.7,1.2,3,.7,{trail:'sweep',dir:-1,staggerAll:this.chargeFull});
+        if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);}}
+      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.6){
         this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
       }
       if(p>=1){
         if(this.queued){ // flows on into the chain
-          this.state='attack';this.t=0;this.combo=0;this.chain=1;
+          this.state='attack';this.t=0;this.combo=2;this.chain=2;
+          this.atkDur=this.element==='lightning'?.5:.68;
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
@@ -4269,7 +4343,7 @@ const player={
     // ---- pose ----
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
-    r.ikLeftArm=['free','attack','rollatk','charge','lunge','sprintatk','execute'].includes(this.state);
+    r.ikLeftArm=['free','attack','rollatk','charge','dslash','sprintatk','execute'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -4278,7 +4352,7 @@ const player={
       else poseIdle(r,t);
     }
     else if(this.state==='charge')poseCharge(r,this.chargeT/.6,t);
-    else if(this.state==='lunge')poseLunge(r,Math.min(1,this.t/.62));
+    else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/.64));
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/.5));
     else if(this.state==='execute')poseHeavy(r,Math.min(1,this.t/.9));
     else if(this.state==='roll'){
