@@ -839,16 +839,14 @@ function matNS(name,extra){
 const AudioSys=(()=>{
   let ac=null,master=null,noiseBuf=null,started=false;
   let verbSend=null,verbWet=null,space=0;
-  /* the whole mix goes through a grimy chain — a 4-bit-ish crush, tape
-     saturation, a dull low-pass and a stone-room reverb — so nothing
-     comes out clean. Old console, old cathedral. */
+  /* the whole mix goes through a grimy chain — tape saturation, a dull
+     low-pass and a stone-room reverb — so nothing comes out clean. (No
+     bit-crush: quantizing the quiet, continuous sounds — wind, drone,
+     piano tails — turned them into static.) */
   function crushCurve(){
-    const n=2048,c=new Float32Array(n),steps=40;                 // coarse steps = a crushed, gritty edge
+    const n=2048,c=new Float32Array(n);
     for(let i=0;i<n;i++){const x=i/(n-1)*2-1;
-      // unity gain for quiet signals (so ambience stays quiet), soft
-      // saturation only as things get loud
-      const sat=Math.tanh(x*1.6)/1.6*1.08;
-      c[i]=Math.round(sat*steps)/steps*.85+sat*.15;}
+      c[i]=Math.tanh(x*1.6)/1.6*1.08;}                           // unity for quiet, soft-clipped loud
     return c;
   }
   function makeImpulse(sec,decay,tone){
@@ -892,21 +890,21 @@ const AudioSys=(()=>{
     // graveyard wind: looped noise through a slowly wandering lowpass
     const src=ac.createBufferSource();src.buffer=noiseBuf;src.loop=true;
     const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=320;f.Q.value=.8;
-    const g=ac.createGain();g.gain.value=.007;                    // faint: a breath at the edge of hearing
+    const g=ac.createGain();g.gain.value=.022;                    // faint: a breath at the edge of hearing
     src.connect(f).connect(g).connect(master);src.start();
     const lfo=ac.createOscillator();lfo.frequency.value=.07;
     const lg=ac.createGain();lg.gain.value=190;
     lfo.connect(lg).connect(f.frequency);lfo.start();
     const lfo2=ac.createOscillator();lfo2.frequency.value=.045;
-    const lg2=ac.createGain();lg2.gain.value=.003;
+    const lg2=ac.createGain();lg2.gain.value=.01;
     lfo2.connect(lg2).connect(g.gain);lfo2.start();
     // a second, higher wind band: grit and grass hiss riding over the low moan
     const src2=ac.createBufferSource();src2.buffer=noiseBuf;src2.loop=true;src2.playbackRate.value=1.9;
     const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1400;f2.Q.value=.7;
-    const g2=ac.createGain();g2.gain.value=.002;
+    const g2=ac.createGain();g2.gain.value=.006;
     src2.connect(f2).connect(g2).connect(master);src2.start();
     const lfo3=ac.createOscillator();lfo3.frequency.value=.11;
-    const lg3=ac.createGain();lg3.gain.value=.0015;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
+    const lg3=ac.createGain();lg3.gain.value=.004;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
     // the field is never silent: far-off creaks, a crow, a chain — sparse and random
     const farOff=()=>{
       if(!ac)return;const t=now(),r=Math.random();
