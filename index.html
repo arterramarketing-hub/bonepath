@@ -1075,7 +1075,8 @@ const AudioSys=(()=>{
      with a hammer click, played through a slow tape wow so every note
      wavers; notes come a little late, a little soft, and some never
      come at all — a piece remembered by something that is falling apart. */
-  let musicBus=null,wow=null,musicOn=false,musicT0=0,musicIdx=0,musicLevel=1;
+  let musicBus=null,radioBus=null,wow=null,musicOn=false,musicT0=0,musicIdx=0,musicLevel=1,crackleT=0;
+  const MUS_LVL=.72;
   const BPS=58/60,LOOP_BEATS=64;
   const SCORE=(()=>{
     const ev=[];
@@ -1128,11 +1129,45 @@ const AudioSys=(()=>{
       }
       musicIdx++;
     }
+    // the radio's own noise: dust on the needle — a tick, a tick, now and
+    // then a burst of them — laid in over the piano, never in time with it
+    if(radioBus){
+      if(crackleT<now)crackleT=now;
+      while(crackleT<now+1.4){
+        const burst=Math.random()<.12?3+Math.floor(Math.random()*4):1;
+        for(let i=0;i<burst;i++)crackle(crackleT+i*rr2(.012,.035),rr2(.012,.04)*(burst>1?1.4:1));
+        crackleT+=rr2(.05,.55);
+      }
+    }
+  }
+  function crackle(t0,peak){
+    const s=ac.createBufferSource();s.buffer=noiseBuf;s.playbackRate.value=rr2(.7,1.3);
+    const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=rr2(1800,4500);f.Q.value=rr2(1.5,4);
+    const g=ac.createGain();g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(peak,t0+.001);
+    g.gain.exponentialRampToValueAtTime(.0001,t0+rr2(.006,.03));
+    s.connect(f).connect(g).connect(radioBus);s.start(t0);s.stop(t0+.05);
   }
   function musicStart(){
     if(!ac||musicOn)return;musicOn=true;
-    musicBus=ac.createGain();musicBus.gain.value=0;musicBus.connect(master);
-    musicBus.gain.linearRampToValueAtTime(.42,ac.currentTime+4);
+    // the piano is not in the room. It comes through an old radio: a
+    // narrow band with the bottom and the air gone, a honk in the mids, the
+    // little speaker overdriving on the loud notes, mains hum under it, and
+    // a slow unsteady drift of the volume as the signal wanders
+    musicBus=ac.createGain();musicBus.gain.value=0;
+    const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=380;hp.Q.value=.7;
+    const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2300;lp.Q.value=1.4;
+    const pk=ac.createBiquadFilter();pk.type='peaking';pk.frequency.value=1100;pk.Q.value=1.1;pk.gain.value=5;
+    const ws=ac.createWaveShaper();{const n=1024,c=new Float32Array(n);
+      for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*2.6)/Math.tanh(2.6);}ws.curve=c;ws.oversample='2x';}
+    radioBus=ac.createGain();radioBus.gain.value=.5;
+    musicBus.connect(hp).connect(lp).connect(pk).connect(ws).connect(radioBus).connect(master);
+    const drift=ac.createOscillator();drift.frequency.value=.09;const dg=ac.createGain();dg.gain.value=.07;
+    drift.connect(dg).connect(radioBus.gain);drift.start();
+    const flut=ac.createOscillator();flut.frequency.value=1.7;const fg=ac.createGain();fg.gain.value=.025;
+    flut.connect(fg).connect(radioBus.gain);flut.start();
+    [[50,.007],[100,.004],[150,.002]].forEach(([hz,a])=>{const o=ac.createOscillator();o.frequency.value=hz;
+      const g=ac.createGain();g.gain.value=a;o.connect(g).connect(radioBus);o.start();});
+    musicBus.gain.linearRampToValueAtTime(MUS_LVL,ac.currentTime+4);
     // tape wow and flutter, shared by every note
     wow=ac.createGain();wow.gain.value=1;
     [[.31,7],[.055,5],[4.7,1.2]].forEach(([hz,cents])=>{
@@ -1146,7 +1181,7 @@ const AudioSys=(()=>{
     if(!ac||!musicBus||level===musicLevel)return;musicLevel=level;
     musicBus.gain.cancelScheduledValues(ac.currentTime);
     musicBus.gain.setValueAtTime(musicBus.gain.value,ac.currentTime);
-    musicBus.gain.linearRampToValueAtTime(.42*level,ac.currentTime+(level>0?3:1.2));
+    musicBus.gain.linearRampToValueAtTime(MUS_LVL*level,ac.currentTime+(level>0?3:1.2));
   }
   // how much stone is around the pilgrim: 0 = open field, 1 = inside the nave
   function setSpace(x){
@@ -1319,15 +1354,31 @@ const AudioSys=(()=>{
     windup(){const t=now();
       noise(t,{peak:.1,att:.15,dec:.13,f0:260,f1:2100,type:'bandpass',Q:2.4});
       tone(t+.05,{f:180,f2:330,type:'triangle',peak:.03,att:.1,dec:.12});},
-    // the finishing cut: a colossal downstroke, a wet cleave, and a bell for the dead
+    // the finishing cut begins: the greatsword hauled up through slowed
+    // air, a long rising drag with the haft groaning under it
     cleave(){const t=now();
-      noise(t,{peak:.3,att:.12,dec:.3,f0:160,f1:1400,type:'bandpass',Q:1.4});  // the blade comes down
-      tone(t,{f:70,f2:32,type:'sine',peak:.3,att:.08,dec:.35});
-      tone(t+.3,{f:150,f2:38,type:'sine',peak:.45,dec:.32});                   // the body
-      noise(t+.3,{peak:.4,att:.001,dec:.16,f0:2600,f1:400});                   // bone parting
-      noise(t+.32,{peak:.28,att:.002,dec:.28,f0:700,f1:150});                   // the wet of it
-      for(let i=0;i<5;i++)noise(t+.34+i*.03,{peak:.08,att:.001,dec:.03,f0:rr2(1400,3000),f1:700,type:'bandpass',Q:4});
-      [1,2.76,4.07].forEach((r,i)=>tone(t+.32,{f:118*r,f2:118*r*.985,type:'sine',peak:.12/(i+1),dec:1.6})); // the bell
+      noise(t,{peak:.24,att:.55,dec:.6,f0:110,f1:1100,type:'bandpass',Q:1.4});
+      tone(t,{f:52,f2:30,type:'sine',peak:.22,att:.4,dec:.7});
+      tone(t+.1,{f:64,f2:44,type:'sawtooth',peak:.03,att:.5,dec:.5});
+    },
+    // ...and lands: the messy part. Blade into meat, the spine giving, a
+    // long wet tear as the body comes apart, the gush, hot splatter on the
+    // flags, the two halves thudding down, and a bell for the dead
+    gore(){const t=now();
+      tone(t,{f:170,f2:34,type:'sine',peak:.55,att:.003,dec:.34});                     // the blow lands
+      noise(t,{peak:.42,att:.001,dec:.12,f0:3200,f1:500});                              // bone cracks
+      noise(t+.01,{peak:.34,att:.002,dec:.09,f0:1800,f1:300,type:'bandpass',Q:2});
+      for(let i=0;i<7;i++)                                                              // the wet tearing
+        noise(t+.04+i*.045,{peak:.2-i*.015,att:.008,dec:.12,f0:rr2(300,900),f1:rr2(90,200),type:'bandpass',Q:1.1});
+      noise(t+.06,{peak:.3,att:.08,dec:.5,f0:900,f1:90});                              // the gush
+      tone(t+.08,{f:210,f2:70,type:'triangle',peak:.08,att:.05,dec:.4});                // something hollow lets go
+      for(let i=0;i<9;i++)                                                              // splatter on stone
+        noise(t+.18+i*rr2(.03,.07),{peak:rr2(.05,.11),att:.001,dec:rr2(.02,.05),f0:rr2(1200,2600),f1:600,type:'bandpass',Q:3.5});
+      for(let i=0;i<4;i++)noise(t+.12+i*.05,{peak:.09,att:.001,dec:.02,f0:rr2(2000,3600),f1:1500,type:'bandpass',Q:6}); // splinters
+      tone(t+.55,{f:90,f2:36,type:'sine',peak:.28,att:.01,dec:.28});                     // the halves hit the floor
+      tone(t+.7,{f:80,f2:36,type:'sine',peak:.22,att:.01,dec:.26});
+      noise(t+.56,{peak:.14,att:.005,dec:.2,f0:500,f1:120});
+      [1,2.76,4.07].forEach((r,i)=>tone(t+.05,{f:118*r,f2:118*r*.985,type:'sine',peak:.12/(i+1),dec:1.8})); // the bell
     },
     // the fallen one's voice: a glass-edged shriek bending down into a choir of wrong notes
     screech(){const t=now();
@@ -2338,11 +2389,11 @@ function buildHumanoid(o){
   const lR=makeLeg(1),lL=makeLeg(-1);
   rig.legR=lR.hip;rig.kneeR=lR.kn;rig.legL=lL.hip;rig.kneeL=lL.kn;
 
-  /* cape: three hinged segments that drag behind movement */
+  /* cape: five hinged segments, broad and long as a knight's, that drag behind movement */
   if(o.cape){
     const capeM=o.cape;
     let parent=torso,py=.5*s;
-    const lens=[.3*s,.26*s,.22*s];
+    const lens=[.32*s,.3*s,.27*s,.25*s,.23*s];
     rig.cape=[];
     if(o.capeRag){
       // the reference's cape: two broad panels hung from the shoulder
@@ -2368,7 +2419,7 @@ function buildHumanoid(o){
     for(let i=0;i<lens.length;i++){
       const g=new THREE.Group();
       g.position.set(0,py,i===0?-.2*s:0);
-      const seg=new THREE.Mesh(new THREE.PlaneGeometry((.5-.06*i)*s,lens[i]),
+      const seg=new THREE.Mesh(new THREE.PlaneGeometry((.7+.03*i)*s,lens[i]),
         new THREE.MeshLambertMaterial({map:capeM.map,side:THREE.DoubleSide}));
       psx(seg.material);
       seg.position.y=-lens[i]/2;
@@ -2927,12 +2978,15 @@ function updateRigExtras(r,dt){
   if(r.cape){
     r.capeSway+=((r._spNow||0)-r.capeSway)*Math.min(1,6*dt);
     const t=G.time,sw=r.capeSway;
+    // positive x pitches the hanging cloth BACK, away from the spine. The
+    // whole cape lifts by ONE capped angle that is shared down the chain —
+    // most of it at the shoulder, less at each hinge below — so at a
+    // sprint it streams out behind the body and never curls up over it
+    const total=Math.min(.95,.1+sw*.5),share=[.42,.24,.16,.11,.07];
     for(let i=0;i<r.cape.length;i++){
       const g=r.cape[i],k=i%5;
-      // positive x pitches the hanging cloth BACK, away from the spine;
-      // it streams out further the faster the body moves
-      g.rotation.x=(.1+sw*.55+Math.sin(t*(3.2+k)+k*1.7)*(.05+sw*.1));
-      g.rotation.z=Math.sin(t*2.1+k*2.3)*.05*(1+sw)+(g._side||0)*(k===0?.07:.015);
+      g.rotation.x=total*share[k]+Math.sin(t*(3.2+k)+k*1.7)*(.03+sw*.045);
+      g.rotation.z=Math.sin(t*2.1+k*2.3)*.04*(1+sw)+(g._side||0)*(k===0?.07:.015);
     }
   }
   if(r.heart&&r.heartOn){
@@ -3708,7 +3762,8 @@ const player={
     if(!on&&this.element) // don't let the hurt-flash wipe the imbue glow
       this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
   },
-  iframes(){return this.state==='roll'&&this.t>.03&&this.t<.38;},
+  // the roll's window, and the whole of the finishing cut: nothing touches the executioner
+  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute';},
   takeHit(dmg,fx,fz,heavy){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
@@ -4033,6 +4088,7 @@ const player={
         if(!this.hitDone&&p>=.66){
           this.hitDone=true;
           G.camShake=1.1;G.hitstop=.24;G.vibr([90,40,140]);
+          AudioSys.gore();
           splitEnemy(e,this.facing);
           sparkBurst(e.x,1.2,e.z,18);
           bloodSpray(e.x,1.3,e.z,22,1.6);
@@ -5154,13 +5210,21 @@ function splitEnemy(e,facing){
   const n=new THREE.Vector3(Math.cos(facing),0,-Math.sin(facing));      // across the cut
   const c=new THREE.Vector3(e.x,0,e.z);
   const halves=[];
+  // the cut lives in the body's OWN space: a plane through the root, its
+  // normal the blade's line brought into the rig's frame. Every frame it is
+  // pushed back out through the half's world matrix, so when a half topples
+  // the clipped face topples with it — the other half's flesh never swings
+  // back into view
+  const nl=n.clone().applyAxisAngle(new THREE.Vector3(0,1,0),-e.facing);
   for(const side of [1,-1]){
     const h=r.root.clone(true);
-    const plane=new THREE.Plane(n.clone().multiplyScalar(side),-n.dot(c)*side);
+    const local=new THREE.Plane(nl.clone().multiplyScalar(side),.01);
+    const plane=local.clone();
     h.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.clippingPlanes=[plane];
       o.material.transparent=true;o.material.side=THREE.DoubleSide;}});
     h.position.set(e.x,gh,e.z);h.rotation.set(0,e.facing,0);
-    scene.add(h);halves.push({h,side,plane,mats:[]});
+    scene.add(h);h.updateMatrixWorld(true);plane.copy(local).applyMatrix4(h.matrixWorld);
+    halves.push({h,side,plane,local,mats:[]});
     h.traverse(o=>{if(o.isMesh)halves[halves.length-1].mats.push(o.material);});
   }
   let life=0;
@@ -5173,8 +5237,8 @@ function splitEnemy(e,facing){
       H.h.rotation.x=H.side*1.35*q*Math.sin(facing);
       H.h.position.x=e.x+n.x*H.side*(.15+.5*q);H.h.position.z=e.z+n.z*H.side*(.15+.5*q);
       H.h.position.y=gh-.25*q;
-      // the plane rides with the half so the clipped face stays true
-      H.plane.constant=-n.dot(new THREE.Vector3(H.h.position.x,0,H.h.position.z))*H.side+.02;
+      // the plane rides with the half — through its fall — so the clipped face stays true
+      H.h.updateMatrixWorld(true);H.plane.copy(H.local).applyMatrix4(H.h.matrixWorld);
       if(life>1.6)for(const m of H.mats)m.opacity=Math.max(0,1-(life-1.6)/.7);
     }
     if(life>.05&&life<.35&&Math.random()<dt*20)bloodSpray(e.x,1.0,e.z,3,.8);
@@ -5647,7 +5711,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},splitEnemy,effects};
 
 })(); /* end BONEPATH */
 </script>

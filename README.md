@@ -49,9 +49,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     a bright blade-mark hangs over it while it reels. Tap with it in
     reach and the knight steps in, hauls the greatsword overhead while
     the world holds its breath, and brings it down: the body is cleaved
-    clean in two, the halves toppling apart, the screen jolting with the
-    weight of it. Brutes included; the Warden and the two that are not
-    hollows are beyond it
+    clean in two — truly in two, each half toppling its own way with the
+    cut face showing — to a wet, splintering, spattering mess of a sound,
+    the screen jolting with the weight of it. You are untouchable for the
+    whole of the cut. Brutes included; the Warden and the two that are
+    not hollows are beyond it
 - **Rolling attack** — tap during a roll (or right as it ends) and
   the knight rises out of the tuck with a fast upward cut that flows
   into the normal chain
@@ -197,18 +199,22 @@ Everything is generated at boot inside the one file:
   animation: counter-rotating walk cycles, telegraphed windups, combos,
   rolls, clawing-from-the-grave rises, and deaths that buckle at the
   knees and crumble into bone piles — all run through critically-damped
-  pose smoothing so every joint eases instead of snapping. Capes drag
-  with movement.
+  pose smoothing so every joint eases instead of snapping. The knight's
+  long, broad cape hangs in five hinged panels that share one capped lift,
+  so it streams out behind a sprint instead of curling up over the back.
 - **Audio** — synthesized WebAudio, run through a deliberately grimy
-  master chain (a coarse bit-crush, tape saturation, a dull low-pass and
-  a stone-room reverb that deepens inside the nave): two bands of
+  master chain (tape saturation, a dull low-pass and a stone-room reverb
+  that deepens inside the nave): two bands of
   graveyard wind, a sub drone, far-off creaks and crows, heavy armoured
   footfalls, whooshes, bone-splintering hits, the death gong, the
   Warden's roar, the Fallen One's shriek, the Unburied's retch — and
   the theme: a sad, decrepit piano in D minor at 58 bpm, built from
   detuned partials with a hammer click and played through a slow tape
-  wow, its notes arriving late, soft, or not at all. It steps aside
-  for the Warden.
+  wow, its notes arriving late, soft, or not at all — and heard through
+  an old radio: a narrow band with the bottom and the air gone, a honk in
+  the mids, the little speaker overdriving on the loud notes, mains hum,
+  needle crackle, and a slow wander of the volume as the signal drifts.
+  It steps aside for the Warden.
 - **No dependencies fetched at runtime.** Works offline.
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can
