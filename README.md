@@ -17,7 +17,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Pause** — the **II** button top-right (or Esc) freezes the field and
   shows the run's stats — marrow, horrors felled, host remaining,
   deaths, time, the state of the two mini-bosses, the Warden and the
-  cathedral — with the full touch and keyboard control lists.
+  cathedral — with the full touch and keyboard control lists, and **the
+  pilgrim**: a lit portrait of your knight with three selectors under it.
+  **Weapon** — the greatsword or the longbow. **Armour** — knight plate or
+  the thief's cloth: dark quilting, a leather jerkin, wrapped limbs, a deep
+  hood and a short mantle. **Charge** — the charged attack for the weapon
+  in hand. The choice is remembered by the browser and the body is remade
+  on the spot.
 
 ## Controls (touch)
 
@@ -30,7 +36,15 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   - **tap at full sprint** — the **running thrust**: the blade is drawn
     back along the hip mid-stride and driven forward point-first, the
     run's momentum carrying it deep — narrow, but it reaches
-  - **hold still, then release** — the **charged double slash**. The
+  - **hold still, then release** — the **charged attack** chosen on the
+    pause screen. With the sword, either the **double slash** or the
+    **whirlwind** — the blade held out level while the whole body turns
+    twice, four cuts all round, the last of a full charge staggering all
+    but the Warden. With the bow, either the **knockback shot** — a heavy
+    shaft that throws them back off their feet and staggers all but the
+    Warden — or the **piercing shot**, which goes clean through up to four
+    horrors in a line and stays in the last. The default is the
+    **double slash**. The
     knight coils onto the rear leg with the point levelled at the prey;
     your own glow draws in tight and burns hotter as the charge fills (a
     ring and a chime at full). Let go and the coil comes out as two fast
@@ -40,6 +54,12 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     isn't the Warden outright** — brutes included — and a stagger is
     where the knockdowns and telling blows begin. Held too briefly, it's
     just a strike. You are wide open while you wind it.
+  - **the longbow** — a tap nocks, draws and looses in half a second,
+    and taps chain. Arrows fly flat and fast; the first horror across the
+    path takes the shaft **and keeps it** — it is planted in the body and
+    rides with it through every pose and fall. Into the ground or the
+    stone, it sticks. The finishing move with a bow in hand is a shaft
+    through the skull at point-blank
   - **flick in ANY direction** — dodge roll with i-frames that way
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
@@ -165,10 +185,13 @@ marrow lying where you fell.
 
 The cathedral itself stands on a stone plinth, reached by a flight of
 steps at its south door and by nothing else — the rim is a wall.
-Inside is a long church: a nave of pews between two colonnades under
-fallen roof ribs, lancet glass between the buttresses, candelabra down
-the side aisles, and at the far end the altar on its dais under the
-rose window, where the moon comes straight down. The pews break —
+Inside is a long church: a nave of pews between two colonnades under a
+pitched roof of stone slates on tie beams — slates missing here and
+there, so the moon gets in, and two fallen beams lying on the floor —
+lancet glass between the buttresses, eight tall iron candle stands down
+the aisles burning with real, breathing light, and at the far end the
+altar on its dais under the rose window, where the moon comes straight
+down. The pews break —
 two hard blows and one bursts into splinters, and the Warden shoulders
 through them as it comes. Walk the nave and the
 **Gravewarden of the Bonefield** rises from before the altar, with a

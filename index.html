@@ -43,7 +43,7 @@
   #pause{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
     background:rgba(4,5,6,.86);color:var(--bone);font-family:Georgia,'Times New Roman',serif;}
   #pause.on{display:flex;}
-  #pause .panel{width:min(92vw,760px);max-height:92vh;overflow:auto;padding:18px 24px;border:1px solid rgba(200,190,160,.28);
+  #pause .panel{width:min(94vw,960px);max-height:92vh;overflow:auto;padding:18px 24px;border:1px solid rgba(200,190,160,.28);
     background:rgba(8,9,10,.7);}
   #pause h2{margin:0 0 4px;font-weight:normal;letter-spacing:.5em;text-transform:uppercase;font-size:clamp(18px,4vw,30px);text-align:center;}
   #pause .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
@@ -54,6 +54,15 @@
   #pause .stat b{font-weight:normal;color:#e6c97a;}
   #pause .k{opacity:.65;}
   #pause .btns{display:flex;gap:14px;justify-content:center;margin-top:14px;}
+  #pause .col.hero{flex:0 0 212px;text-align:center;}
+  #heroView{width:200px;height:240px;border:1px solid rgba(200,190,160,.25);background:#0b0d12;image-rendering:pixelated;display:block;margin:0 auto;}
+  #pause .sel{display:flex;justify-content:space-between;align-items:center;margin-top:7px;}
+  #pause .sel>span{opacity:.65;font-size:11px;letter-spacing:.2em;text-transform:uppercase;}
+  #pause .pick{display:flex;align-items:center;}
+  #pause .arrow{padding:0 9px;cursor:pointer;font-size:20px;line-height:1;opacity:.75;user-select:none;}
+  #pause .arrow:active{opacity:1;}
+  #pause .sel b{font-weight:normal;color:#e6c97a;min-width:104px;text-align:center;font-size:12px;}
+  #pause .note{font-size:11px;opacity:.7;line-height:1.4;margin-top:6px;min-height:2.8em;}
   #pause .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
   #pause .btn2:active{background:rgba(200,190,160,.15);}
   #poison{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .4s;
@@ -195,13 +204,21 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; double slash &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: running thrust) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
+  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; charged attack &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: running thrust) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
 </div>
 <div id="prompt"></div>
 <div id="pauseBtn">II</div>
 <div id="pause"><div class="panel">
   <h2>Paused</h2><div class="sub">the marrow remembers</div>
   <div class="cols">
+    <div class="col hero">
+      <h3>The pilgrim</h3>
+      <canvas id="heroView" width="200" height="240"></canvas>
+      <div class="sel"><span>weapon</span><div class="pick"><div class="arrow" data-k="weapon" data-d="-1">&lsaquo;</div><b id="selWeapon">greatsword</b><div class="arrow" data-k="weapon" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>armour</span><div class="pick"><div class="arrow" data-k="armour" data-d="-1">&lsaquo;</div><b id="selArmour">knight plate</b><div class="arrow" data-k="armour" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>charge</span><div class="pick"><div class="arrow" data-k="charge" data-d="-1">&lsaquo;</div><b id="selCharge">double slash</b><div class="arrow" data-k="charge" data-d="1">&rsaquo;</div></div></div>
+      <div class="note" id="selNote"></div>
+    </div>
     <div class="col">
       <h3>This run</h3>
       <div class="stat"><span>marrow</span><b id="psMarrow">0</b></div>
@@ -217,9 +234,9 @@
     <div class="col">
       <h3>Touch</h3>
       <div><span class="k">left thumb</span> — move · <span class="k">push far</span> — sprint</div>
-      <div><span class="k">tap</span> — strike · keep tapping — the combo</div>
-      <div><span class="k">tap at full sprint</span> — running thrust</div>
-      <div><span class="k">hold still, release</span> — charged double slash (a full charge's second cut staggers all but the Warden)</div>
+      <div id="heroTap"><span class="k">tap</span> — strike · keep tapping — the combo</div>
+      <div><span class="k">tap at full sprint</span> — running thrust (sword)</div>
+      <div><span class="k">hold still, release</span> — the charged attack chosen above</div>
       <div><span class="k">flick any way</span> — roll that way · tap in the roll — rolling cut</div>
       <div><span class="k">blade-mark over a stunned foe: tap</span> — the finishing cut</div>
       <div><span class="k">hold &amp; drag</span> — turn the camera · walk into a mote — take it</div>
@@ -229,7 +246,7 @@
       <h3>Keyboard</h3>
       <div><span class="k">W A S D</span> — move · <span class="k">R</span> (hold) — sprint</div>
       <div><span class="k">J</span> or <span class="k">Space</span> — strike · repeat — the combo</div>
-      <div><span class="k">L</span> (hold, release) — charged double slash</div>
+      <div><span class="k">L</span> (hold, release) — the charged attack</div>
       <div><span class="k">K</span> or <span class="k">Shift</span> — roll · J in the roll — rolling cut</div>
       <div><span class="k">E</span> — claim the altar · <span class="k">Z / C</span> — turn the camera</div>
       <div><span class="k">Esc</span> — pause</div>
@@ -1404,6 +1421,22 @@ const AudioSys=(()=>{
       noise(t+.56,{peak:.14,att:.005,dec:.2,f0:500,f1:120});
       [1,2.76,4.07].forEach((r,i)=>tone(t+.05,{f:118*r,f2:118*r*.985,type:'sine',peak:.12/(i+1),dec:1.8})); // the bell
     },
+    // the bow: the creak of the draw, the twang and hiss of the loose,
+    // the thunk of an arrow finding bone
+    bowDraw(){const t=now();
+      noise(t,{peak:.06,att:.3,dec:.4,f0:400,f1:900,type:'bandpass',Q:6});
+      tone(t,{f:90,f2:150,type:'sawtooth',peak:.02,att:.3,dec:.4});},
+    loose(heavy){const t=now();
+      tone(t,{f:heavy?170:230,f2:heavy?60:90,type:'triangle',peak:heavy?.3:.22,att:.002,dec:.12});
+      noise(t,{peak:heavy?.22:.14,att:.003,dec:.09,f0:3000,f1:800});
+      noise(t+.02,{peak:.1,att:.02,dec:.25,f0:1600,f1:500,type:'bandpass',Q:1.6});},
+    arrowHit(){const t=now();
+      tone(t,{f:200,f2:70,type:'sine',peak:.3,att:.002,dec:.1});
+      noise(t,{peak:.26,att:.001,dec:.07,f0:2400,f1:600});
+      noise(t+.01,{peak:.1,att:.005,dec:.12,f0:700,f1:200,type:'bandpass',Q:1.4});},
+    arrowStone(){const t=now();
+      tone(t,{f:900,f2:300,type:'triangle',peak:.12,att:.001,dec:.06});
+      noise(t,{peak:.16,att:.001,dec:.05,f0:3500,f1:1200});},
     // a limb comes off: a crack, a short wet tear, a slap of blood
     sever(){const t=now();
       noise(t,{peak:.3,att:.002,dec:.1,f0:2600,f1:500});
@@ -1914,7 +1947,7 @@ function buildWorld(){
     M.oss.map.repeat.set(1.6,.9);
     const glassM=new THREE.MeshBasicMaterial({map:texCache.glass,color:0x2e2e38}); // dim: only the moon behind it
     const woodM=mat('bark');
-    const cath=new THREE.Group();cath.position.y=PH;world.add(cath);
+    const cath=new THREE.Group();cath.name="cath";cath.position.y=PH;world.add(cath);
     const cbox=(w,h,d,m,x,y,z,ry)=>{const b=box(w,h,d,m,x,y,z,ry);cath.add(b);return b;};
 
     // ---- the plinth: a stone platform, its rim a wall, a stair down the south face
@@ -1969,12 +2002,20 @@ function buildWorld(){
       const lint=cbox(2.6,.7,1.2,cathM,side*1.1,8.0,WZ+.3);lint.rotation.z=.5*side; // pointed arch
     }
     cbox(DW*2+1.2,WH-7.4,WALLT,cathM,0,7.4+(WH-7.4)/2,WZ);                 // over the door
-    // ---- roof ribs, some fallen
+    // ---- the roof: tie beams across the nave under a ridge, and a pitched
+    //      roof of stone slates on either slope — with slates missing, so the
+    //      moon gets in — and two fallen beams lying on the floor below
     srand(444);
-    for(let z=-HL+2;z<HL;z+=5){
-      const rib=cbox(HW*2+1,.5,.5,cathM,0,WH-.3,z);rib.rotation.z=rr(-.06,.06);}
-    cbox(.5,.5,HL*2,cathM,0,WH+.1,0);                                       // the ridge beam
-    for(let i=0;i<2;i++){const f=cbox(.5,.4,11,cathM,rr(-4,4),4.5+i,rr(-9,3),rr(0,TAU));f.rotation.z=rr(-.5,.5);}
+    for(let z=-HL+2;z<HL;z+=5)cbox(HW*2+1,.5,.5,cathM,0,WH-.3,z);           // tie beams
+    const RIDGE=WH+1.9;
+    cbox(.5,.6,HL*2+WALLT*2,cathM,0,RIDGE,0);                               // the ridge beam
+    const slope=Math.atan2(RIDGE-WH,HW+WALLT),slen=Math.hypot(RIDGE-WH,HW+WALLT)+.4;
+    for(const side of[1,-1])for(let z=-HL-WALLT+1.25;z<HL+WALLT;z+=2.5){
+      if(rnd()<.28)continue;                                                // a slate gone
+      const sl=cbox(slen,.22,2.4,cathM,side*(HW+WALLT)/2,(WH+RIDGE)/2+.1,z);
+      sl.rotation.z=-side*slope;
+    }
+    for(let i=0;i<2;i++){const f=cbox(.5,.4,9,cathM,rr(-3,3),.22,rr(-6,4),rr(0,TAU));f.rotation.z=rr(-.05,.05);}
     // ---- colonnades: two rows of columns, some broken, down the nave
     for(const side of[1,-1])for(let z=-10;z<=10;z+=5){
       const ch=(z===0&&side===1)?3.5:8.6;
@@ -1991,15 +2032,22 @@ function buildWorld(){
     for(const x of[-.9,0,.9]){cath.add(cyl(.04,.05,.3,5,M.bone,x,1.9,-13.2));
       addWisp(x,PH+2.1,-13.2,0xd0762b,.2);}                                  // candles
     addWall(-1.5,-13,1.5,-13,.75);
-    // ---- candelabra down the side aisles
+    // ---- candle stands down both aisles: tall iron stands, a ring of
+    //      candles on each, and real warm light that breathes like the
+    //      lanterns outside
     const ironM2=mat('iron');
-    for(const side of[1,-1])for(const z of[-8,2]){
+    for(const side of[1,-1])for(const z of[-9,-3.5,2,7.5]){
       const px2=side*6.6,pz2=z;
       cath.add(cyl(.05,.09,2.3,5,ironM2,px2,1.15,pz2));
-      cath.add(box(.8,.06,.06,ironM2,px2,2.25,pz2,0));
-      addWisp(px2,PH+2.42,pz2,0xd0762b,.22);
-      addHaze(px2,PH+2.4,pz2,0xe8b070,1.5,.07);
-      addObstacle(px2,pz2,.22);
+      cath.add(cyl(.3,.34,.05,7,ironM2,px2,2.28,pz2));                       // the drip pan
+      cath.add(cyl(.14,.16,.04,6,ironM2,px2,.03,pz2));                        // the foot
+      for(let k=0;k<5;k++){const a=k/5*TAU;
+        cath.add(cyl(.03,.035,.18,5,M.bone,px2+Math.cos(a)*.22,2.4,pz2+Math.sin(a)*.22));}
+      addWisp(px2,PH+2.55,pz2,0xf0a648,.42);
+      const l=new THREE.PointLight(0xe8913c,.8,9,2);l.position.set(px2,PH+2.6,pz2);scene.add(l);
+      const hz=addHaze(px2,PH+2.55,pz2,0xffd9a0,4,.2);
+      lanternLights.push({l,ph:Math.random()*TAU,hz});
+      addObstacle(px2,pz2,.24);
     }
     // the one light in the dark nave: the moon, straight down through
     // the rose window onto the altar's end of the floor
@@ -2335,6 +2383,14 @@ function buildHumanoid(o){
     const jaw=new THREE.Group();jaw.position.set(0,.1*s,.03*s);head.add(jaw);
     const jm=M(GSph(.11*s,6,4),limb,0,-.03*s,.03*s);jm.scale.set(1,.4,.95);jaw.add(jm);
     jaw.rotation.x=.08;rig.jaw=jaw;
+  }else if(o.hood){
+    // the thief's hood: a deep cowl of cloth over a face that is only
+    // shadow, a peak folded back, and a short mantle over the shoulders
+    head.add(M(GSph(.15*s,7,5),o.headMat,0,.27*s,-.02*s));
+    const face=M(GSph(.105*s,6,4),SOCK,0,.25*s,.075*s);face.scale.set(1,1.15,.7);head.add(face);
+    const peak=M(GCone(.12*s,.26*s,6),o.headMat,0,.44*s,-.07*s);peak.rotation.x=.55;head.add(peak);
+    const brow=M(GCyl(.155*s,.13*s,.06*s,7),o.headMat,0,.31*s,.0);head.add(brow);
+    torso.add(M(GCyl(.19*s,.36*s,.2*s,7),o.headMat,0,.5*s,0));           // the mantle
   }else{
     // rounded barbute, slightly smaller for knightly proportions
     head.add(M(GCyl(.135*s,.145*s,.22*s,7),o.headMat,0,.17*s,0));
@@ -2366,9 +2422,11 @@ function buildHumanoid(o){
   function makeArm(side){
     const sh=new THREE.Group();
     sh.position.set(.3*s*side,.47*s,0);torso.add(sh);
-    if(!sk){                                                        // great pauldron rides the arm
+    if(!sk&&!o.noPauldron){                                         // great pauldron rides the arm
       const p=M(GSph(.165*s,6,4),limb,0,.04*s,0);
       p.scale.y=.7;sh.add(p);
+    }else if(!sk){
+      const p=M(GSph(.1*s,5,4),o.torsoMat,0,.03*s,0);p.scale.y=.8;sh.add(p); // a padded shoulder
     }else{
       sh.add(M(GSph(.055*s,5,4),limb,0,0,0));                       // shoulder knob
     }
@@ -2390,9 +2448,26 @@ function buildHumanoid(o){
 
   /* weapon hangs from the right hand */
   if(o.weapon){
-    const w=new THREE.Group();w.position.y=-.34*AL*s;aR.el.add(w);rig.weapon=w;
+    const w=new THREE.Group();w.position.y=-.34*AL*s;(o.weapon==='bow'?aL.el:aR.el).add(w);rig.weapon=w;
     const bladeM=o.bladeMat,gripM=o.gripMat;
-    if(o.weapon==='claymore'){
+    if(o.weapon==='bow'){
+      /* a tall recurve of dark wood. Built in the hand's frame: the grip
+         at the origin, the limbs sweeping out to tips along z (vertical
+         when the arm is levelled), the string on the +y side — toward
+         the archer's body when the bow arm is out straight. */
+      const R=.62*s,woodM=o.clothMat||gripM;
+      const limbMesh=new THREE.Mesh(new THREE.TorusGeometry(R,.024*s,5,16,2.4),woodM);
+      limbMesh.rotation.set(0,Math.PI/2,-Math.PI/2-1.2);limbMesh.position.y=R;
+      psx(limbMesh.material);w.add(limbMesh);
+      const tipY=R*(1-Math.cos(1.2)),tipZ=R*Math.sin(1.2);
+      const str=M(GCyl(.006*s,.006*s,tipZ*2,3),gripM,0,tipY,0);str.rotation.x=Math.PI/2;w.add(str);
+      w.add(M(GCyl(.034*s,.034*s,.16*s,6),gripM,0,0,0));                 // leather grip
+      for(const sd of[1,-1])w.add(M(GSph(.02*s,4,3),gripM,0,tipY,tipZ*sd)); // nocks
+      // the nocked arrow: shown while the string is drawn
+      const nock=makeArrow(s,gripM,bladeM);nock.position.y=tipY;nock.visible=false;w.add(nock);
+      rig.bow={string:str,nock,tipY,R};
+      rig.reach=0;rig.bladeMesh=limbMesh;
+    }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
          a LONG two-hand haft under a wheel pommel, guard far down the
          shaft, then a massive tapering blade. The group's origin sits
@@ -2562,6 +2637,44 @@ function resetPose(r){
   r.legR.rotation.set(0,0,0);r.kneeR.rotation.set(0,0,0);
   r.legL.rotation.set(0,0,0);r.kneeL.rotation.set(0,0,0);
   r._spNow=0;
+}
+/* an arrow: shaft along -y from the nock at the origin, a barbed head at
+   the far end, two fletches at the nock */
+function makeArrow(s,shaftM,headM){
+  const a=new THREE.Group();
+  a.add(M(GCyl(.011*s,.011*s,.78*s,4),shaftM,0,-.39*s,0));
+  const hd=M(GCone(.028*s,.1*s,4),headM,0,-.82*s,0);hd.rotation.x=Math.PI;hd.rotation.y=Math.PI/4;a.add(hd);
+  for(const sd of[1,-1]){const f=M(GBox(.004*s,.11*s,.05*s),shaftM,0,-.07*s,.028*s*sd);f.rotation.x=.3*sd;a.add(f);}
+  return a;
+}
+/* the bow at rest: carried loose in the left hand, down along the leg */
+function poseBowCarry(r){
+  r.armL.rotation.set(-.42,0,.14);r.foreL.rotation.set(-.3,0,0);
+  r.weapon.rotation.set(.35,0,0);
+  if(r.bow)r.bow.nock.visible=false;
+}
+/* the draw: side-on to the mark, the bow arm out straight and level, the
+   string hand hauled back to the cheek. q = how far the string is drawn */
+function poseBowDraw(r,q,t){
+  const e=easeOut(clamp(q,0,1));
+  r.torso.rotation.y=-.55*e;r.body.rotation.y=-.25*e;
+  r.torso.rotation.x+=.06*e;
+  r.armL.rotation.set(-1.5*e-.42*(1-e),.12*e,.34*e+.14*(1-e));r.foreL.rotation.set(-.3*(1-e)-.05*e,0,0);
+  r.weapon.rotation.set(.35*(1-e)+.06*e,0,-.12*e);
+  r.armR.rotation.set(-1.45*e,0,-.55*e);r.foreR.rotation.set(-1.95*e,0,0);
+  r.head.rotation.y=.5*e;r.head.rotation.x-=.08*e;
+  r.legR.rotation.x=.2*e;r.legL.rotation.x=-.2*e;r.kneeL.rotation.x=.25*e;
+  r.body.position.y=r.baseY-.05*e*r.s;
+  if(r.bow){r.bow.nock.visible=q>.02;r.bow.nock.position.y=r.bow.tipY+.34*e*r.s;
+    r.bow.string.scale.y=1;r.bow.string.position.y=r.bow.tipY+.17*e*r.s;}   // the string comes back with the hand
+}
+/* the whirlwind: the blade held out level at the end of a sweep while the
+   whole body turns under it — the pose is still, the spin is the rig's */
+function poseSpin(r,p){
+  poseLight(r,.6,0);
+  r.torso.rotation.x+=.14;
+  r.legR.rotation.x=.3;r.legL.rotation.x=-.3;r.kneeL.rotation.x=.35;
+  r.body.position.y=r.baseY-.08*r.s;
 }
 function poseIdle(r,t){
   const b=Math.sin(t*1.7)*.02;
@@ -3117,15 +3230,28 @@ function updateRigExtras(r,dt){
 }
 
 /* factory: the cast */
-function makeKnightRig(){
-  const r=buildHumanoid({
+function makeKnightRig(lo){
+  lo=lo||{};
+  const bow=lo.weapon==='bow',thief=lo.armour==='thief';
+  const r=buildHumanoid(thief?{
+    // the thief's set: dark quilted cloth, a leather jerkin, wrapped
+    // limbs, a deep hood and a short mantle — nothing that shines
+    scale:1,
+    torsoMat:mat('cloth',{color:0x8c8c94}),headMat:mat('cloth',{color:0x6f6f78}),
+    limbMat:mat('cloth',{color:0xb0a898}),
+    bladeMat:mat('blade'),gripMat:mat('bark',{color:0x9a8a74}),
+    weapon:bow?'bow':'claymore',clothMat:mat('bark',{color:0x8a7a62}),
+    chestMat:mat('rag',{color:0x9a7a58}),cape:mat('rag'),
+    legLen:1.15,mirrorArms:true,hood:true,noPauldron:true,
+  }:{
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
-    weapon:'claymore',clothMat:mat('rag'),
+    weapon:bow?'bow':'claymore',clothMat:bow?mat('bark',{color:0x8a7a62}):mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
     legLen:1.15,mirrorArms:true,
   });
+  r.loadout={weapon:bow?'bow':'sword',armour:thief?'thief':'knight'};
   return r;
 }
 function makeHollowRig(big,caster){
@@ -3354,6 +3480,22 @@ function makeGhoulRig(){
 }
 /* ---------------- effects ---------------- */
 const effects=[];
+/* ---------------- the pilgrim's loadout ----------------
+   weapon, armour and the charged attack for each weapon, chosen on the
+   pause screen and remembered by the browser */
+const LOADOUT_KEY='bonepath.loadout';
+const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock'};
+try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
+  for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
+function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
+const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow']],
+  armour:[['knight','knight plate'],['thief','thief cloth']],
+  charge:[['double','double slash'],['spin','whirlwind']],
+  bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
+const HERO_NOTES={double:'two fast cuts, forward and back; a full charge\'s second cut staggers all but the Warden',
+  spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
+  knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
+  pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last'};
 function boneBurst(x,y,z,color,n,speed){
   for(let i=0;i<n;i++){
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,
@@ -3847,15 +3989,35 @@ const player={
   armed:true,sheathT:0,
   mats:[],
   init(){
-    this.rig=makeKnightRig();
-    this.rig.smoothPose=true;
-    scene.add(this.rig.root);
-    this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
     // an imbued element lights the blade from within
     this.bladeLight=new THREE.PointLight(0xffffff,0,2.2,2); // blade-only: keeps the pool warm
-    this.bladeLight.position.set(0,-1.1,0);
-    this.rig.weapon.add(this.bladeLight);
+    this.rebuild();
     this.respawn();
+  },
+  weapon(){return LOADOUT.weapon;},
+  // the pilgrim's body is remade from the loadout: same place, same facing
+  rebuild(){
+    if(this.rig)scene.remove(this.rig.root);
+    this.rig=makeKnightRig(LOADOUT);
+    this.rig.smoothPose=true;
+    scene.add(this.rig.root);
+    this.mats=[];
+    this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
+    this.rig.weapon.add(this.bladeLight);
+    this.bladeLight.position.set(0,this.weapon()==='bow'?.2:-1.1,0);
+    if(this.element)this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
+    if(this.x!==undefined){this.rig.root.position.set(this.x,heightAt(this.x,this.z),this.z);this.rig.root.rotation.y=this.facing||0;}
+    if(this.state!=='free'&&this.state!=='dead'){this.state='free';G.slowMo=1;}
+  },
+  // an arrow leaves the bow
+  fireArrow(kind){
+    const heavy=kind!=='light';
+    AudioSys.loose(heavy);G.vibr(heavy?25:12);
+    if(heavy)G.camShake=Math.max(G.camShake,.18);
+    const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+    const spd=kind==='light'?24:kind==='knock'?30:34;
+    const dmg=kind==='light'?14:kind==='knock'?26:22;
+    shootArrow(this.x+fx*.6,heightAt(this.x,this.z)+1.35,this.z+fz*.6,fx,fz,spd,dmg,kind);
   },
   respawn(){
     this.x=G.checkpoint.x;this.z=G.checkpoint.z;
@@ -4106,6 +4268,7 @@ const player={
     };
     // the Souls rolling attack: a rising cut straight out of the roll
     const startRollAtk=(d)=>{
+      if(this.weapon()==='bow'){startShoot(null);return;}
       this.draw();
       this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;
       this.queued=false;this.rollAtkQueued=null;
@@ -4157,7 +4320,28 @@ const player={
       this.state='charge';this.t=0;this.chargeT=0;this.chargeFull=false;this.readyDone=false;
       this.sprintT=0;this.sprinting=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
-      AudioSys.windup();
+      if(this.weapon()==='bow')AudioSys.bowDraw();else AudioSys.windup();
+    };
+    // a quick shot: nock, draw, loose
+    const startShoot=(s)=>{
+      this.state='shoot';this.t=0;this.hitDone=false;this.sfxDone=false;this.queued=false;this.qDir=null;
+      this.sprintT=0;this.sprinting=false;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      else if(s&&s.sx!==null)this.facing=swipeWorld(s);
+      AudioSys.bowDraw();
+    };
+    // the charged shot lets go
+    const startLoose=(kind)=>{
+      this.state='loose';this.t=0;this.hitDone=false;this.shotKind=kind;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+    };
+    // the whirlwind: the coil lets go into two full turns with the blade out
+    const startSpin=()=>{
+      this.state='spin';this.t=0;this.hitDone=0;this.sfxDone=0;this.queued=false;this.qDir=null;
+      this.chargeFull=this.chargeT>=.6;
+      G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
+      boneBurst(this.x,.15,this.z,0x4a463a,4,1.4);
     };
     // the double slash: the coil lets go into two fast cuts, forward and back
     const startDouble=()=>{
@@ -4185,7 +4369,7 @@ const player={
       e.state='held';e.t=0;e.vx=0;e.vz=0;
       this.facing=Math.atan2(e.x-this.x,e.z-this.z);
       G.slowMo=.42;                                    // the world holds its breath
-      AudioSys.cleave();G.vibr(30);
+      if(this.weapon()==='bow')AudioSys.bowDraw();else AudioSys.cleave();G.vibr(30);
     };
     if(this.state==='free'){
       // past three-quarters on the stick the walk breaks into a sprint
@@ -4217,6 +4401,7 @@ const player={
         if(IN.swipe.kind==='atk'){
           const ex=this.execTarget();
           if(ex)startExecute(ex);                // a stunned foe in reach: finish it
+          else if(this.weapon()==='bow')startShoot(IN.swipe);
           else if(this.sprintT>.3)startSprintAtk();   // at full stride the tap becomes the dash cut
           else startAttack(IN.swipe);
         }
@@ -4237,12 +4422,26 @@ const player={
         if(!this.hitDone&&p>=.66){
           this.hitDone=true;
           G.camShake=1.1;G.hitstop=.24;G.vibr([90,40,140]);
+          if(this.weapon()==='bow'){
+            // point-blank: the shaft through the skull, and the body thrown back
+            AudioSys.loose(true);AudioSys.gore();
+            const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+            const [shM,hdM]=arrowMats();const a=makeArrow(1,shM,hdM);
+            const hp=e.rig.head.getWorldPosition(new THREE.Vector3());
+            a.position.set(hp.x-fx*.3,hp.y+.22,hp.z-fz*.3);
+            a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(fx,0,fz));
+            e.rig.head.attach(a);
+            bloodSpray(hp.x,hp.y+.22,hp.z,18,1.4);bloodDecal(e.x,e.z,.7);
+            e.lastHit={dx:fx,dz:fz,kb:1.6,up:1.6};
+            e.die();
+          }else{
           AudioSys.gore();
           splitEnemy(e,this.facing);
           sparkBurst(e.x,1.2,e.z,18);
           bloodSpray(e.x,1.3,e.z,22,1.6);
           bloodDecal(e.x,e.z,.9);bloodDecal(e.x+rr3(-.6,.6),e.z+rr3(-.6,.6),.5);
           e.noRag=true;e.die();e.crumbled=true;e.rig.root.visible=false;
+          }
         }
         if(p>=1){this.state='free';this.execT=null;}
       }
@@ -4258,7 +4457,9 @@ const player={
       }
       const released=IN.chargeRelease||!IN.chargeHeld;
       if(released||this.chargeT>1.8){
-        if(this.chargeT<.3)startAttack(null);   // barely held: it's just a strike
+        if(this.weapon()==='bow')startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);
+        else if(this.chargeT<.3)startAttack(null);   // barely held: it's just a strike
+        else if(LOADOUT.charge==='spin')startSpin();
         else startDouble();
       }
     }
@@ -4286,6 +4487,45 @@ const player={
       }
       if(p>=1){
         if(this.queued){ // flows on into the chain
+          this.state='attack';this.t=0;this.combo=2;this.chain=2;
+          this.atkDur=this.element==='lightning'?.5:.68;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
+        }else this.state='free';
+      }
+    }
+    else if(this.state==='shoot'){
+      const DUR=.46,p=this.t/DUR;
+      if(foe&&p<.4)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
+      if(!this.hitDone&&p>=.42){this.hitDone=true;this.fireArrow('light');}
+      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.5){this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;}
+      if(p>=1){
+        if(this.queued){const d=this.qDir;startShoot(null);if(!foe&&d!==null)this.facing=d;}
+        else this.state='free';
+      }
+    }
+    else if(this.state==='loose'){
+      const DUR=.4,p=this.t/DUR;
+      if(!this.hitDone&&p>=.06){this.hitDone=true;this.fireArrow(this.shotKind);}
+      if(p>=1)this.state='free';
+    }
+    else if(this.state==='spin'){
+      const DUR=.95,p=this.t/DUR;
+      if(p>.08&&p<.83){
+        this.facing+=17.6*dt;                                   // two full turns
+        this.x+=Math.sin(this.facing)*1.6*dt;this.z+=Math.cos(this.facing)*1.6*dt;
+        const n=Math.floor((this.t-.08*DUR)/.18)+1;
+        if(n>this.hitDone&&n<=4){
+          this.hitDone=n;AudioSys.swing();G.camShake=Math.max(G.camShake,.08);
+          const hit=this.meleeHit(this.chargeFull?19:15,2.5,TAU,n===4?3:2,.6,
+            {trail:'sweep',dir:1,quietMiss:true,staggerAll:this.chargeFull&&n===4});
+          if(hit){AudioSys.hit();G.hitstop=Math.max(G.hitstop,.05);}
+        }
+      }
+      if(p>=.83&&!this.sfxDone){this.sfxDone=true;this.facing=wrapA(this.facing);}
+      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.85){this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;}
+      if(p>=1){
+        if(this.queued){
           this.state='attack';this.t=0;this.combo=2;this.chain=2;
           this.atkDur=this.element==='lightning'?.5:.68;
           this.queued=false;this.hitDone=false;this.sfxDone=false;
@@ -4423,18 +4663,23 @@ const player={
     // ---- pose ----
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
-    r.ikLeftArm=['free','attack','rollatk','charge','dslash','sprintatk','execute'].includes(this.state);
+    const bow=this.weapon()==='bow';
+    r.ikLeftArm=!bow&&['free','attack','rollatk','charge','dslash','spin','sprintatk','execute'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
       if(this.sprinting&&this.moveAmt>.5)poseRun(r,t);
       else if(this.moveAmt>.05)poseWalk(r,t,Math.min(1,this.moveAmt/.78),false);
       else poseIdle(r,t);
+      if(bow)poseBowCarry(r);
     }
-    else if(this.state==='charge')poseCharge(r,this.chargeT/.6,t);
+    else if(this.state==='charge'){if(bow)poseBowDraw(r,this.chargeT/.6,t);else poseCharge(r,this.chargeT/.6,t);}
+    else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
+    else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
+    else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
     else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/.64));
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/.5));
-    else if(this.state==='execute')poseHeavy(r,Math.min(1,this.t/.9));
+    else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseHeavy(r,Math.min(1,this.t/.9));}
     else if(this.state==='roll'){
       const TUMBLE=.46,DUR=.58,C=CARRY;
       const p=Math.min(1,this.t/TUMBLE);                          // the tumble
@@ -4498,6 +4743,7 @@ class Enemy{
   }
   reset(){
     endRagdoll(this);this.lastHit=null;
+    if(this.arrows){for(const a of this.arrows)if(a.parent)a.parent.remove(a);this.arrows=null;}
     this.x=this.homeX;this.z=this.homeZ;
     this.hp=this.maxHp;this.poise=0;this.phase2=false;
     this.state='dormant';this.t=0;this.vx=0;this.vz=0;
@@ -5513,6 +5759,70 @@ function endRagdoll(e){
     if(r[k])r[k].rotation.set(0,0,0);
 }
 
+/* ---------------- arrows ----------------
+   A shaft flies flat and fast; the first horror across its path takes it
+   and keeps it — the arrow is planted in the body and rides with it
+   through every pose and fall. Into the ground or the stone, it sticks. */
+let _arrowM=null;
+function arrowMats(){if(!_arrowM)_arrowM=[mat('bark',{color:0x9a8a70}),mat('iron')];return _arrowM;}
+function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
+  const [shM,hdM]=arrowMats();
+  const a=makeArrow(1,shM,hdM);
+  a.position.set(x,y,z);
+  a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(dx,0,dz).normalize());
+  scene.add(a);
+  const hitSet=new Set();let life=0,pierced=0;
+  effects.push({update(dt){
+    life+=dt;
+    const st=dt*spd,nx=a.position.x+dx*st,nz=a.position.z+dz*st;
+    for(const e of enemies){
+      if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||hitSet.has(e))continue;
+      const ey=e.crow?e.y:heightAt(e.x,e.z)+1.1;
+      if(Math.abs(ey-a.position.y)>1.3)continue;
+      // closest approach of this step's segment to the horror
+      const px=e.x-a.position.x,pz=e.z-a.position.z,tt=clamp((px*dx+pz*dz)/(st||1e-4),0,1);
+      const cx=a.position.x+dx*st*tt,cz=a.position.z+dz*st*tt;
+      if(Math.hypot(e.x-cx,e.z-cz)>e.radius+.3)continue;
+      hitSet.add(e);
+      arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,kind==='pierce'&&pierced<3&&!e.boss);
+      if(kind==='pierce'&&pierced<3&&!e.boss){pierced++;continue;}   // and on through
+      return false;                                                  // it stays in them
+    }
+    a.position.x=nx;a.position.z=nz;
+    const gy=heightAt(nx,nz),probe={x:nx,z:nz};pushOut(probe,.05);constrain(probe,G.bossActive);
+    if(a.position.y<gy+.05||Math.hypot(probe.x-nx,probe.z-nz)>.01||life>1.8){
+      AudioSys.arrowStone();
+      if(a.position.y<gy+.05)a.position.y=gy+.05;
+      let t2=0;effects.push({update(d){t2+=d;if(t2>18){scene.remove(a);return false;}return true;}});
+      return false;
+    }
+    return true;
+  }});
+}
+function arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,through){
+  const el=player.element;
+  const stuck=through?a.clone():a;
+  stuck.position.set(cx-dx*.3,a.position.y,cz-dz*.3);
+  stuck.quaternion.copy(a.quaternion);
+  (e.rig.torso||e.rig.root).attach(stuck);
+  e.arrows=e.arrows||[];e.arrows.push(stuck);
+  if(e.arrows.length>6){const o=e.arrows.shift();if(o.parent)o.parent.remove(o);}
+  AudioSys.arrowHit();
+  bloodSpray(cx,a.position.y,cz,kind==='light'?5:9,.9);
+  const hv={dx,dz,up:kind==='knock'?1.4:.9};
+  let d=dmg;if(el)d+=4;
+  if(Math.random()<.1)d=Math.round(d*1.7);
+  if(kind==='knock'){
+    e.takeHit(d,e.boss?3:99,player.x,player.z,2.2,hv);       // off their feet and reeling
+    if(e.hp>0&&!e.boss){e.vx=dx*9;e.vz=dz*9;}
+  }else e.takeHit(d,kind==='pierce'?2:1,player.x,player.z,kind==='pierce'?1:.5,hv);
+  if(el){
+    elemBurst(el,cx,a.position.y,cz);
+    if(el==='fire'){AudioSys.fireHit();e.burnT=4;e.burnTick=Math.min(e.burnTick||0,.3);}
+    else if(el==='ice'){AudioSys.iceHit();e.chillT=6;}
+    else AudioSys.zapHit();
+  }
+}
 /* a limb comes off: the group is cut out of the rig and thrown, a stub is
    left behind for the poses to move, the stump bleeds, and the horror
    keeps coming without it */
@@ -5953,7 +6263,55 @@ const _bv=new THREE.Vector3();
 let last=performance.now(),grainT=0;
 /* ---------------- the pause ---------------- */
 function fmtTime(s){s=Math.max(0,s|0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+/* the pilgrim on the pause screen: a fresh rig from the loadout, lit and
+   rendered into a small target, copied onto a canvas */
+let heroRT=null,heroScene=null,heroCam=null,heroRig=null;
+function renderHero(){
+  const cv=$('heroView');if(!cv)return;
+  const W=cv.width,H=cv.height;
+  if(!heroRT){
+    heroRT=new THREE.WebGLRenderTarget(W,H);heroRT.texture.encoding=THREE.sRGBEncoding;
+    heroScene=new THREE.Scene();
+    heroScene.add(new THREE.AmbientLight(0x9aa2b2,.95));
+    const key=new THREE.DirectionalLight(0xffe2b0,1.6);key.position.set(2,3,2.5);heroScene.add(key);
+    const rim=new THREE.DirectionalLight(0x7f95c0,.8);rim.position.set(-2,2,-2);heroScene.add(rim);
+    heroCam=new THREE.PerspectiveCamera(26,W/H,.1,20);heroCam.position.set(1.0,1.5,3.4);heroCam.lookAt(0,1.0,0);
+  }
+  if(heroRig)heroScene.remove(heroRig.root);
+  heroRig=makeKnightRig(LOADOUT);
+  heroRig.armed=true;heroRig.ikLeftArm=LOADOUT.weapon!=='bow';
+  resetPose(heroRig);poseIdle(heroRig,0);
+  if(LOADOUT.weapon==='bow')poseBowCarry(heroRig);
+  updateRigExtras(heroRig,.016);
+  heroRig.root.rotation.y=.6;heroScene.add(heroRig.root);
+  const prevRT=renderer.getRenderTarget(),prevC=new THREE.Color();renderer.getClearColor(prevC);const prevA=renderer.getClearAlpha();
+  renderer.setRenderTarget(heroRT);renderer.setClearColor(0x0b0d12,1);renderer.clear();renderer.render(heroScene,heroCam);
+  const px=new Uint8Array(W*H*4);renderer.readRenderTargetPixels(heroRT,0,0,W,H,px);
+  renderer.setRenderTarget(prevRT);renderer.setClearColor(prevC,prevA);
+  const ctx=cv.getContext('2d'),img=ctx.createImageData(W,H);
+  for(let y=0;y<H;y++){const src=(H-1-y)*W*4;img.data.set(px.subarray(src,src+W*4),y*W*4);}
+  ctx.putImageData(img,0,0);
+}
+function loadoutLabel(k){const v=LOADOUT[k];return (HERO_OPTS[k].find(o=>o[0]===v)||HERO_OPTS[k][0])[1];}
+function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':'charge';}
+function cycleLoadout(k,d){
+  if(k==='charge')k=chargeKey();
+  const list=HERO_OPTS[k];let i=list.findIndex(o=>o[0]===LOADOUT[k]);
+  i=(i+d+list.length)%list.length;LOADOUT[k]=list[i][0];saveLoadout();
+  player.rebuild();fillHero();
+}
+function fillHero(){
+  $('selWeapon').textContent=loadoutLabel('weapon');
+  $('selArmour').textContent=loadoutLabel('armour');
+  $('selCharge').textContent=loadoutLabel(chargeKey());
+  $('selNote').textContent=HERO_NOTES[LOADOUT[chargeKey()]]||'';
+  $('heroTap').textContent=LOADOUT.weapon==='bow'?'tap — loose an arrow · hold still, release — the charged shot':'tap — strike · hold still, release — the charged attack';
+  try{renderHero();}catch(e){}
+}
+document.querySelectorAll('#pause .arrow').forEach(el=>el.addEventListener('pointerdown',e=>{
+  e.preventDefault();e.stopPropagation();cycleLoadout(el.dataset.k,+el.dataset.d);}));
 function fillPause(){
+  fillHero();
   $('psMarrow').textContent=player.marrow;
   $('psKills').textContent=G.kills||0;
   $('psHost').textContent=enemies.filter(e=>!e.boss&&!e.mini&&e.hp>0).length;
@@ -6067,7 +6425,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},splitEnemy,effects,breakables,breakPew,ragdolls};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},splitEnemy,effects,breakables,breakPew,ragdolls,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
