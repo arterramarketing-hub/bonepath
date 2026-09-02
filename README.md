@@ -60,14 +60,20 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     rides with it through every pose and fall. Into the ground or the
     stone, it sticks. The finishing move with a bow in hand is a shaft
     through the skull at point-blank
-  - **the katana** — overpowered on purpose. Fast light cuts for 30, and
-    any small or medium horror below half its life is simply **cut in
-    two where the edge lands**. Its charge is the **iaido draw**: hold and
-    the blade goes back into the saya at the left hip, the body coiled
-    low; release and the knight flashes five metres straight through
-    whatever stands in the line, the world slowing for the cut, and
-    stands past them with the blade out — nothing happens to them until
-    the guard clicks home in the sheath, and then they fall
+  - **the katana** — overpowered on purpose. Carried in **chudan**, both
+    hands on the grip before the navel and the point levelled at the
+    throat, and it fights the way a katana does: **yoko-giri**, the level
+    cut through the ribs; **kesa-giri**, down from the right shoulder to
+    the left hip; **gyaku-kesa**, rising back along the same line; and
+    **tsuki**, the point straight in. Fast cuts for 30, and any small or
+    medium horror below half its life is **cut in two along the line the
+    blade took** — level through the middle, or on the diagonal. Its
+    charge is the **iaido draw**: hold and the blade drops into the saya
+    at the left hip, the body coiled low over it; release and the knight
+    flashes five metres straight through whatever stands in the line,
+    the world slowing for the cut, and stands past them with the blade
+    out — nothing happens to them until the guard clicks home in the
+    sheath, and then they fall in two
   - **flick in ANY direction** — dodge roll with i-frames that way
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
@@ -86,7 +92,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     not hollows are beyond it
 - **the backstab** — get behind a small or medium horror that hasn't
     turned to you, close, squared up to its back, and tap: the knight
-    steps in, drives the greatsword through its spine, holds it there,
+    steps in, drives the greatsword straight through the middle of its
+    back and out the chest, holds it there,
     and kicks the body off the steel — it goes sprawling, or dies. With
     the bow it's a shaft in the back at point-blank. You can't be touched
     while you do it. The Warden and the two that are not hollows can't be
