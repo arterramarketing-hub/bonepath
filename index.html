@@ -942,11 +942,7 @@ function resize(){
   renderer.setSize(iw,ih,false);
   rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
   gradeMat.uniforms.uPx.value.set(2/iw,2/ih);
-  camera.aspect=w/h;
-  // held upright, the phone sees less to either side: open the lens and
-  // (in the camera code) stand further back so the fight still fits
-  camera.fov=h>w?82:68;
-  camera.updateProjectionMatrix();
+  camera.aspect=w/h;camera.updateProjectionMatrix();
   snapUniform.value.set(iw/2,ih/2);
 }
 addEventListener('resize',resize);
@@ -6197,7 +6193,7 @@ function updateCamera(dt){
     G.camYaw=angLerp(G.camYaw,want,5*dt);
     G.camPitch=lerp(G.camPitch,.3,4*dt);
   }
-  const dist=G.camDist||(innerHeight>innerWidth?6.9:5.1),py=innerHeight>innerWidth?1.9:1.55;
+  const dist=G.camDist||5.1,py=1.55;
   const hP=heightAt(player.x,player.z);
   let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist;
   let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist;
