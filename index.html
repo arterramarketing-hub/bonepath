@@ -240,6 +240,7 @@
       <div><span class="k">flick any way</span> — roll that way · tap in the roll — rolling cut</div>
       <div><span class="k">blade-mark over a stunned foe: tap</span> — the finishing cut</div>
       <div><span class="k">behind an unwary foe: tap</span> — the backstab (small and medium horrors)</div>
+      <div><span class="k">the katana</span> — cuts a horror below half its life clean in two where it lands</div>
       <div><span class="k">hold &amp; drag</span> — turn the camera · walk into a mote — take it</div>
       <div><span class="k">time a swing into theirs</span> — clash: sparks, and they reel</div>
     </div>
@@ -1239,7 +1240,66 @@ const AudioSys=(()=>{
   function setSpace(x){
     if(!ac||Math.abs(x-space)<.01)return;space=x;
     verbSend.gain.setTargetAtTime(.16+.42*x,ac.currentTime,.3);
+    naveLevel();
   }
+  /* ---- the three layers ----
+     Nothing you could hum. 1. unease: a sub drone that swells, always
+     there. 2. threat: a low bowed string with a slow vibrato that rises
+     while something hunts you, a bell struck now and then, and your own
+     heart when your life is low. 3. the nave: a choir pad on a D minor
+     chord with one high held note, inside the cathedral — handed off to
+     the Warden's drone when he rises. */
+  let layers=null;
+  function layersStart(){
+    if(!ac||layers)return;
+    const mk=()=>{const g=ac.createGain();g.gain.value=0;g.connect(master);return g;};
+    const droneG=mk();
+    const df=ac.createBiquadFilter();df.type='lowpass';df.frequency.value=160;df.connect(droneG);
+    [[36,.9,'sine'],[36.35,.8,'sine'],[72.2,.3,'triangle']].forEach(([hz,v,ty])=>{const o=ac.createOscillator();o.type=ty;o.frequency.value=hz;
+      const og=ac.createGain();og.gain.value=v;o.connect(og).connect(df);o.start();});
+    const swell=ac.createOscillator();swell.frequency.value=.045;const sg=ac.createGain();sg.gain.value=.013;swell.connect(sg).connect(droneG.gain);swell.start();
+    droneG.gain.setValueAtTime(0,ac.currentTime);droneG.gain.linearRampToValueAtTime(.03,ac.currentTime+6);
+    const threatG=mk();
+    const tf=ac.createBiquadFilter();tf.type='bandpass';tf.frequency.value=260;tf.Q.value=2.2;tf.connect(threatG);
+    [[55,'sawtooth'],[55.6,'sawtooth'],[110.4,'sawtooth']].forEach(([hz,ty])=>{const o=ac.createOscillator();o.type=ty;o.frequency.value=hz;
+      const og=ac.createGain();og.gain.value=.5;const vib=ac.createOscillator();vib.frequency.value=rr2(4,6);
+      const vg=ac.createGain();vg.gain.value=9;vib.connect(vg).connect(o.detune);vib.start();o.connect(og).connect(tf);o.start();});
+    const tswell=ac.createOscillator();tswell.frequency.value=.17;const tsg=ac.createGain();tsg.gain.value=.012;tswell.connect(tsg).connect(threatG.gain);tswell.start();
+    const naveG=mk();
+    const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=900;nf.connect(naveG);
+    [[146.8,.5],[220,.4],[293.7,.3],[349.2,.25],[1174.7,.05]].forEach(([hz,v],i)=>{for(const d of[-6,6]){
+      const o=ac.createOscillator();o.type=i<4?'triangle':'sine';o.frequency.value=hz;o.detune.value=d;
+      const og=ac.createGain();og.gain.value=v*.5;
+      const am=ac.createOscillator();am.frequency.value=.08+i*.03;const ag=ac.createGain();ag.gain.value=v*.2;am.connect(ag).connect(og.gain);am.start();
+      o.connect(og).connect(nf);o.start();}});
+    layers={droneG,threatG,naveG,threat:0,heart:false,heartT:0,bellT:0};
+    setInterval(layersTick,250);
+  }
+  function layersTick(){
+    if(!layers||!ac)return;
+    const now=ac.currentTime;
+    if(layers.threat>.3){                                            // the bell
+      if(layers.bellT<now)layers.bellT=now+rr2(.5,1.5);
+      if(layers.bellT<now+.6){const t=layers.bellT;
+        [1,2.71,4.6].forEach((r,i)=>tone(t,{f:196*r*(1+rr2(-.004,.004)),f2:196*r*.99,type:'sine',peak:.045*layers.threat/(i+1),att:.004,dec:2.4}));
+        layers.bellT=t+rr2(3,6);}
+    }
+    if(layers.heart){                                                // the heart
+      if(layers.heartT<now)layers.heartT=now;
+      while(layers.heartT<now+.6){const t=layers.heartT;
+        tone(t,{f:58,f2:30,type:'sine',peak:.15,att:.005,dec:.12});
+        tone(t+.18,{f:52,f2:28,type:'sine',peak:.1,att:.005,dec:.1});
+        layers.heartT+=.95;}
+    }
+  }
+  function setThreat(x){
+    if(!layers)return;x=Math.max(0,Math.min(1,x));
+    if(Math.abs(x-layers.threat)<.02)return;
+    const rising=x>layers.threat;layers.threat=x;
+    layers.threatG.gain.setTargetAtTime(.05*x,ac.currentTime,rising?1.2:2.5);
+  }
+  function setHeart(on){if(layers)layers.heart=!!on;}
+  function naveLevel(){if(!layers)return;layers.naveG.gain.setTargetAtTime(bossN?0:.055*space,ac.currentTime,1.5);}
   // boss fight layer: tremolo drone that quickens with the Warden's rage
   let bossN=null;
   function bossMusic(level){
@@ -1250,6 +1310,7 @@ const AudioSys=(()=>{
         n.g.gain.setValueAtTime(n.g.gain.value,ac.currentTime);
         n.g.gain.linearRampToValueAtTime(0,ac.currentTime+1.2);
         setTimeout(()=>{n.stop.forEach(o=>{try{o.stop();}catch(e){}});},1400);}
+      naveLevel();
       return;
     }
     if(!bossN){
@@ -1264,13 +1325,14 @@ const AudioSys=(()=>{
       o1.connect(f);o2.connect(f);
       o1.start();o2.start();lfo.start();
       bossN={g,lfo,o2,stop:[o1,o2,lfo]};
+      naveLevel();
     }
     bossN.g.gain.linearRampToValueAtTime(level===2?.11:.07,ac.currentTime+(level===2?.5:2.5));
     bossN.lfo.frequency.setValueAtTime(level===2?3.7:2.1,ac.currentTime);
     bossN.o2.frequency.setValueAtTime(level===2?65.4:82.4,ac.currentTime);
   }
   return {
-    bossMusic,musicStart,setMusic,
+    bossMusic,musicStart,setMusic,layersStart,setThreat,setHeart,
     // the world holds still: the whole graph sleeps
     pause(on){if(!ac)return;if(on)ac.suspend();else ac.resume();},
     start,setSpace,
@@ -1432,6 +1494,11 @@ const AudioSys=(()=>{
       noise(t+.56,{peak:.14,att:.005,dec:.2,f0:500,f1:120});
       [1,2.76,4.07].forEach((r,i)=>tone(t+.05,{f:118*r,f2:118*r*.985,type:'sine',peak:.12/(i+1),dec:1.8})); // the bell
     },
+    // the katana: a slide of steel on wood, and the click of the guard home
+    sheath(){const t=now();
+      noise(t,{peak:.12,att:.02,dec:.18,f0:3000,f1:1200,type:'bandpass',Q:2});
+      tone(t+.17,{f:1800,f2:900,type:'triangle',peak:.08,att:.001,dec:.05});
+      tone(t+.17,{f:420,f2:300,type:'sine',peak:.06,dec:.08});},
     // the bow: the creak of the draw, the twang and hiss of the loose,
     // the thunk of an arrow finding bone
     bowDraw(){const t=now();
@@ -1723,9 +1790,13 @@ function constrain(p,arenaOnly){
   if(!G.cathedralOpen){
     if(sdo<.45)pushOutOf(p,HW+WALLT,HL+WALLT,.45);        // sealed: the walls refuse you
   }else if(!inDoor&&sdo<.45&&sdi>-.45){
-    // in the wall: back out to whichever face is nearer
-    if(sdo<-sdi)pushOutOf(p,HW+WALLT,HL+WALLT,.45);else keepInside(p,HW,HL,.45);
+    // in the wall: back out to the side you CAME from — a fast roll can
+    // land past the wall's middle, and the nearer face would have let it
+    // through to the other side
+    const inside=p._wallIn!==undefined?p._wallIn:(sdo>=-sdi);
+    if(inside)keepInside(p,HW,HL,.45);else pushOutOf(p,HW+WALLT,HL+WALLT,.45);
   }
+  if(!inDoor){if(sdi<-.45)p._wallIn=true;else if(sdo>.45)p._wallIn=false;}
 }
 // solid obstacles push actors out
 const obstacles=[];
@@ -2001,7 +2072,6 @@ function buildWorld(){
     const WH=9.5,WX=HW+WALLT/2,WZ=HL+WALLT/2;
     for(const side of[1,-1]){
       cbox(WALLT,WH,HL*2+WALLT*2,cathM,side*WX,WH/2,0);                    // side wall
-      cbox(.3,2.2,HL*2,M.oss,side*(HW-.1),1.1,0);                           // bone wainscot inside
       for(let z=-HL;z<=HL;z+=5){
         cbox(1.6,WH+1,1.4,cathM,side*(HW+WALLT+.2),(WH+1)/2,z);            // buttress
         if(z>-HL&&z<HL){                                                   // a lancet between each pair
@@ -2011,7 +2081,6 @@ function buildWorld(){
       }
     }
     cbox(HW*2+WALLT*2,WH,WALLT,cathM,0,WH/2,-WZ);                          // north wall
-    cbox(HW*2,2.2,.3,M.oss,0,1.1,-(HL-.1));
     const rose=new THREE.Mesh(new THREE.CircleGeometry(2.6,16),new THREE.MeshBasicMaterial({map:texCache.rose}));
     rose.position.set(0,7.2,-(HL-.05));cath.add(rose);                    // rose window over the altar
     const DW=1.9;                                                          // half the door's width
@@ -2035,10 +2104,9 @@ function buildWorld(){
       const sl=cbox(slen,.22,2.4,cathM,side*(HW+WALLT)/2,(WH+RIDGE)/2+.1,z);
       sl.rotation.z=-side*slope;
     }
-    for(let i=0;i<2;i++){const f=cbox(.5,.4,9,cathM,rr(-3,3),.22,rr(-6,4),rr(0,TAU));f.rotation.z=rr(-.05,.05);}
     // ---- colonnades: two rows of columns, some broken, down the nave
     for(const side of[1,-1])for(let z=-10;z<=10;z+=5){
-      const ch=(z===0&&side===1)?3.5:8.6;
+      const ch=8.6;
       cath.add(cyl(.45,.55,ch,6,cathM,side*5.5,ch/2,z));
       if(ch>6)cath.add(cyl(.7,.5,.6,6,cathM,side*5.5,ch+.3,z));
       addObstacle(side*5.5,z,.7);
@@ -2064,14 +2132,14 @@ function buildWorld(){
       for(let k=0;k<5;k++){const a=k/5*TAU;
         cath.add(cyl(.03,.035,.18,5,M.bone,px2+Math.cos(a)*.22,2.4,pz2+Math.sin(a)*.22));}
       addWisp(px2,PH+2.55,pz2,0xf0a648,.42);
-      const l=new THREE.PointLight(0xe8913c,.8,9,2);l.position.set(px2,PH+2.6,pz2);scene.add(l);
-      const hz=addHaze(px2,PH+2.55,pz2,0xffd9a0,4,.2);
-      lanternLights.push({l,ph:Math.random()*TAU,hz});
+      const l=new THREE.PointLight(0xe8a050,1.5,13,2);l.position.set(px2,PH+2.6,pz2);scene.add(l);
+      const hz=addHaze(px2,PH+2.55,pz2,0xffd9a0,4.5,.22);
+      lanternLights.push({l,ph:Math.random()*TAU,hz,base:1.5});
       addObstacle(px2,pz2,.24);
     }
     // the one light in the dark nave: the moon, straight down through
     // the rose window onto the altar's end of the floor
-    const nave=new THREE.PointLight(0xb8c8dc,.85,16,2);
+    const nave=new THREE.PointLight(0xb8c8dc,1.7,22,2);
     nave.position.set(0,PH+3,-9);
     addHaze(0,PH+3.2,-9,0xb8c8dc,7,.14);
     scene.add(nave);
@@ -2323,8 +2391,9 @@ function addWisp(x,y,z,color,size){
 
 function updateAmbient(t,dt){
   for(const L of lanternLights){
-    L.l.intensity=.72+Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06;
-    L.hz.material.opacity=.16+(L.l.intensity-.72)*.5;             // the haze breathes with the flame
+    const b=L.base||.72;
+    L.l.intensity=b+(Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06)*(b/.72);
+    L.hz.material.opacity=.16+(L.l.intensity-b)*.5;               // the haze breathes with the flame
   }
   for(const w of wispSystems){
     if(w.dust){
@@ -2489,6 +2558,21 @@ function buildHumanoid(o){
       const nock=makeArrow(s,mat('bone'),bladeM,mat('rag',{color:0xe8e0c8}));nock.position.y=tipY;nock.visible=false;w.add(nock);
       rig.bow={string:str,nock,tipY,R};
       rig.reach=0;rig.bladeMesh=limbMesh;
+    }else if(o.weapon==='katana'){
+      /* the katana: a long, slim, single-edged blade with a gentle curve,
+         a round tsuba, a wrapped grip running up past the right hand so
+         the left can take the pommel. Its saya rides the left hip. */
+      const gripM2=o.clothMat||gripM;
+      for(let i=0;i<4;i++){
+        const seg=M(GBox(.036*s,.28*s,.012*s),bladeM,0,-.2*s-i*.265*s,i*i*.014*s);
+        seg.rotation.x=-i*.05;w.add(seg);if(i===1)rig.bladeMesh=seg;}
+      const tip=M(GCone(.018*s,.1*s,4),bladeM,0,-1.31*s,.135*s);tip.rotation.x=Math.PI-.2;w.add(tip);
+      w.add(M(GCyl(.068*s,.068*s,.012*s,10),gripM,0,-.055*s,0));           // tsuba
+      w.add(M(GCyl(.021*s,.023*s,.3*s,6),gripM2,0,.1*s,0));                 // wrapped grip
+      w.add(M(GCyl(.025*s,.025*s,.03*s,6),gripM,0,.26*s,0));                // kashira
+      rig.reach=2.6*s;rig.katana=true;rig.gripLo=-.04;rig.gripHi=.24;
+      const saya=M(GBox(.05*s,1.05*s,.032*s),gripM2,-.2*s,-.32*s,-.03*s);
+      saya.rotation.z=.18;saya.rotation.x=-.3;body.add(saya);rig.saya=saya;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
          a LONG two-hand haft under a wheel pommel, guard far down the
@@ -2710,6 +2794,27 @@ function poseBackstab(r,p){
   }else{                                            // and back to the carry
     poseLight(r,.68+.32*((p-.86)/.14),3);
   }
+}
+/* the katana's draw: blade sheathed back along the left hip, the right
+   hand across on the grip, the left on the saya, the body coiled low */
+function poseIaiCharge(r,q,t){
+  const C=CARRY,e=easeOut(Math.min(1,q));
+  r.torso.rotation.y=.5*e;r.body.rotation.y=.25*e;r.torso.rotation.x+=.2*e;
+  r.armR.rotation.set(C.aRx+(-.35-C.aRx)*e,0,C.aRz+(.55-C.aRz)*e);
+  r.foreR.rotation.x=C.fRx+(-.9-C.fRx)*e;
+  r.weapon.rotation.set(C.wx+(1.35-C.wx)*e,C.wy*(1-e),C.wz+(.4-C.wz)*e);
+  r.armL.rotation.set(C.aLx+(-.2-C.aLx)*e,0,C.aLz+(.2-C.aLz)*e);r.foreL.rotation.x=C.fLx+(-.5-C.fLx)*e;
+  r.legR.rotation.x=.3*e;r.kneeR.rotation.x=.45*e;r.legL.rotation.x=-.3*e;r.kneeL.rotation.x=.35*e;
+  r.body.position.y=r.baseY-.14*e*r.s;
+  r.head.rotation.y=-.3*e;
+}
+/* ...and the cut: one backhand flung from the hip as the body flashes past,
+   held out beyond them, then the blade walked back into the saya */
+function poseIai(r,p){
+  if(p<.18){poseLight(r,.45+.23*(p/.18),1);r.torso.rotation.x+=.35;}
+  else if(p<.62){poseLight(r,.68,1);r.torso.rotation.x+=.25;r.head.rotation.x-=.2;}
+  else if(p<.8)poseIaiCharge(r,1,0);
+  else poseIaiCharge(r,1-(p-.8)/.2,0);
 }
 /* the whirlwind: the blade held out level at the end of a sweep while the
    whole body turns under it — the pose is still, the spin is the rig's */
@@ -3180,8 +3285,8 @@ function solveLeftHand(r){
   // the left hand slides along the handle: target the closest point of the
   // grip segment (guard to pommel) to the shoulder, in the torso frame
   IK.Mi.copy(r.torso.matrixWorld).invert();
-  IK.T.set(0,-.46*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
-  IK.Z.set(0,.06*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
+  IK.T.set(0,(r.gripLo!==undefined?r.gripLo:-.46)*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
+  IK.Z.set(0,(r.gripHi!==undefined?r.gripHi:.06)*s,0).applyMatrix4(r.weapon.matrixWorld).applyMatrix4(IK.Mi);
   IK.Z.sub(IK.T);                                          // grip axis, guard->pommel
   const gl=IK.Z.length();
   if(gl>1e-6){
@@ -3275,7 +3380,8 @@ function updateRigExtras(r,dt){
 /* factory: the cast */
 function makeKnightRig(lo){
   lo=lo||{};
-  const bow=lo.weapon==='bow',thief=lo.armour==='thief';
+  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',thief=lo.armour==='thief';
+  const wpn=bow?'bow':kat?'katana':'claymore';
   const r=buildHumanoid(thief?{
     // the thief's set: dark quilted cloth, a leather jerkin, wrapped
     // limbs, a deep hood and a short mantle — nothing that shines
@@ -3283,18 +3389,18 @@ function makeKnightRig(lo){
     torsoMat:mat('cloth',{color:0x8c8c94}),headMat:mat('cloth',{color:0x6f6f78}),
     limbMat:mat('cloth',{color:0xb0a898}),
     bladeMat:mat('blade'),gripMat:mat('bark',{color:0x9a8a74}),
-    weapon:bow?'bow':'claymore',clothMat:mat('bark',{color:0x8a7a62}),
+    weapon:wpn,clothMat:mat('bark',{color:0x8a7a62}),
     chestMat:mat('rag',{color:0x9a7a58}),cape:mat('rag'),
     legLen:1.15,mirrorArms:true,hood:true,noPauldron:true,
   }:{
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
-    weapon:bow?'bow':'claymore',clothMat:bow?mat('bark',{color:0x8a7a62}):mat('rag'),
+    weapon:wpn,clothMat:bow||kat?mat('bark',{color:0x8a7a62}):mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
     legLen:1.15,mirrorArms:true,
   });
-  r.loadout={weapon:bow?'bow':'sword',armour:thief?'thief':'knight'};
+  r.loadout={weapon:bow?'bow':kat?'katana':'sword',armour:thief?'thief':'knight'};
   return r;
 }
 function makeHollowRig(big,caster){
@@ -3527,18 +3633,20 @@ const effects=[];
    weapon, armour and the charged attack for each weapon, chosen on the
    pause screen and remembered by the browser */
 const LOADOUT_KEY='bonepath.loadout';
-const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock'};
+const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock',katanaCharge:'iai'};
 try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
-const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow']],
+const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','katana']],
+  katanaCharge:[['iai','iaido draw']],
   armour:[['knight','knight plate'],['thief','thief cloth']],
   charge:[['double','double slash'],['spin','whirlwind']],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
 const HERO_NOTES={double:'two fast cuts, forward and back; a full charge\'s second cut staggers all but the Warden',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
   knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
-  pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last'};
+  pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last',
+  iai:'sheathed at the hip, then one cut as the body flashes five metres through them; they fall when the blade clicks home'};
 function boneBurst(x,y,z,color,n,speed){
   for(let i=0;i<n;i++){
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,
@@ -4045,6 +4153,7 @@ const player={
     this.respawn();
   },
   weapon(){return LOADOUT.weapon;},
+  atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:.68;},
   // the pilgrim's body is remade from the loadout: same place, same facing
   rebuild(){
     if(this.rig)scene.remove(this.rig.root);
@@ -4099,7 +4208,7 @@ const player={
       this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
   },
   // the roll's window, and the whole of the finishing cut: nothing touches the executioner
-  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab';},
+  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab'||this.state==='iai';},
   takeHit(dmg,fx,fz,heavy){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
@@ -4244,6 +4353,9 @@ const player={
       // thrust, the head off an overhead — and the thing keeps coming
       if(e.hp>0&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&Math.random()<.17)
         severLimb(e,tr,hv);
+      // the katana: below half their life, the edge simply goes through them
+      if(this.weapon()==='katana'&&e.hp>0&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter')
+        katanaSlice(e,this.facing);
       sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?16:dmg>20?11:7);
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
@@ -4352,7 +4464,7 @@ const player={
       this.draw();
       this.state='attack';
       // lightning in the blade quickens the arm
-      this.atkDur=this.element==='lightning'?.5:.68;
+      this.atkDur=this.atkDurFor();
       this.t=0;this.combo=0;this.chain=0;
       this.queued=false;this.qDir=null;this.hitDone=false;
       this.sfxDone=false;
@@ -4387,7 +4499,15 @@ const player={
       this.state='charge';this.t=0;this.chargeT=0;this.chargeFull=false;this.readyDone=false;
       this.sprintT=0;this.sprinting=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
-      if(this.weapon()==='bow')AudioSys.bowDraw();else AudioSys.windup();
+      if(this.weapon()==='bow')AudioSys.bowDraw();else if(this.weapon()==='katana')AudioSys.sheath();else AudioSys.windup();
+    };
+    // the iaido draw: five metres through them in a flash, and they fall
+    // only when the blade clicks home
+    const startIai=()=>{
+      this.state='iai';this.t=0;this.hitDone=false;this.sfxDone=false;this.iaiHits=[];
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      G.glowFlash=1;
     };
     // a quick shot: nock, draw, loose
     const startShoot=(s)=>{
@@ -4536,6 +4656,7 @@ const player={
       if(released||this.chargeT>1.8){
         if(this.weapon()==='bow')startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);
         else if(this.chargeT<.3)startAttack(null);   // barely held: it's just a strike
+        else if(this.weapon()==='katana')startIai();
         else if(LOADOUT.charge==='spin')startSpin();
         else startDouble();
       }
@@ -4565,7 +4686,7 @@ const player={
       if(p>=1){
         if(this.queued){ // flows on into the chain
           this.state='attack';this.t=0;this.combo=2;this.chain=2;
-          this.atkDur=this.element==='lightning'?.5:.68;
+          this.atkDur=this.atkDurFor();
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
@@ -4576,8 +4697,10 @@ const player={
       if(!e||(e.hp<=0&&!this.hitDone)){this.state='free';this.execT=null;}
       else{
         const ex=Math.sin(e.facing),ez=Math.cos(e.facing);
-        if(p<.3){ // close in to its back
-          const tx=e.x-ex*.95,tz=e.z-ez*.95;
+        if(p<.3){ // close in to its back, offset a step to the left so the
+                  // blade — carried on the right — goes through the spine
+          const rx=Math.cos(e.facing),rz=-Math.sin(e.facing);
+          const tx=e.x-ex*.95-rx*.3,tz=e.z-ez*.95-rz*.3;
           this.x+=(tx-this.x)*Math.min(1,10*dt);this.z+=(tz-this.z)*Math.min(1,10*dt);
           this.facing=e.facing;
         }
@@ -4610,6 +4733,37 @@ const player={
         }
         if(p>=1){this.state='free';this.execT=null;}
       }
+    }
+    else if(this.state==='iai'){
+      const DUR=.85,p=this.t/DUR;
+      if(p<.16){ // the flash step: five metres, straight through them
+        const nx=this.x+Math.sin(this.facing)*32*dt,nz=this.z+Math.cos(this.facing)*32*dt;
+        const L=Math.hypot(nx-this.x,nz-this.z)||1e-4,dx=(nx-this.x)/L,dz=(nz-this.z)/L;
+        for(const e of enemies){ // everyone the line crosses is marked; nothing happens to them yet
+          if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||e.crow||this.iaiHits.includes(e))continue;
+          const px=e.x-this.x,pz=e.z-this.z,tt=clamp((px*dx+pz*dz)/L,0,1),cx=this.x+dx*L*tt,cz=this.z+dz*L*tt;
+          if(Math.hypot(e.x-cx,e.z-cz)<e.radius+.7){
+            this.iaiHits.push(e);
+            if(!e.boss&&!e.mini){e.state='held';e.t=0;e.vx=0;e.vz=0;e.attack=null;}
+          }
+        }
+        this.x=nx;this.z=nz;G.slowMo=.45;
+        if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.2);
+          slashArc(this.x,this.z,1.2,this.facing,0xdde8ff,'sweep',-1);}
+      }else G.slowMo=1;
+      if(!this.hitDone&&p>=.62){ // the blade clicks home — and only now do they fall
+        this.hitDone=true;AudioSys.sheath();
+        const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+        for(const e of this.iaiHits){
+          if(e.hp<=0)continue;
+          if(e.state==='held')e.state='chase';
+          e.takeHit(this.chargeFull?48:34,e.boss?4:99,this.x-fx*3,this.z-fz*3,1.4,{dx:fx,dz:fz,up:1.3});
+          if(e.hp>0&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&e.rig.humanoid)katanaSlice(e,this.facing);
+          G.camShake=Math.max(G.camShake,.5);G.hitstop=Math.max(G.hitstop,.1);
+        }
+        this.iaiHits=[];
+      }
+      if(p>=1)this.state='free';
     }
     else if(this.state==='shoot'){
       const DUR=.46,p=this.t/DUR;
@@ -4644,7 +4798,7 @@ const player={
       if(p>=1){
         if(this.queued){
           this.state='attack';this.t=0;this.combo=2;this.chain=2;
-          this.atkDur=this.element==='lightning'?.5:.68;
+          this.atkDur=this.atkDurFor();
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
@@ -4743,8 +4897,8 @@ const player={
         this.hitDone=true;
         // the chain climbs: sweeps cut wide, the overhead crushes,
         // the thrust reaches deep but narrow
-        const stab=this.combo===3,over=this.combo===2,
-          dmg=(stab?17:over?16:14)+Math.min(6,this.chain*2);
+        const stab=this.combo===3,over=this.combo===2,kat=this.weapon()==='katana',
+          dmg=(kat?30:stab?17:over?16:14)+Math.min(6,this.chain*2);
         const hit=this.meleeHit(dmg,stab?3.0:2.6,stab?.6:1.15,over?2:1,over?.55:.35,
           {trail:stab?'thrust':over?'overhead':'sweep',dir:this.combo===0?1:-1});
         if(hit)AudioSys.hit();
@@ -4754,7 +4908,7 @@ const player={
         if(ex){startExecute(ex);return this.post(dt);}
         if(this.queued){
           this.combo=(this.combo+1)%4;this.chain++;this.t=0;
-          this.atkDur=this.element==='lightning'?.5:.68;
+          this.atkDur=this.atkDurFor();
           this.queued=false;this.hitDone=false;this.sfxDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
@@ -4771,7 +4925,7 @@ const player={
     if(this.state!=='dead'){
       constrain(this,G.bossActive);
       pushOut(this,.35);
-      for(const e of enemies){ // soft body-block against living enemies
+      if(this.state!=='iai')for(const e of enemies){ // soft body-block against living enemies
         if(e.hp<=0||(e.state==='dormant'||e.untouchable)||e.state==='scatter'||e.crow)continue;
         const dx=this.x-e.x,dz=this.z-e.z,d=Math.hypot(dx,dz),m=.32+e.radius;
         if(d<m&&d>1e-4){this.x=e.x+dx/d*m;this.z=e.z+dz/d*m;}
@@ -4781,8 +4935,9 @@ const player={
     // ---- pose ----
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
-    const bow=this.weapon()==='bow';
-    r.ikLeftArm=!bow&&['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab'].includes(this.state);
+    const bow=this.weapon()==='bow',kat=this.weapon()==='katana';
+    r.ikLeftArm=!bow&&!(kat&&(this.state==='charge'||this.state==='iai'))&&
+      ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -4791,7 +4946,8 @@ const player={
       else poseIdle(r,t);
       if(bow)poseBowCarry(r);
     }
-    else if(this.state==='charge'){if(bow)poseBowDraw(r,this.chargeT/.6,t);else poseCharge(r,this.chargeT/.6,t);}
+    else if(this.state==='charge'){if(bow)poseBowDraw(r,this.chargeT/.6,t);else if(kat)poseIaiCharge(r,this.chargeT/.6,t);else poseCharge(r,this.chargeT/.6,t);}
+    else if(this.state==='iai')poseIai(r,Math.min(1,this.t/.85));
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
@@ -4851,6 +5007,12 @@ class Enemy{
     this.heavyHitter=this.boss||this.big;
     this.rig=this.boss?makeWardenRig():makeHollowRig(this.big,this.caster);
     this.reach=this.boss?3.4:this.big?2.4:2.15;
+    // some of the host burns hotter: red-boned, three times the life, worth double
+    this.red=!this.boss&&(opts.red||Math.random()<.14);
+    if(this.red){
+      this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material=o.material.clone();o.material.color.setHex(0xd23c3c);}});
+      this.maxHp*=3;this.hp=this.maxHp;this.marrow=Math.round(this.marrow*2);
+    }
     scene.add(this.rig.root);
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
@@ -5984,6 +6146,16 @@ function severLimb(e,trail,hv){
   if(e.hp<=0)e.die();
   return true;
 }
+/* the katana's promise: a horror below half its life is cut in two where
+   the edge meets it, no ceremony */
+function katanaSlice(e,facing){
+  AudioSys.sever();AudioSys.hit();
+  G.camShake=Math.max(G.camShake,.55);G.hitstop=Math.max(G.hitstop,.12);G.vibr([40,20,70]);
+  const gy=heightAt(e.x,e.z);
+  gore(e,e.x,gy+1.2,e.z,16,1.4);goreDecal(e,e.x,e.z,.7);sparkBurst(e.x,gy+1.2,e.z,10);
+  splitEnemy(e,facing);
+  e.noRag=true;e.die();e.crumbled=true;e.rig.root.visible=false;
+}
 function splitEnemy(e,facing){
   const r=e.rig,gh=heightAt(e.x,e.z);
   const n=new THREE.Vector3(Math.cos(facing),0,-Math.sin(facing));      // across the cut
@@ -6370,7 +6542,7 @@ function makeGrain(){
 /* ---------------- boot & main loop ---------------- */
 function begin(){
   if(G.mode!=='title')return;
-  AudioSys.start();   // no theme: the wind, the creaks and the crows are the music
+  AudioSys.start();AudioSys.layersStart();   // no theme: wind, the three layers, and the Warden's drone
   G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');
   $('title').style.display='none';
   $('hud').style.display='block';
@@ -6419,7 +6591,7 @@ function renderHero(){
     heroScene.add(new THREE.AmbientLight(0x9aa2b2,.95));
     const key=new THREE.DirectionalLight(0xffe2b0,1.6);key.position.set(2,3,2.5);heroScene.add(key);
     const rim=new THREE.DirectionalLight(0x7f95c0,.8);rim.position.set(-2,2,-2);heroScene.add(rim);
-    heroCam=new THREE.PerspectiveCamera(26,W/H,.1,20);heroCam.position.set(1.0,1.5,3.4);heroCam.lookAt(0,1.0,0);
+    heroCam=new THREE.PerspectiveCamera(28,W/H,.1,20);heroCam.position.set(1.1,1.7,4.2);heroCam.lookAt(0,1.05,0);
   }
   if(heroRig)heroScene.remove(heroRig.root);
   heroRig=makeKnightRig(LOADOUT);
@@ -6437,7 +6609,7 @@ function renderHero(){
   ctx.putImageData(img,0,0);
 }
 function loadoutLabel(k){const v=LOADOUT[k];return (HERO_OPTS[k].find(o=>o[0]===v)||HERO_OPTS[k][0])[1];}
-function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':'charge';}
+function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon==='katana'?'katanaCharge':'charge';}
 function cycleLoadout(k,d){
   if(k==='charge')k=chargeKey();
   const list=HERO_OPTS[k];let i=list.findIndex(o=>o[0]===LOADOUT[k]);
@@ -6524,7 +6696,7 @@ function frame(now){
     updateHUD();
   }
   for(let i=effects.length-1;i>=0;i--)if(!effects[i].update(wdt))effects.splice(i,1);
-  if(player.state!=='execute')G.slowMo=1;
+  if(player.state!=='execute'&&player.state!=='iai')G.slowMo=1;
   updateAmbient(G.time,wdt);
   heroLight.position.set(player.x,heightAt(player.x,player.z)+2.2,player.z);
   // the glow is the charge meter: it draws in tight and burns hotter as
@@ -6534,16 +6706,26 @@ function frame(now){
   // inside the nave the glow draws in: the arena stays a dark place
   const inNave=cathDist(player.x,player.z)<1;
   G.naveDim=lerp(G.naveDim||0,inNave?1:0,Math.min(1,3*dt));
-  heroLight.intensity=(2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash)*(1-.62*G.naveDim);
-  heroLight.distance=(17-6*cg+5*G.glowFlash)*(1-.58*G.naveDim);
+  heroLight.intensity=(2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash)*(1-.3*G.naveDim);
+  heroLight.distance=(17-6*cg+5*G.glowFlash)*(1-.3*G.naveDim);
   // the nave has a roof, as far as the light is concerned: the sky's
   // glow and the moon drain away as you step inside, and the whole
   // picture sinks a stop darker
-  worldLights.hemi.intensity=.26*(1-.88*G.naveDim);
-  worldLights.moon.intensity=.21*(1-.94*G.naveDim);
-  gradeMat.uniforms.uExpo.value=1.04*(1-.22*G.naveDim);
+  worldLights.hemi.intensity=.26*(1-.45*G.naveDim);
+  worldLights.moon.intensity=.21*(1-.55*G.naveDim);
+  gradeMat.uniforms.uExpo.value=1.04*(1+.06*G.naveDim);
   AudioSys.setSpace(G.naveDim);
   AudioSys.setMusic(G.bossActive||G.mode==='victory'?0:G.mode==='dead'?.35:1);
+  { // the threat layer follows what is hunting you; the heart follows your life
+    let th=0;
+    if(G.mode==='play'&&!G.bossActive)for(const e of enemies){
+      if(e.hp<=0||e.boss||!['chase','windup','strike','recover','lurch','hover','plunge','lament','wingblade','retch','rake','burrowed','erupt'].includes(e.state))continue;
+      const d=Math.hypot(e.x-player.x,e.z-player.z);
+      if(d<16)th=Math.max(th,e.mini?1:Math.min(1,1.25-d/16));
+    }
+    AudioSys.setThreat(th);
+    AudioSys.setHeart(G.mode==='play'&&player.hp<player.maxHp*.5);
+  }
   // the hazes ride their lights (the hero carries none: the light alone reads better)
   for(const l of dropLights){
     if(!l.haze)continue;

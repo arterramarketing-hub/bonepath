@@ -19,7 +19,7 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   deaths, time, the state of the two mini-bosses, the Warden and the
   cathedral — with the full touch and keyboard control lists, and **the
   pilgrim**: a lit portrait of your knight with three selectors under it.
-  **Weapon** — the greatsword or the longbow. **Armour** — knight plate or
+  **Weapon** — the greatsword, the longbow, or the katana. **Armour** — knight plate or
   the thief's cloth: dark quilting, a leather jerkin, wrapped limbs, a deep
   hood and a short mantle. **Charge** — the charged attack for the weapon
   in hand. The choice is remembered by the browser and the body is remade
@@ -60,6 +60,14 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     rides with it through every pose and fall. Into the ground or the
     stone, it sticks. The finishing move with a bow in hand is a shaft
     through the skull at point-blank
+  - **the katana** — overpowered on purpose. Fast light cuts for 30, and
+    any small or medium horror below half its life is simply **cut in
+    two where the edge lands**. Its charge is the **iaido draw**: hold and
+    the blade goes back into the saya at the left hip, the body coiled
+    low; release and the knight flashes five metres straight through
+    whatever stands in the line, the world slowing for the cut, and
+    stands past them with the blade out — nothing happens to them until
+    the guard clicks home in the sheath, and then they fall
   - **flick in ANY direction** — dodge roll with i-frames that way
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
@@ -99,6 +107,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 No flask. No stamina. Only nerve.
 
 ## Marrow
+
+Some of the host burns hotter: **red-boned** hollows, throwers and
+brutes, one in seven or so, with three times the life and worth double.
 
 Everything you fell pays marrow — the toll that opens the cathedral.
 Die and you drop every shard where you fell — your helm lies there on
@@ -198,7 +209,8 @@ Inside is a long church: a nave of pews between two colonnades under a
 pitched roof of stone slates on tie beams — slates missing here and
 there, so the moon gets in, and two fallen beams lying on the floor —
 lancet glass between the buttresses, eight tall iron candle stands down
-the aisles burning with real, breathing light, and at the far end the
+the aisles burning with real, breathing light that keeps the nave lit,
+and at the far end the
 altar on its dais under the rose window, where the moon comes straight
 down. The pews break —
 two hard blows and one bursts into splinters and planks, a roll through
@@ -262,8 +274,13 @@ Everything is generated at boot inside the one file:
   graveyard wind, a sub drone, far-off creaks and crows, heavy armoured
   footfalls, whooshes, bone-splintering hits, the death gong, the
   Warden's roar, the Fallen One's shriek, the Unburied's retch. There
-  is no theme: the wind, the creaks and the crows are the music, and the
-  Warden brings a tremolo drone of his own.
+  is no theme, nothing you could hum — three layers instead. **Unease**:
+  a sub drone that swells slowly, always there. **Threat**: a low bowed
+  string with a slow vibrato that rises while something hunts you, a
+  bell struck now and then, and your own heart when your life is under
+  half. **The nave**: a choir pad on a D minor chord with one high held
+  note inside the cathedral, handed off to the Warden's tremolo drone
+  when he rises.
 - **No dependencies fetched at runtime.** Works offline.
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can
