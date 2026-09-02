@@ -174,7 +174,7 @@
 
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
-  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; lunge &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: dash cut) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
+  <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; lunge &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: running thrust) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
 </div>
 <div id="prompt"></div>
 
@@ -2041,7 +2041,7 @@ function buildHumanoid(o){
   }else{
     const plate=o.plateMat||limb,cloth=o.clothMat||o.torsoMat;
     // V-tapered cuirass: broad chest over a narrow waist
-    const chest=M(GCyl(.3*s,.17*s,.54*s,7),o.chestMat||o.torsoMat,0,.28*s,0);
+    const chest=M(GCyl(.34*s,.18*s,.56*s,7),o.chestMat||o.torsoMat,0,.28*s,0); // broad in the shoulder
     torso.add(chest);
     for(const d of[1,-1]){                                           // the raised X across the breastplate
       const ridge=M(GBox(.045*s,.44*s,.025*s),plate,0,.3*s,.29*s);ridge.rotation.z=.72*d;torso.add(ridge);}
@@ -2049,7 +2049,7 @@ function buildHumanoid(o){
     torso.add(M(GCyl(.27*s,.27*s,.06*s,7),plate,0,.04*s,0));         // belt
     // the hooded mantle: a black cloth cowl laid over the shoulders,
     // its hem torn, drawn up close around the neck
-    const mantle=M(GCone(.4*s,.36*s,7),cloth,0,.6*s,0);mantle.material.side=THREE.DoubleSide;
+    const mantle=M(GCone(.46*s,.36*s,7),cloth,0,.6*s,0);mantle.material.side=THREE.DoubleSide;
     torso.add(mantle);
     torso.add(M(GCyl(.17*s,.2*s,.1*s,7),cloth,0,.68*s,0));           // the cowl's neck
     for(let i=0;i<7;i++){                                            // tatters hanging off the hem
@@ -2076,6 +2076,7 @@ function buildHumanoid(o){
     // a brow ridge, and the face cut into a T — a dark vertical slit
     // under a narrow eye-line — with cheek guards flaring beside it
     const hm=o.headMat,dark=new THREE.MeshBasicMaterial({color:0x050506});
+    head.scale.setScalar(.86);                                         // a small helm on a big frame
     head.add(M(GCyl(.14*s,.15*s,.3*s,7),hm,0,.2*s,0));
     head.add(M(GSph(.14*s,7,4),hm,0,.34*s,0));
     const comb=M(GBox(.035*s,.12*s,.3*s),hm,0,.43*s,-.01*s);comb.rotation.x=-.12;head.add(comb);
@@ -2108,7 +2109,7 @@ function buildHumanoid(o){
   const armThick=sk?[.05,.04]:[.08,.065];
   function makeArm(side){
     const sh=new THREE.Group();
-    sh.position.set(.3*s*side,.47*s,0);torso.add(sh);
+    sh.position.set((sk?.3:.36)*s*side,.47*s,0);torso.add(sh);       // the knight's shoulders sit wide
     if(!sk){                                                        // pauldron: three overlapping lames
       const plate=o.plateMat||limb;
       const p=M(GSph(.165*s,6,4),plate,0,.04*s,0);p.scale.y=.6;sh.add(p);
@@ -2614,30 +2615,30 @@ function poseLunge(r,p){
   r.head.rotation.y=-L('ty')*.6;
   r.body.position.y=r.baseY-(p<.55?.16:.16*(1-q))*r.s;
 }
-/* the dash cut: straight out of a sprint, the lead foot plants and
-   skids while the blade whips through a wide, low, level sweep */
+/* the running thrust: straight out of a sprint, the blade is drawn
+   back along the hip mid-stride and driven forward, point first, the
+   whole body behind it, the run's momentum carrying it home */
 function poseSprintAtk(r,p){
-  const W=.3,H=.55,C=CARRY;
-  const ty=seg4(p,W,H,.45,-1.3,1.7,.35);               // trunk whips through wide
-  r.torso.rotation.y=ty;r.body.rotation.y=seg4(p,W,H,.2,-.55,.85,.15);
-  r.torso.rotation.x+=seg4(p,W,H,.42,.3,.38,.15);      // stays low out of the run
-  r.torso.rotation.z=seg4(p,W,H,0,.08,-.16,0);
-  r.armR.rotation.x=seg4(p,W,H,C.aRx+.55,-1.0,-1.25,C.aRx);
-  r.armR.rotation.z=seg4(p,W,H,C.aRz,-.55,.15,C.aRz);
-  r.foreR.rotation.x=seg4(p,W,H,C.fRx-.2,-.4,-.1,C.fRx);
-  r.weapon.rotation.x=seg4(p,W,H,C.wx+.35,.3,-.1,C.wx);
-  r.weapon.rotation.z=seg4(p,W,H,0,.3,-.12,0);
-  r.weapon.rotation.y=seg4(p,W,H,C.wy,0,0,C.wy);        // edge leads the level cut
-  r.armL.rotation.x=seg4(p,W,H,C.aLx+.3,-.9,-1.15,C.aLx);
-  r.armL.rotation.z=seg4(p,W,H,C.aLz,-.45,-.05,C.aLz);
-  r.foreL.rotation.x=seg4(p,W,H,C.fLx,-.6,-.2,C.fLx);
-  // the skid: lead leg thrown forward and planted, rear leg dragging
-  r.legL.rotation.x=seg4(p,W,H,-.6,-.9,-.7,0);
-  r.kneeL.rotation.x=seg4(p,W,H,.6,.4,.5,0);
-  r.legR.rotation.x=seg4(p,W,H,.7,.9,.6,0);
-  r.kneeR.rotation.x=seg4(p,W,H,.3,.2,.3,0);
-  r.head.rotation.y=-ty*.6;
-  r.body.position.y=r.baseY-seg4(p,W,H,.05,.16,.22,.04)*r.s;
+  const W=.28,H=.5,C=CARRY;
+  const tw=seg4(p,W,H,.3,.65,-.9,-.2);                  // hips coil back, then open behind the point
+  r.torso.rotation.y=tw;r.body.rotation.y=tw*.5;
+  r.torso.rotation.x+=seg4(p,W,H,.42,.2,.45,.15);       // low out of the run, leaning into the thrust
+  r.armR.rotation.x=seg4(p,W,H,C.aRx+.55,-.55,-1.7,-1.0);
+  r.armR.rotation.z=seg4(p,W,H,C.aRz,-.2,.05,C.aRz);
+  r.foreR.rotation.x=seg4(p,W,H,C.fRx-.2,-1.05,.05,-.5);
+  r.weapon.rotation.x=seg4(p,W,H,C.wx+.35,.15,.5,-.9);
+  r.weapon.rotation.y=seg4(p,W,H,C.wy,.5,0,C.wy);       // the point leads
+  r.weapon.rotation.z=C.wz;
+  r.armL.rotation.x=seg4(p,W,H,C.aLx+.3,-.85,-1.35,-.7);
+  r.armL.rotation.z=C.aLz;
+  r.foreL.rotation.x=seg4(p,W,H,C.fLx,-.75,-.15,-.6);
+  // a long driving stride: the right leg plants forward under the thrust
+  r.legR.rotation.x=seg4(p,W,H,.5,.3,-.8,-.15);
+  r.kneeR.rotation.x=seg4(p,W,H,.5,.3,.15,0);
+  r.legL.rotation.x=seg4(p,W,H,-.5,-.2,.6,.1);
+  r.kneeL.rotation.x=seg4(p,W,H,.9,.5,.7,.2);
+  r.head.rotation.y=-tw*.6;
+  r.body.position.y=r.baseY-seg4(p,W,H,.05,.08,.2,.05)*r.s;
 }
 /* floored: knocked flat on the back, a beat of struggling, then up */
 function poseKnockdown(r,p){
@@ -2813,7 +2814,7 @@ function makeKnightRig(){
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'claymore',clothMat:mat('cloth'),
     cape:mat('cloth'),capeRag:mat('capeRag'),
-    legLen:1.15,mirrorArms:true,
+    legLen:1.32,mirrorArms:true,                                     // long in the leg, like the reference
   });
   return r;
 }
@@ -3145,23 +3146,92 @@ function shockRing(x,z,color,maxR,dur){
     return true;
   }});
 }
-function slashArc(parentX,parentZ,y,facing,color){
-  // glowing wake of the blade, canted to the swing plane, expanding as it fades
-  const g=new THREE.RingGeometry(1.15,1.75,18,1,-(Math.PI*.5),Math.PI);
-  const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.65,
+/* the blade's wake: a thin crescent (or, for a thrust, a straight
+   streak) that tapers to nothing at both ends and toward the hilt —
+   the taper is painted into the vertex colours, which under additive
+   blending is the same as fading — and is gone in a tenth of a second */
+function slashArc(parentX,parentZ,y,facing,color,kind,dir){
+  kind=kind||'sweep';dir=dir||1;
+  let g;
+  if(kind==='thrust'){
+    g=new THREE.PlaneGeometry(.12,2.4,1,10);                       // a streak along the point's line
+    const pos=g.attributes.position,col=[];
+    for(let i=0;i<pos.count;i++){const v=(pos.getY(i)+1.2)/2.4;     // 0 hilt .. 1 tip
+      const k=Math.pow(Math.sin(v*Math.PI),.7);col.push(k,k,k);}
+    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  }else{
+    g=new THREE.RingGeometry(1.3,1.62,26,2,-Math.PI*.42,Math.PI*.84);
+    const pos=g.attributes.position,col=[];
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),z=pos.getY(i),r=Math.hypot(x,z),a=Math.atan2(z,x);
+      const along=(a+Math.PI*.42)/(Math.PI*.84);                     // 0..1 along the crescent
+      const k=Math.pow(Math.sin(clamp(along,0,1)*Math.PI),.8)*(.35+.65*(r-1.3)/.32); // ends and hilt fade
+      col.push(k,k,k);}
+    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  }
+  const m=new THREE.MeshBasicMaterial({color,vertexColors:true,transparent:true,opacity:.34,
     side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
   const arc=new THREE.Mesh(g,m);
-  arc.rotation.x=-Math.PI/2+.42;arc.rotation.z=-facing+Math.PI/2;
-  arc.position.set(parentX,heightAt(parentX,parentZ)+y,parentZ);
+  const gy=heightAt(parentX,parentZ);
+  if(kind==='thrust'){
+    arc.rotation.set(Math.PI/2,0,0);                                 // lay the streak flat, pointing forward...
+    arc.rotation.y=facing;                                           // ...along the facing
+    arc.position.set(parentX+Math.sin(facing)*1.0,gy+y+.05,parentZ+Math.cos(facing)*1.0);
+  }else if(kind==='overhead'){
+    arc.rotation.set(0,facing,0);                                    // a vertical crescent in the swing plane
+    arc.rotation.x=dir>0?.2:-.2;
+    arc.position.set(parentX,gy+y+.35,parentZ);
+  }else{
+    arc.rotation.x=-Math.PI/2+.3*dir;                                // a canted horizontal crescent
+    arc.rotation.z=-facing+Math.PI/2;
+    if(dir<0)arc.scale.x=-1;
+    arc.position.set(parentX,gy+y,parentZ);
+  }
   scene.add(arc);
   let t=0;
   effects.push({update(dt){
-    t+=dt;const p=t/.16;
-    m.opacity=.65*(1-p);
-    arc.scale.setScalar(1+p*.25);
+    t+=dt;const p=t/.11;
+    m.opacity=.34*(1-p*p);
     if(p>=1){scene.remove(arc);g.dispose();m.dispose();return false;}
     return true;
   }});
+}
+/* steel on steel, or steel on stone: a hard white burst with a flash */
+function clashSparks(x,y,z,n){
+  sparkBurst(x,y,z,n);
+  const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xfff6dc,
+    transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending}));
+  f.scale.set(.9,.9,1);f.position.set(x,y,z);scene.add(f);
+  let t=0;effects.push({update(dt){t+=dt;const p=t/.09;f.material.opacity=1-p;f.scale.setScalar(.9+p*.6);
+    if(p>=1){scene.remove(f);f.material.dispose();return false;}return true;}});
+}
+/* does a swing from (x,z) facing (fx,fz) with this reach and arc meet a
+   wall, a stone, a trunk, a post — or the cathedral? returns the point */
+function bladeMeetsStone(x,z,fx,fz,reach,arc){
+  let best=null,bd=reach;
+  const consider=(px,pz,r)=>{
+    const dx=px-x,dz=pz-z,d=Math.hypot(dx,dz);
+    if(d-r>bd||d<.05)return;
+    const ang=Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
+    if(ang>arc)return;
+    bd=d-r;best={x:x+dx/d*Math.max(.4,d-r),z:z+dz/d*Math.max(.4,d-r)};
+  };
+  for(const o of obstacles){
+    if(o.seg){
+      const sx=o.bx-o.ax,sz=o.bz-o.az;
+      const t=clamp(((x-o.ax)*sx+(z-o.az)*sz)/(sx*sx+sz*sz||1),0,1);
+      consider(o.ax+sx*t,o.az+sz*t,o.r);
+    }else consider(o.x,o.z,o.r);
+  }
+  // the cathedral's ring wall, from either side, sparing the doorway
+  const d0=Math.hypot(x,z);
+  if(d0>1&&Math.abs(d0-(CATH_R+.6))<reach+.6){
+    const ang=Math.atan2(z,x);
+    if(!(G.cathedralOpen&&Math.abs(wrapA(ang-DOOR_A))<.2)){
+      consider(x/d0*(CATH_R+.6),z/d0*(CATH_R+.6),.45);
+    }
+  }
+  return best;
 }
 
 /* thrown bone: dodge it, block it, or wear it */
@@ -3573,7 +3643,15 @@ const player={
     // every swing carries a chance of a telling blow
     const crit=Math.random()<.15;
     if(crit)dmg=Math.round(dmg*1.8);
-    let hitAny=false;
+    let hitAny=false,clashed=false;
+    // the blade meets STONE first: a swing into a wall, a gravestone, a
+    // trunk or a post is checked there in a shower of sparks
+    const stone=bladeMeetsStone(this.x,this.z,fx,fz,reach*.9,arc);
+    if(stone){
+      clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,12);
+      AudioSys.clang();G.camShake=Math.max(G.camShake,.14);G.hitstop=Math.max(G.hitstop,.05);G.vibr(20);
+      clashed=true;
+    }
     for(const e of enemies){
       if(e.hp<=0||(e.state==='dormant'||e.untouchable)||e.state==='scatter')continue;
       // a crow is only in blade-reach when it swoops low or is grounded
@@ -3582,8 +3660,21 @@ const player={
       if(d>reach+e.radius)continue;
       const ang=Math.acos(clamp((dx*fx+dz*fz)/(d||1),-1,1));
       if(ang>arc)continue;
+      // steel on steel: catch a horror's weapon mid-swing and the blades
+      // clash — sparks, a clang, and its attack is broken
+      let parry=false;
+      if(!e.boss&&!e.mini&&!e.crow&&e.attack&&e.attack!=='throw'&&
+         ((e.state==='windup'&&e.t/e.windDur()>.4)||e.state==='strike')){
+        parry=true;
+        clashSparks((this.x+e.x)/2,1.25,(this.z+e.z)/2,26);
+        AudioSys.clang();G.hitstop=Math.max(G.hitstop,.14);G.camShake=Math.max(G.camShake,.4);G.vibr([30,20,60]);
+        dmg=Math.round(dmg*.5);
+      }
       // the charged lunge breaks anything that isn't the Warden outright
       e.takeHit(dmg,opts.staggerAll&&!e.boss?99:poise,this.x,this.z,kb);
+      if(parry&&e.hp>0&&e.state!=='down'&&e.state!=='scatter'){
+        e.state='stagger';e.t=0;e.poise=0;e.attack=null;      // the parry opens them up
+      }
       sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?16:dmg>20?11:7);
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
@@ -3618,8 +3709,8 @@ const player={
       if(crit)AudioSys.crit();
     }
     if(hitAny||!opts.quietMiss)
-      slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xd8b34a:0x8a8877);
-    return hitAny;
+      slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xe8c890:0xb8c4cc,opts.trail||'sweep',opts.dir||1);
+    return hitAny||clashed;
   },
   update(dt){
     const r=this.rig;
@@ -3837,7 +3928,7 @@ const player={
       }
       // the point is live through the drive: it finds whatever it reaches first
       if(!this.hitDone&&p>=.12&&p<.6){
-        const hit=this.meleeHit(this.chargeFull?34:24,2.7,.75,4,1.1,{staggerAll:true,quietMiss:true});
+        const hit=this.meleeHit(this.chargeFull?34:24,2.7,.75,4,1.1,{staggerAll:true,quietMiss:true,trail:'thrust'});
         if(hit){this.hitDone=true;AudioSys.hit();
           G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.15);}
       }
@@ -3857,13 +3948,13 @@ const player={
     else if(this.state==='sprintatk'){
       const DUR=.5,p=this.t/DUR;
       if(!this.sfxDone&&p>=.12){this.sfxDone=true;AudioSys.swing();G.camShake=Math.max(G.camShake,.1);}
-      if(p<.5){ // the skid carries the run's momentum into the cut
-        const sp=9*(1-p);
+      if(p<.5){ // the run's momentum drives the point home
+        const sp=10*(1-p*.8);
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
       }
-      if(!this.hitDone&&p>=.4){
+      if(!this.hitDone&&p>=.42){
         this.hitDone=true;
-        const hit=this.meleeHit(22,2.9,1.6,3,.8);   // wide, level, and hard
+        const hit=this.meleeHit(22,3.1,.55,3,.9,{trail:'thrust'});   // narrow and deep
         if(hit)AudioSys.hit();
       }
       if(IN.swipe&&IN.swipe.kind==='atk'&&this.t>.15){
@@ -3899,7 +3990,7 @@ const player={
       }
       if(!this.hitDone&&p>=.42){
         this.hitDone=true;
-        const hit=this.meleeHit(17,2.7,1.15,2,.5);
+        const hit=this.meleeHit(17,2.7,1.15,2,.5,{trail:'overhead',dir:-1});   // a rising cut
         if(hit)AudioSys.hit();
       }
       if(IN.swipe&&IN.swipe.kind==='atk'&&this.t>.15){
@@ -3948,7 +4039,8 @@ const player={
         // the thrust reaches deep but narrow
         const stab=this.combo===3,over=this.combo===2,
           dmg=(stab?17:over?16:14)+Math.min(6,this.chain*2);
-        const hit=this.meleeHit(dmg,stab?3.0:2.6,stab?.6:1.15,over?2:1,over?.55:.35);
+        const hit=this.meleeHit(dmg,stab?3.0:2.6,stab?.6:1.15,over?2:1,over?.55:.35,
+          {trail:stab?'thrust':over?'overhead':'sweep',dir:this.combo===0?1:-1});
         if(hit)AudioSys.hit();
       }
       if(p>=1){

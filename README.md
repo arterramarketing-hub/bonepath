@@ -23,8 +23,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Right thumb — tap to fight, hold to break them, flick to live:**
   - **tap** — swing the sword; keep tapping and the combo climbs:
     slash, backhand, crushing overhead, deep thrust, and around again
-  - **tap at full sprint** — the **dash cut**: the lead foot plants and
-    skids while the blade whips through a wide, low, level sweep
+  - **tap at full sprint** — the **running thrust**: the blade is drawn
+    back along the hip mid-stride and driven forward point-first, the
+    run's momentum carrying it deep — narrow, but it reaches
   - **hold still, then release** — the **charged lunge**. The knight
     coils onto the rear leg with the point levelled at the prey; your
     own glow draws in tight and burns hotter as the charge fills (a ring
@@ -35,6 +36,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     begin. Held too briefly, it's just a strike. You are wide open while
     you wind it.
   - **flick in ANY direction** — dodge roll with i-frames that way
+  - **steel on steel** — catch a horror's weapon as it swings (late in
+    its wind-up, or mid-strike) and the blades **clash**: a burst of
+    white sparks, a clang, and its attack is broken — it reels, open to
+    the finishing cut. Swing into a wall, a gravestone, a trunk or a
+    lantern post and the blade is checked there in sparks instead
   - **the finishing cut** — break a small or medium horror's poise and
     a bright blade-mark hangs over it while it reels. Tap with it in
     reach and the knight steps in, hauls the greatsword overhead while
