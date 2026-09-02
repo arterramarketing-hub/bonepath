@@ -173,12 +173,8 @@ Everything is generated at boot inside the one file:
   glow pooling around them, and the cathedral — bone wainscot,
   lancet glass, rose window, a moonbeam standing over it — at the
   center.
-- **Characters** — low-poly articulated rigs (the pilgrim in blackened
-  plate over riveted mail — a ridged great helm with a dark face slit and
-  brow ridge, a hooded cloth mantle torn at the hem, three-lame pauldrons,
-  plate vambraces and gauntlets, an X-ridged cuirass over a fauld and a
-  mail skirt, cuisses and greaves, and a long black cape torn to ribbons
-  at its hem — carrying an ultra greatsword with a long two-hand haft,
+- **Characters** — low-poly articulated rigs (armored knight with cape,
+  barbute helm, and an ultra greatsword with a long two-hand haft,
   carried DS3-style — arm extended on the haft, guard at the shoulder,
   blade rising over it toward the back — swinging edge-first with the
   left hand IK-planted on the haft; skeletal hollows with rounded
