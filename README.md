@@ -62,18 +62,20 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Right thumb, hold & drag** — turn the camera
 - **The eye never closes** — lock-on is automatic and buttonless: the
   closest live horror is always marked (skeletons still clawing out of
-  the ground don't count until they're up). When nothing stalks you,
-  the camera locks onto the cathedral at the heart of the field and
-  keeps it framed as you walk — the goal is always in view
+  the ground don't count until they're up). When nothing stalks you
+  there is no lock at all: the camera eases in behind the way you are
+  walking, and a drag of the right thumb is left exactly where you put
+  it until you move again. The moonbeam over the nave does the pointing
 
 No flask. No stamina. Only nerve.
 
 ## Marrow
 
 Everything you fell pays marrow — the toll that opens the cathedral.
-Die and you drop every shard where you fell, and wake again at the
-pilgrim's gate on the far southern edge — one long corpse-run to win
-it back. There is no rest and no fire to kindle: the only mending is
+Die and you drop every shard where you fell — your helm lies there on
+the path with the marrow burning inside it, under a shaft of pale light
+you can see from anywhere — and you wake again at the pilgrim's gate on
+the far southern edge: one long corpse-run to win it back. There is no rest and no fire to kindle: the only mending is
 what the fallen shed. Enemy windups flash amber and rasp
 before they land; bone-throwers with green eyes lob shots you can
 sidestep or roll through. Break a small horror's poise to stun it,
@@ -97,7 +99,10 @@ to the next horror in reach — and quickens your arm while it rides
 the blade — and frost slows whatever it bites for six long seconds.
 The element gutters out after a time — or is lost with your life.
 
-Every swing also carries a chance of a **telling blow** — near double
+A landed cut can also take something with it: a sweep or a thrust
+sometimes shears an arm off at the shoulder, an overhead sometimes takes
+the head — the piece flies, lands and lies there, and the horror keeps
+coming without it. Every swing also carries a chance of a **telling blow** — near double
 damage with a golden ring and a crack like a bell — and a telling
 blow blasts a small skeleton clean apart: real bones and a skull go
 flying, tumble, and lie scattered on the path. If life remains in
@@ -206,7 +211,9 @@ Everything is generated at boot inside the one file:
   **verlet ragdoll** — no physics library: point masses at the joints,
   distance constraints for the bones, braces for the trunk, gravity,
   the ground with friction, and the walls — and the body falls the way
-  the blow sent it, tumbles, and lies where it lands before the bones
+  the blade sent it — a sweep flings it sideways along the cut, a thrust
+  straight back, an overhead down on its face — tumbles, and lies where
+  it lands before the bones
   come apart into the soil. The finishing cut's halves are two such
   ragdoll fragments flung apart off the blade, the cut plane riding in
   each one's hips. A broken pew comes apart into planks that fly,

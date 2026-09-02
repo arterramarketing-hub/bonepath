@@ -1102,7 +1102,7 @@ const AudioSys=(()=>{
     g.gain.exponentialRampToValueAtTime(.0001,end);
     const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=midi>70?2400:2000;lp.Q.value=.4;
     g.connect(lp).connect(musicBus);
-    const det=rr2(-18,18);                                       // an old, untuned instrument
+    const det=rr2(-11,11);                                       // an old, untuned instrument
     // partials slightly off their harmonics, and one that has no business
     // being there: the string is rusting and the note rings wrong
     [[1,1,'triangle'],[2.006,.42,'triangle'],[3.02,.2,'sine'],[4.05,.09,'sine'],[5.1,.04,'sine'],[2.41,.11,'sine'],[6.73,.025,'square']].forEach(([r,a,ty],i)=>{
@@ -1171,7 +1171,7 @@ const AudioSys=(()=>{
     const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2300;lp.Q.value=1.4;
     const pk=ac.createBiquadFilter();pk.type='peaking';pk.frequency.value=1100;pk.Q.value=1.1;pk.gain.value=5;
     const ws=ac.createWaveShaper();{const n=2048,c=new Float32Array(n);
-      for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*5.5+.45*x*x-.45)/Math.tanh(5.5);}ws.curve=c;ws.oversample='2x';}
+      for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*5.5+.35*x*x)/Math.tanh(5.5);}ws.curve=c;ws.oversample='2x';}
     radioBus=ac.createGain();radioBus.gain.value=.5;
     // a warbling tape echo under the signal: a short modulated delay that
     // feeds back on itself through a dull filter, so every note smears
@@ -1179,7 +1179,7 @@ const AudioSys=(()=>{
     const dly=ac.createDelay(.1);dly.delayTime.value=.021;
     const wob=ac.createOscillator();wob.frequency.value=.73;const wg=ac.createGain();wg.gain.value=.0045;
     wob.connect(wg).connect(dly.delayTime);wob.start();
-    const wob2=ac.createOscillator();wob2.frequency.value=.11;const wg2=ac.createGain();wg2.gain.value=.007;
+    const wob2=ac.createOscillator();wob2.frequency.value=.11;const wg2=ac.createGain();wg2.gain.value=.004;
     wob2.connect(wg2).connect(dly.delayTime);wob2.start();
     const fb=ac.createGain();fb.gain.value=.38;const fbf=ac.createBiquadFilter();fbf.type='lowpass';fbf.frequency.value=1400;
     const dgain=ac.createGain();dgain.gain.value=.8;
@@ -1194,7 +1194,7 @@ const AudioSys=(()=>{
     musicBus.gain.linearRampToValueAtTime(MUS_LVL,ac.currentTime+4);
     // tape wow and flutter, shared by every note
     wow=ac.createGain();wow.gain.value=1;
-    [[.31,16],[.055,11],[5.3,2.4],[.017,22]].forEach(([hz,cents])=>{
+    [[.31,7],[.055,5],[4.7,1.2]].forEach(([hz,cents])=>{
       const l=ac.createOscillator();l.frequency.value=hz;
       const lg=ac.createGain();lg.gain.value=cents;l.connect(lg).connect(wow);l.start();});
     musicT0=ac.currentTime+1.5;musicIdx=0;
@@ -1403,6 +1403,13 @@ const AudioSys=(()=>{
       tone(t+.7,{f:80,f2:36,type:'sine',peak:.22,att:.01,dec:.26});
       noise(t+.56,{peak:.14,att:.005,dec:.2,f0:500,f1:120});
       [1,2.76,4.07].forEach((r,i)=>tone(t+.05,{f:118*r,f2:118*r*.985,type:'sine',peak:.12/(i+1),dec:1.8})); // the bell
+    },
+    // a limb comes off: a crack, a short wet tear, a slap of blood
+    sever(){const t=now();
+      noise(t,{peak:.3,att:.002,dec:.1,f0:2600,f1:500});
+      noise(t+.02,{peak:.24,att:.01,dec:.16,f0:600,f1:150,type:'bandpass',Q:1.2});
+      tone(t,{f:150,f2:50,type:'sine',peak:.25,att:.003,dec:.16});
+      for(let i=0;i<3;i++)noise(t+.08+i*.05,{peak:.07,att:.001,dec:.03,f0:rr2(1400,2600),f1:700,type:'bandpass',Q:4});
     },
     // the fallen one's voice: a glass-edged shriek bending down into a choir of wrong notes
     screech(){const t=now();
@@ -1792,8 +1799,13 @@ function planetPiece(geo,m,x,y,z,rest,speed){
   const piece=new THREE.Mesh(geo,m.clone());piece.material.transparent=true;
   piece.position.set(x,y+.1,z);scene.add(piece);
   const a=Math.random()*TAU,sp=speed*(.4+Math.random()*.8);
-  let vx=Math.cos(a)*sp,vz=Math.sin(a)*sp,vy=2+Math.random()*3,life=0;
+  loosePiece(piece,rest,Math.cos(a)*sp,Math.sin(a)*sp,2+Math.random()*3,true);
+}
+// any object already placed in the scene, set loose with a velocity
+function loosePiece(piece,rest,vx,vz,vy,fade){
+  let life=0;
   let rx=(Math.random()-.5)*14,rz=(Math.random()-.5)*14,landed=0;
+  const mats=[];piece.traverse(o=>{if(o.isMesh){o.material.transparent=true;mats.push(o.material);}});
   const snap=q=>Math.round(q/(Math.PI/2))*(Math.PI/2);
   effects.push({update(dt){
     life+=dt;
@@ -1814,8 +1826,8 @@ function planetPiece(geo,m,x,y,z,rest,speed){
       piece.rotation.z+=(snap(piece.rotation.z)-piece.rotation.z)*k;
       piece.position.y+=(gy-piece.position.y)*k;
     }
-    if(life>22)piece.material.opacity=Math.max(0,1-(life-22)/3);
-    if(life>25){scene.remove(piece);piece.material.dispose();piece.geometry.dispose();return false;}
+    if(fade&&life>22)for(const m of mats)m.opacity=Math.max(0,1-(life-22)/3);
+    if(life>25){scene.remove(piece);for(const m of mats)m.dispose();return false;}
     return true;
   }});
 }
@@ -3904,10 +3916,23 @@ const player={
     bloodDecal(this.x+rr3(-.5,.5),this.z+rr3(-.5,.5),.3);
     bloodDecal(this.x+rr3(-.5,.5),this.z+rr3(-.5,.5),.24);
     // drop the marrow where you fell
-    if(G.marrowDrop){scene.remove(G.marrowDrop.sprite);toast('the lost marrow fades');}
+    if(G.marrowDrop){clearMarrowDrop();toast('the lost marrow fades');}
     if(this.marrow>0){
-      const s=addWisp(this.x,heightAt(this.x,this.z)+.5,this.z,0xcfc4a3,.5);
-      G.marrowDrop={x:this.x,z:this.z,amount:this.marrow,sprite:s};
+      // the pilgrim's helm lies where they fell, the marrow burning inside
+      // it, under a shaft of pale light that stands over the spot — the
+      // one thing in the whole field that is yours
+      const gy=heightAt(this.x,this.z),g=new THREE.Group();
+      const helm=this.rig.head.clone(true);
+      helm.position.set(.14,gy+.1,0);helm.rotation.set(1.3,rr3(-1,1),.6);
+      g.add(helm);
+      const beam=new THREE.Mesh(new THREE.CylinderGeometry(.2,.6,34,10,1,true),
+        new THREE.MeshBasicMaterial({color:0xcfc4a3,transparent:true,opacity:.07,
+          blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+      beam.position.y=gy+17;g.add(beam);
+      g.position.set(this.x,0,this.z);scene.add(g);
+      const wisp=addWisp(this.x,gy+.42,this.z,0xcfc4a3,.55);
+      const haze=addHaze(this.x,gy+.6,this.z,0xcfc4a3,2.4,.4);
+      G.marrowDrop={x:this.x,z:this.z,amount:this.marrow,sprite:g,wisp,haze};
       this.marrow=0;
     }
     const died=$('died');
@@ -3976,10 +4001,21 @@ const player={
         dmg=Math.round(dmg*.5);
       }
       // a full charge's second cut breaks anything that isn't the Warden outright
-      e.takeHit(dmg,opts.staggerAll&&!e.boss?99:poise,this.x,this.z,kb);
+      // which way the blade throws them: a sweep flings them sideways
+      // along the cut, the thrust drives them straight back, the overhead
+      // beats them down on their face
+      const tr=opts.trail||'sweep',sd=opts.dir||1,lx=-fz*sd,lz=fx*sd;
+      const hv=tr==='thrust'?{dx:fx,dz:fz,up:1.2}:tr==='overhead'?{dx:fx,dz:fz,up:-.7}:
+        {dx:fx*.4+lx*.92,dz:fz*.4+lz*.92,up:1.7};
+      {const l=Math.hypot(hv.dx,hv.dz)||1;hv.dx/=l;hv.dz/=l;}
+      e.takeHit(dmg,opts.staggerAll&&!e.boss?99:poise,this.x,this.z,kb,hv);
       if(parry&&e.hp>0&&e.state!=='down'&&e.state!=='scatter'){
         e.state='stagger';e.t=0;e.poise=0;e.attack=null;      // the parry opens them up
       }
+      // a clean cut takes something with it — an arm off a sweep or a
+      // thrust, the head off an overhead — and the thing keeps coming
+      if(e.hp>0&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&Math.random()<.17)
+        severLimb(e,tr,hv);
       sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?16:dmg>20?11:7);
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
@@ -4436,7 +4472,7 @@ class Enemy{
     this.big=kind==='big';this.boss=kind==='boss';this.caster=kind==='caster';
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=opts.facing||Math.PI;
     this.radius=this.boss?.8:this.big?.55:.4;
-    this.maxHp=this.boss?380:this.big?95:this.caster?36:42;
+    this.maxHp=this.boss?380:this.big?140:this.caster?52:64;
     this.hp=this.maxHp;
     this.speed=this.boss?2.7:this.big?2.1:this.caster?2.3:2.5;
     this.dmg=this.boss?26:this.big?24:this.caster?12:14;
@@ -4486,10 +4522,11 @@ class Enemy{
     boneBurst(this.x,.5,this.z,0xb8ad8f,8,1.8); // dust of the blast
     bloodDecal(this.x,this.z,.4);
   }
-  takeHit(dmg,poise,fx,fz,kb){
+  takeHit(dmg,poise,fx,fz,kb,hv){
     if(this.hp<=0||this.state==='scatter')return; // a bone heap can't be cut
     this.hp-=dmg;this.flash();
-    {const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;this.lastHit={dx:dx/l,dz:dz/l,kb:kb||1};}
+    {const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
+      this.lastHit=hv?{dx:hv.dx,dz:hv.dz,kb:kb||1,up:hv.up}:{dx:dx/l,dz:dz/l,kb:kb||1};}
     boneBurst(this.x,1.1*(this.boss?1.8:1),this.z,0xcfc4a3,5,2);
     if(this.state==='dormant')this.wake();
     if(this.boss){$('bossfill').style.width=clamp(this.hp/this.maxHp*100,0,100)+'%';}
@@ -4502,11 +4539,11 @@ class Enemy{
       this.vx=dx/l*(kb*7+3);this.vz=dz/l*(kb*7+3);
       AudioSys.bodyfall();G.vibr(35);
       boneBurst(this.x,.2,this.z,0x4a463a,6,1.6);     // dirt kicked up
-      startRagdoll(this,dx/l,dz/l,kb*4+3.5,2.2);      // and it goes sprawling for real
+      {const H=this.lastHit;startRagdoll(this,H.dx,H.dz,kb*4+3.5,H.up!==undefined?1.1+H.up:2.2);} // and it goes sprawling for real
     }else if(this.state==='down'){
       this.t=Math.min(this.t,.45);                    // kicking them keeps them down
       this.vx=dx/l*kb*3;this.vz=dz/l*kb*3;
-      if(this.rag)startRagdoll(this,dx/l,dz/l,kb*3+2,1.5);
+      if(this.rag){const H=this.lastHit;startRagdoll(this,H.dx,H.dz,kb*3+2,H.up!==undefined?.8+H.up*.6:1.5);}
     }else if(this.poise>=this.poiseMax){
       this.poise=0;this.state='stagger';this.t=0;
       this.vx=dx/l*kb*4;this.vz=dz/l*kb*4;
@@ -4539,7 +4576,7 @@ class Enemy{
     // the body falls the way the blow sent it — or folds where it stood
     if(!this.noRag&&this.rig.humanoid){
       const h=this.lastHit||{dx:rr3(-1,1),dz:rr3(-1,1),kb:.3};
-      startRagdoll(this,h.dx,h.dz,3+h.kb*3.5,2.6);
+      startRagdoll(this,h.dx,h.dz,3+h.kb*3.5,h.up!==undefined?1.3+h.up:2.6);
     }
   }
   wake(){
@@ -5476,6 +5513,37 @@ function endRagdoll(e){
     if(r[k])r[k].rotation.set(0,0,0);
 }
 
+/* a limb comes off: the group is cut out of the rig and thrown, a stub is
+   left behind for the poses to move, the stump bleeds, and the horror
+   keeps coming without it */
+function severLimb(e,trail,hv){
+  const r=e.rig;
+  const wantHead=trail==='overhead'||(trail==='sweep'&&Math.random()<.4);
+  let key=null;
+  if(wantHead&&!e.severedHead)key='head';
+  else if(!e.severedArm)key='armL';
+  else if(!e.severedHead)key='head';
+  if(!key)return false;
+  const g=r[key];
+  r.root.updateMatrixWorld(true);
+  const wp=g.getWorldPosition(new THREE.Vector3()),wq=g.getWorldQuaternion(new THREE.Quaternion());
+  const parent=g.parent,lp=g.position.clone();
+  parent.remove(g);
+  const stub=new THREE.Group();stub.position.copy(lp);parent.add(stub);
+  if(key==='head'){r.head=stub;e.severedHead=true;}
+  else{r.armL=stub;const fs=new THREE.Group();fs.position.copy(r.foreL.position);stub.add(fs);r.foreL=fs;e.severedArm=true;}
+  g.traverse(o=>{if(o.isMesh)o.material=o.material.clone();});
+  g.position.copy(wp);g.quaternion.copy(wq);scene.add(g);
+  loosePiece(g,key==='head'?.16*(r.s||1):.07*(r.s||1),
+    hv.dx*2.4+rr3(-.8,.8),hv.dz*2.4+rr3(-.8,.8),2.6+Math.random()*1.6,true);
+  e.hp-=key==='head'?6:4;
+  bloodSpray(wp.x,wp.y,wp.z,14,1.2);bloodDecal(e.x+rr3(-.4,.4),e.z+rr3(-.4,.4),.45);
+  AudioSys.sever();G.camShake=Math.max(G.camShake,.3);G.hitstop=Math.max(G.hitstop,.08);G.vibr([20,15,50]);
+  let t=0;effects.push({update(dt){t+=dt;if(e.hp<=0||t>1.1)return false;    // the stump spurts
+    if(Math.random()<dt*14){const p=stub.getWorldPosition(new THREE.Vector3());bloodSpray(p.x,p.y,p.z,3,.7);}return true;}});
+  if(e.hp<=0)e.die();
+  return true;
+}
 function splitEnemy(e,facing){
   const r=e.rig,gh=heightAt(e.x,e.z);
   const n=new THREE.Vector3(Math.cos(facing),0,-Math.sin(facing));      // across the cut
@@ -5671,15 +5739,18 @@ function updateCamera(dt){
   if(dragging)camIdle=0;else camIdle+=dt;
   const foe=G.lockTarget&&!G.lockTarget.objective?G.lockTarget:null;
   if(!foe){
-    // no prey: the camera stays LOCKED on the cathedral at the heart of
-    // the field — a drag steals a glance, then the frame swings home
+    // no prey: a follow camera. It eases in behind the direction you are
+    // walking — slowly, souls-fashion — and a manual drag is left exactly
+    // where you put it until you move again
     G.camYaw-=IN.camDX*.0062;
     G.camPitch=clamp(G.camPitch+IN.camDY*.002,.12,.6);
-    if(camIdle>.35){
-      const o=G.lockTarget||{x:0,z:0};
-      const want=Math.atan2(player.x-o.x,player.z-o.z);
-      G.camYaw=angLerp(G.camYaw,want,Math.min(1,3.2*dt));
-      G.camPitch=lerp(G.camPitch,.32,Math.min(1,1.2*dt));
+    if(dragging)G.camHeld=true;
+    const moving=player.state!=='dead'&&player.moveAmt>.15;
+    if(moving&&camIdle>.4)G.camHeld=false;
+    if(moving&&!G.camHeld){
+      const want=Math.atan2(-player.moveX,-player.moveZ);
+      G.camYaw=angLerp(G.camYaw,want,Math.min(1,(1.1+1.6*player.moveAmt)*dt));
+      G.camPitch=lerp(G.camPitch,.3,Math.min(1,.8*dt));
     }
   }else{
     const want=Math.atan2(player.x-foe.x,player.z-foe.z);
@@ -5713,12 +5784,10 @@ function updateCamera(dt){
 }
 
 /* ---------------- lock-on: the eye never closes ----------------
-   A live horror in range is always locked; the button switches between
-   them. With nothing to fight, the lock rests on the objective — the fog
-   gate, then (once the Warden falls) the altar — as a waymark. */
+   A live horror in range is always locked, the closest first. With
+   nothing to fight there is no lock at all: the camera follows the walk
+   and the moonbeam over the nave does the pointing. */
 let lockMarker=null;
-const OBJ_CATH={x:0,z:0,y:5,objective:true};   // the cathedral holds the eye
-const OBJ_ALTAR={x:ALTAR[0],z:ALTAR[1],y:PH+1.8,objective:true};
 function lockCands(){
   // only horrors that are truly LIVE — still clawing out of the grave
   // (dormant or rising) doesn't count
@@ -5739,12 +5808,10 @@ function updateLock(){
          <Math.hypot(foe.x-player.x,foe.z-player.z)+.6)
       foe=t;
   }
-  G.lockTarget=foe||(G.bossDead?OBJ_ALTAR:OBJ_CATH);
-  const c=G.lockTarget;
-  // the eye only draws itself over prey — an objective lock steers the
-  // camera instead, so it needs no orb
-  lockMarker.visible=G.mode==='play'&&!c.objective;
-  if(!c.objective){
+  G.lockTarget=foe;
+  const c=foe;
+  lockMarker.visible=G.mode==='play'&&!!c;
+  if(c){
     const mh=c.crow?c.y+.7:heightAt(c.x,c.z)+(c.boss?3.6:c.big?2.3:1.9);
     lockMarker.position.set(c.x,mh,c.z);
     lockMarker.material.rotation=G.time*2;
@@ -5816,13 +5883,17 @@ function endGame(){
 $('again').addEventListener('click',()=>location.reload());
 
 /* ---------------- marrow drop pickup ---------------- */
+function clearMarrowDrop(){
+  const d=G.marrowDrop;if(!d)return;
+  scene.remove(d.sprite);if(d.wisp)scene.remove(d.wisp);if(d.haze)hazeScene.remove(d.haze);
+  G.marrowDrop=null;
+}
 function updateMarrowDrop(){
   const d=G.marrowDrop;
   if(!d||G.mode!=='play'||player.state==='dead')return;
   if(Math.hypot(player.x-d.x,player.z-d.z)<1.1){
     player.marrow+=d.amount;
-    scene.remove(d.sprite);
-    G.marrowDrop=null;
+    clearMarrowDrop();
     AudioSys.marrow();
     toast('marrow reclaimed');
   }
