@@ -13,7 +13,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   fullscreen.
 - **Desktop**: just open `index.html`. WASD to move (hold R to sprint) —
   J/Space strike (repeat for the combo), hold L and release for the
-  charged lunge, K/Shift roll, E interact, Z/C orbit camera.
+  charged lunge, K/Shift roll, E interact, Z/C orbit camera, Esc pause.
+- **Pause** — the **II** button top-right (or Esc) freezes the field and
+  shows the run's stats — marrow, horrors felled, host remaining,
+  deaths, time, the state of the two mini-bosses, the Warden and the
+  cathedral — with the full touch and keyboard control lists.
 
 ## Controls (touch)
 
@@ -148,9 +152,18 @@ trudge home to stand guard. There are just enough of them, all
 told, to pay the toll. **Harvest 1000 marrow** from the sleeping
 host and the cathedral's veil burns away. There are no
 fires to rest at: die and you wake at the pilgrim's gate, your
-marrow lying where you fell. Step through the portal and the
-**Gravewarden of the Bonefield** rises, with a second phase when its
-rage remembers itself. Fell it, claim the altar under the rose window,
+marrow lying where you fell.
+
+The cathedral itself stands on a stone plinth, reached by a flight of
+steps at its south door and by nothing else — the rim is a wall.
+Inside is a long church: a nave of pews between two colonnades under
+fallen roof ribs, lancet glass between the buttresses, candelabra down
+the side aisles, and at the far end the altar on its dais under the
+rose window, where the moon comes straight down. The pews break —
+two hard blows and one bursts into splinters, and the Warden shoulders
+through them as it comes. Walk the nave and the
+**Gravewarden of the Bonefield** rises from before the altar, with a
+second phase when its rage remembers itself. Fell it, claim the altar,
 and the field is yours.
 
 ## How it's built

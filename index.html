@@ -35,6 +35,27 @@
   #grain{position:fixed;inset:-64px;pointer-events:none;z-index:4;opacity:.02;}
   #hurt{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .35s;
     background:radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(120,10,10,.55) 100%);}
+  #pauseBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
+    z-index:9;width:38px;height:38px;border:1px solid rgba(200,190,160,.35);border-radius:4px;
+    background:rgba(6,7,8,.55);color:var(--bone);font:16px/36px Georgia,serif;text-align:center;
+    letter-spacing:.1em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
+  #pauseBtn.on{display:block;}
+  #pause{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
+    background:rgba(4,5,6,.86);color:var(--bone);font-family:Georgia,'Times New Roman',serif;}
+  #pause.on{display:flex;}
+  #pause .panel{width:min(92vw,760px);max-height:92vh;overflow:auto;padding:18px 24px;border:1px solid rgba(200,190,160,.28);
+    background:rgba(8,9,10,.7);}
+  #pause h2{margin:0 0 4px;font-weight:normal;letter-spacing:.5em;text-transform:uppercase;font-size:clamp(18px,4vw,30px);text-align:center;}
+  #pause .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
+  #pause .cols{display:flex;gap:22px;flex-wrap:wrap;}
+  #pause .col{flex:1 1 220px;font-size:12.5px;line-height:1.55;}
+  #pause h3{font-weight:normal;letter-spacing:.32em;text-transform:uppercase;font-size:11px;opacity:.75;margin:10px 0 6px;border-bottom:1px solid rgba(200,190,160,.2);padding-bottom:3px;}
+  #pause .stat{display:flex;justify-content:space-between;opacity:.9;}
+  #pause .stat b{font-weight:normal;color:#e6c97a;}
+  #pause .k{opacity:.65;}
+  #pause .btns{display:flex;gap:14px;justify-content:center;margin-top:14px;}
+  #pause .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
+  #pause .btn2:active{background:rgba(200,190,160,.15);}
   #poison{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .4s;
     background:radial-gradient(ellipse at 50% 50%, rgba(40,90,20,0) 38%, rgba(60,130,25,.5) 100%);}
   #lowhp{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;
@@ -177,6 +198,47 @@
   <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; lunge &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: running thrust) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
 </div>
 <div id="prompt"></div>
+<div id="pauseBtn">II</div>
+<div id="pause"><div class="panel">
+  <h2>Paused</h2><div class="sub">the marrow remembers</div>
+  <div class="cols">
+    <div class="col">
+      <h3>This run</h3>
+      <div class="stat"><span>marrow</span><b id="psMarrow">0</b></div>
+      <div class="stat"><span>horrors felled</span><b id="psKills">0</b></div>
+      <div class="stat"><span>host remaining</span><b id="psHost">0</b></div>
+      <div class="stat"><span>deaths</span><b id="psDeaths">0</b></div>
+      <div class="stat"><span>time in the field</span><b id="psTime">0:00</b></div>
+      <div class="stat"><span>the Fallen One</span><b id="psAngel">—</b></div>
+      <div class="stat"><span>the Unburied</span><b id="psGhoul">—</b></div>
+      <div class="stat"><span>the Gravewarden</span><b id="psWarden">—</b></div>
+      <div class="stat"><span>the cathedral</span><b id="psCath">sealed</b></div>
+    </div>
+    <div class="col">
+      <h3>Touch</h3>
+      <div><span class="k">left thumb</span> — move · <span class="k">push far</span> — sprint</div>
+      <div><span class="k">tap</span> — strike · keep tapping — the combo</div>
+      <div><span class="k">tap at full sprint</span> — running thrust</div>
+      <div><span class="k">hold still, release</span> — charged lunge (staggers all but the Warden)</div>
+      <div><span class="k">flick any way</span> — roll that way · tap in the roll — rolling cut</div>
+      <div><span class="k">blade-mark over a stunned foe: tap</span> — the finishing cut</div>
+      <div><span class="k">hold &amp; drag</span> — turn the camera · walk into a mote — take it</div>
+      <div><span class="k">time a swing into theirs</span> — clash: sparks, and they reel</div>
+    </div>
+    <div class="col">
+      <h3>Keyboard</h3>
+      <div><span class="k">W A S D</span> — move · <span class="k">R</span> (hold) — sprint</div>
+      <div><span class="k">J</span> or <span class="k">Space</span> — strike · repeat — the combo</div>
+      <div><span class="k">L</span> (hold, release) — charged lunge</div>
+      <div><span class="k">K</span> or <span class="k">Shift</span> — roll · J in the roll — rolling cut</div>
+      <div><span class="k">E</span> — claim the altar · <span class="k">Z / C</span> — turn the camera</div>
+      <div><span class="k">Esc</span> — pause</div>
+      <h3>The path</h3>
+      <div>harvest 1000 marrow from the sleeping host · climb the stair · walk the nave to the altar · fell the Warden · claim it</div>
+    </div>
+  </div>
+  <div class="btns"><div class="btn2" id="btnResume">Resume</div><div class="btn2" id="btnRestart">Restart</div></div>
+</div></div>
 
 <div id="banner"><div class="big" id="bannerBig"></div><div class="rule"></div><div class="sm" id="bannerSm"></div></div>
 <div id="toast"></div>
@@ -1122,6 +1184,8 @@ const AudioSys=(()=>{
   }
   return {
     bossMusic,musicStart,setMusic,
+    // the world holds still: the whole graph sleeps
+    pause(on){if(!ac)return;if(on)ac.suspend();else ac.resume();},
     start,setSpace,
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
@@ -1411,6 +1475,7 @@ const Input=(()=>{
     if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};
     if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
     if(e.code==='KeyE')st.interactPressed=true;
+    if(e.code==='Escape')st.pausePressed=true;
   });
   addEventListener('keyup',e=>{
     keys[e.code]=false;
@@ -1437,7 +1502,7 @@ const Input=(()=>{
     if(keys.KeyC)st.camDX+=260*dt;
   }
   function consume(){
-    st.swipe=null;st.chargeRelease=false;
+    st.swipe=null;st.chargeRelease=false;st.pausePressed=false;
     st.interactPressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
@@ -1457,51 +1522,83 @@ const IN=Input.st;
    cathedral so it can be found through the murk. */
 const HEX_R=68;                       // hexagon circumradius (4x the area)
 const HEX_AP=HEX_R*Math.cos(Math.PI/6); // apothem (edge distance)
-const CATH_R=10;                      // cathedral outer wall radius
-const ARENA=[0,0],ARENA_R=9.6;        // the nave: the boss ground (inner wall face ~10.2)
+const CATH_R=10;                      // (legacy: the old round nave's radius)
+const HW=8,HL=15,WALLT=1;             // the nave: interior half-width / half-length, wall thickness
+const PH=1.2,PO=2.2;                  // the plinth's height, and how far it reaches past the walls
+const PW=HW+WALLT+PO,PL=HL+WALLT+PO;  // the plinth's half sizes (11.2 x 18.2)
+const STAIR_W=2.8,STAIR_L=3.2;        // the stair down the south face: half-width, run
+const RING_OFF=5.4;                   // the ring road's offset from the walls
+const ARENA=[0,0],ARENA_R=9.6;        // (legacy)
 const DOOR_A=Math.PI/2;               // the portal faces SOUTH (+z)
-const ALTAR=[0,-6.2];                 // altar under the rose window
+const ALTAR=[0,-13];                  // the altar at the nave's north end
 const START=[0,50];
+// signed distance to an axis-aligned rectangle (negative inside)
+function rectSD(x,z,hw,hl){
+  const dx=Math.abs(x)-hw,dz=Math.abs(z)-hl;
+  return Math.hypot(Math.max(dx,0),Math.max(dz,0))+Math.min(Math.max(dx,dz),0);
+}
+const cathDist=(x,z)=>rectSD(x,z,HW+WALLT,HL+WALLT);   // from the outer wall face
+const inStairs=(x,z)=>Math.abs(x)<STAIR_W&&z>PL-.5&&z<PL+STAIR_L+.5;
+// a point on the building's outline, `off` beyond the walls, in direction a
+function ringPoint(a,off){
+  const c=Math.cos(a),s=Math.sin(a);
+  const t=Math.min((HW+WALLT+off)/Math.max(1e-6,Math.abs(c)),(HL+WALLT+off)/Math.max(1e-6,Math.abs(s)));
+  return [c*t,s*t];
+}
+// shove a point out of a rectangle (grown by m) through its nearest face
+function pushOutOf(p,hw,hl,m){
+  const dx=hw+m-Math.abs(p.x),dz=hl+m-Math.abs(p.z);
+  if(dx<=0||dz<=0)return;
+  if(dx<dz)p.x=Math.sign(p.x||1)*(hw+m);else p.z=Math.sign(p.z||1)*(hl+m);
+}
+const keepInside=(p,hw,hl,m)=>{p.x=clamp(p.x,-(hw-m),hw-m);p.z=clamp(p.z,-(hl-m),hl-m);};
 
 /* broad, gentle elevations: flat at the heart and the rim,
    long rolling swells in the field between */
-function heightAt(x,z){
+function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyond
+  const pd=Math.max(0,rectSD(x,z,PW,PL));
+  const inFade=Math.min(1,pd/6);
   const d=Math.hypot(x,z);
-  if(d<CATH_R+1.5)return 0;
-  const inFade=Math.min(1,(d-(CATH_R+1.5))/6);
   const outFade=Math.max(0,1-Math.max(0,d-(HEX_AP-16))/13);
   return inFade*outFade*
     (Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6
      +Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1;
 }
+// what anything standing at (x,z) stands ON: the plinth, the stair, or the soil
+function heightAt(x,z){
+  if(inStairs(x,z)&&z>=PL){
+    const t=clamp((z-PL)/STAIR_L,0,1);
+    return PH*(1-t)+groundAt(x,z)*t;
+  }
+  if(rectSD(x,z,PW,PL)<=0)return PH;
+  return groundAt(x,z);
+}
 
 /* clamp into the hexagon; the cathedral ring blocks until it opens
    (then only the door corridor lets you through) */
 function constrain(p,arenaOnly){
-  if(arenaOnly){ // the boss fight holds you inside the nave
-    const d=Math.hypot(p.x,p.z);
-    if(d>ARENA_R-.2){const l=d||1;p.x*=(ARENA_R-.2)/l;p.z*=(ARENA_R-.2)/l;}
-    return;
-  }
+  if(arenaOnly){keepInside(p,HW,HL,.5);return;}          // the boss fight holds you in the nave
   for(let i=0;i<6;i++){
     const a=Math.PI/6+i*Math.PI/3;
     const nx=Math.cos(a),nz=Math.sin(a);
     const dd=p.x*nx+p.z*nz,ap=HEX_AP-.9;
     if(dd>ap){p.x-=(dd-ap)*nx;p.z-=(dd-ap)*nz;}
   }
-  // the wall slab spans ~10.1..11.1; hold actors clear of both faces
-  const d=Math.hypot(p.x,p.z),R=CATH_R+1.4;
-  if(d<R){
-    const ang=Math.atan2(p.z,p.x);
-    const inDoor=Math.abs(wrapA(ang-DOOR_A))<.16;
-    if(!G.cathedralOpen){
-      const l=d||1;p.x*=R/l;p.z*=R/l;          // sealed: the walls refuse you
-    }else if(!inDoor&&d>=ARENA_R-.2){
-      // in the wall ring off the doorway: push to the nearer side
-      const mid=(ARENA_R-.2+R)/2,l=d||1;
-      const target=d<mid?ARENA_R-.2:R;
-      p.x*=target/l;p.z*=target/l;
-    }
+  // the plinth's rim: a step no one climbs except by the stair
+  if(!inStairs(p.x,p.z)){
+    const sd=rectSD(p.x,p.z,PW,PL);
+    if(sd>=0&&sd<.45)pushOutOf(p,PW,PL,.45);
+    else if(sd<0&&sd>-.45)keepInside(p,PW,PL,.45);
+  }
+  // the hall's walls
+  const sdo=cathDist(p.x,p.z);                            // outside the outer face
+  const sdi=rectSD(p.x,p.z,HW,HL);                        // inside the inner face (negative)
+  const inDoor=Math.abs(p.x)<1.7&&p.z>HL-1.6&&p.z<HL+WALLT+1.2;
+  if(!G.cathedralOpen){
+    if(sdo<.45)pushOutOf(p,HW+WALLT,HL+WALLT,.45);        // sealed: the walls refuse you
+  }else if(!inDoor&&sdo<.45&&sdi>-.45){
+    // in the wall: back out to whichever face is nearer
+    if(sdo<-sdi)pushOutOf(p,HW+WALLT,HL+WALLT,.45);else keepInside(p,HW,HL,.45);
   }
 }
 // solid obstacles push actors out
@@ -1550,7 +1647,7 @@ function nearRoad(x,z){
 // is a point clear of the cathedral, spawn, fires, roads, other props?
 function clearSpot(x,z,pad){
   const d=Math.hypot(x,z);
-  if(d<CATH_R+3||d>HEX_AP-2.4)return false;
+  if(rectSD(x,z,PW,PL)<3||d>HEX_AP-2.4)return false;
   if(Math.hypot(x-START[0],z-START[1])<4.5)return false;
   if(nearRoad(x,z))return false;
   for(const o of obstacles){
@@ -1583,6 +1680,51 @@ function layRoad(ax,az,bx,bz,w){
   world.add(new THREE.Mesh(g,matNS('flag')));
 }
 
+/* ---------------- the pews: furniture that breaks ----------------
+   a bench, a back and two ends of old wood; a wall collider while it
+   stands; two hard blows (or a Warden walking through it) and it bursts
+   into splinters */
+const breakables=[];
+function makePew(x,z,parent,woodM){
+  const g=new THREE.Group();g.position.set(x,0,z);parent.add(g);
+  g.add(box(3.4,.1,.5,woodM,0,.62,0));                 // seat
+  g.add(box(3.4,.55,.1,woodM,0,.95,-.22));             // back
+  for(const s of[1,-1])g.add(box(.1,.9,.55,woodM,s*1.7,.45,0)); // ends
+  g.add(box(3.2,.06,.4,woodM,0,.2,.05));               // kneeler
+  addWall(x-1.65,z,x+1.65,z,.38);
+  const obs=obstacles[obstacles.length-1];
+  breakables.push({g,x,z,hw:1.7,hd:.4,hp:2,obs,parent});
+}
+function breakPew(b){
+  const i=breakables.indexOf(b);if(i<0)return;
+  breakables.splice(i,1);
+  const oi=obstacles.indexOf(b.obs);if(oi>=0)obstacles.splice(oi,1);
+  b.parent.remove(b.g);
+  const y=PH+.6;
+  boneBurst(b.x,y,b.z,0x5a4326,16,3.2);boneBurst(b.x,y,b.z,0x2e2216,8,2);   // splinters
+  AudioSys.hit();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.16);G.vibr(25);
+}
+// a blow from (x,z) facing (fx,fz): does it reach a pew? break it a little
+function strikeBreakables(x,z,fx,fz,reach,arc){
+  let hitAny=false;
+  for(const b of breakables.slice()){
+    const cx=clamp(x,b.x-b.hw,b.x+b.hw),cz=clamp(z,b.z-b.hd,b.z+b.hd);
+    const dx=cx-x,dz=cz-z,d=Math.hypot(dx,dz);
+    if(d>reach||d<.01)continue;
+    const ang=Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
+    if(ang>arc)continue;
+    b.hp--;hitAny=true;
+    boneBurst(cx,PH+.7,cz,0x5a4326,6,2);
+    if(b.hp<=0)breakPew(b);else{AudioSys.clang();}
+  }
+  return hitAny;
+}
+// the Warden shoulders through anything in its path
+function trampleBreakables(x,z,r){
+  for(const b of breakables.slice())
+    if(Math.abs(x-b.x)<b.hw+r&&Math.abs(z-b.z)<b.hd+r)breakPew(b);
+}
+
 function buildWorld(){
   const M={
     flag:mat('flag'),dirt:mat('dirt'),wall:mat('wall'),oss:mat('ossuary'),
@@ -1607,38 +1749,26 @@ function buildWorld(){
       }
       pos.setY(i,excess>0
         ?-(excess*1.1+excess*excess*.5)   // the world falls away
-        :heightAt(x,z));
+        :groundAt(x,z));
     }
     geo.computeVertexNormals();
     const gm=matNS('dirt');
     M.dirt.map.repeat.set(30,30);
     world.add(new THREE.Mesh(geo,gm));
   }
-  // worn flagstone apron around and inside the cathedral
-  {
-    const discTex=texCache.flag.clone();
-    discTex.needsUpdate=true;discTex.repeat.set(9,9);
-    const disc=new THREE.Mesh(new THREE.CircleGeometry(CATH_R+1.6,24),
-      new THREE.MeshLambertMaterial({map:discTex}));
-    disc.rotation.x=-Math.PI/2;disc.position.set(0,.04,0);
-    world.add(disc);
-  }
-
   /* the roads: a ring around the cathedral, and one straight way out
      to each quarter. Angle convention: (cos a, sin a) -> (x, z), so
      south = PI/2, east = 0, west = PI, north = -PI/2. */
   {
-    const RING=CATH_R+3.2;
-    const SEG=18;
-    for(let i=0;i<SEG;i++){
-      const a0=(i/SEG)*TAU,a1=((i+1)/SEG)*TAU;
-      layRoad(Math.cos(a0)*RING,Math.sin(a0)*RING,
-              Math.cos(a1)*RING,Math.sin(a1)*RING,1.3);
+    const SEG=28;
+    for(let i=0;i<SEG;i++){                              // the ring road follows the building's outline
+      const p0=ringPoint((i/SEG)*TAU,RING_OFF),p1=ringPoint(((i+1)/SEG)*TAU,RING_OFF);
+      layRoad(p0[0],p0[1],p1[0],p1[1],1.3);
     }
     const QUARTERS=[Math.PI/2,0,Math.PI,-Math.PI/2]; // S, E, W, N
     for(const a of QUARTERS){
-      layRoad(Math.cos(a)*RING,Math.sin(a)*RING,
-              Math.cos(a)*(HEX_AP-6),Math.sin(a)*(HEX_AP-6),1.5);
+      const p0=ringPoint(a,RING_OFF);
+      layRoad(p0[0],p0[1],Math.cos(a)*(HEX_AP-6),Math.sin(a)*(HEX_AP-6),1.5);
     }
   }
 
@@ -1646,95 +1776,117 @@ function buildWorld(){
   M.wall.map.repeat.set(2,1);
   srand(777);
 
-  /* the cathedral, heart of the field: bone wainscot below, great
-     ashlar above, lancet glass between buttresses, a rose window over
-     the altar, portal facing south. */
+  /* THE CATHEDRAL, heart of the field: a long church raised on a stone
+     plinth, reached by a flight of steps at its south door. Inside, a
+     nave of pews between colonnades runs north to the altar under the
+     rose window — where the Warden waits. Everything here is built
+     relative to the plinth's top. */
   {
     const cathM=mat('cathedral');
     cathM.map.repeat.set(1.4,2.2);
     M.oss.map.repeat.set(1.6,.9);
     const glassM=new THREE.MeshBasicMaterial({map:texCache.glass,color:0x2e2e38}); // dim: only the moon behind it
-    const R=CATH_R+.6,SEGS=14;
-    const doorA=DOOR_A;
-    for(let i=0;i<SEGS;i++){
-      const a0=(i/SEGS)*TAU,mid=a0+TAU/SEGS/2;
-      const ax=Math.cos(a0)*R,az=Math.sin(a0)*R;
-      world.add(box(1.1,9.5,1.1,cathM,ax,4.75,az,-a0+Math.PI/2));
-      if(Math.abs(wrapA(mid-doorA))<.3)continue; // the portal bay stays open
-      const px=Math.cos(mid)*R,pz=Math.sin(mid)*R;
-      const w=2*Math.PI*R/SEGS+.4;
-      world.add(box(w,2.2,.95,M.oss,px,1.1,pz,-mid+Math.PI/2));       // bone wainscot
-      const h=6.8+((i%3)*1.1);
-      world.add(box(w,h,.8,cathM,px,2.2+h/2,pz,-mid+Math.PI/2));      // nave wall
-      if(i%2===0){
-        const wr=R-.55;
-        const wx=Math.cos(mid)*wr,wz=Math.sin(mid)*wr;
-        const win=new THREE.Mesh(new THREE.PlaneGeometry(1.7,4.4),glassM);
-        win.position.set(wx,5.1,wz);
-        win.rotation.y=Math.atan2(-wx,-wz);
-        world.add(win);
+    const woodM=mat('bark');
+    const cath=new THREE.Group();cath.position.y=PH;world.add(cath);
+    const cbox=(w,h,d,m,x,y,z,ry)=>{const b=box(w,h,d,m,x,y,z,ry);cath.add(b);return b;};
+
+    // ---- the plinth: a stone platform, its rim a wall, a stair down the south face
+    {
+      const topTex=texCache.flag.clone();topTex.needsUpdate=true;topTex.repeat.set(9,15);
+      const top=new THREE.Mesh(new THREE.PlaneGeometry(PW*2,PL*2),new THREE.MeshLambertMaterial({map:topTex}));
+      top.rotation.x=-Math.PI/2;top.position.set(0,PH+.02,0);world.add(top);
+      const rimM=cathM;
+      world.add(box(.6,PH+.1,PL*2+.6,rimM,-PW,PH/2,0));world.add(box(.6,PH+.1,PL*2+.6,rimM,PW,PH/2,0));
+      world.add(box(PW*2+.6,PH+.1,.6,rimM,0,PH/2,-PL));
+      const sw=PW-STAIR_W;                                              // south rim, either side of the stair
+      world.add(box(sw,PH+.1,.6,rimM,-(STAIR_W+sw/2),PH/2,PL));world.add(box(sw,PH+.1,.6,rimM,STAIR_W+sw/2,PH/2,PL));
+      const N=8,tr=STAIR_L/N;
+      for(let k=0;k<N;k++){                                             // the steps
+        const h=PH*(1-k/N);
+        world.add(box(STAIR_W*2,h,tr,M.flag,0,h/2,PL+(k+.5)*tr));
+      }
+      for(const side of[1,-1]){                                          // balustrades flanking the stair
+        world.add(box(.4,PH*.55,STAIR_L,rimM,side*(STAIR_W+.2),PH*.55/2+.3,PL+STAIR_L/2));
+        world.add(cyl(.22,.26,PH+1.1,6,rimM,side*(STAIR_W+.2),(PH+1.1)/2,PL+STAIR_L+.1)); // newel posts
       }
     }
-    // rose window high over the altar, opposite the door
-    const ra=doorA+Math.PI;
-    const rx=Math.cos(ra)*(R-.6),rz=Math.sin(ra)*(R-.6);
-    const rose=new THREE.Mesh(new THREE.CircleGeometry(2.3,16),
-      new THREE.MeshBasicMaterial({map:texCache.rose}));
-    rose.position.set(rx,7.2,rz);
-    rose.rotation.y=Math.atan2(-rx,-rz);
-    world.add(rose);
-    // pointed portal over the doorway
-    const dx1=Math.cos(doorA)*R,dz1=Math.sin(doorA)*R;
-    const tang=doorA+Math.PI/2;
+    // ---- floor
+    {
+      const ft=texCache.flag.clone();ft.needsUpdate=true;ft.repeat.set(6,11);
+      const fl=new THREE.Mesh(new THREE.PlaneGeometry(HW*2+1,HL*2+1),new THREE.MeshLambertMaterial({map:ft}));
+      fl.rotation.x=-Math.PI/2;fl.position.y=.04;cath.add(fl);
+    }
+    // ---- walls: long sides with buttresses and lancets, the north wall
+    //      with the rose window, the south wall parted by the portal
+    const WH=9.5,WX=HW+WALLT/2,WZ=HL+WALLT/2;
     for(const side of[1,-1]){
-      world.add(box(1,7.4,1,cathM,
-        dx1+Math.cos(tang)*2.2*side,3.7,dz1+Math.sin(tang)*2.2*side,-tang+Math.PI/2));
-      const lint=box(3,.7,1,cathM,
-        dx1+Math.cos(tang)*1.1*side,8.1,dz1+Math.sin(tang)*1.1*side,-tang+Math.PI/2);
-      lint.rotation.z=.5*side;
-      world.add(lint);
+      cbox(WALLT,WH,HL*2+WALLT*2,cathM,side*WX,WH/2,0);                    // side wall
+      cbox(.3,2.2,HL*2,M.oss,side*(HW-.1),1.1,0);                           // bone wainscot inside
+      for(let z=-HL;z<=HL;z+=5){
+        cbox(1.6,WH+1,1.4,cathM,side*(HW+WALLT+.2),(WH+1)/2,z);            // buttress
+        if(z>-HL&&z<HL){                                                   // a lancet between each pair
+          const win=new THREE.Mesh(new THREE.PlaneGeometry(1.7,4.4),glassM);
+          win.position.set(side*(HW-.02),5.1,z+2.5);win.rotation.y=-side*Math.PI/2;cath.add(win);
+        }
+      }
     }
-    // nave colonnade: broken columns inside
-    for(let i=0;i<6;i++){
-      const a=doorA+Math.PI*2*(i+1)/8+.35;
-      const cx2=Math.cos(a)*7.4,cz2=Math.sin(a)*7.4;
-      const ch=i%2?8:rr(3,4.5);
-      world.add(cyl(.45,.55,ch,6,cathM,cx2,ch/2,cz2));
-      if(ch>6)world.add(cyl(.7,.5,.6,6,cathM,cx2,ch+.3,cz2));
-      addObstacle(cx2,cz2,.7);
+    cbox(HW*2+WALLT*2,WH,WALLT,cathM,0,WH/2,-WZ);                          // north wall
+    cbox(HW*2,2.2,.3,M.oss,0,1.1,-(HL-.1));
+    const rose=new THREE.Mesh(new THREE.CircleGeometry(2.6,16),new THREE.MeshBasicMaterial({map:texCache.rose}));
+    rose.position.set(0,7.2,-(HL-.05));cath.add(rose);                    // rose window over the altar
+    const DW=1.9;                                                          // half the door's width
+    const segW=HW+WALLT-DW;
+    for(const side of[1,-1]){
+      cbox(segW,WH,WALLT,cathM,side*(DW+segW/2),WH/2,WZ);                   // south wall, either side of the portal
+      cbox(1,7.4,1.2,cathM,side*(DW+.3),3.7,WZ+.3);                        // portal jamb
+      const lint=cbox(2.6,.7,1.2,cathM,side*1.1,8.0,WZ+.3);lint.rotation.z=.5*side; // pointed arch
     }
-    // fallen roof ribs against the sky
+    cbox(DW*2+1.2,WH-7.4,WALLT,cathM,0,7.4+(WH-7.4)/2,WZ);                 // over the door
+    // ---- roof ribs, some fallen
     srand(444);
-    for(let i=0;i<3;i++){
-      const rib=box(.5,.4,17,cathM,rr(-2,2),9+i*.7,rr(-2,2),rr(0,TAU));
-      rib.rotation.z=rr(-.12,.12);rib.rotation.x=rr(-.08,.08);
-      world.add(rib);
+    for(let z=-HL+2;z<HL;z+=5){
+      const rib=cbox(HW*2+1,.5,.5,cathM,0,WH-.3,z);rib.rotation.z=rr(-.06,.06);}
+    cbox(.5,.5,HL*2,cathM,0,WH+.1,0);                                       // the ridge beam
+    for(let i=0;i<2;i++){const f=cbox(.5,.4,11,cathM,rr(-4,4),4.5+i,rr(-9,3),rr(0,TAU));f.rotation.z=rr(-.5,.5);}
+    // ---- colonnades: two rows of columns, some broken, down the nave
+    for(const side of[1,-1])for(let z=-10;z<=10;z+=5){
+      const ch=(z===0&&side===1)?3.5:8.6;
+      cath.add(cyl(.45,.55,ch,6,cathM,side*5.5,ch/2,z));
+      if(ch>6)cath.add(cyl(.7,.5,.6,6,cathM,side*5.5,ch+.3,z));
+      addObstacle(side*5.5,z,.7);
     }
-    // candelabra ring
+    // ---- the pews: seven rows either side of the aisle, and they break
+    for(let z=9.5;z>=-5.5;z-=2.5)for(const side of[1,-1])makePew(side*3.6,z,cath,woodM);
+    // ---- the altar on its dais, under the rose window
+    cbox(6.5,.3,3.2,cathM,0,.15,-12.6);cbox(5,.3,2.4,cathM,0,.45,-12.8);   // two steps of the dais
+    cbox(3,1.1,1.2,cathM,0,1.15,-13);                                       // the altar stone
+    cbox(2.6,.06,1.3,M.rag,0,1.73,-13);                                      // its cloth
+    for(const x of[-.9,0,.9]){cath.add(cyl(.04,.05,.3,5,M.bone,x,1.9,-13.2));
+      addWisp(x,PH+2.1,-13.2,0xd0762b,.2);}                                  // candles
+    addWall(-1.5,-13,1.5,-13,.75);
+    // ---- candelabra down the side aisles
     const ironM2=mat('iron');
-    for(let i=0;i<5;i++){
-      const a=doorA+Math.PI*2*(i+1)/6.5+.5;
-      const px2=Math.cos(a)*6.2,pz2=Math.sin(a)*6.2;
-      world.add(cyl(.05,.09,2.3,5,ironM2,px2,1.15,pz2));
-      world.add(box(.8,.06,.06,ironM2,px2,2.25,pz2,a));
-      addWisp(px2,2.42,pz2,0xd0762b,.22);
-      addHaze(px2,2.4,pz2,0xe8b070,1.5,.07);
-      addWisp(px2+Math.cos(a)*.35,2.38,pz2+Math.sin(a)*.35,0xd0762b,.16);
+    for(const side of[1,-1])for(const z of[-8,2]){
+      const px2=side*6.6,pz2=z;
+      cath.add(cyl(.05,.09,2.3,5,ironM2,px2,1.15,pz2));
+      cath.add(box(.8,.06,.06,ironM2,px2,2.25,pz2,0));
+      addWisp(px2,PH+2.42,pz2,0xd0762b,.22);
+      addHaze(px2,PH+2.4,pz2,0xe8b070,1.5,.07);
       addObstacle(px2,pz2,.22);
     }
     // the one light in the dark nave: the moon, straight down through
-    // the rose window onto the centre of the floor
-    const nave=new THREE.PointLight(0xb8c8dc,.85,15,2);
-    nave.position.set(0,3,0);
-    addHaze(0,3.2,0,0xb8c8dc,7,.14);
+    // the rose window onto the altar's end of the floor
+    const nave=new THREE.PointLight(0xb8c8dc,.85,16,2);
+    nave.position.set(0,PH+3,-9);
+    addHaze(0,PH+3.2,-9,0xb8c8dc,7,.14);
     scene.add(nave);
-    // a pillar of moonlight stands over the nave — the one landmark
-    // the murk can never swallow
+    // a pillar of moonlight stands over the altar — the one landmark
+    // the dark can never swallow
     const beam=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3.6,52,12,1,true),
       new THREE.MeshBasicMaterial({color:0x9cb2c4,transparent:true,opacity:.05,
         blending:THREE.AdditiveBlending,depthWrite:false,fog:false,
         side:THREE.DoubleSide}));
-    beam.position.set(0,26,0);
+    beam.position.set(0,26,-10);
     scene.add(beam);
   }
 
@@ -1812,7 +1964,7 @@ function buildWorld(){
     // a few lone sentinels out on the moor
     let lone=0;
     for(let i=0;i<60&&lone<7;i++){
-      const a=rnd()*TAU,d=CATH_R+8+rnd()*(HEX_AP-CATH_R-13);
+      const a=rnd()*TAU,d=23+rnd()*(HEX_AP-26);
       const px=Math.cos(a)*d,pz=Math.sin(a)*d;
       if(!clearSpot(px,pz,2.4))continue;
       lone++;tree(px,pz,true);
@@ -1860,7 +2012,7 @@ function buildWorld(){
   for(let i=0;i<80&&piles<12;i++){
     const east=rnd()<.6;
     const a=east?rr(-.5,.5):rnd()*TAU;
-    const d=CATH_R+5+rnd()*(HEX_AP-CATH_R-10);
+    const d=23+rnd()*(HEX_AP-25);
     const px=Math.cos(a)*d,pz=Math.sin(a)*d;
     if(!clearSpot(px,pz,.4))continue;
     piles++;
@@ -1915,15 +2067,17 @@ function buildWorld(){
   }
   /* iron lanterns line the roads — small warm islands in the murk */
   {
-    const RING=CATH_R+3.2;
     const spots=[];
-    for(const a of [Math.PI/2,0,Math.PI,-Math.PI/2]){ // road junctions at the ring
-      spots.push([Math.cos(a)*(RING+1.6),Math.sin(a)*(RING+1.6)]);
+    for(const a of [Math.PI/2,0,Math.PI,-Math.PI/2]){ // road junctions at the ring, set beside the road
+      const p=ringPoint(a,RING_OFF+1.6);
+      spots.push([p[0]-Math.sin(a)*2.4,p[1]+Math.cos(a)*2.4]);
       // midway and far down each quarter road
-      spots.push([Math.cos(a)*32,Math.sin(a)*32,true]);
+      spots.push([Math.cos(a)*34,Math.sin(a)*34,true]);
       if(a===Math.PI/2)spots.push([Math.cos(a)*47,Math.sin(a)*47,true]); // lighting the spawn walk
     }
     for(const s of spots)makeLantern(s[0]+(s[2]?1.9:0),s[1]+(s[2]?.4:0));
+    // and two at the head of the stair
+    for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),PL-.9);
   }
 }
 
@@ -3204,12 +3358,13 @@ function bladeMeetsStone(x,z,fx,fz,reach,arc){
       consider(o.ax+sx*t,o.az+sz*t,o.r);
     }else consider(o.x,o.z,o.r);
   }
-  // the cathedral's ring wall, from either side, sparing the doorway
-  const d0=Math.hypot(x,z);
-  if(d0>1&&Math.abs(d0-(CATH_R+.6))<reach+.6){
-    const ang=Math.atan2(z,x);
-    if(!(G.cathedralOpen&&Math.abs(wrapA(ang-DOOR_A))<.2)){
-      consider(x/d0*(CATH_R+.6),z/d0*(CATH_R+.6),.45);
+  // the hall's walls, from either side, sparing the doorway
+  if(Math.abs(cathDist(x,z))<reach+1){
+    const wx=HW+WALLT/2,wz=HL+WALLT/2;
+    const cands=[[Math.sign(x||1)*wx,clamp(z,-wz,wz)],[clamp(x,-wx,wx),Math.sign(z||1)*wz]];
+    for(const c of cands){
+      if(G.cathedralOpen&&c[1]>0&&Math.abs(c[1]-wz)<.01&&Math.abs(c[0])<2)continue; // the portal
+      consider(c[0],c[1],.5);
     }
   }
   return best;
@@ -3625,6 +3780,8 @@ const player={
     const crit=Math.random()<.15;
     if(crit)dmg=Math.round(dmg*1.8);
     let hitAny=false,clashed=false;
+    // the pews of the nave splinter under the blade
+    if(strikeBreakables(this.x,this.z,fx,fz,reach,arc))clashed=true;
     // the blade meets STONE first: a swing into a wall, a gravestone, a
     // trunk or a post is checked there in a shower of sparks
     const stone=bladeMeetsStone(this.x,this.z,fx,fz,reach*.9,arc);
@@ -4138,7 +4295,7 @@ class Enemy{
     this.rig.root.rotation.x=0;
     if(this.rig.heart){this.rig.heart.material.color.setHex(0x2a0a06);
       this.rig.heartOn=false;this.rig.heart.scale.setScalar(1);}
-    this.rig.root.position.y=this.boss?0:heightAt(this.x,this.z)-1.6; // under the soil
+    this.rig.root.position.y=this.boss?heightAt(this.x,this.z):heightAt(this.x,this.z)-1.6; // under the soil
     if(this.boss)this.facing=0;                  // kneeling, facing the south door
     if(this.rig.eyes)for(const e of this.rig.eyes)
       e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:0x2c4a42);
@@ -4189,7 +4346,7 @@ class Enemy{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;
-    player.marrow+=this.marrow;
+    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;
     AudioSys.marrow();
     toast('+'+this.marrow+' marrow');
     // sometimes the power that moved them stays behind — or a little
@@ -4471,7 +4628,7 @@ class Crow{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.crumbled=false;
-    player.marrow+=this.marrow;AudioSys.marrow();
+    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();
     toast('+'+this.marrow+' marrow');
     boneBurst(this.x,this.y,this.z,0x23232c,12,2.6);
     if(Math.random()<.4)
@@ -4546,8 +4703,7 @@ class Crow{
     }
     if(this.state!=='dead'){
       constrain(this,false);
-      const d=Math.hypot(this.x,this.z);          // never over the nave
-      if(d<CATH_R+1){const l=d||1;this.x*=(CATH_R+1)/l;this.z*=(CATH_R+1)/l;}
+      if(cathDist(this.x,this.z)<1)pushOutOf(this,HW+WALLT,HL+WALLT,1);   // never over the nave
     }
     // pose: body banks and the wings row the air
     const r=this.rig;
@@ -4673,7 +4829,7 @@ class FallenAngel{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
-    player.marrow+=this.marrow;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
     AudioSys.screech();G.hitstop=.3;G.camShake=.4;
     setTimeout(()=>bannerShow('THE FALLEN ONE IS STILL','its halo lies in the dirt'),600);
     spawnElemDrop(this.x,this.z,'health');
@@ -4815,7 +4971,7 @@ function summonAngel(){
   const a=Math.random()*TAU;
   const p={x:player.x+Math.cos(a)*8,z:player.z+Math.sin(a)*8};
   constrain(p,false);
-  const d=Math.hypot(p.x,p.z);if(d<CATH_R+4){const l=d||1;p.x*=(CATH_R+4)/l;p.z*=(CATH_R+4)/l;}
+  if(cathDist(p.x,p.z)<4)pushOutOf(p,HW+WALLT,HL+WALLT,4);
   const e=new FallenAngel(p.x,p.z);enemies.push(e);
   bannerShow('SOMETHING DESCENDS','its halo is cracked');
   AudioSys.screech();G.camShake=Math.max(G.camShake,.2);
@@ -4860,7 +5016,7 @@ class GraveGhoul{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
-    player.marrow+=this.marrow;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
     AudioSys.retch();G.hitstop=.3;G.camShake=.35;
     setTimeout(()=>bannerShow('THE UNBURIED LIES STILL','the grave rows are quiet'),600);
     spawnElemDrop(this.x,this.z,'health');
@@ -5057,7 +5213,7 @@ function spawnFoe(kind,x,z){
   return e;
 }
 function spawnEnemies(){
-  boss=new Enemy('boss',0,-2.2,{});
+  boss=new Enemy('boss',0,-11.2,{});
   enemies.push(boss);
   // A fixed host, sown across the quarters, asleep under the soil —
   // just enough marrow among them (1170) to call the cathedral open.
@@ -5068,7 +5224,7 @@ function spawnEnemies(){
   // the pilgrim's approach (south)
   sow('hollow',3,42);sow('hollow',-4,36);sow('hollow',2,28);sow('hollow',-3,21);
   // the ring road crossings
-  sow('hollow',13,6);sow('hollow',-11,-9);
+  sow('hollow',14,6);sow('hollow',-14,-9);
   // the grave rows (east)
   sow('hollow',26,4);sow('hollow',33,-5);sow('hollow',40,7);
   sow('caster',30,10);sow('caster',43,-3);sow('big',36,1);
@@ -5109,13 +5265,13 @@ function respawnWorld(){
 /* ---------------- the sealed cathedral & the boss ---------------- */
 let fogGate=null,altarGlow=null;
 const altarLight=new THREE.PointLight(0xf0a648,0,10,2);
-altarLight.position.set(ALTAR[0],1.4,ALTAR[1]);scene.add(altarLight);
+altarLight.position.set(ALTAR[0],PH+1.6,ALTAR[1]);scene.add(altarLight);
 function makeFogGate(){
   // the sealed door: a pale veil across the portal until the marrow calls
   fogGate=new THREE.Mesh(new THREE.PlaneGeometry(4.4,5.2),
     new THREE.MeshBasicMaterial({color:0xb8c4b2,transparent:true,opacity:.2,
       depthWrite:false,blending:THREE.AdditiveBlending}));
-  fogGate.position.set(0,2.4,CATH_R+.3);
+  fogGate.position.set(0,PH+2.6,HL+WALLT+.3);
   scene.add(fogGate);
 }
 function openCathedral(){
@@ -5123,7 +5279,7 @@ function openCathedral(){
   AudioSys.kindle();AudioSys.roar();
   G.camShake=.5;G.vibr([50,40,90]);
   bannerShow('THE CATHEDRAL OPENS','the warden waits within');
-  shockRing(0,CATH_R+.3,0xb8c4b2,4,1);
+  shockRing(0,HL+WALLT+.3,0xb8c4b2,4,1);
   // the veil burns away
   let t=0;
   effects.push({update(dt){
@@ -5134,7 +5290,8 @@ function openCathedral(){
 }
 function startBossFight(){
   G.bossActive=true;
-  boss.state='rise';boss.t=0;boss.rig.root.position.y=0;
+  boss.state='rise';boss.t=0;boss.rig.root.position.y=heightAt(boss.x,boss.z);
+  trampleBreakables(boss.x,boss.z,2.5);
   AudioSys.bossMusic(1);
   setTimeout(()=>{
     AudioSys.roar();G.camShake=.5;G.vibr([60,40,120]);
@@ -5151,8 +5308,8 @@ function onBossDead(){
   setTimeout(()=>{
     bannerShow('THE WARDEN FALLS','claim the bonefield at the altar');
     AudioSys.victory();
-    altarGlow=addWisp(ALTAR[0],1.1,ALTAR[1],0xf0a648,1.4);
-    addHaze(ALTAR[0],1.3,ALTAR[1],0xffd9a0,3.2,.14);
+    altarGlow=addWisp(ALTAR[0],PH+1.9,ALTAR[1],0xf0a648,1.4);
+    addHaze(ALTAR[0],PH+2.0,ALTAR[1],0xffd9a0,3.2,.14);
     altarLight.intensity=1.4;
   },1400);
 }
@@ -5186,8 +5343,7 @@ function updateCamera(dt){
   let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist;
   const cy=hP+py+Math.sin(G.camPitch)*dist;
   if(G.bossActive){ // keep the camera off the ossuary walls
-    const ax=cx-ARENA[0],az=cz-ARENA[1],ad=Math.hypot(ax,az),mr=ARENA_R+.2;
-    if(ad>mr){cx=ARENA[0]+ax/ad*mr;cz=ARENA[1]+az/ad*mr;}
+    cx=clamp(cx,-(HW-.3),HW-.3);cz=clamp(cz,-(HL-.3),HL-.3);
   }
   camTmp.set(cx,Math.max(heightAt(cx,cz)+.6,cy),cz);
   camera.position.lerp(camTmp,1-Math.pow(.0001,dt));
@@ -5213,7 +5369,7 @@ function updateCamera(dt){
    gate, then (once the Warden falls) the altar — as a waymark. */
 let lockMarker=null;
 const OBJ_CATH={x:0,z:0,y:5,objective:true};   // the cathedral holds the eye
-const OBJ_ALTAR={x:ALTAR[0],z:ALTAR[1],y:1.5,objective:true};
+const OBJ_ALTAR={x:ALTAR[0],z:ALTAR[1],y:PH+1.8,objective:true};
 function lockCands(){
   // only horrors that are truly LIVE — still clawing out of the grave
   // (dormant or rising) doesn't count
@@ -5341,7 +5497,7 @@ function makeGrain(){
 function begin(){
   if(G.mode!=='title')return;
   AudioSys.start();AudioSys.musicStart();
-  G.mode='play';G.runStart=performance.now();
+  G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');
   $('title').style.display='none';
   $('hud').style.display='block';
   $('fade').style.opacity=0;
@@ -5375,9 +5531,39 @@ const bladeHaze=addHaze(0,-50,0,0xffffff,1.5,.22);bladeHaze.visible=false;
 const _bv=new THREE.Vector3();
 
 let last=performance.now(),grainT=0;
+/* ---------------- the pause ---------------- */
+function fmtTime(s){s=Math.max(0,s|0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function fillPause(){
+  $('psMarrow').textContent=player.marrow;
+  $('psKills').textContent=G.kills||0;
+  $('psHost').textContent=enemies.filter(e=>!e.boss&&!e.mini&&e.hp>0).length;
+  $('psDeaths').textContent=G.deaths;
+  $('psTime').textContent=fmtTime(G.playTime||0);
+  const slain=k=>!enemies.some(e=>e.kind===k&&e.hp>0)&&(k==='angel'?G.angelCame:true);
+  $('psAngel').textContent=!G.angelCame?'not yet come':slain('angel')?'slain':'hunting you';
+  $('psGhoul').textContent=slain('ghoul')?'slain':enemies.some(e=>e.kind==='ghoul'&&e.engaged)?'awake':'sleeping';
+  $('psWarden').textContent=G.bossDead?'slain':G.bossActive?'awake':'waiting';
+  $('psCath').textContent=G.bossDead?'yours':G.cathedralOpen?'open':'sealed';
+}
+function setPaused(on){
+  if(G.mode!=='play'&&G.mode!=='dead')return;
+  if(on===G.paused)return;
+  G.paused=on;
+  $('pause').classList.toggle('on',on);
+  if(on)fillPause();
+  AudioSys.pause(on);
+}
+$('pauseBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();setPaused(!G.paused);});
+$('btnResume').addEventListener('pointerdown',e=>{e.preventDefault();setPaused(false);});
+$('btnRestart').addEventListener('pointerdown',e=>{e.preventDefault();location.reload();});
+$('pause').addEventListener('pointerdown',e=>{e.stopPropagation();});
+
 function frame(now){
   requestAnimationFrame(frame);
   let dt=Math.min(.05,(now-last)/1000);last=now;
+  if(IN.pausePressed){IN.pausePressed=false;setPaused(!G.paused);}
+  if(G.paused){renderFrame();Input.consume();return;}
+  if(G.mode==='play')G.playTime=(G.playTime||0)+dt;
   let wdt=dt;
   if(G.hitstop>0){G.hitstop-=dt;wdt=dt*.08;}
   else if(G.slowMo&&G.slowMo<1)wdt=dt*G.slowMo;        // the finishing cut's held breath
@@ -5394,7 +5580,9 @@ function frame(now){
       if(!G.angelCame&&player.marrow>=800&&!G.bossActive){G.angelCame=true;summonAngel();}
       // stepping into the nave wakes the Warden
       if(G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
-         Math.hypot(player.x,player.z)<ARENA_R-1)startBossFight();
+         Math.abs(player.x)<HW&&player.z<HL-2.5&&player.z>-HL)startBossFight();
+      // the Warden shoulders through the pews as it comes
+      if(G.bossActive&&boss.hp>0)trampleBreakables(boss.x,boss.z,boss.radius+.3);
       pruneFallen();
     }else{
       player.t+=wdt;
@@ -5422,7 +5610,7 @@ function frame(now){
   const cg=player.state==='charge'?Math.min(1,player.chargeT/.6):0;
   G.glowFlash=Math.max(0,(G.glowFlash||0)-dt*3.5);
   // inside the nave the glow draws in: the arena stays a dark place
-  const inNave=Math.hypot(player.x,player.z)<CATH_R+1;
+  const inNave=cathDist(player.x,player.z)<1;
   G.naveDim=lerp(G.naveDim||0,inNave?1:0,Math.min(1,3*dt));
   heroLight.intensity=(2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash)*(1-.62*G.naveDim);
   heroLight.distance=(17-6*cg+5*G.glowFlash)*(1-.58*G.naveDim);
