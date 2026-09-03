@@ -2499,10 +2499,10 @@ function buildHumanoid(o){
     // the cuirass turned from a profile: waist in, chest out, a shallow
     // dome at the front and near-flat at the back, with a spine ridge and
     // a rolled collar — the way plate is actually shaped
-    const cu=M(asym(GLathe([[.17,-.02],[.2,.05],[.26,.16],[.3,.3],[.31,.42],[.28,.52],[.2,.58]]),1.12,.62),o.chestMat||o.torsoMat,0,0,0);
+    const cu=M(asym(GLathe([[.165,-.02],[.185,.05],[.225,.16],[.25,.3],[.255,.42],[.235,.52],[.19,.58]]),1.02,.66),o.chestMat||o.torsoMat,0,0,0);
     torso.add(cu);
     torso.add(M(GBox(.05*s,.5*s,.03*s),limb,0,.28*s,-.19*s));                       // spine ridge
-    torso.add(M(asym(GLathe([[.19,.55],[.21,.6],[.185,.64]]),1.05,.85),limb,0,0,0)); // rolled collar
+    torso.add(M(asym(GLathe([[.17,.55],[.19,.6],[.165,.64]]),1.02,.85),limb,0,0,0)); // rolled collar
     torso.add(M(GCyl(.24*s,.24*s,.05*s,10),limb,0,.02*s,0));                        // belt
     const tabard=M(GBox(.2*s,.42*s,.03*s),o.torsoMat,0,-.18*s,.17*s);
     tabard.rotation.x=.05;torso.add(tabard);                                        // hanging tabard
@@ -2541,12 +2541,15 @@ function buildHumanoid(o){
     // cheeks, the T-slot dark, a comb down the crown
     head.add(M(asym(GLathe([[.09,.06],[.13,.1],[.148,.2],[.145,.3],[.12,.38],[.06,.43],[0,.44]],16),1.04,.96),o.headMat,0,0,0));
     if(o.faraam){
-      head.add(M(GBox(.2*s,.028*s,.03*s),SOCK,0,.265*s,.135*s));                    // the eye slit
-      head.add(M(GBox(.22*s,.02*s,.035*s),limb,0,.29*s,.135*s));                    // the brow ridge over it
-      head.add(M(GBox(.03*s,.09*s,.035*s),limb,0,.19*s,.14*s));                     // the nasal bar
+      head.add(M(GBox(.21*s,.026*s,.03*s),SOCK,0,.27*s,.135*s));                    // the eye slit
+      head.add(M(GBox(.23*s,.018*s,.035*s),limb,0,.292*s,.135*s));                  // the brow ridge over it
+      head.add(M(GBox(.024*s,.075*s,.035*s),limb,0,.235*s,.14*s));                  // the nasal bar
+      for(let k=-2;k<=2;k++)                                                        // a row of breathing slits down the face
+        head.add(M(GBox(.012*s,.06*s,.03*s),SOCK,k*.035*s,.16*s,.137*s));
+      for(let k=-1;k<=1;k++)head.add(M(GBox(.012*s,.035*s,.03*s),SOCK,k*.035*s,.095*s,.13*s));
       head.add(M(GBox(.03*s,.1*s,.3*s),limb,0,.43*s,-.03*s));                       // the crest
-      // the scarf, wound round the neck
-      const sc=new THREE.Mesh(new THREE.TorusGeometry(.11*s,.04*s,6,12),o.torsoMat);sc.rotation.x=Math.PI/2;sc.position.y=.06*s;psx(sc.material);head.add(sc);
+      // the scarf: a thin wrap round the neck
+      const sc=new THREE.Mesh(new THREE.TorusGeometry(.095*s,.02*s,5,12),o.torsoMat);sc.rotation.x=Math.PI/2;sc.position.y=.055*s;psx(sc.material);head.add(sc);
     }else{
     head.add(M(GBox(.05*s,.1*s,.03*s),SOCK,0,.24*s,.135*s));                       // the eye slot
     head.add(M(GBox(.028*s,.13*s,.03*s),SOCK,0,.17*s,.14*s));                      // the nasal
@@ -2580,12 +2583,12 @@ function buildHumanoid(o){
     /* the fur mantle: a pelt slung over both shoulders, thick round the
        neck and shaggy at its edge */
     const furM=o.furMat||o.torsoMat;
-    for(let i=0;i<12;i++){const a=i/12*TAU,rr_=(.25+((i*7)%3)*.02)*s,back=Math.sin(a)<0?1:0;
+    for(let i=0;i<12;i++){const a=i/12*TAU,rr_=(.215+((i*7)%3)*.018)*s,back=Math.sin(a)<0?1:0;
       const f=M(GSph((.12+((i*5)%4)*.02)*s,7,5),furM,Math.cos(a)*rr_,(.54+back*.05+((i*3)%3)*.015)*s,Math.sin(a)*rr_*.8-.03*s);
       f.scale.set(1+((i*3)%2)*.25,.75+back*.35,1);f.rotation.z=((i*5)%5-2)*.15;head.parent.add(f);}
-    for(const sd of[1,-1]){const f=M(GSph(.2*s,7,5),furM,.3*sd*s,.55*s,0);f.scale.set(1.1,.55,1.15);torso.add(f);   // over the shoulders
-      for(let k=0;k<4;k++){const t=M(GSph(.06*s,5,4),furM,(.36+k*.03)*sd*s,.42*s-k*.05*s,-.14*s+k*.08*s);t.scale.set(1,1.6,1);torso.add(t);}}   // shaggy tips
-    const cf=M(GSph(.17*s,7,5),furM,0,.6*s,-.16*s);cf.scale.set(1.3,.7,.8);torso.add(cf);                             // the collar behind the neck
+    for(const sd of[1,-1]){const f=M(GSph(.17*s,7,5),furM,.27*sd*s,.55*s,0);f.scale.set(1.1,.55,1.15);torso.add(f);   // over the shoulders
+      for(let k=0;k<4;k++){const t=M(GSph(.055*s,5,4),furM,(.32+k*.03)*sd*s,.42*s-k*.05*s,-.13*s+k*.08*s);t.scale.set(1,1.6,1);torso.add(t);}}   // shaggy tips
+    const cf=M(GSph(.15*s,7,5),furM,0,.6*s,-.14*s);cf.scale.set(1.3,.7,.8);torso.add(cf);                             // the collar behind the neck
     /* belt and pouch */
     const leatherM=o.leatherMat||o.gripMat;
     const belt=new THREE.Mesh(new THREE.TorusGeometry(.245*s,.03*s,5,14),leatherM);belt.rotation.x=Math.PI/2;belt.position.y=.03*s;psx(belt.material);torso.add(belt);
