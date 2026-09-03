@@ -91,8 +91,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
     white sparks, a clang, and its attack is broken — it reels, open to
-    the finishing cut. Swing into a wall, a gravestone, a trunk or a
-    lantern post and the blade is checked there in sparks instead
+    the finishing cut. Swing into a wall, a column, a trunk or a lantern
+    post and the blade **bounces off** in a shower of sparks: the arms
+    are flung back with it, the knight staggers half a step, and nothing
+    on the far side of the stone is touched. Pews and gravestones break
+    instead of bouncing
   - **the finishing cut** — break a small or medium horror's poise and
     a bright blade-mark hangs over it while it reels. Tap with it in
     reach and the knight steps in, hauls the greatsword overhead while

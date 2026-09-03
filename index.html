@@ -2983,6 +2983,20 @@ function poseIai(r,p){
   else if(p<.8)poseIaiCharge(r,1,0);
   else poseIaiCharge(r,1-(p-.8)/.2,0);
 }
+/* the bounce: the blade has hit stone and comes back off it — arms flung
+   up and back, the trunk rocked, a half step taken with it, then the
+   carry gathered up again */
+function poseRecoil(r,p){
+  const C=(r.carry||CARRY),k=Math.sin(Math.min(1,p)*Math.PI),e=easeOut(Math.min(1,p*1.6));
+  r.armR.rotation.x=C.aRx+(-2.3-C.aRx)*k;r.armR.rotation.z=C.aRz+(-.5-C.aRz)*k;
+  r.foreR.rotation.x=C.fRx+(-.9-C.fRx)*k;
+  r.weapon.rotation.x=C.wx+(-.6-C.wx)*k;r.weapon.rotation.y=C.wy*(1-k);r.weapon.rotation.z=C.wz+(.5-C.wz)*k;
+  r.armL.rotation.x=C.aLx+(-1.9-C.aLx)*k;r.armL.rotation.z=C.aLz+(-.3-C.aLz)*k;r.foreL.rotation.x=C.fLx+(-.7-C.fLx)*k;
+  r.torso.rotation.x-=.32*k;r.torso.rotation.y=.25*k;r.body.rotation.y=.12*k;
+  r.head.rotation.x-=.25*k;
+  r.legR.rotation.x=-.35*k;r.legL.rotation.x=.3*k;r.kneeL.rotation.x=.35*k;
+  r.body.position.y=r.baseY-.06*k*r.s;
+}
 /* the whirlwind: the blade held out level at the end of a sweep while the
    whole body turns under it — the pose is still, the spin is the rig's */
 function poseSpin(r,p){
@@ -4519,6 +4533,14 @@ const player={
     },2400);
   },
   // a stunned small or medium horror within reach can be finished
+  // the blade has met something that will not give: the swing is thrown
+  // back off it and the knight staggers half a step
+  recoil(stone){
+    this.state='recoil';this.t=0;this.queued=false;this.qDir=null;this.hitDone=true;
+    this.sprintT=0;this.sprinting=false;G.slowMo=1;
+    const dx=this.x-stone.x,dz=this.z-stone.z,l=Math.hypot(dx,dz)||1;
+    this.vx=dx/l*2.6;this.vz=dz/l*2.6;
+  },
   // a horror with its back to you, close, and you squared up to it
   backstabTarget(){
     let best=null,bd=1.8;
@@ -4564,8 +4586,11 @@ const player={
     // trunk or a post is checked there in a shower of sparks
     const stone=bladeMeetsStone(this.x,this.z,fx,fz,reach*.9,arc);
     if(stone){
-      clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,12);
-      AudioSys.clang();G.camShake=Math.max(G.camShake,.14);G.hitstop=Math.max(G.hitstop,.05);G.vibr(20);
+      // ...and the swing is over: the blade bounces off the stone, the arms
+      // flung back with it, and nothing on the far side is touched
+      clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,14);
+      AudioSys.clang();G.camShake=Math.max(G.camShake,.3);G.hitstop=Math.max(G.hitstop,.08);G.vibr([30,20,40]);
+      if(!opts.noBounce){this.recoil(stone);return false;}
       clashed=true;
     }
     for(const e of enemies){
@@ -5061,6 +5086,12 @@ const player={
       }
       if(p>=1)this.state='free';
     }
+    else if(this.state==='recoil'){
+      const DUR=.42;
+      this.x+=this.vx*dt;this.z+=this.vz*dt;
+      this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+      if(this.t>=DUR)this.state='free';
+    }
     else if(this.state==='shoot'){
       const DUR=.46,p=this.t/DUR;
       if(foe&&p<.4)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
@@ -5249,6 +5280,7 @@ const player={
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
     else if(this.state==='quake')poseHeavy(r,Math.min(1,this.t/1.0));
+    else if(this.state==='recoil')poseRecoil(r,Math.min(1,this.t/.42));
     else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
       if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
     else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/.64));
