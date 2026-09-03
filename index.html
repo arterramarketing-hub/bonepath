@@ -620,6 +620,27 @@ function buildTextures(){
     for(let i=0;i<7;i++){ctx.fillStyle='rgba(4,4,4,.85)';
       ctx.beginPath();ctx.arc(rnd()*S,rnd()*S,rr(1,3),0,TAU);ctx.fill();}
   });
+  /* -- fur: a pale pelt, strands drawn light and dark over grey -- */
+  makeTex('fur',128,(ctx,S)=>{
+    srand(131);ctx.fillStyle='#9a9ea3';ctx.fillRect(0,0,S,S);
+    for(let i=0;i<900;i++){const x=rnd()*S,y=rnd()*S,l=rr(4,12),a=rr(-.5,.5)+Math.PI/2;
+      ctx.strokeStyle=rnd()<.5?`rgba(230,232,236,${rr(.3,.7)})`:`rgba(40,42,48,${rr(.25,.6)})`;ctx.lineWidth=rr(.6,1.4);
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);ctx.stroke();}
+    grime(ctx,S,fbm,12,[60,62,66],.25);
+  });
+  /* -- teal cloth with a pale embroidered border -- */
+  makeTex('teal',128,(ctx,S)=>{
+    srand(137);ctx.fillStyle='#244a48';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,7,[12,30,30],.5);
+    for(let y=0;y<S;y+=3){ctx.fillStyle=`rgba(120,170,160,${rr(.02,.06)})`;ctx.fillRect(0,y,S,1);}
+    ctx.strokeStyle='rgba(200,214,190,.75)';ctx.lineWidth=2;ctx.strokeRect(6,6,S-12,S-12);
+    ctx.lineWidth=1;for(let i=0;i<S;i+=8){ctx.beginPath();ctx.arc(i+4,S-9,2.5,0,Math.PI);ctx.stroke();ctx.beginPath();ctx.arc(i+4,9,2.5,Math.PI,TAU);ctx.stroke();}
+  });
+  /* -- leather: dark brown with grain -- */
+  makeTex('leather',128,(ctx,S)=>{
+    srand(139);ctx.fillStyle='#4a3324';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,6,[20,12,8],.5);speckle(ctx,S,300,['#5a3f2c','#3a2418','#6a4a34'],1,2);
+  });
   /* -- the cape's hem: the same cloth, torn to ribbons along the bottom -- */
   makeTex('capeRag',128,(ctx,S)=>{
     srand(95);
@@ -2519,9 +2540,18 @@ function buildHumanoid(o){
     // the barbute turned from a profile: a smooth skull, a flare at the
     // cheeks, the T-slot dark, a comb down the crown
     head.add(M(asym(GLathe([[.09,.06],[.13,.1],[.148,.2],[.145,.3],[.12,.38],[.06,.43],[0,.44]],16),1.04,.96),o.headMat,0,0,0));
+    if(o.faraam){
+      head.add(M(GBox(.2*s,.028*s,.03*s),SOCK,0,.265*s,.135*s));                    // the eye slit
+      head.add(M(GBox(.22*s,.02*s,.035*s),limb,0,.29*s,.135*s));                    // the brow ridge over it
+      head.add(M(GBox(.03*s,.09*s,.035*s),limb,0,.19*s,.14*s));                     // the nasal bar
+      head.add(M(GBox(.03*s,.1*s,.3*s),limb,0,.43*s,-.03*s));                       // the crest
+      // the scarf, wound round the neck
+      const sc=new THREE.Mesh(new THREE.TorusGeometry(.11*s,.04*s,6,12),o.torsoMat);sc.rotation.x=Math.PI/2;sc.position.y=.06*s;psx(sc.material);head.add(sc);
+    }else{
     head.add(M(GBox(.05*s,.1*s,.03*s),SOCK,0,.24*s,.135*s));                       // the eye slot
     head.add(M(GBox(.028*s,.13*s,.03*s),SOCK,0,.17*s,.14*s));                      // the nasal
     head.add(M(GBox(.024*s,.06*s,.26*s),limb,0,.41*s,-.02*s));                     // comb
+    }
   }else{
     // rounded barbute, slightly smaller for knightly proportions
     head.add(M(GCyl(.135*s,.145*s,.22*s,7),o.headMat,0,.17*s,0));
@@ -2546,6 +2576,24 @@ function buildHumanoid(o){
     }
   }
 
+  if(o.faraam){
+    /* the fur mantle: a pelt slung over both shoulders, thick round the
+       neck and shaggy at its edge */
+    const furM=o.furMat||o.torsoMat;
+    for(let i=0;i<12;i++){const a=i/12*TAU,rr_=(.25+((i*7)%3)*.02)*s,back=Math.sin(a)<0?1:0;
+      const f=M(GSph((.12+((i*5)%4)*.02)*s,7,5),furM,Math.cos(a)*rr_,(.54+back*.05+((i*3)%3)*.015)*s,Math.sin(a)*rr_*.8-.03*s);
+      f.scale.set(1+((i*3)%2)*.25,.75+back*.35,1);f.rotation.z=((i*5)%5-2)*.15;head.parent.add(f);}
+    for(const sd of[1,-1]){const f=M(GSph(.2*s,7,5),furM,.3*sd*s,.55*s,0);f.scale.set(1.1,.55,1.15);torso.add(f);   // over the shoulders
+      for(let k=0;k<4;k++){const t=M(GSph(.06*s,5,4),furM,(.36+k*.03)*sd*s,.42*s-k*.05*s,-.14*s+k*.08*s);t.scale.set(1,1.6,1);torso.add(t);}}   // shaggy tips
+    const cf=M(GSph(.17*s,7,5),furM,0,.6*s,-.16*s);cf.scale.set(1.3,.7,.8);torso.add(cf);                             // the collar behind the neck
+    /* belt and pouch */
+    const leatherM=o.leatherMat||o.gripMat;
+    const belt=new THREE.Mesh(new THREE.TorusGeometry(.245*s,.03*s,5,14),leatherM);belt.rotation.x=Math.PI/2;belt.position.y=.03*s;psx(belt.material);torso.add(belt);
+    torso.add(M(GBox(.06*s,.06*s,.02*s),limb,0,.03*s,.25*s));                                                       // the buckle
+    torso.add(M(GBox(.11*s,.13*s,.07*s),leatherM,.2*s,-.06*s,.14*s));                                               // a pouch on the hip
+    /* the long split tabard: side panels off the belt (the front ones ride the legs) */
+    for(const sd of[1,-1]){const pn=M(GBox(.02*s,.78*s,.22*s),o.torsoMat,.26*sd*s,-.44*s,-.02*s);pn.rotation.z=.05*sd;body.add(pn);}
+  }
   /* arms: shoulder -> tapered upper -> elbow -> tapered fore (+hand) */
   const armThick=sk?[.05,.04]:[.08,.065];
   const AL=sk?1:(o.armLen||1);                                      // the knight's arms run long
@@ -2564,9 +2612,10 @@ function buildHumanoid(o){
     }else{
       sh.add(M(GSph(.055*s,5,4),limb,0,0,0));                       // shoulder knob
     }
-    sh.add(M(GCyl(armThick[0]*s,armThick[1]*s,.32*AL*s,5),limb,0,-.17*AL*s,0));
+    sh.add(M(GCyl(armThick[0]*s,armThick[1]*s,.32*AL*s,o.faraam?7:5),o.upperMat||limb,0,-.17*AL*s,0));
     const el=new THREE.Group();el.position.y=-.34*AL*s;sh.add(el);
-    el.add(M(GCyl(armThick[1]*s,armThick[1]*.85*s,.3*AL*s,5),limb,0,-.15*AL*s,0));
+    el.add(M(GCyl(armThick[1]*s,armThick[1]*.85*s,.3*AL*s,5),o.faraam?(o.upperMat||limb):limb,0,-.15*AL*s,0));
+    if(o.faraam)el.add(M(GCyl(armThick[1]*1.2*s,armThick[1]*1.05*s,.2*AL*s,8),limb,0,-.2*AL*s,0));   // the plate vambrace
     if(!sk)el.add(M(GSph(.065*s,5,4),limb,0,-.34*AL*s,0));         // gauntlet fist
     else{el.add(M(GSph(.045*s,5,4),limb,0,0,0));                     // elbow knob
       el.add(M(GSph(.04*s,4,3),limb,0,-.31*s,0));}                   // knuckled hand
@@ -2615,8 +2664,8 @@ function buildHumanoid(o){
       w.add(M(GCyl(.025*s,.025*s,.03*s,6),gripM,0,.28*s,0));                // kashira
       rig.reach=3.0*s;rig.katana=true;rig.gripLo=-.04;rig.gripHi=.26;rig.carry=KCARRY;
       // the saya on the left hip, and a mount inside it the blade drops into
-      const saya=M(GBox(.05*s,1.3*s,.034*s),gripM2,-.2*s,-.4*s,-.04*s);
-      saya.rotation.z=.2;saya.rotation.x=-.32;body.add(saya);rig.saya=saya;
+      const saya=M(GBox(.05*s,1.3*s,.034*s),gripM2,.2*s,-.4*s,-.04*s);   // +x: the LEFT hip (the sword arm is mirrored to -x)
+      saya.rotation.z=-.2;saya.rotation.x=-.32;body.add(saya);rig.saya=saya;
       const mount=new THREE.Group();mount.position.set(0,.66*s,0);saya.add(mount);rig.sayaMount=mount;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
@@ -2680,11 +2729,15 @@ function buildHumanoid(o){
   const L=o.legLen||1;
   function makeLeg(side){
     const hip=new THREE.Group();hip.position.set(.14*s*side,-.02*s,0);body.add(hip);
-    hip.add(M(GCyl(legThick[0]*s,legThick[1]*s,.38*L*s,5),limb,0,-.2*L*s,0));
+    const legM=o.legMat||limb;
+    hip.add(M(GCyl(legThick[0]*s,legThick[1]*s,.38*L*s,o.faraam?7:5),legM,0,-.2*L*s,0));
+    if(o.faraam){   // a front panel of the split tabard hangs off each hip
+      const pn=M(GBox(.15*s,.72*s,.02*s),o.torsoMat,.02*side*s,-.36*L*s,.11*s);pn.rotation.x=.06;hip.add(pn);}
     const kn=new THREE.Group();kn.position.y=-.4*L*s;hip.add(kn);
     kn.add(M(GSph(sk?.05*s:.07*s,5,4),sk?limb:(o.plateMat||limb),0,0,0)); // knee knob / poleyn
-    kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*L*s,5),limb,0,-.21*L*s,0));
-    const foot=M(GSph(.075*s,5,4),limb,0,-.42*L*s,.05*s);           // rounded sabaton
+    kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*L*s,o.faraam?7:5),o.faraam?(o.leatherMat||legM):legM,0,-.21*L*s,0));
+    if(o.faraam)kn.add(M(GCyl(legThick[1]*1.25*s,legThick[1]*1.05*s,.1*L*s,8),o.leatherMat||legM,0,-.12*L*s,0));   // the boot cuff
+    const foot=M(GSph(.075*s,5,4),o.faraam?(o.leatherMat||legM):limb,0,-.42*L*s,.05*s);           // rounded sabaton, or a boot
     foot.scale.set(1.1,.55,1.7);kn.add(foot);
     return {hip,kn};
   }
@@ -3578,14 +3631,17 @@ function makeKnightRig(lo){
     chestMat:mat('iron'),cape:mat('rag'),
     legLen:1.15,mirrorArms:true,
   }:{
-    // the knight: plate turned from profiles — a domed cuirass with a flat
-    // back, a smooth barbute, rolled pauldrons — under a cloth cape
+    // the knight, after the reference: a crested helm with a slit visor, a
+    // fur mantle over a teal scarf, a domed steel cuirass over mail sleeves
+    // with plate vambraces, a leather belt and pouch, a long split teal
+    // tabard over dark trousers and leather boots — and a teal cloth cape
     scale:1,
-    torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
-    bladeMat:mat('blade'),gripMat:mat('iron'),
-    weapon:wpn,clothMat:bow||kat?mat('bark',{color:0x8a7a62}):mat('rag'),
-    chestMat:mat('iron'),cape:mat('rag'),
-    legLen:1.15,mirrorArms:true,sculpt:true,clothCape:true,capeLiningColor:0x6a3038,
+    torsoMat:mat('teal'),headMat:mat('helm'),limbMat:mat('iron'),
+    bladeMat:mat('blade'),gripMat:mat('leather'),
+    weapon:wpn,clothMat:mat('leather'),
+    chestMat:mat('iron'),cape:mat('teal'),
+    upperMat:mat('mail'),legMat:mat('cloth',{color:0x8c9099}),leatherMat:mat('leather'),furMat:mat('fur'),
+    legLen:1.15,mirrorArms:true,sculpt:true,faraam:true,clothCape:true,capeLiningColor:0x1e3634,
   });
   r.loadout={weapon:bow?'bow':kat?'katana':'sword',armour:thief?'thief':og?'og':'knight'};
   return r;
