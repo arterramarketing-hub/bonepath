@@ -85,17 +85,23 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     medium horror below half its life is **cut in two along the line the
     blade took** — level through the middle, or on the diagonal. Its
     charge is chosen on the pause screen. The **iaido draw**: hold and
-    the blade is walked back into the saya at the left hip — the point
-    finds the mouth, the hilt swings down into line, the length slides
-    home and clicks — the body coiled low over it; release and the
+    the hands put the blade away — the right rides the hilt down as the
+    blade comes back across the saya's mouth, swings into line and
+    slides home, the left holding the saya at its mouth, and it clicks
+    only when it is in — the body coiled low over it; release and the
     knight flashes five metres straight through whatever stands in the
     line, the world slowing for the cut, and stands past them with the
     blade out — nothing happens to them until the guard clicks home in
     the sheath, and then they fall in two. Or the **piercing thrust**:
-    the same sheathing, then the point chambered back beside the hip
-    and a long low lunge that drives it straight through whoever stands
-    in the line — a hard poke, 42 (58 at a full hold), that staggers
-    all but the Warden and throws them off their feet
+    the same sheathing, then the point chambered level beside the hip
+    with the hips square, and a long low lunge that drives it straight
+    out along its line and through whoever stands there — a poke, not a
+    swing, 42 (58 at a full hold), that staggers all but the Warden and
+    throws them back off their feet. The blade itself is one piece — a
+    long thin box bent along its length into the curve, ground thin on
+    the edge side and drawn to a point — so the curve reads unbroken,
+    and its saya lies back along the left hip with the mouth forward
+    and up, the way one is worn
   - **the earthshaker** — the greatsword's third charge. Hold and the
     blade is hauled overhead while the ground groans and the screen
     shakes; release and it is driven into the flags. Every small and

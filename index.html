@@ -2690,17 +2690,25 @@ function buildHumanoid(o){
          a round tsuba, a wrapped grip running up past the right hand so
          the left can take the pommel. Its saya rides the left hip. */
       const gripM2=o.clothMat||gripM;
-      for(let i=0;i<5;i++){
-        const seg=M(GBox(.034*s,.3*s,.012*s),bladeM,0,-.22*s-i*.29*s,i*i*.011*s);
-        seg.rotation.x=-i*.04;w.add(seg);if(i===1)rig.bladeMesh=seg;}
-      const tip=M(GCone(.017*s,.11*s,4),bladeM,0,-1.63*s,.19*s);tip.rotation.x=Math.PI-.2;w.add(tip);
+      // the blade is ONE piece: a long thin box bent along its length into
+      // the sori, ground thin on the edge side, tapered, and drawn to a
+      // point at the kissaki — so the curve reads as a curve, unbroken
+      const BL=1.62*s,bg=new THREE.BoxGeometry(.05*s,BL,.017*s,1,18,1);bg.translate(0,-.07*s-BL/2,0);
+      {const P=bg.attributes.position;
+        for(let i=0;i<P.count;i++){const y=P.getY(i),t=Math.max(0,Math.min(1,(-.07*s-y)/BL));
+          let x=P.getX(i);const z=P.getZ(i);
+          x*=1-.28*t;if(z<0)x*=.35;                                  // the edge side, ground thin
+          if(t>.9)x*=Math.max(.06,(1-t)/.1);                         // the kissaki, drawn to a point
+          P.setX(i,x);P.setZ(i,z+.19*s*t*t);}
+        bg.computeVertexNormals();}
+      const blade=M(bg,bladeM,0,0,0);w.add(blade);rig.bladeMesh=blade;
       w.add(M(GCyl(.068*s,.068*s,.012*s,10),gripM,0,-.06*s,0));            // tsuba
       w.add(M(GCyl(.021*s,.023*s,.32*s,6),gripM2,0,.11*s,0));               // wrapped grip
       w.add(M(GCyl(.025*s,.025*s,.03*s,6),gripM,0,.28*s,0));                // kashira
       rig.reach=3.0*s;rig.katana=true;rig.gripLo=-.04;rig.gripHi=.26;rig.carry=KCARRY;
       // the saya on the left hip, and a mount inside it the blade drops into
       const saya=M(GBox(.05*s,1.3*s,.034*s),gripM2,.2*s,-.4*s,-.04*s);   // +x: the LEFT hip (the sword arm is mirrored to -x)
-      saya.rotation.z=-.2;saya.rotation.x=-.32;body.add(saya);rig.saya=saya;
+      saya.rotation.z=-.2;saya.rotation.x=.75;body.add(saya);rig.saya=saya;         // lying back along the hip, its mouth forward and up, the way one is worn
       const mount=new THREE.Group();mount.position.set(0,.66*s,0);saya.add(mount);rig.sayaMount=mount;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
@@ -3042,15 +3050,16 @@ function poseIai(r,p){
    and walked back to chudan */
 function poseKThrust(r,p){
   const W=.28,H=.44,C=(r.carry||CARRY);
-  const tw=seg4(p,W,H,0,.6,-.5,0);
-  r.torso.rotation.y=tw;r.body.rotation.y=tw*.5;r.torso.rotation.x+=seg4(p,W,H,0,-.1,.42,.05);
-  r.armR.rotation.x=seg4(p,W,H,C.aRx,-.3,-1.7,C.aRx);r.armR.rotation.z=seg4(p,W,H,C.aRz,.25,0,C.aRz);
-  r.foreR.rotation.x=seg4(p,W,H,C.fRx,-1.35,-.05,C.fRx);
-  r.weapon.rotation.x=seg4(p,W,H,C.wx,-.1,.05,C.wx);r.weapon.rotation.y=0;r.weapon.rotation.z=0;
-  r.armL.rotation.x=seg4(p,W,H,C.aLx,-.45,-1.55,C.aLx);r.armL.rotation.z=seg4(p,W,H,C.aLz,.35,.15,C.aLz);r.foreL.rotation.x=seg4(p,W,H,C.fLx,-1.25,-.1,C.fLx);
+  // hips square and the shoulders with them: nothing turns, so the point
+  // stays on its line — it is a poke, and only the arms and the lean move
+  r.torso.rotation.y=seg4(p,W,H,0,.12,-.08,0);r.body.rotation.y=0;r.torso.rotation.x+=seg4(p,W,H,0,-.06,.4,.05);
+  r.armR.rotation.x=seg4(p,W,H,C.aRx,-.15,-1.6,C.aRx);r.armR.rotation.y=0;r.armR.rotation.z=seg4(p,W,H,C.aRz,.2,.05,C.aRz);
+  r.foreR.rotation.x=seg4(p,W,H,C.fRx,-1.5,-.1,C.fRx);                // the point chambered level at the hip, then driven straight out
+  r.weapon.rotation.x=seg4(p,W,H,C.wx,-.08,.12,C.wx);r.weapon.rotation.y=0;r.weapon.rotation.z=0;
+  r.armL.rotation.x=seg4(p,W,H,C.aLx,-.3,-1.45,C.aLx);r.armL.rotation.z=seg4(p,W,H,C.aLz,.4,.2,C.aLz);r.foreL.rotation.x=seg4(p,W,H,C.fLx,-1.4,-.15,C.fLx);
   r.legR.rotation.x=seg4(p,W,H,0,.25,-.9,-.1);r.kneeR.rotation.x=seg4(p,W,H,0,.1,.2,0);
   r.legL.rotation.x=seg4(p,W,H,0,-.2,.8,.1);r.kneeL.rotation.x=seg4(p,W,H,0,.25,1.0,.2);
-  r.head.rotation.y=-tw*.6;r.body.position.y=r.baseY-seg4(p,W,H,0,.04,.2,.04)*r.s;
+  r.head.rotation.y=0;r.body.position.y=r.baseY-seg4(p,W,H,0,.04,.2,.04)*r.s;
 }
 /* the bounce: the blade has hit stone and comes back off it — arms flung
    up and back, the trunk rocked, a half step taken with it, then the
@@ -3620,8 +3629,7 @@ const IK={T:new THREE.Vector3(),D:new THREE.Vector3(),H:new THREE.Vector3(),
   Y:new THREE.Vector3(),Z:new THREE.Vector3(),
   M:new THREE.Matrix4(),Mi:new THREE.Matrix4()};
 function solveLeftHand(r){
-  const s=r.s,l1=(r.l1||.34)*s,l2=(r.l2||.37)*s,S=r.armL.position, // l2 reaches to the fist's face
-    cl=(v)=>Math.max(-1,Math.min(1,v));
+  const s=r.s,S=r.armL.position;
   r.root.updateMatrixWorld(true);
   // the left hand slides along the handle: target the closest point of the
   // grip segment (guard to pommel) to the shoulder, in the torso frame
@@ -3635,11 +3643,25 @@ function solveLeftHand(r){
     const u=Math.max(0,Math.min(1,IK.D.dot(IK.Z)/(gl*gl)));
     IK.T.addScaledVector(IK.Z,u);
   }
+  solveArm(r,'L');
+}
+/* either hand to a point on some object: a hilt sitting in the saya, the
+   saya's mouth — the arm goes where the hand has to be */
+function solveHandTo(r,side,tg){
+  r.root.updateMatrixWorld(true);
+  IK.Mi.copy(r.torso.matrixWorld).invert();
+  IK.T.set(tg.off[0],tg.off[1],tg.off[2]).applyMatrix4(tg.obj.matrixWorld).applyMatrix4(IK.Mi);
+  solveArm(r,side);
+}
+/* the two-bone solve itself: IK.T holds the target in the torso frame */
+function solveArm(r,side){
+  const s=r.s,l1=(r.l1||.34)*s,l2=(r.l2||.37)*s,L=side==='L',arm=L?r.armL:r.armR,fore=L?r.foreL:r.foreR,S=arm.position, // l2 reaches to the fist's face
+    cl=(v)=>Math.max(-1,Math.min(1,v));
   IK.D.subVectors(IK.T,S);
   const d=Math.max(.08*s,Math.min(IK.D.length(),(l1+l2)*.999));
   IK.D.normalize();
-  // elbow pole: out on the off-hand's side, low, a touch forward
-  IK.H.set(r.mirrorArms?1:-1,-.35,.25);
+  // elbow pole: out on the hand's own side, low, a touch forward
+  IK.H.set((r.mirrorArms?1:-1)*(L?1:-1),-.35,.25);
   IK.H.addScaledVector(IK.D,-IK.H.dot(IK.D));
   if(IK.H.lengthSq()<1e-5)IK.H.set(-1,0,0);
   IK.H.normalize();
@@ -3656,11 +3678,11 @@ function solveLeftHand(r){
   IK.Y.copy(IK.E).negate();
   IK.Z.crossVectors(IK.N,IK.Y);
   IK.M.makeBasis(IK.N,IK.Y,IK.Z);
-  r.armL.quaternion.setFromRotationMatrix(IK.M);
-  r.foreL.rotation.set(Math.PI-eIn,0,0);                   // hinge to the grip
+  arm.quaternion.setFromRotationMatrix(IK.M);
+  fore.rotation.set(Math.PI-eIn,0,0);                      // hinge to the target
   if(r._sm){ // keep the smoothing filter honest about where the arm really is
-    r._sm.armL=[r.armL.rotation.x,r.armL.rotation.y,r.armL.rotation.z];
-    r._sm.foreL=[r.foreL.rotation.x,r.foreL.rotation.y,r.foreL.rotation.z];
+    r._sm[L?'armL':'armR']=[arm.rotation.x,arm.rotation.y,arm.rotation.z];
+    r._sm[L?'foreL':'foreR']=[fore.rotation.x,fore.rotation.y,fore.rotation.z];
   }
 }
 /* secondary motion, applied after the pose each frame */
@@ -3674,14 +3696,15 @@ function updateRigExtras(r,dt){
       const j=r[k];j.rotation.z*=-1;j.rotation.y*=-1;
     }
   }
-  const ik=r.ikLeftArm&&r.armed&&r.weapon;
+  const ik=r.ikLeftArm&&r.armed&&r.weapon,ikR=r.ikRightT,ikL=r.ikLeftT;
   if(r.smoothPose){
     // critically-damped blend toward each frame's computed pose: state
     // changes flow instead of popping, and every motion gains follow-through
     if(!r._sm)r._sm={};
     const a=1-Math.exp(-22*dt);
     for(const k of SMOOTH_JOINTS){
-      if(ik&&(k==='armL'||k==='foreL'))continue; // IK owns these below
+      if((ik||ikL)&&(k==='armL'||k==='foreL'))continue; // IK owns these below
+      if(ikR&&(k==='armR'||k==='foreR'))continue;
       const j=r[k];if(!j)continue;
       const p=r._sm[k];
       if(!p){r._sm[k]=[j.rotation.x,j.rotation.y,j.rotation.z];continue;}
@@ -3696,7 +3719,8 @@ function updateRigExtras(r,dt){
     r._smY+=(r.body.position.y-r._smY)*a;
     r.body.position.y=r._smY;
   }
-  if(ik)solveLeftHand(r);
+  if(ikR)solveHandTo(r,'R',ikR);
+  if(ikL)solveHandTo(r,'L',ikL);else if(ik)solveLeftHand(r);
   if(r.cape){
     r.capeSway+=((r._spNow||0)-r.capeSway)*Math.min(1,6*dt);
     const t=G.time,sw=r.capeSway;
@@ -3985,6 +4009,7 @@ function makeGhoulRig(){
 /* ---------------- effects ---------------- */
 const effects=[];
 const SHV=new THREE.Vector3();  // the sheathing's scratch
+const SH_R={obj:null,off:[0,0,0]},SH_L={obj:null,off:[0,.03,0]};  // the hands' targets while the blade goes home
 const BS={t:new THREE.Vector3(),h:new THREE.Vector3(),d:new THREE.Vector3(),q:new THREE.Quaternion(),pq:new THREE.Quaternion(),down:new THREE.Vector3(0,-1,0)};
 /* ---------------- the pilgrim's loadout ----------------
    weapon, armour and the charged attack for each weapon, chosen on the
@@ -5186,7 +5211,7 @@ const player={
       if(!this.sfxDone&&p>=.3){this.sfxDone=true;AudioSys.heavySwing();G.glowFlash=.5;}
       if(!this.hitDone&&p>=.42){ // the point goes in: a narrow line, driven hard
         this.hitDone=true;
-        const hit=this.meleeHit(this.chargeFull?58:42,3.4,.42,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
+        const hit=this.meleeHit(this.chargeFull?58:42,3.4,.3,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
         if(hit){AudioSys.hit();AudioSys.gore();G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.12);G.vibr([30,20,50]);}
       }
       if(p>=1)this.state='free';
@@ -5465,16 +5490,19 @@ const player={
     // the katana lives in its saya while the draw is wound, and goes back
     // into it at the end of the cut
     if(kat&&r.sayaMount){
-      const SHT=.5,home=this.state==='iai'&&this.t/.85>=.62,sheathing=this.state==='charge';
+      const SHT=.5,ip=this.state==='iai'?this.t/.85:0,home=ip>=.62,sheathing=this.state==='charge';
+      r.ikRightT=null;r.ikLeftT=null;
       if(sheathing||home){
         if(r.weapon.parent!==r.sayaMount){r.sayaMount.add(r.weapon);if(r._sm)delete r._sm.weapon;}
-        // the sheathing is watched, not snapped: the point finds the saya's
-        // mouth first, the hilt swings down into line with it, and then the
-        // whole blade slides home — the click comes only when it is
+        // the sheathing is watched, not snapped: the blade comes back across
+        // the saya's mouth, swings into line with it and slides home, and the
+        // click comes only when it is. The HANDS do it — the right rides the
+        // hilt all the way down, the left holds the saya at the mouth
         const k=home?1:Math.min(1,this.chargeT/SHT);
-        const a=Math.max(0,1-k/.5),sl=1-k,L=1.7*r.s;
-        r.weapon.rotation.set(1.2*a,0,.8*a);
+        const a=Math.max(0,1-k/.4),sl=.5*(1-k),L=1.7*r.s;
+        r.weapon.rotation.set(-.5*a,0,.6*a);
         SHV.set(0,L*sl,0).applyEuler(r.weapon.rotation);r.weapon.position.copy(SHV);
+        if(sheathing||ip<.8){SH_R.obj=r.weapon;SH_R.off[1]=.12*r.s;r.ikRightT=SH_R;SH_L.obj=r.sayaMount;r.ikLeftT=SH_L;}
         if(sheathing&&!this.sheathDone&&k>=1){this.sheathDone=true;AudioSys.sheath();}
       }else if(r.weapon.parent!==r.foreR){
         r.foreR.add(r.weapon);r.weapon.position.set(0,-.34*(r.AL||1)*r.s,0);r.weapon.rotation.set(0,0,0);if(r._sm)delete r._sm.weapon;
