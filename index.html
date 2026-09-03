@@ -2073,7 +2073,7 @@ function buildWorld(){
     const cathM=mat('cathedral');
     cathM.map.repeat.set(1.4,2.2);
     M.oss.map.repeat.set(1.6,.9);
-    const glassM=new THREE.MeshBasicMaterial({map:texCache.glass,color:0x2e2e38}); // dim: only the moon behind it
+    const glassM=new THREE.MeshBasicMaterial({map:texCache.glass,color:0x9aa4c4}); // lit: the moon full behind it
     const woodM=mat('bark');
     const cath=new THREE.Group();cath.name="cath";cath.position.y=PH;world.add(cath);
     const cbox=(w,h,d,m,x,y,z,ry)=>{const b=box(w,h,d,m,x,y,z,ry);cath.add(b);return b;};
@@ -2116,6 +2116,8 @@ function buildWorld(){
           win.position.set(side*(HW-.14),5.1,z+2.5);win.rotation.y=-side*Math.PI/2;cath.add(win);
           const wo=new THREE.Mesh(new THREE.PlaneGeometry(1.7,4.4),glassM);                // and its face on the outside
           wo.position.set(side*(HW+WALLT+.14),5.1,z+2.5);wo.rotation.y=side*Math.PI/2;cath.add(wo);
+          addHaze(side*(HW-.7),PH+5.1,z+2.5,0x8fa6d8,4.2,.19);                             // a soft moon-glow off the glass, in...
+          addHaze(side*(HW+WALLT+.7),PH+5.1,z+2.5,0x8fa6d8,4.2,.19);                       // ...and out
         }
       }
     }
@@ -2124,6 +2126,7 @@ function buildWorld(){
     rose.material.polygonOffset=true;rose.material.polygonOffsetFactor=-2;rose.material.polygonOffsetUnits=-2;
     rose.position.set(0,7.2,-(HL-.14));cath.add(rose);                    // rose window over the altar
     const roseO=new THREE.Mesh(rose.geometry,rose.material);roseO.position.set(0,7.2,-(HL+WALLT+.14));roseO.rotation.y=Math.PI;cath.add(roseO);
+    addHaze(0,PH+7.2,-(HL-.9),0x9cb2d8,7,.22);addHaze(0,PH+7.2,-(HL+WALLT+.9),0x9cb2d8,7,.22);   // the rose glows, both ways
     const DW=1.9;                                                          // half the door's width
     const segW=HW+WALLT-DW;
     for(const side of[1,-1]){
@@ -3032,6 +3035,22 @@ function poseIai(r,p){
   else if(p<.62){poseKatana(r,.64,0);r.torso.rotation.x+=.22;r.head.rotation.x-=.2;}
   else if(p<.8)poseIaiCharge(r,1,0);
   else poseIaiCharge(r,1-(p-.8)/.2,0);
+}
+/* the katana's piercing thrust: the point chambered back beside the right
+   hip and levelled, the body turned side-on, then a long low lunge with
+   both hands driving the blade out at full stretch, held there a beat,
+   and walked back to chudan */
+function poseKThrust(r,p){
+  const W=.28,H=.44,C=(r.carry||CARRY);
+  const tw=seg4(p,W,H,0,.6,-.5,0);
+  r.torso.rotation.y=tw;r.body.rotation.y=tw*.5;r.torso.rotation.x+=seg4(p,W,H,0,-.1,.42,.05);
+  r.armR.rotation.x=seg4(p,W,H,C.aRx,-.3,-1.7,C.aRx);r.armR.rotation.z=seg4(p,W,H,C.aRz,.25,0,C.aRz);
+  r.foreR.rotation.x=seg4(p,W,H,C.fRx,-1.35,-.05,C.fRx);
+  r.weapon.rotation.x=seg4(p,W,H,C.wx,-.1,.05,C.wx);r.weapon.rotation.y=0;r.weapon.rotation.z=0;
+  r.armL.rotation.x=seg4(p,W,H,C.aLx,-.45,-1.55,C.aLx);r.armL.rotation.z=seg4(p,W,H,C.aLz,.35,.15,C.aLz);r.foreL.rotation.x=seg4(p,W,H,C.fLx,-1.25,-.1,C.fLx);
+  r.legR.rotation.x=seg4(p,W,H,0,.25,-.9,-.1);r.kneeR.rotation.x=seg4(p,W,H,0,.1,.2,0);
+  r.legL.rotation.x=seg4(p,W,H,0,-.2,.8,.1);r.kneeL.rotation.x=seg4(p,W,H,0,.25,1.0,.2);
+  r.head.rotation.y=-tw*.6;r.body.position.y=r.baseY-seg4(p,W,H,0,.04,.2,.04)*r.s;
 }
 /* the bounce: the blade has hit stone and comes back off it — arms flung
    up and back, the trunk rocked, a half step taken with it, then the
@@ -3965,6 +3984,7 @@ function makeGhoulRig(){
 }
 /* ---------------- effects ---------------- */
 const effects=[];
+const SHV=new THREE.Vector3();  // the sheathing's scratch
 const BS={t:new THREE.Vector3(),h:new THREE.Vector3(),d:new THREE.Vector3(),q:new THREE.Quaternion(),pq:new THREE.Quaternion(),down:new THREE.Vector3(0,-1,0)};
 /* ---------------- the pilgrim's loadout ----------------
    weapon, armour and the charged attack for each weapon, chosen on the
@@ -3975,7 +3995,7 @@ try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
 const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','katana']],
-  katanaCharge:[['iai','iaido draw']],
+  katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust']],
   armour:[['knight','knight plate'],['thief','thief cloth'],['og','OG knight']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker']],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
@@ -3984,7 +4004,8 @@ const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on 
   quake:'the blade hauled overhead while the ground groans and the screen shakes, then driven into the flags: every small and medium horror near is blasted five body-lengths away, some of them bursting into bones on the way',
   knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
   pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last',
-  iai:'sheathed at the hip, then one cut as the body flashes five metres through them; they fall when the blade clicks home'};
+  iai:'the blade walked back into the saya at the hip, then one cut as the body flashes five metres through them; they fall when it clicks home',
+  thrust:'the point drawn back beside the hip, then a long low lunge that drives it straight through whoever stands in the line — a hard poke that throws them off their feet'};
 function boneBurst(x,y,z,color,n,speed){
   for(let i=0;i<n;i++){
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,
@@ -4108,9 +4129,9 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
       const k=Math.pow(Math.sin(v*Math.PI),.7);col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   }else if(kind==='cross'){
-    g=new THREE.PlaneGeometry(.2,2.6,1,14);                        // one slim, slightly bowed cut line
+    g=new THREE.PlaneGeometry(.2,3.1,1,14);                        // one slim, slightly bowed cut line
     const pos=g.attributes.position,col=[];
-    for(let i=0;i<pos.count;i++){const v=(pos.getY(i)+1.3)/2.6;
+    for(let i=0;i<pos.count;i++){const v=(pos.getY(i)+1.55)/3.1;
       pos.setX(i,pos.getX(i)+Math.sin(v*Math.PI)*.18);
       const k=Math.pow(Math.sin(v*Math.PI),.6);col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
@@ -4137,7 +4158,7 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
     arc.rotation.x=dir>0?.2:-.2;
     arc.position.set(parentX,gy+y+.35,parentZ);
   }else if(kind==='cross'){
-    arc.rotation.set(0,facing,dir*Math.PI/4);                        // a cut line facing its flight, rolled to a diagonal;
+    arc.rotation.set(0,facing,dir*Math.PI*.33);                      // a cut line facing its flight, rolled past the diagonal — a wide X;
     arc.position.set(parentX,gy+y,parentZ);                          // two of them, mirrored, make the X
   }else{
     arc.rotation.x=-Math.PI/2+.3*dir;                                // a canted horizontal crescent
@@ -4718,7 +4739,7 @@ const player={
         severLimb(e,tr,hv);
       // the katana: below half their life, the edge simply goes through them
       // — whether the cut leaves them standing or is the one that kills
-      if(this.weapon()==='katana'&&(e.hp>0||preHp>0)&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&!e.sliced)
+      if(this.weapon()==='katana'&&!opts.noSlice&&(e.hp>0||preHp>0)&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&!e.sliced)
         katanaSlice(e,this.facing,opts.cut);
       sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?16:dmg>20?11:7);
       if(crit){
@@ -4863,7 +4884,15 @@ const player={
       this.state='charge';this.t=0;this.chargeT=0;this.chargeFull=false;this.readyDone=false;
       this.sprintT=0;this.sprinting=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
-      if(this.weapon()==='bow')AudioSys.bowDraw();else if(this.weapon()==='katana')AudioSys.sheath();else AudioSys.windup();
+      this.sheathDone=false;
+      if(this.weapon()==='bow')AudioSys.bowDraw();else if(this.weapon()!=='katana')AudioSys.windup();
+    };
+    // the piercing thrust: the point chambered at the hip, then a lunge
+    // that drives it straight through whoever is in the line
+    const startKThrust=()=>{
+      this.state='kthrust';this.t=0;this.hitDone=false;this.sfxDone=false;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
     };
     // the iaido draw: five metres through them in a flash, and they fall
     // only when the blade clicks home
@@ -5030,8 +5059,8 @@ const player={
       const released=IN.chargeRelease||!IN.chargeHeld;
       if(released||this.chargeT>1.8){
         if(this.weapon()==='bow')startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);
-        else if(this.chargeT<.3)startAttack(null);   // barely held: it's just a strike
-        else if(this.weapon()==='katana')startIai();
+        else if(this.chargeT<(this.weapon()==='katana'?.5:.3))startAttack(null);   // barely held: it's just a strike (the katana needs its blade home first)
+        else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else startIai();}
         else if(LOADOUT.charge==='spin')startSpin();
         else if(LOADOUT.charge==='quake')startQuake();
         else startDouble();
@@ -5144,6 +5173,21 @@ const player={
           G.camShake=Math.max(G.camShake,.5);G.hitstop=Math.max(G.hitstop,.1);
         }
         this.iaiHits=[];
+      }
+      if(p>=1)this.state='free';
+    }
+    else if(this.state==='kthrust'){
+      const DUR=.7,p=this.t/DUR;
+      if(foe&&p<.25)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),12*dt);
+      if(p>=.28&&p<.46){ // the lunge: a long low step behind the point
+        const pr={x:this.x+Math.sin(this.facing)*13*dt,z:this.z+Math.cos(this.facing)*13*dt};
+        pushOut(pr,.32);this.x=pr.x;this.z=pr.z;
+      }
+      if(!this.sfxDone&&p>=.3){this.sfxDone=true;AudioSys.heavySwing();G.glowFlash=.5;}
+      if(!this.hitDone&&p>=.42){ // the point goes in: a narrow line, driven hard
+        this.hitDone=true;
+        const hit=this.meleeHit(this.chargeFull?58:42,3.4,.42,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
+        if(hit){AudioSys.hit();AudioSys.gore();G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.12);G.vibr([30,20,50]);}
       }
       if(p>=1)this.state='free';
     }
@@ -5357,7 +5401,7 @@ const player={
     // both hands stay planted on the grip whenever the blade is in play
     const bow=this.weapon()==='bow',kat=this.weapon()==='katana';
     r.ikLeftArm=!bow&&!(kat&&(this.state==='charge'||this.state==='iai'))&&
-      ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab'].includes(this.state);
+      ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab','kthrust'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -5368,6 +5412,7 @@ const player={
     }
     else if(this.state==='charge'){if(bow)poseBowDraw(r,this.chargeT/.6,t);else if(kat)poseIaiCharge(r,this.chargeT/.6,t);else poseCharge(r,this.chargeT/.6,t);}
     else if(this.state==='iai')poseIai(r,Math.min(1,this.t/.85));
+    else if(this.state==='kthrust')poseKThrust(r,Math.min(1,this.t/.7));
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
@@ -5420,10 +5465,17 @@ const player={
     // the katana lives in its saya while the draw is wound, and goes back
     // into it at the end of the cut
     if(kat&&r.sayaMount){
-      const sheathed=this.state==='charge'||(this.state==='iai'&&this.t/.85>=.62);
-      if(sheathed){
-        if(r.weapon.parent!==r.sayaMount){r.sayaMount.add(r.weapon);r.weapon.position.set(0,0,0);if(r._sm)delete r._sm.weapon;}
-        r.weapon.rotation.set(0,0,0);
+      const SHT=.5,home=this.state==='iai'&&this.t/.85>=.62,sheathing=this.state==='charge';
+      if(sheathing||home){
+        if(r.weapon.parent!==r.sayaMount){r.sayaMount.add(r.weapon);if(r._sm)delete r._sm.weapon;}
+        // the sheathing is watched, not snapped: the point finds the saya's
+        // mouth first, the hilt swings down into line with it, and then the
+        // whole blade slides home — the click comes only when it is
+        const k=home?1:Math.min(1,this.chargeT/SHT);
+        const a=Math.max(0,1-k/.5),sl=1-k,L=1.7*r.s;
+        r.weapon.rotation.set(1.2*a,0,.8*a);
+        SHV.set(0,L*sl,0).applyEuler(r.weapon.rotation);r.weapon.position.copy(SHV);
+        if(sheathing&&!this.sheathDone&&k>=1){this.sheathDone=true;AudioSys.sheath();}
       }else if(r.weapon.parent!==r.foreR){
         r.foreR.add(r.weapon);r.weapon.position.set(0,-.34*(r.AL||1)*r.s,0);r.weapon.rotation.set(0,0,0);if(r._sm)delete r._sm.weapon;
       }
@@ -6904,12 +6956,23 @@ function updateCamera(dt){
    nothing to fight there is no lock at all: the camera follows the walk
    and the moonbeam over the nave does the pointing. */
 let lockMarker=null;
+// is this point inside the cathedral's walls? and can the eye reach from
+// the player to this horror — never through a wall: a thing pacing outside
+// the nave while you stand in it (or the other way round) is not a target,
+// unless one of you is in the portal, which looks both ways
+function inNave(x,z){return Math.abs(x)<HW+WALLT&&Math.abs(z)<HL+WALLT;}
+function lockReach(e){
+  const pi=inNave(player.x,player.z),ei=inNave(e.x,e.z);
+  if(pi===ei)return true;
+  const door=(q)=>Math.abs(q.x)<2.4&&q.z>HL-1.5&&q.z<HL+WALLT+3;
+  return door(e)||door(player);
+}
 function lockCands(){
   // only horrors that are truly LIVE — still clawing out of the grave
-  // (dormant or rising) doesn't count
+  // (dormant or rising) doesn't count — and only ones the eye can reach
   return enemies
     .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&e.state!=='scatter'&&!e.untouchable
-      &&Math.hypot(e.x-player.x,e.z-player.z)<15)
+      &&Math.hypot(e.x-player.x,e.z-player.z)<15&&lockReach(e))
     .sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
 }
 function updateLock(){
@@ -7256,7 +7319,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},splitEnemy,effects,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

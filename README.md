@@ -84,12 +84,18 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     **tsuki**, the point straight in. Fast cuts for 30, and any small or
     medium horror below half its life is **cut in two along the line the
     blade took** — level through the middle, or on the diagonal. Its
-    charge is the **iaido draw**: hold and the blade drops into the saya
-    at the left hip, the body coiled low over it; release and the knight
-    flashes five metres straight through whatever stands in the line,
-    the world slowing for the cut, and stands past them with the blade
-    out — nothing happens to them until the guard clicks home in the
-    sheath, and then they fall in two
+    charge is chosen on the pause screen. The **iaido draw**: hold and
+    the blade is walked back into the saya at the left hip — the point
+    finds the mouth, the hilt swings down into line, the length slides
+    home and clicks — the body coiled low over it; release and the
+    knight flashes five metres straight through whatever stands in the
+    line, the world slowing for the cut, and stands past them with the
+    blade out — nothing happens to them until the guard clicks home in
+    the sheath, and then they fall in two. Or the **piercing thrust**:
+    the same sheathing, then the point chambered back beside the hip
+    and a long low lunge that drives it straight through whoever stands
+    in the line — a hard poke, 42 (58 at a full hold), that staggers
+    all but the Warden and throws them off their feet
   - **the earthshaker** — the greatsword's third charge. Hold and the
     blade is hauled overhead while the ground groans and the screen
     shakes; release and it is driven into the flags. Every small and
@@ -132,7 +138,10 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   closest live horror is always marked (skeletons still clawing out of
   the ground don't count until they're up). When the marked one falls,
   the eye stays on it for half a second — the camera holds and you watch
-  it go down before the lock moves on. When nothing stalks you
+  it go down before the lock moves on. The eye never looks through the
+  cathedral's wall: a horror pacing outside the nave while you stand in
+  it (or the other way round) is not a target, unless one of you is in
+  the portal. When nothing stalks you
   there is no lock at all: the camera eases in behind the way you are
   walking, and a drag of the right thumb is left exactly where you put
   it until you move again. The moonbeam over the nave does the pointing
@@ -242,7 +251,8 @@ Inside is a long church — twenty-four metres wide and forty-five long
 — a nave of pews between two colonnades under a
 pitched roof of stone slates on tie beams — slates missing here and
 there, so the moon gets in, and two fallen beams lying on the floor —
-lancet glass between the buttresses, eight tall iron candle stands down
+lancet glass between the buttresses, lit bright by the moon behind it
+and glowing softly from both faces, the rose window the same, eight tall iron candle stands down
 the aisles burning with real, breathing light that keeps the nave lit,
 and at the far end the
 altar on its dais under the rose window, where the moon comes straight
