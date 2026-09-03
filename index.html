@@ -1494,6 +1494,17 @@ const AudioSys=(()=>{
       noise(t+.56,{peak:.14,att:.005,dec:.2,f0:500,f1:120});
       [1,2.76,4.07].forEach((r,i)=>tone(t+.05,{f:118*r,f2:118*r*.985,type:'sine',peak:.12/(i+1),dec:1.8})); // the bell
     },
+    // the earthshaker: the ground groans while the blade is wound...
+    rumble(){const t=now();
+      tone(t,{f:40,f2:33,type:'sawtooth',peak:.06,att:.05,dec:.32});
+      noise(t,{peak:.05,att:.05,dec:.3,f0:140,f1:60});},
+    // ...and the slam: the blade into the flags, the shock, the long low roll
+    quake(){const t=now();
+      tone(t,{f:64,f2:20,type:'sine',peak:.55,att:.005,dec:1.0});
+      noise(t,{peak:.5,att:.002,dec:.2,f0:1400,f1:200});
+      noise(t+.02,{peak:.4,att:.02,dec:1.3,f0:160,f1:50});
+      for(let i=0;i<6;i++)noise(t+.1+i*.09,{peak:.1,att:.01,dec:.12,f0:rr2(500,1500),f1:300,type:'bandpass',Q:2});
+      tone(t+.05,{f:110,f2:90,type:'triangle',peak:.12,att:.01,dec:.5});},
     // the katana: a slide of steel on wood, and the click of the guard home
     sheath(){const t=now();
       noise(t,{peak:.12,att:.02,dec:.18,f0:3000,f1:1200,type:'bandpass',Q:2});
@@ -1716,14 +1727,14 @@ const IN=Input.st;
 const HEX_R=68;                       // hexagon circumradius (4x the area)
 const HEX_AP=HEX_R*Math.cos(Math.PI/6); // apothem (edge distance)
 const CATH_R=10;                      // (legacy: the old round nave's radius)
-const HW=8,HL=15,WALLT=1;             // the nave: interior half-width / half-length, wall thickness
+const HW=12,HL=22.5,WALLT=1;          // the nave: interior half-width / half-length, wall thickness
 const PH=1.2,PO=2.2;                  // the plinth's height, and how far it reaches past the walls
 const PW=HW+WALLT+PO,PL=HL+WALLT+PO;  // the plinth's half sizes (11.2 x 18.2)
 const STAIR_W=2.8,STAIR_L=3.2;        // the stair down the south face: half-width, run
 const RING_OFF=5.4;                   // the ring road's offset from the walls
 const ARENA=[0,0],ARENA_R=9.6;        // (legacy)
 const DOOR_A=Math.PI/2;               // the portal faces SOUTH (+z)
-const ALTAR=[0,-13];                  // the altar at the nave's north end
+const ALTAR=[0,-19.5];                // the altar at the nave's north end
 const START=[0,50];
 // signed distance to an axis-aligned rectangle (negative inside)
 function rectSD(x,z,hw,hl){
@@ -1793,7 +1804,7 @@ function constrain(p,arenaOnly){
     // in the wall: back out to the side you CAME from — a fast roll can
     // land past the wall's middle, and the nearer face would have let it
     // through to the other side
-    const inside=p._wallIn!==undefined?p._wallIn:(sdo>=-sdi);
+    const inside=p._wallIn!==undefined?p._wallIn:(sdi>sdo);   // (first sight: whichever face is nearer)
     if(inside)keepInside(p,HW,HL,.45);else pushOutOf(p,HW+WALLT,HL+WALLT,.45);
   }
   if(!inDoor){if(sdi<-.45)p._wallIn=true;else if(sdo>.45)p._wallIn=false;}
@@ -2076,13 +2087,14 @@ function buildWorld(){
         cbox(1.6,WH+1,1.4,cathM,side*(HW+WALLT+.2),(WH+1)/2,z);            // buttress
         if(z>-HL&&z<HL){                                                   // a lancet between each pair
           const win=new THREE.Mesh(new THREE.PlaneGeometry(1.7,4.4),glassM);
-          win.position.set(side*(HW-.02),5.1,z+2.5);win.rotation.y=-side*Math.PI/2;cath.add(win);
+          win.position.set(side*(HW-.14),5.1,z+2.5);win.rotation.y=-side*Math.PI/2;cath.add(win);
         }
       }
     }
     cbox(HW*2+WALLT*2,WH,WALLT,cathM,0,WH/2,-WZ);                          // north wall
     const rose=new THREE.Mesh(new THREE.CircleGeometry(2.6,16),new THREE.MeshBasicMaterial({map:texCache.rose}));
-    rose.position.set(0,7.2,-(HL-.05));cath.add(rose);                    // rose window over the altar
+    rose.material.polygonOffset=true;rose.material.polygonOffsetFactor=-2;rose.material.polygonOffsetUnits=-2;
+    rose.position.set(0,7.2,-(HL-.14));cath.add(rose);                    // rose window over the altar
     const DW=1.9;                                                          // half the door's width
     const segW=HW+WALLT-DW;
     for(const side of[1,-1]){
@@ -2105,27 +2117,27 @@ function buildWorld(){
       sl.rotation.z=-side*slope;
     }
     // ---- colonnades: two rows of columns, some broken, down the nave
-    for(const side of[1,-1])for(let z=-10;z<=10;z+=5){
+    for(const side of[1,-1])for(let z=-15;z<=15;z+=5){
       const ch=8.6;
-      cath.add(cyl(.45,.55,ch,6,cathM,side*5.5,ch/2,z));
-      if(ch>6)cath.add(cyl(.7,.5,.6,6,cathM,side*5.5,ch+.3,z));
-      addObstacle(side*5.5,z,.7);
+      cath.add(cyl(.45,.55,ch,6,cathM,side*8.25,ch/2,z));
+      cath.add(cyl(.7,.5,.6,6,cathM,side*8.25,ch+.3,z));
+      addObstacle(side*8.25,z,.7);
     }
     // ---- the pews: seven rows either side of the aisle, and they break
-    for(let z=9.5;z>=-5.5;z-=2.5)for(const side of[1,-1])makePew(side*3.6,z,cath,woodM);
+    for(let z=14.5;z>=-8.5;z-=2.5)for(const side of[1,-1])makePew(side*3.9,z,cath,woodM);
     // ---- the altar on its dais, under the rose window
-    cbox(6.5,.3,3.2,cathM,0,.15,-12.6);cbox(5,.3,2.4,cathM,0,.45,-12.8);   // two steps of the dais
-    cbox(3,1.1,1.2,cathM,0,1.15,-13);                                       // the altar stone
-    cbox(2.6,.06,1.3,M.rag,0,1.73,-13);                                      // its cloth
-    for(const x of[-.9,0,.9]){cath.add(cyl(.04,.05,.3,5,M.bone,x,1.9,-13.2));
-      addWisp(x,PH+2.1,-13.2,0xd0762b,.2);}                                  // candles
-    addWall(-1.5,-13,1.5,-13,.75);
+    cbox(8,.3,3.6,cathM,0,.15,-19.1);cbox(6,.3,2.6,cathM,0,.45,-19.3);     // two steps of the dais
+    cbox(3,1.1,1.2,cathM,0,1.15,-19.5);                                     // the altar stone
+    cbox(2.6,.06,1.3,M.rag,0,1.73,-19.5);                                    // its cloth
+    for(const x of[-.9,0,.9]){cath.add(cyl(.04,.05,.3,5,M.bone,x,1.9,-19.7));
+      addWisp(x,PH+2.1,-19.7,0xd0762b,.2);}                                  // candles
+    addWall(-1.5,-19.5,1.5,-19.5,.75);
     // ---- candle stands down both aisles: tall iron stands, a ring of
     //      candles on each, and real warm light that breathes like the
     //      lanterns outside
     const ironM2=mat('iron');
-    for(const side of[1,-1])for(const z of[-9,-3.5,2,7.5]){
-      const px2=side*6.6,pz2=z;
+    for(const side of[1,-1])for(const z of[-15,-9,-3,3,9,15]){
+      const px2=side*10.2,pz2=z;
       cath.add(cyl(.05,.09,2.3,5,ironM2,px2,1.15,pz2));
       cath.add(cyl(.3,.34,.05,7,ironM2,px2,2.28,pz2));                       // the drip pan
       cath.add(cyl(.14,.16,.04,6,ironM2,px2,.03,pz2));                        // the foot
@@ -2140,8 +2152,8 @@ function buildWorld(){
     // the one light in the dark nave: the moon, straight down through
     // the rose window onto the altar's end of the floor
     const nave=new THREE.PointLight(0xb8c8dc,1.7,22,2);
-    nave.position.set(0,PH+3,-9);
-    addHaze(0,PH+3.2,-9,0xb8c8dc,7,.14);
+    nave.position.set(0,PH+3,-14);
+    addHaze(0,PH+3.2,-14,0xb8c8dc,8,.14);
     scene.add(nave);
     // a pillar of moonlight stands over the altar — the one landmark
     // the dark can never swallow
@@ -2149,7 +2161,7 @@ function buildWorld(){
       new THREE.MeshBasicMaterial({color:0x9cb2c4,transparent:true,opacity:.05,
         blending:THREE.AdditiveBlending,depthWrite:false,fog:false,
         side:THREE.DoubleSide}));
-    beam.position.set(0,26,-10);
+    beam.position.set(0,26,-15);
     scene.add(beam);
   }
 
@@ -2428,7 +2440,13 @@ function GCone(r,h,seg){const k='k'+r+'|'+h+'|'+seg;
 function M(geo,m,x,y,z){const me=new THREE.Mesh(geo,m);me.position.set(x||0,y||0,z||0);return me;}
 
 function buildHumanoid(o){
-  const s=o.scale||1,sk=o.skeletal;
+  const s=o.scale||1,sk=o.skeletal,SC=!!o.sculpt;
+  // sculpted parts: a profile of (radius, height) points turned on a lathe,
+  // smooth-shaded — and squashed front/back where a body is not round
+  const GLathe=(pts,seg)=>new THREE.LatheGeometry(pts.map(([x,y])=>new THREE.Vector2(x*s,y*s)),seg||14);
+  const asym=(geo,front,back)=>{const p=geo.attributes.position;
+    for(let i=0;i<p.count;i++){const z=p.getZ(i);p.setZ(i,z*(z>0?front:back));}
+    geo.computeVertexNormals();return geo;};
   const rig={s};
   const SOCK=lam({color:0x07070a});                                 // the dark inside a skull
   const root=new THREE.Group();rig.root=root;
@@ -2440,6 +2458,10 @@ function buildHumanoid(o){
     const pel=M(GSph(.19*s,6,4),limb,0,-.04*s,0);pel.scale.set(1,.42,.65);body.add(pel); // pelvic bowl
     body.add(M(GSph(.05*s,5,4),limb,0,.05*s,0));                   // lumbar knob
     body.add(M(GSph(.045*s,5,4),limb,0,.12*s,-.01*s));             // spine knob
+  }else if(SC){
+    body.add(M(asym(GLathe([[.19,-.09],[.22,-.02],[.23,.06]]),1.05,.85),limb,0,0,0));     // hip girdle
+    for(let i=0;i<3;i++)                                                                  // three lames of the fauld
+      body.add(M(asym(GLathe([[.22+i*.035,.0],[.25+i*.035,-.06],[.27+i*.04,-.1]]),1.1,.85),o.chestMat||o.torsoMat,0,-.04*s-i*.08*s,0));
   }else{
     body.add(M(GCyl(.2*s,.23*s,.14*s,6),limb,0,-.02*s,0));         // hip girdle
     body.add(M(GCyl(.21*s,.31*s,.24*s,6),o.torsoMat,0,-.15*s,0));  // flared fauld skirt
@@ -2452,6 +2474,17 @@ function buildHumanoid(o){
     torso.add(cage);
     const cl=M(GCyl(.025*s,.025*s,.36*s,5),limb,0,.52*s,.05*s);
     cl.rotation.z=Math.PI/2;torso.add(cl);                          // clavicle
+  }else if(SC){
+    // the cuirass turned from a profile: waist in, chest out, a shallow
+    // dome at the front and near-flat at the back, with a spine ridge and
+    // a rolled collar — the way plate is actually shaped
+    const cu=M(asym(GLathe([[.17,-.02],[.2,.05],[.26,.16],[.3,.3],[.31,.42],[.28,.52],[.2,.58]]),1.12,.62),o.chestMat||o.torsoMat,0,0,0);
+    torso.add(cu);
+    torso.add(M(GBox(.05*s,.5*s,.03*s),limb,0,.28*s,-.19*s));                       // spine ridge
+    torso.add(M(asym(GLathe([[.19,.55],[.21,.6],[.185,.64]]),1.05,.85),limb,0,0,0)); // rolled collar
+    torso.add(M(GCyl(.24*s,.24*s,.05*s,10),limb,0,.02*s,0));                        // belt
+    const tabard=M(GBox(.2*s,.42*s,.03*s),o.torsoMat,0,-.18*s,.17*s);
+    tabard.rotation.x=.05;torso.add(tabard);                                        // hanging tabard
   }else{
     // V-tapered cuirass: broad chest over a narrow waist
     const chest=M(GCyl(.3*s,.17*s,.54*s,7),o.chestMat||o.torsoMat,0,.28*s,0);
@@ -2482,6 +2515,13 @@ function buildHumanoid(o){
     const peak=M(GCone(.12*s,.26*s,6),o.headMat,0,.37*s,-.07*s);peak.rotation.x=.55;head.add(peak);
     const brow=M(GCyl(.165*s,.14*s,.06*s,7),o.headMat,0,.25*s,.0);head.add(brow);
     torso.add(M(GCyl(.19*s,.36*s,.3*s,7),o.headMat,0,.47*s,0));           // the mantle, up under the hood
+  }else if(SC){
+    // the barbute turned from a profile: a smooth skull, a flare at the
+    // cheeks, the T-slot dark, a comb down the crown
+    head.add(M(asym(GLathe([[.09,.06],[.13,.1],[.148,.2],[.145,.3],[.12,.38],[.06,.43],[0,.44]],16),1.04,.96),o.headMat,0,0,0));
+    head.add(M(GBox(.05*s,.1*s,.03*s),SOCK,0,.24*s,.135*s));                       // the eye slot
+    head.add(M(GBox(.028*s,.13*s,.03*s),SOCK,0,.17*s,.14*s));                      // the nasal
+    head.add(M(GBox(.024*s,.06*s,.26*s),limb,0,.41*s,-.02*s));                     // comb
   }else{
     // rounded barbute, slightly smaller for knightly proportions
     head.add(M(GCyl(.135*s,.145*s,.22*s,7),o.headMat,0,.17*s,0));
@@ -2513,7 +2553,10 @@ function buildHumanoid(o){
   function makeArm(side){
     const sh=new THREE.Group();
     sh.position.set(.3*s*side,.47*s,0);torso.add(sh);
-    if(!sk&&!o.noPauldron){                                         // great pauldron rides the arm
+    if(!sk&&!o.noPauldron&&SC){                                     // a turned pauldron with a rolled rim
+      const p=M(GLathe([[0,.1],[.09,.09],[.15,.05],[.175,-.02],[.17,-.06],[.15,-.05]],14),limb,0,.03*s,0);
+      p.scale.y=.85;sh.add(p);
+    }else if(!sk&&!o.noPauldron){                                   // great pauldron rides the arm
       const p=M(GSph(.165*s,6,4),limb,0,.04*s,0);
       p.scale.y=.7;sh.add(p);
     }else if(!sk){
@@ -2648,8 +2691,34 @@ function buildHumanoid(o){
   const lR=makeLeg(1),lL=makeLeg(-1);
   rig.legR=lR.hip;rig.kneeR=lR.kn;rig.legL=lL.hip;rig.kneeL=lL.kn;
 
+  /* the cloth cape: a sheet of verlet particles pinned across the shoulder
+     blades, hanging, folding and swinging on its own — with a lining */
+  if(o.cape&&o.clothCape){
+    const COLS=5,ROWS=7,W=.8*s,L=1.42*s;
+    const P=[];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const x=(c-(COLS-1)/2)*(W/(COLS-1)),y=.5*s-r*(L/(ROWS-1)),z=-.23*s-r*.015*s-Math.abs(c-2)*.02*s;
+      const rest=new THREE.Vector3(x,y,z);
+      P.push({p:rest.clone(),o:rest.clone(),rest,pin:r===0?rest.clone():null});
+    }
+    const C=[];const link=(a,b,k)=>C.push({a,b,d:P[a].rest.distanceTo(P[b].rest),k});
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;
+      if(c<COLS-1)link(i,i+1,1);if(r<ROWS-1)link(i,i+COLS,1);
+      if(c<COLS-1&&r<ROWS-1){link(i,i+COLS+1,.55);link(i+1,i+COLS,.55);}
+      if(c<COLS-2)link(i,i+2,.3);if(r<ROWS-2)link(i,i+2*COLS,.3);}
+    const geo=new THREE.BufferGeometry();
+    const pos=new Float32Array(ROWS*COLS*3),uv=new Float32Array(ROWS*COLS*2),idx=[];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){uv[(r*COLS+c)*2]=c/(COLS-1);uv[(r*COLS+c)*2+1]=1-r/(ROWS-1);}
+    for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){const a=r*COLS+c,b=a+1,d=a+COLS,e=d+1;idx.push(a,d,b,b,d,e);}
+    geo.setIndex(idx);geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+    const outer=o.cape.clone();outer.side=THREE.FrontSide;psx(outer);
+    const lining=(o.capeLining||o.cape).clone();lining.side=THREE.BackSide;lining.color.setHex(o.capeLiningColor||0x6a3a3a);psx(lining);
+    const m1=new THREE.Mesh(geo,outer),m2=new THREE.Mesh(geo,lining);m1.frustumCulled=m2.frustumCulled=false;
+    root.add(m1);root.add(m2);
+    rig.cloth={P,C,geo,COLS,ROWS,s,init:false,acc:0,v:new THREE.Vector3(),inv:new THREE.Matrix4(),rinv:new THREE.Matrix4()};
+  }
   /* cape: five hinged segments, broad and long as a knight's, that drag behind movement */
-  if(o.cape){
+  if(o.cape&&!o.clothCape){
     const capeM=o.cape;
     let parent=torso,py=.5*s;
     const lens=[.32*s,.3*s,.27*s,.25*s,.23*s];
@@ -3156,6 +3225,49 @@ function poseRun(r,t){
   r._heel=strike;
   r._spNow=1.6;
 }
+/* the cloth cape's step: the top row rides the shoulders, everything below
+   falls, folds and swings — held off the back and the hips, off the
+   ground, and written back into the rig's frame */
+function stepCloth(r,dt){
+  const cl=r.cloth,s=cl.s,root=r.root,torso=r.torso,body=r.body;
+  root.updateMatrixWorld(true);
+  const tm=torso.matrixWorld,bm=body.matrixWorld,v=cl.v;
+  if(!cl.init){cl.init=true;for(const q of cl.P){q.p.copy(q.rest).applyMatrix4(tm);q.o.copy(q.p);}}
+  cl.acc+=Math.min(dt,.05);let n=0;
+  const gy=root.position.y+.03,t=G.time;
+  while(cl.acc>=1/60&&n<3){cl.acc-=1/60;n++;const h=1/60;
+    for(const q of cl.P){
+      if(q.pin){q.p.copy(q.pin).applyMatrix4(tm);q.o.copy(q.p);continue;}
+      const vx=(q.p.x-q.o.x)*.965,vy=(q.p.y-q.o.y)*.965,vz=(q.p.z-q.o.z)*.965;
+      q.o.copy(q.p);
+      q.p.x+=vx+Math.sin(t*1.3+q.p.y*2.1)*.0007;q.p.y+=vy-9.8*h*h*.75;q.p.z+=vz+Math.cos(t*.9+q.p.x*1.7)*.0007;
+    }
+    for(let it=0;it<3;it++){
+      for(const c of cl.C){
+        const A=cl.P[c.a],B=cl.P[c.b],wa=A.pin?0:1,wb=B.pin?0:1,ws=wa+wb;if(!ws)continue;
+        const a=A.p,b=B.p;let dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;const d=Math.hypot(dx,dy,dz)||1e-4;
+        const f=(d-c.d)/d*c.k/ws;dx*=f;dy*=f;dz*=f;
+        a.x+=dx*wa;a.y+=dy*wa;a.z+=dz*wa;b.x-=dx*wb;b.y-=dy*wb;b.z-=dz*wb;
+      }
+      cl.inv.copy(bm).invert();
+      for(const q of cl.P){
+        if(q.pin)continue;
+        v.copy(q.p).applyMatrix4(cl.inv);let moved=false;
+        // the back: nothing crosses into the trunk
+        if(v.y>-.6*s&&v.y<.72*s&&Math.abs(v.x)<.42*s&&v.z>-.21*s){v.z=-.21*s;moved=true;}
+        // the hips and the seat: a sphere the cloth slides over
+        const cx=v.x,cy=v.y+.02*s,cz=v.z+.02*s,d=Math.hypot(cx,cy,cz),R=.33*s;
+        if(d<R&&d>1e-4){v.x=cx*R/d;v.y=cy*R/d-.02*s;v.z=cz*R/d-.02*s;moved=true;}
+        if(moved){v.applyMatrix4(bm);q.p.copy(v);}
+        if(q.p.y<gy){q.p.y=gy;q.o.x=q.p.x-(q.p.x-q.o.x)*.5;q.o.z=q.p.z-(q.p.z-q.o.z)*.5;}
+      }
+    }
+  }
+  cl.rinv.copy(root.matrixWorld).invert();
+  const pos=cl.geo.attributes.position;
+  for(let i=0;i<cl.P.length;i++){v.copy(cl.P[i].p).applyMatrix4(cl.rinv);pos.setXYZ(i,v.x,v.y,v.z);}
+  pos.needsUpdate=true;cl.geo.computeVertexNormals();
+}
 /* pin the one-piece cape's rows to the hinge chain: each row lies in its
    hinge's frame, the hem hangs off the last hinge, the top rows wrap a
    little forward around the shoulders */
@@ -3291,6 +3403,23 @@ function poseDead(r,p){
   r.head.rotation.x=.4*a-.6*b;
 }
 // clawing up out of the grave soil
+/* the Warden's death, in three beats: down onto the knees, the claws
+   dragging at the flags with the head lifted, then the whole mass pitching
+   forward onto its face */
+function poseBossDeath(r,t){
+  const a=easeIn(clamp(t/.55,0,1));
+  const c=easeInOut(clamp((t-.5)/.6,0,1));
+  const b=easeIn(clamp((t-1.35)/.7,0,1));
+  r.legR.rotation.x=-1.4*a;r.kneeR.rotation.x=2.3*a;r.legL.rotation.x=-1.2*a;r.kneeL.rotation.x=2.2*a;
+  r.body.position.y=r.baseY*(1-.42*a-.28*b);
+  r.torso.rotation.x+=.3*a+.5*c*(1-b)+.5*b;
+  r.armR.rotation.x=-.9*c*(1-b)-1.5*b;r.armL.rotation.x=-.8*c*(1-b)-1.5*b;
+  r.armR.rotation.z=-.35*c;r.armL.rotation.z=.35*c;
+  r.foreR.rotation.x=-.6*c;r.foreL.rotation.x=-.6*c;
+  r.head.rotation.x=-.8*c*(1-b)+.45*b;
+  r.head.rotation.y=Math.sin(t*3)*.15*c*(1-b);
+  r.root.rotation.x=1.3*b;                                   // face-first onto the flags
+}
 function poseRise(r,p){
   const a=easeOut(clamp(p/.35,0,1));                  // the arm breaches first
   const b=easeInOut(clamp((p-.3)/.7,0,1));            // then the body hauls up
@@ -3418,6 +3547,7 @@ function updateRigExtras(r,dt){
     }
     if(r.capeMesh)fitCape(r);
   }
+  if(r.cloth)stepCloth(r,dt);
   if(r.heart&&r.heartOn){
     const p=1+Math.sin(G.time*7)*.25;
     r.heart.scale.setScalar(p);
@@ -3427,7 +3557,7 @@ function updateRigExtras(r,dt){
 /* factory: the cast */
 function makeKnightRig(lo){
   lo=lo||{};
-  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',thief=lo.armour==='thief';
+  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',thief=lo.armour==='thief',og=lo.armour==='og';
   const wpn=bow?'bow':kat?'katana':'claymore';
   const r=buildHumanoid(thief?{
     // the thief's set: dark quilted cloth, a leather jerkin, wrapped
@@ -3438,16 +3568,26 @@ function makeKnightRig(lo){
     bladeMat:mat('blade'),gripMat:mat('bark',{color:0x9a8a74}),
     weapon:wpn,clothMat:mat('bark',{color:0x8a7a62}),
     chestMat:mat('rag',{color:0x9a7a58}),cape:mat('rag'),
-    legLen:1.15,mirrorArms:true,hood:true,noPauldron:true,
-  }:{
+    legLen:1.15,mirrorArms:true,hood:true,noPauldron:true,clothCape:true,capeLiningColor:0x4a4a52,
+  }:og?{
+    // the first knight, as it was: primitives and a hinged cape
     scale:1,
     torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:wpn,clothMat:bow||kat?mat('bark',{color:0x8a7a62}):mat('rag'),
     chestMat:mat('iron'),cape:mat('rag'),
     legLen:1.15,mirrorArms:true,
+  }:{
+    // the knight: plate turned from profiles — a domed cuirass with a flat
+    // back, a smooth barbute, rolled pauldrons — under a cloth cape
+    scale:1,
+    torsoMat:mat('rag'),headMat:mat('helm'),limbMat:mat('iron'),
+    bladeMat:mat('blade'),gripMat:mat('iron'),
+    weapon:wpn,clothMat:bow||kat?mat('bark',{color:0x8a7a62}):mat('rag'),
+    chestMat:mat('iron'),cape:mat('rag'),
+    legLen:1.15,mirrorArms:true,sculpt:true,clothCape:true,capeLiningColor:0x6a3038,
   });
-  r.loadout={weapon:bow?'bow':kat?'katana':'sword',armour:thief?'thief':'knight'};
+  r.loadout={weapon:bow?'bow':kat?'katana':'sword',armour:thief?'thief':og?'og':'knight'};
   return r;
 }
 function makeHollowRig(big,caster){
@@ -3492,7 +3632,7 @@ function makeWardenRig(){
     torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:boneM,
     bladeMat:mat('blade'),gripMat:mat('iron'),
     weapon:'great',skeletal:true,hunch:.14,horns:true,
-    eyes:0xff5533,heart:true,
+    eyes:0xc4702a,heart:true,
   });
   return r;
 }
@@ -3687,11 +3827,12 @@ try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
 const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','katana']],
   katanaCharge:[['iai','iaido draw']],
-  armour:[['knight','knight plate'],['thief','thief cloth']],
-  charge:[['double','double slash'],['spin','whirlwind']],
+  armour:[['knight','knight plate'],['thief','thief cloth'],['og','OG knight']],
+  charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker']],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
 const HERO_NOTES={double:'two fast cuts, forward and back; a full charge\'s second cut staggers all but the Warden',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
+  quake:'the blade hauled overhead while the ground groans and the screen shakes, then driven into the flags: every small and medium horror near is blasted five body-lengths away, some of them bursting into bones on the way',
   knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
   pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last',
   iai:'sheathed at the hip, then one cut as the body flashes five metres through them; they fall when the blade clicks home'};
@@ -4004,7 +4145,7 @@ function boltArc(x1,y1,z1,x2,y2,z2){
 }
 /* a crit blasts a skeleton into REAL bones: pieces fly, bounce, lie on
    the path for the scatter, then drag themselves back into the body */
-function scatterBones(x,z){
+function scatterBones(x,z,ddx,ddz,dsp){
   const bm=mat('bone');
   const n=8+((Math.random()*3)|0);
   for(let i=0;i<n;i++){
@@ -4017,7 +4158,8 @@ function scatterBones(x,z){
     scene.add(piece);
     const a=Math.random()*TAU,sp=1.2+Math.random()*2.2;
     let vx=Math.cos(a)*sp,vz=Math.sin(a)*sp;
-    let vy=2+Math.random()*2.5,life=0,rs=(Math.random()-.5)*12;
+    if(dsp){const k=dsp*(.5+Math.random()*.7);vx+=ddx*k;vz+=ddz*k;}     // sent down the line of the blow
+    let vy=2+Math.random()*2.5+(dsp?1.5:0),life=0,rs=(Math.random()-.5)*12;
     let phase=0,rx=0,ry=0,rz=0; // rest position once landed
     effects.push({update(dt){
       life+=dt;
@@ -4589,6 +4731,13 @@ const player={
       if(this.weapon()==='bow')AudioSys.bowDraw();else AudioSys.windup();
       G.vibr(20);
     };
+    // the earthshaker: the blade hauled overhead and driven into the flags
+    const startQuake=()=>{
+      this.state='quake';this.t=0;this.hitDone=false;this.sfxDone=false;this.queued=false;this.qDir=null;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      G.glowFlash=1;
+    };
     // the double slash: the coil lets go into two fast cuts, forward and back
     const startDouble=()=>{
       this.state='dslash';this.t=0;this.hitDone=0;this.sfxDone=0;this.queued=false;this.qDir=null;
@@ -4695,6 +4844,10 @@ const player={
     }
     else if(this.state==='charge'){
       this.chargeT+=dt;
+      if(this.weapon()==='sword'&&LOADOUT.charge==='quake'){ // the ground groans under the wound blade
+        G.camShake=Math.max(G.camShake,.12+.4*Math.min(1,this.chargeT/.6));
+        this.rumbleT=(this.rumbleT||0)-dt;if(this.rumbleT<=0){this.rumbleT=.3;AudioSys.rumble();G.vibr(15);}
+      }
       // the coil can creep, slowly, and keeps its point on the prey
       if(mAmt>0){this.x+=mvx*1.1*dt;this.z+=mvz*1.1*dt;}
       if(foe)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),9*dt);
@@ -4708,6 +4861,7 @@ const player={
         else if(this.chargeT<.3)startAttack(null);   // barely held: it's just a strike
         else if(this.weapon()==='katana')startIai();
         else if(LOADOUT.charge==='spin')startSpin();
+        else if(LOADOUT.charge==='quake')startQuake();
         else startDouble();
       }
     }
@@ -4814,6 +4968,37 @@ const player={
           G.camShake=Math.max(G.camShake,.5);G.hitstop=Math.max(G.hitstop,.1);
         }
         this.iaiHits=[];
+      }
+      if(p>=1)this.state='free';
+    }
+    else if(this.state==='quake'){
+      const DUR=1.0,p=this.t/DUR;
+      if(p<.6)G.camShake=Math.max(G.camShake,.3);
+      if(!this.sfxDone&&p>=.5){this.sfxDone=true;AudioSys.heavySwing();}
+      if(!this.hitDone&&p>=.72){ // the slam
+        this.hitDone=true;
+        AudioSys.quake();G.camShake=1.8;G.hitstop=.2;G.vibr([140,40,220]);
+        const gy=heightAt(this.x,this.z),fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+        const ix=this.x+fx*1.1,iz=this.z+fz*1.1;
+        boneBurst(ix,gy+.2,iz,0x4a463a,30,4.5);boneBurst(ix,gy+.1,iz,0x2e2a22,16,3);
+        sparkBurst(ix,gy+.3,iz,14);
+        strikeBreakables(this.x,this.z,fx,fz,3.2,TAU);
+        const full=this.chargeFull;
+        for(const e of enemies){
+          if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||e.crow)continue;
+          const dx=e.x-ix,dz=e.z-iz,d=Math.hypot(dx,dz)||.01;
+          if(d>(full?7:5.5))continue;
+          const ux=dx/d,uz=dz/d,near=1-d/(full?7:5.5);
+          if(e.boss||e.mini){e.takeHit(full?32:20,4,ix,iz,1,{dx:ux,dz:uz,up:.5});continue;}
+          e.takeHit(full?26:16,99,ix,iz,2,{dx:ux,dz:uz,up:2});
+          if(e.hp<=0)continue;
+          if(!e.big&&Math.random()<.4){                              // bones burst away down the line
+            e.scatter(ux,uz,9+8*near);
+          }else{                                                     // or the whole body is flung
+            e.state='down';e.t=0;e.poise=0;e.lastHit={dx:ux,dz:uz,kb:3,up:2.4};
+            startRagdoll(e,ux,uz,13+9*near,3.4+1.4*near);
+          }
+        }
       }
       if(p>=1)this.state='free';
     }
@@ -5004,6 +5189,7 @@ const player={
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
+    else if(this.state==='quake')poseHeavy(r,Math.min(1,this.t/1.0));
     else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
       if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
     else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/.64));
@@ -5121,13 +5307,13 @@ class Enemy{
       e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:0x2c4a42);
   }
   flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
-  scatter(){
-    // blasted clean apart into a heap of bones
+  scatter(dx,dz,sp){
+    // blasted clean apart into a heap of bones (down a line, if a blow sent them)
     this.state='scatter';this.t=0;this.poise=0;
     this.vx=0;this.vz=0;
     this.rig.root.visible=false;
     AudioSys.bodyfall();
-    scatterBones(this.x,this.z);
+    scatterBones(this.x,this.z,dx,dz,sp);
     boneBurst(this.x,.5,this.z,0xb8ad8f,8,1.8); // dust of the blast
     goreDecal(this,this.x,this.z,.4);
   }
@@ -5160,9 +5346,13 @@ class Enemy{
       // every landed blow rocks them back a step
       this.vx=dx/l*kb*5;this.vz=dz/l*kb*5;
     }
+    if(this.boss&&this.phase2&&this.hp>0&&this.rig.eyes&&Math.random()<.5)
+      for(const e of this.rig.eyes){const p=e.getWorldPosition(new THREE.Vector3());elemFleck('fire',p.x,p.y+.05,p.z+.05);}  // embers off the burning eyes
     if(this.boss&&!this.phase2&&this.hp<this.maxHp*.5){
       this.phase2=true;
-      if(this.rig.eyes)for(const e of this.rig.eyes)e.material.color.setHex(0xff4422);
+      if(this.rig.eyes)for(const e of this.rig.eyes){e.material.color.setHex(0xff1a0c);e.scale.setScalar(1.4);
+        const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff3a14,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending}));
+        gl.scale.set(.55,.55,1);e.add(gl);}
       if(this.rig.heart){this.rig.heart.material.color.setHex(0xff3a14);this.rig.heartOn=true;}
       AudioSys.roar();AudioSys.bossMusic(2);G.camShake=.5;
       bannerShow('THE MARROW STIRS','the warden remembers its rage');
@@ -5390,9 +5580,20 @@ class Enemy{
       case 'held':poseStagger(r,.55+Math.sin(t*40)*.03);break;
       case 'down':poseKnockdown(r,Math.min(1,this.t/1.9));break;
       case 'dead':
-        poseDead(r,this.t);
+        if(this.boss){
+          // the Warden's end: onto the knees, the claws dragging at the flags,
+          // the head lifting once with the ember guttering — then the whole
+          // mass pitching forward onto its face, and only then to bone
+          poseBossDeath(r,this.t);
+          if(this.rig.heart){this.rig.heartOn=this.t<1.6;if(this.t>1.6)this.rig.heart.material.color.setHex(0x2a0a06);}
+          if(this.t<1.6&&Math.random()<dt*40){const hp=this.rig.heart.getWorldPosition(new THREE.Vector3());elemFleck('fire',hp.x+rr3(-.2,.2),hp.y+rr3(-.1,.2),hp.z+rr3(-.2,.2));}
+          if(this.rig.eyes&&this.t>1.2)for(const e of this.rig.eyes){e.material.color.setHex(0x3a1008);e.children.forEach(c=>{if(c.isSprite)c.material.opacity=Math.max(0,1-(this.t-1.2)/.6);});}
+          if(!this.thudDone&&this.t>2.05){this.thudDone=true;AudioSys.bodyfall();AudioSys.quake();G.camShake=Math.max(G.camShake,1.0);G.vibr([80,40,120]);
+            const gy=heightAt(this.x,this.z),fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+            boneBurst(this.x+fx*1.5,gy+.2,this.z+fz*1.5,0x4a463a,26,3.5);}
+        }else poseDead(r,this.t);
         // the fallen come apart into the soil
-        if(!this.crumbled&&this.t>(this.boss?1.7:1.05)){
+        if(!this.crumbled&&this.t>(this.boss?4.4:1.05)){
           this.crumbled=true;
           this.rig.root.visible=false;
           boneCollapse(this.x,this.z,this.boss?1.9:this.big?1.25:.9);
@@ -6337,7 +6538,7 @@ function spawnFoe(kind,x,z){
   return e;
 }
 function spawnEnemies(){
-  boss=new Enemy('boss',0,-11.2,{});
+  boss=new Enemy('boss',0,-16.8,{});
   enemies.push(boss);
   // A fixed host, sown across the quarters, asleep under the soil —
   // just enough marrow among them (1170) to call the cathedral open.
@@ -6693,8 +6894,9 @@ function renderHero(){
   heroRig.armed=true;heroRig.ikLeftArm=LOADOUT.weapon!=='bow';
   resetPose(heroRig);poseIdle(heroRig,0);
   if(LOADOUT.weapon==='bow')poseBowCarry(heroRig);
-  updateRigExtras(heroRig,.016);
   heroRig.root.rotation.y=.6;heroScene.add(heroRig.root);
+  updateRigExtras(heroRig,.016);
+  if(heroRig.cloth)for(let i=0;i<80;i++)stepCloth(heroRig,1/60);   // the cape settles before the portrait
   const prevRT=renderer.getRenderTarget(),prevC=new THREE.Color();renderer.getClearColor(prevC);const prevA=renderer.getClearAlpha();
   renderer.setRenderTarget(heroRT);renderer.setClearColor(0x0b0d12,1);renderer.clear();renderer.render(heroScene,heroCam);
   const px=new Uint8Array(W*H*4);renderer.readRenderTargetPixels(heroRT,0,0,W,H,px);

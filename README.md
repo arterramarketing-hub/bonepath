@@ -19,9 +19,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   deaths, time, the state of the two mini-bosses, the Warden and the
   cathedral — with the full touch and keyboard control lists, and **the
   pilgrim**: a lit portrait of your knight with three selectors under it.
-  **Weapon** — the greatsword, the longbow, or the katana. **Armour** — knight plate or
-  the thief's cloth: dark quilting, a leather jerkin, wrapped limbs, a deep
-  hood and a short mantle. **Charge** — the charged attack for the weapon
+  **Weapon** — the greatsword, the longbow, or the katana. **Armour** —
+  **knight plate** (the sculpted knight: a cuirass turned from a profile,
+  domed at the chest and flat at the back, a smooth barbute, rolled
+  pauldrons, a three-lame fauld, under a real cloth cape), the **thief's
+  cloth** (dark quilting, a leather jerkin, wrapped limbs, a deep hood and
+  a short mantle), or the **OG knight** — the first knight as it was, all
+  primitives and a hinged cape. **Charge** — the charged attack for the weapon
   in hand. The choice is remembered by the browser and the body is remade
   on the spot.
 
@@ -74,6 +78,12 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the world slowing for the cut, and stands past them with the blade
     out — nothing happens to them until the guard clicks home in the
     sheath, and then they fall in two
+  - **the earthshaker** — the greatsword's third charge. Hold and the
+    blade is hauled overhead while the ground groans and the screen
+    shakes; release and it is driven into the flags. Every small and
+    medium horror nearby is blasted five body-lengths down the line, and
+    some of them burst into bones that fly the same way. The Warden and
+    the two that are not hollows only take the blow
   - **flick in ANY direction** — dodge roll with i-frames that way
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
@@ -212,7 +222,8 @@ marrow lying where you fell.
 
 The cathedral itself stands on a stone plinth, reached by a flight of
 steps at its south door and by nothing else — the rim is a wall.
-Inside is a long church: a nave of pews between two colonnades under a
+Inside is a long church — twenty-four metres wide and forty-five long
+— a nave of pews between two colonnades under a
 pitched roof of stone slates on tie beams — slates missing here and
 there, so the moon gets in, and two fallen beams lying on the floor —
 lancet glass between the buttresses, eight tall iron candle stands down
@@ -225,7 +236,11 @@ one does the same, and the Warden shoulders through them as it comes.
 The gravestones out in the east break too: two blows and the slab
 comes apart into chunks. Walk the nave and the
 **Gravewarden of the Bonefield** rises from before the altar, with a
-second phase when its rage remembers itself. Fell it, claim the altar,
+second phase when its rage remembers itself — its eyes catch and burn
+red, shedding embers. When it falls it goes down in three beats: onto
+its knees, claws dragging at the flags with the head lifted and the
+ember in its chest guttering out, then the whole mass pitching forward
+onto its face, and only then to bone. Fell it, claim the altar,
 and the field is yours.
 
 ## How it's built
@@ -267,7 +282,10 @@ Everything is generated at boot inside the one file:
   the blade sent it — a sweep flings it sideways along the cut, a thrust
   straight back, an overhead down on its face — tumbles, and lies where
   it lands before the bones
-  come apart into the soil. Bone doesn't bleed: a skeleton sheds dust and
+  come apart into the soil. The knight's cape is a sheet of verlet cloth
+  pinned across the shoulder blades — it hangs, folds and swings on its
+  own, slides over the hips and never crosses the back, and shows a
+  darker lining on the inside. Bone doesn't bleed: a skeleton sheds dust and
   chips instead of blood and leaves no stain. The finishing cut's halves are two such
   ragdoll fragments flung apart off the blade, the cut plane riding in
   each one's hips. A broken pew comes apart into planks that fly,
