@@ -93,11 +93,17 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     line, the world slowing for the cut, and stands past them with the
     blade out — nothing happens to them until the guard clicks home in
     the sheath, and then they fall in two. Or the **piercing thrust**:
-    the same sheathing, then the point chambered level beside the hip
-    with the hips square, and a long low lunge that drives it straight
-    out along its line and through whoever stands there — a poke, not a
-    swing, 42 (58 at a full hold), that staggers all but the Warden and
-    throws them back off their feet. The blade itself is one piece — a
+    the blade never goes away — the hold chambers the point level
+    beside the right hip with the hips square, already on its line, and
+    the release is one motion, a long low lunge that drives it straight
+    out and through whoever stands there — a poke, not a swing, 42 (58
+    at a full hold), that staggers all but the Warden and throws them
+    back off their feet. Or the **tiger blade**: the hold raises the
+    blade high over the head in jodan, and the release drives it into
+    the ground a stride ahead — three shock waves of torn earth race up
+    the line one after another, six metres or to the first wall, each
+    throwing whatever it crosses into the air for 24 (30 at a full
+    hold). The blade itself is one piece — a
     long thin box bent along its length into the curve, ground thin on
     the edge side and drawn to a point — so the curve reads unbroken,
     and its saya lies back along the left hip with the mouth forward
