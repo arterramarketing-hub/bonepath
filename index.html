@@ -2491,9 +2491,11 @@ function buildHumanoid(o){
     body.add(M(GSph(.05*s,5,4),limb,0,.05*s,0));                   // lumbar knob
     body.add(M(GSph(.045*s,5,4),limb,0,.12*s,-.01*s));             // spine knob
   }else if(SC){
-    body.add(M(asym(GLathe([[.19,-.09],[.22,-.02],[.23,.06]]),1.05,.85),limb,0,0,0));     // hip girdle
-    for(let i=0;i<3;i++)                                                                  // three lames of the fauld (mail, under this set)
-      body.add(M(asym(GLathe([[.22+i*.035,.0],[.25+i*.035,-.06],[.27+i*.04,-.1]]),1.1,.85),o.faraam?(o.upperMat||limb):(o.chestMat||o.torsoMat),0,-.04*s-i*.08*s,0));
+    {const hg=asym(GLathe([[.19,-.09],[.22,-.02],[.23,.06]]),.85,.72);const p=hg.attributes.position;for(let k=0;k<p.count;k++)p.setX(k,p.getX(k)*1.2);hg.computeVertexNormals();body.add(M(hg,limb,0,0,0));}     // hip girdle
+    for(let i=0;i<3;i++){                                                                 // three lames of the fauld (mail, under this set)
+      const lg=asym(GLathe([[.2+i*.03,.0],[.225+i*.03,-.06],[.245+i*.035,-.1]]),.85,.72);
+      const p=lg.attributes.position;for(let k=0;k<p.count;k++)p.setX(k,p.getX(k)*1.25);lg.computeVertexNormals();
+      body.add(M(lg,o.faraam?(o.upperMat||limb):(o.chestMat||o.torsoMat),0,-.04*s-i*.08*s,0));}
   }else{
     body.add(M(GCyl(.2*s,.23*s,.14*s,6),limb,0,-.02*s,0));         // hip girdle
     body.add(M(GCyl(.21*s,.31*s,.24*s,6),o.torsoMat,0,-.15*s,0));  // flared fauld skirt
@@ -2510,10 +2512,14 @@ function buildHumanoid(o){
     // the cuirass turned from a profile: waist in, chest out, a shallow
     // dome at the front and near-flat at the back, with a spine ridge and
     // a rolled collar — the way plate is actually shaped
-    const cu=M(asym(GLathe([[.165,-.02],[.185,.05],[.225,.16],[.25,.3],[.255,.42],[.235,.52],[.19,.58]]),1.02,.66),o.chestMat||o.torsoMat,0,0,0);
+    // oval in section — wider than it is deep — broad at the shoulders,
+    // flat at the back and only gently in at the waist
+    const cuG=asym(GLathe([[.19,-.02],[.195,.1],[.215,.22],[.245,.36],[.265,.48],[.258,.55],[.21,.6]]),.74,.55);
+    {const p=cuG.attributes.position;for(let i=0;i<p.count;i++)p.setX(i,p.getX(i)*1.36);cuG.computeVertexNormals();}
+    const cu=M(cuG,o.chestMat||o.torsoMat,0,0,0);
     torso.add(cu);
     torso.add(M(GBox(.05*s,.5*s,.03*s),limb,0,.28*s,-.19*s));                       // spine ridge
-    torso.add(M(asym(GLathe([[.17,.55],[.19,.6],[.165,.64]]),1.02,.85),limb,0,0,0)); // rolled collar
+    {const cg=asym(GLathe([[.17,.55],[.19,.6],[.165,.64]]),.85,.7);const p=cg.attributes.position;for(let i=0;i<p.count;i++)p.setX(i,p.getX(i)*1.2);cg.computeVertexNormals();torso.add(M(cg,limb,0,0,0));} // rolled collar
     torso.add(M(GCyl(.24*s,.24*s,.05*s,10),limb,0,.02*s,0));                        // belt
     const tabard=M(GBox(.2*s,.42*s,.03*s),o.torsoMat,0,-.18*s,.17*s);
     tabard.rotation.x=.05;torso.add(tabard);                                        // hanging tabard
@@ -2594,24 +2600,23 @@ function buildHumanoid(o){
   }
 
   if(o.faraam){
-    /* the fur mantle: ONE pelt, turned from a profile that rises from the
-       neck, spreads over both shoulders and droops at its edge, its surface
-       roughed up with a seamless noise so it reads as fur and not as plate;
-       more of it behind than before. A second half-turn hangs it down the
-       back as a short fur cape. A fringe of strands rings each hem. */
+    /* the fur mantle: ONE small pelt, turned from a profile that rises at
+       the neck, lies over both shoulders and drops down over the outside of
+       the pauldrons to a hanging hem; its surface roughed up with a
+       seamless noise so it reads as fur and not as plate. Shallow at the
+       front so the scarf shows, a little fuller behind, and it stops at the
+       shoulder blades — no cape, no fringe. */
     const furM=o.furMat||o.torsoMat;
     const shag=(geo,amt)=>{const p=geo.attributes.position;
       for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),r=Math.hypot(x,z)||1e-4,a=Math.atan2(z,x);
         const n=.5+.5*Math.sin(3*a+y*40/s)*Math.sin(5*a-y*23/s+1.3),k=1+(n-.5)*amt;
         p.setX(i,x*k);p.setZ(i,z*k);p.setY(i,y+(n-.5)*.03*s);}
       geo.computeVertexNormals();return geo;};
-    const mantle=asym(GLathe([[.05,.68],[.15,.67],[.25,.63],[.32,.56],[.36,.49],[.37,.44],[.33,.42]],18),.62,1.18);   // shallow at the chest so the scarf shows
+    // one small pelt: it sits on the shoulders, shallow over the chest so
+    // the scarf shows, and reaches only to the shoulder blades behind
+    const mantle=asym(GLathe([[.06,.66],[.18,.65],[.29,.6],[.36,.53],[.385,.47],[.37,.41],[.34,.4]],18),.6,.82);
+    {const p=mantle.attributes.position;for(let k=0;k<p.count;k++)p.setX(k,p.getX(k)*1.28);mantle.computeVertexNormals();}
     torso.add(M(shag(mantle,.14),furM,0,0,0));
-    const pelt=new THREE.LatheGeometry([[.27,.13],[.32,.17],[.36,.26],[.37,.36],[.355,.45]].map(([x,y])=>new THREE.Vector2(x*s,y*s)),12,Math.PI*.52,Math.PI*.96);
-    torso.add(M(shag(pelt,.12),furM,0,0,0));
-    for(let i=0;i<9;i++){const a=Math.PI*.6+i/8*Math.PI*.8,r=.3*s;                       // strands at the pelt's hem
-      const t=M(GBox(.028*s,.11*s,.02*s),furM,Math.sin(a)*r,.09*s,Math.cos(a)*r*.95);
-      t.rotation.y=a;t.rotation.x=.1;torso.add(t);}
     /* the baldric across the chest, and the belt */
     const leatherM=o.leatherMat||o.gripMat;
     const bd=M(GBox(.065*s,.72*s,.018*s),leatherM,0,.27*s,.26*s);bd.rotation.z=-.85;bd.rotation.x=.08;torso.add(bd);
@@ -3974,7 +3979,7 @@ const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','kat
   armour:[['knight','knight plate'],['thief','thief cloth'],['og','OG knight']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker']],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
-const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on the air alone that flies on ahead; a full charge\'s second cut staggers all but the Warden',
+const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on the air alone — an X of crossed cuts — that flies on ahead; a full charge\'s second cut staggers all but the Warden',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
   quake:'the blade hauled overhead while the ground groans and the screen shakes, then driven into the flags: every small and medium horror near is blasted five body-lengths away, some of them bursting into bones on the way',
   knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
@@ -4102,6 +4107,13 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
     for(let i=0;i<pos.count;i++){const v=(pos.getY(i)+1.2)/2.4;     // 0 hilt .. 1 tip
       const k=Math.pow(Math.sin(v*Math.PI),.7);col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  }else if(kind==='cross'){
+    g=new THREE.PlaneGeometry(.2,2.6,1,14);                        // one slim, slightly bowed cut line
+    const pos=g.attributes.position,col=[];
+    for(let i=0;i<pos.count;i++){const v=(pos.getY(i)+1.3)/2.6;
+      pos.setX(i,pos.getX(i)+Math.sin(v*Math.PI)*.18);
+      const k=Math.pow(Math.sin(v*Math.PI),.6);col.push(k,k,k);}
+    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   }else{
     g=new THREE.RingGeometry(1.3,1.62,26,2,-Math.PI*.42,Math.PI*.84);
     const pos=g.attributes.position,col=[];
@@ -4112,7 +4124,7 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
       col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   }
-  const m=new THREE.MeshBasicMaterial({color,vertexColors:true,transparent:true,opacity:.34,
+  const m=new THREE.MeshBasicMaterial({color,vertexColors:true,transparent:true,opacity:kind==='cross'?.55:.34,
     side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
   const arc=new THREE.Mesh(g,m);
   const gy=heightAt(parentX,parentZ);
@@ -4124,6 +4136,9 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
     arc.rotation.set(0,facing,0);                                    // a vertical crescent in the swing plane
     arc.rotation.x=dir>0?.2:-.2;
     arc.position.set(parentX,gy+y+.35,parentZ);
+  }else if(kind==='cross'){
+    arc.rotation.set(0,facing,dir*Math.PI/4);                        // a cut line facing its flight, rolled to a diagonal;
+    arc.position.set(parentX,gy+y,parentZ);                          // two of them, mirrored, make the X
   }else{
     arc.rotation.x=-Math.PI/2+.3*dir;                                // a canted horizontal crescent
     arc.rotation.z=-facing+Math.PI/2;
@@ -4134,7 +4149,7 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
   let t=0;
   effects.push({update(dt){
     t+=dt;const p=t/.11;
-    m.opacity=.34*(1-p*p);
+    m.opacity=(kind==='cross'?.55:.34)*(1-p*p);
     if(p>=1){scene.remove(arc);g.dispose();m.dispose();return false;}
     return true;
   }});
@@ -6574,8 +6589,9 @@ function airSlash(x,z,facing,dmg,full){
     life+=dt;arcT+=dt;
     const st=dt*17;px+=fx*st;pz+=fz*st;
     const gy=heightAt(px,pz);
-    while(arcT>0){arcT-=.028;                                   // a streak of arcs left in its wake
-      slashArc(px-fx*arcT*17,pz-fz*arcT*17,gy+1.25,facing,life<.1?0xffffff:0xe8f2ff,'sweep',1);}
+    while(arcT>0){arcT-=.04;                                    // crossed cut lines left in its wake: an X in flight
+      const ax=px-fx*arcT*17,az=pz-fz*arcT*17,col=life<.1?0xffffff:0xe8f2ff;
+      slashArc(ax,az,gy+1.25,facing,col,'cross',1);slashArc(ax,az,gy+1.25,facing,col,'cross',-1);}
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||hitSet.has(e))continue;
       const ey=e.crow?e.y:gy+1.1;if(Math.abs(ey-(gy+1.25))>1.4)continue;

@@ -22,10 +22,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   **Weapon** — the greatsword, the longbow, or the katana. **Armour** —
   **knight plate** (the sculpted knight, after a Faraam-style reference:
   a ridged helm with a central bar and an eye slit to either side, one
-  fur pelt turned from a profile and roughed with seamless noise that
-  spreads over the shoulders and hangs down the back with strands at
-  its hem, a teal scarf wound thick under the helm with its bib at the
-  throat, a cuirass turned from a profile with a leather baldric across
+  small fur pelt, one piece turned from a profile and roughed with
+  seamless noise, that sits on the shoulders, drops over the pauldrons
+  and stops at the shoulder blades, a teal scarf wound thick under the helm with its bib at the
+  throat, a cuirass turned from a profile — broad at the shoulders,
+  oval in section and tapering to the belt — with a leather baldric across
   it and a mail fauld under the belt, plate upper arms over mail
   forearms and steel gauntlets, and a long split teal tabard — two front
   panels and a back panel of real cloth hung off the belt, sliding over
@@ -51,8 +52,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   - **hold still, then release** — the **charged attack** chosen on the
     pause screen. With the sword, the **double slash** — two fast
     cuts, forward and back, then a third made on the air alone: nothing
-    but the swift of the blade, a crescent of pale arcs that races on
-    six metres ahead and cuts whatever it crosses — or the **whirlwind** — the blade held out level while the whole body turns
+    but the swift of the blade, an X of two crossed cut lines mirroring
+    the pair before it, that races on six metres ahead and cuts whatever
+    it crosses — or the **whirlwind** — the blade held out level while the whole body turns
     twice, four cuts all round, the last of a full charge staggering all
     but the Warden. With the bow, either the **knockback shot** — a heavy
     shaft that throws them back off their feet and staggers all but the
