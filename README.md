@@ -21,11 +21,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   pilgrim**: a lit portrait of your knight with three selectors under it.
   **Weapon** — the greatsword, the longbow, or the katana. **Armour** —
   **knight plate** (the sculpted knight, after a Faraam-style reference:
-  a crested helm with a slit visor, a shaggy fur mantle over a teal
-  scarf, a cuirass turned from a profile and domed at the chest, mail
-  sleeves under plate vambraces, a leather belt and pouch, a long split
-  teal tabard over dark trousers and leather boots, and a teal cloth
-  cape), the **thief's
+  a ridged helm with a central bar and an eye slit to either side, a
+  shaggy fur mantle that hangs down the back as a short pelt, a teal
+  scarf with its bib at the throat, a cuirass turned from a profile
+  with a leather baldric across it and a mail fauld under the belt,
+  plate upper arms over mail forearms and steel gauntlets, a long split
+  teal tabard front and back over brown trousers and knee-high leather
+  boots — no cape), the **thief's
   cloth** (dark quilting, a leather jerkin, wrapped limbs, a deep hood and
   a short mantle), or the **OG knight** — the first knight as it was, all
   primitives and a hinged cape. **Charge** — the charged attack for the weapon
