@@ -49,8 +49,10 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     back along the hip mid-stride and driven forward point-first, the
     run's momentum carrying it deep — narrow, but it reaches
   - **hold still, then release** — the **charged attack** chosen on the
-    pause screen. With the sword, either the **double slash** or the
-    **whirlwind** — the blade held out level while the whole body turns
+    pause screen. With the sword, the **double slash** — two fast
+    cuts, forward and back, then a third made on the air alone: nothing
+    but the swift of the blade, a crescent of pale arcs that races on
+    six metres ahead and cuts whatever it crosses — or the **whirlwind** — the blade held out level while the whole body turns
     twice, four cuts all round, the last of a full charge staggering all
     but the Warden. With the bow, either the **knockback shot** — a heavy
     shaft that throws them back off their feet and staggers all but the
@@ -96,15 +98,16 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
     white sparks, a clang, and its attack is broken — it reels, open to
-    the finishing cut. Swing into a wall, a column, a trunk or a lantern
-    post and the blade **bounces off** in a shower of sparks: the arms
+    the finishing cut. Swing into **stone** — a wall, a column, the
+    ruins — and the blade **bounces off** in a shower of sparks: the arms
     are flung back with it, the knight staggers half a step, and nothing
-    on the far side of the stone is touched. Pews and gravestones break
-    instead of bouncing
+    on the far side is touched. A trunk or a lantern post only checks the
+    blade in sparks and the swing carries on; pews and gravestones break
   - **the finishing cut** — break a small or medium horror's poise and
     a bright blade-mark hangs over it while it reels. Tap with it in
-    reach and the knight steps in, hauls the greatsword overhead while
-    the world holds its breath, and brings it down: the body is cleaved
+    reach and the knight steps in, drops low with the greatsword drawn
+    back past the hip while the world holds its breath, and whips it up
+    through them from the ground to the sky — fast: the body is cleaved
     clean in two — truly in two, each half flung its own way and flopping
     down limp with the cut face showing — to a wet, splintering,
     spattering mess of a sound,
