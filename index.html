@@ -2464,7 +2464,10 @@ function buildHumanoid(o){
   const s=o.scale||1,sk=o.skeletal,SC=!!o.sculpt;
   // sculpted parts: a profile of (radius, height) points turned on a lathe,
   // smooth-shaded — and squashed front/back where a body is not round
-  const GLathe=(pts,seg)=>new THREE.LatheGeometry(pts.map(([x,y])=>new THREE.Vector2(x*s,y*s)),seg||14);
+  // (a lathe's faces point outward only when its profile climbs, so a
+  //  profile written top-down is turned over first)
+  const GLathe=(pts,seg)=>{if(pts[pts.length-1][1]<pts[0][1])pts=pts.slice().reverse();
+    return new THREE.LatheGeometry(pts.map(([x,y])=>new THREE.Vector2(x*s,y*s)),seg||14);};
   const asym=(geo,front,back)=>{const p=geo.attributes.position;
     for(let i=0;i<p.count;i++){const z=p.getZ(i);p.setZ(i,z*(z>0?front:back));}
     geo.computeVertexNormals();return geo;};
@@ -2548,8 +2551,10 @@ function buildHumanoid(o){
       head.add(M(GBox(.03*s,.24*s,.035*s),limb,0,.2*s,.14*s));                      // the central ridge to the chin
       head.add(M(GBox(.028*s,.07*s,.32*s),limb,0,.43*s,-.03*s));                    // the ridge over the crown
       head.add(M(GSph(.028*s,5,4),limb,0,.47*s,-.02*s));                            // its knob
-      // the scarf: a thin wrap round the neck, and a bib of it over the chest
-      const sc=new THREE.Mesh(new THREE.TorusGeometry(.095*s,.02*s,5,12),o.torsoMat);sc.rotation.x=Math.PI/2;sc.position.y=.055*s;psx(sc.material);head.add(sc);
+      // the scarf: wound thick round the neck under the helm's rim, a second
+      // turn over the top of the cuirass, and a bib of it over the chest
+      const sc=new THREE.Mesh(new THREE.TorusGeometry(.1*s,.042*s,6,12),o.torsoMat);sc.rotation.x=Math.PI/2;sc.position.y=.06*s;psx(sc.material);head.add(sc);
+      const sc2=new THREE.Mesh(new THREE.TorusGeometry(.19*s,.045*s,6,14),o.torsoMat);sc2.rotation.x=Math.PI/2;sc2.position.y=.63*s;psx(sc2.material);torso.add(sc2);
       const bib=M(GBox(.15*s,.15*s,.015*s),o.torsoMat,0,.5*s,.245*s);bib.rotation.x=.25;bib.rotation.z=Math.PI/4;torso.add(bib);   // hung point-down from the throat
     }else{
     head.add(M(GBox(.05*s,.1*s,.03*s),SOCK,0,.24*s,.135*s));                       // the eye slot
@@ -2581,25 +2586,29 @@ function buildHumanoid(o){
   }
 
   if(o.faraam){
-    /* the fur mantle: a pelt slung over both shoulders, thick round the
-       neck and shaggy at its edge */
+    /* the fur mantle: ONE pelt, turned from a profile that rises from the
+       neck, spreads over both shoulders and droops at its edge, its surface
+       roughed up with a seamless noise so it reads as fur and not as plate;
+       more of it behind than before. A second half-turn hangs it down the
+       back as a short fur cape. A fringe of strands rings each hem. */
     const furM=o.furMat||o.torsoMat;
-    for(let i=0;i<12;i++){const a=i/12*TAU,rr_=(.2+((i*7)%3)*.015)*s,back=Math.sin(a)<0?1:0;
-      const f=M(GSph((.095+((i*5)%4)*.014)*s,7,5),furM,Math.cos(a)*rr_,(.55+back*.03+((i*3)%3)*.01)*s,Math.sin(a)*rr_*.8-.03*s);
-      f.scale.set(1+((i*3)%2)*.2,.5+back*.2,1);f.rotation.z=((i*5)%5-2)*.15;head.parent.add(f);}
-    for(const sd of[1,-1]){const f=M(GSph(.14*s,7,5),furM,.26*sd*s,.56*s,0);f.scale.set(1.15,.42,1.15);torso.add(f);   // over the shoulders
-      for(let k=0;k<4;k++){const t=M(GSph(.042*s,5,4),furM,(.31+k*.03)*sd*s,.44*s-k*.045*s,-.12*s+k*.07*s);t.scale.set(1,1.6,1);torso.add(t);}}   // shaggy tips
-    const cf=M(GSph(.12*s,7,5),furM,0,.6*s,-.13*s);cf.scale.set(1.3,.6,.8);torso.add(cf);                             // the collar behind the neck
-    // ...and the pelt hangs down the back, a short fur cape with strands at its hem
-    for(let c=-2;c<=2;c++){const f=M(GSph(.1*s,7,5),furM,c*.11*s,.42*s,-.24*s);f.scale.set(1,1.9,.55);torso.add(f);}
-    for(let c=-3;c<=3;c++){const t=M(GSph(.035*s,5,4),furM,c*.075*s+.02*s,.2*s,-.25*s);t.scale.set(1,2.2,.8);torso.add(t);}
+    const shag=(geo,amt)=>{const p=geo.attributes.position;
+      for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),r=Math.hypot(x,z)||1e-4,a=Math.atan2(z,x);
+        const n=.5+.5*Math.sin(3*a+y*40/s)*Math.sin(5*a-y*23/s+1.3),k=1+(n-.5)*amt;
+        p.setX(i,x*k);p.setZ(i,z*k);p.setY(i,y+(n-.5)*.03*s);}
+      geo.computeVertexNormals();return geo;};
+    const mantle=asym(GLathe([[.05,.68],[.15,.67],[.25,.63],[.32,.56],[.36,.49],[.37,.44],[.33,.42]],18),.62,1.18);   // shallow at the chest so the scarf shows
+    torso.add(M(shag(mantle,.14),furM,0,0,0));
+    const pelt=new THREE.LatheGeometry([[.27,.13],[.32,.17],[.36,.26],[.37,.36],[.355,.45]].map(([x,y])=>new THREE.Vector2(x*s,y*s)),12,Math.PI*.52,Math.PI*.96);
+    torso.add(M(shag(pelt,.12),furM,0,0,0));
+    for(let i=0;i<9;i++){const a=Math.PI*.6+i/8*Math.PI*.8,r=.3*s;                       // strands at the pelt's hem
+      const t=M(GBox(.028*s,.11*s,.02*s),furM,Math.sin(a)*r,.09*s,Math.cos(a)*r*.95);
+      t.rotation.y=a;t.rotation.x=.1;torso.add(t);}
     /* the baldric across the chest, and the belt */
     const leatherM=o.leatherMat||o.gripMat;
     const bd=M(GBox(.065*s,.72*s,.018*s),leatherM,0,.27*s,.26*s);bd.rotation.z=-.85;bd.rotation.x=.08;torso.add(bd);
     const belt=new THREE.Mesh(new THREE.TorusGeometry(.245*s,.03*s,5,14),leatherM);belt.rotation.x=Math.PI/2;belt.position.y=.03*s;psx(belt.material);torso.add(belt);
     torso.add(M(GBox(.06*s,.06*s,.02*s),limb,0,.03*s,.25*s));                                                       // the buckle
-    /* the tabard's back panel, long, off the belt (the front ones ride the legs) */
-    const bp=M(GBox(.3*s,.9*s,.02*s),o.torsoMat,0,-.5*s,-.2*s);bp.rotation.x=-.08;body.add(bp);
   }
   /* arms: shoulder -> tapered upper -> elbow -> tapered fore (+hand) */
   const armThick=sk?[.05,.04]:[.08,.065];
@@ -2741,8 +2750,6 @@ function buildHumanoid(o){
     const hip=new THREE.Group();hip.position.set(.14*s*side,-.02*s,0);body.add(hip);
     const legM=o.legMat||limb;
     hip.add(M(GCyl(legThick[0]*s,legThick[1]*s,.38*L*s,o.faraam?7:5),legM,0,-.2*L*s,0));
-    if(o.faraam){   // a front panel of the split tabard hangs off each hip
-      const pn=M(GBox(.15*s,.72*s,.02*s),o.torsoMat,.02*side*s,-.36*L*s,.11*s);pn.rotation.x=.06;hip.add(pn);}
     const kn=new THREE.Group();kn.position.y=-.4*L*s;hip.add(kn);
     kn.add(M(GSph(sk?.05*s:.07*s,5,4),sk?limb:(o.plateMat||limb),0,0,0)); // knee knob / poleyn
     kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*L*s,o.faraam?7:5),o.faraam?(o.leatherMat||legM):legM,0,-.21*L*s,0));
@@ -2754,17 +2761,18 @@ function buildHumanoid(o){
   const lR=makeLeg(1),lL=makeLeg(-1);
   rig.legR=lR.hip;rig.kneeR=lR.kn;rig.legL=lL.hip;rig.kneeL=lL.kn;
 
-  /* the cloth cape: a sheet of verlet particles pinned across the shoulder
-     blades, hanging, folding and swinging on its own — with a lining */
-  if(o.cape&&o.clothCape){
-    const COLS=5,ROWS=7,W=.8*s,L=1.42*s;
+  /* cloth: a sheet of verlet particles pinned along its top row to a group
+     of the rig, hanging, folding and swinging on its own, held off the body
+     by spheres, rendered twice (outer face and lining). The cape hangs off
+     the shoulder blades; the split tabard's panels hang off the belt over
+     the trousers like a skirt. */
+  rig.cloths=[];
+  const makeCloth=(cfg)=>{
+    const {parent,ROWS,COLS,mat:cm,liningColor,rest,spheres,backPlane}=cfg;
     const P=[];
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      const x=(c-(COLS-1)/2)*(W/(COLS-1)),y=.5*s-r*(L/(ROWS-1)),z=-.23*s-r*.015*s-Math.abs(c-2)*.02*s;
-      const rest=new THREE.Vector3(x,y,z);
-      P.push({p:rest.clone(),o:rest.clone(),rest,pin:r===0?rest.clone():null});
-    }
-    const C=[];const link=(a,b,k)=>C.push({a,b,d:P[a].rest.distanceTo(P[b].rest),k});
+      const v=rest(r,c);P.push({p:v.clone(),o:v.clone(),rest:v,pin:r===0?v.clone():null});}
+    const C=[];const link=(i,j,k)=>C.push({a:i,b:j,d:P[i].rest.distanceTo(P[j].rest),k});
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;
       if(c<COLS-1)link(i,i+1,1);if(r<ROWS-1)link(i,i+COLS,1);
       if(c<COLS-1&&r<ROWS-1){link(i,i+COLS+1,.55);link(i+1,i+COLS,.55);}
@@ -2772,15 +2780,37 @@ function buildHumanoid(o){
     const geo=new THREE.BufferGeometry();
     const pos=new Float32Array(ROWS*COLS*3),uv=new Float32Array(ROWS*COLS*2),idx=[];
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){uv[(r*COLS+c)*2]=c/(COLS-1);uv[(r*COLS+c)*2+1]=1-r/(ROWS-1);}
-    for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){const a=r*COLS+c,b=a+1,d=a+COLS,e=d+1;idx.push(a,d,b,b,d,e);}
+    for(let r=0;r<ROWS-1;r++)for(let c=0;c<COLS-1;c++){const q=r*COLS+c,w=q+1,d=q+COLS,e=d+1;idx.push(q,d,w,w,d,e);}
     geo.setIndex(idx);geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
-    const outer=o.cape.clone();outer.side=THREE.FrontSide;psx(outer);
-    const lining=(o.capeLining||o.cape).clone();lining.side=THREE.BackSide;lining.color.setHex(o.capeLiningColor||0x6a3a3a);psx(lining);
+    const outer=cm.clone();outer.side=THREE.FrontSide;psx(outer);
+    const lining=cm.clone();lining.side=THREE.BackSide;lining.color.setHex(liningColor||0x555555);psx(lining);
     const m1=new THREE.Mesh(geo,outer),m2=new THREE.Mesh(geo,lining);m1.frustumCulled=m2.frustumCulled=false;
     root.add(m1);root.add(m2);
-    rig.cloth={P,C,geo,COLS,ROWS,s,init:false,acc:0,v:new THREE.Vector3(),inv:new THREE.Matrix4(),rinv:new THREE.Matrix4()};
+    const cl={P,C,geo,parent,spheres:spheres||[],backPlane:!!backPlane,s,init:false,acc:0,
+      v:new THREE.Vector3(),c:new THREE.Vector3(),inv:new THREE.Matrix4(),rinv:new THREE.Matrix4()};
+    rig.cloths.push(cl);return cl;
+  };
+  if(o.cape&&o.clothCape){
+    const COLS=5,ROWS=7,W=.8*s,L=1.42*s;
+    rig.cloth=makeCloth({parent:torso,ROWS,COLS,mat:o.cape,liningColor:o.capeLiningColor||0x6a3a3a,backPlane:true,
+      rest:(r,c)=>new THREE.Vector3((c-(COLS-1)/2)*(W/(COLS-1)),.5*s-r*(L/(ROWS-1)),-.23*s-r*.015*s-Math.abs(c-2)*.02*s),
+      spheres:[{g:body,at:new THREE.Vector3(0,-.02*s,-.02*s),r:.33*s}]});
   }
-  /* cape: five hinged segments, broad and long as a knight's, that drag behind movement */
+  if(o.faraam){
+    // the split tabard as cloth: two front panels and a back panel hung off
+    // the belt, sliding over the thighs and shins as the legs move
+    const legS=[];
+    for(const [hip,kn] of[[rig.legR,rig.kneeR],[rig.legL,rig.kneeL]]){
+      legS.push({g:hip,at:new THREE.Vector3(0,-.1*L*s,0),r:.125*s},{g:hip,at:new THREE.Vector3(0,-.28*L*s,0),r:.11*s},
+        {g:kn,at:new THREE.Vector3(0,-.12*L*s,0),r:.095*s},{g:kn,at:new THREE.Vector3(0,-.3*L*s,0),r:.09*s});}
+    const hipS={g:body,at:new THREE.Vector3(0,-.08*s,0),r:.3*s};
+    const panel=(cols,x0,x1,z0,rows,len)=>makeCloth({parent:body,ROWS:rows,COLS:cols,mat:o.torsoMat,liningColor:0x1c3230,
+      rest:(r,c)=>new THREE.Vector3(x0+(x1-x0)*c/(cols-1),-.02*s-r*(len/(rows-1)),z0*(1-r*.02)),
+      spheres:[hipS,...legS]});
+    panel(3,.07*s,.3*s,.21*s,6,.82*s);     // front right
+    panel(3,-.3*s,-.07*s,.21*s,6,.82*s);   // front left
+    panel(5,-.24*s,.24*s,-.2*s,6,.9*s);    // back
+  }
   if(o.cape&&!o.clothCape){
     const capeM=o.cape;
     let parent=torso,py=.5*s;
@@ -3306,18 +3336,22 @@ function poseRun(r,t){
    falls, folds and swings — held off the back and the hips, off the
    ground, and written back into the rig's frame */
 function stepCloth(r,dt){
-  const cl=r.cloth,s=cl.s,root=r.root,torso=r.torso,body=r.body;
-  root.updateMatrixWorld(true);
-  const tm=torso.matrixWorld,bm=body.matrixWorld,v=cl.v;
-  if(!cl.init){cl.init=true;for(const q of cl.P){q.p.copy(q.rest).applyMatrix4(tm);q.o.copy(q.p);}}
+  const root=r.root;root.updateMatrixWorld(true);
+  for(const cl of r.cloths||[])stepSheet(r,cl,dt);
+}
+function stepSheet(r,cl,dt){
+  const s=cl.s,root=r.root,pm=cl.parent.matrixWorld,v=cl.v,cv=cl.c;
+  if(!cl.init){cl.init=true;for(const q of cl.P){q.p.copy(q.rest).applyMatrix4(pm);q.o.copy(q.p);}}
   cl.acc+=Math.min(dt,.05);let n=0;
   const gy=root.position.y+.03,t=G.time;
+  // the spheres, in the world, for this frame
+  for(const sp of cl.spheres){sp.w=sp.w||new THREE.Vector3();sp.w.copy(sp.at).applyMatrix4(sp.g.matrixWorld);}
   while(cl.acc>=1/60&&n<3){cl.acc-=1/60;n++;const h=1/60;
     for(const q of cl.P){
-      if(q.pin){q.p.copy(q.pin).applyMatrix4(tm);q.o.copy(q.p);continue;}
+      if(q.pin){q.p.copy(q.pin).applyMatrix4(pm);q.o.copy(q.p);continue;}
       const vx=(q.p.x-q.o.x)*.965,vy=(q.p.y-q.o.y)*.965,vz=(q.p.z-q.o.z)*.965;
       q.o.copy(q.p);
-      q.p.x+=vx+Math.sin(t*1.3+q.p.y*2.1)*.0007;q.p.y+=vy-9.8*h*h*.75;q.p.z+=vz+Math.cos(t*.9+q.p.x*1.7)*.0007;
+      q.p.x+=vx+Math.sin(t*1.3+q.p.y*2.1)*.0006;q.p.y+=vy-9.8*h*h*.75;q.p.z+=vz+Math.cos(t*.9+q.p.x*1.7)*.0006;
     }
     for(let it=0;it<3;it++){
       for(const c of cl.C){
@@ -3326,16 +3360,17 @@ function stepCloth(r,dt){
         const f=(d-c.d)/d*c.k/ws;dx*=f;dy*=f;dz*=f;
         a.x+=dx*wa;a.y+=dy*wa;a.z+=dz*wa;b.x-=dx*wb;b.y-=dy*wb;b.z-=dz*wb;
       }
-      cl.inv.copy(bm).invert();
+      if(cl.backPlane){ // the cape: nothing crosses into the trunk
+        cl.inv.copy(r.body.matrixWorld).invert();
+        for(const q of cl.P){if(q.pin)continue;v.copy(q.p).applyMatrix4(cl.inv);
+          if(v.y>-.6*s&&v.y<.72*s&&Math.abs(v.x)<.42*s&&v.z>-.21*s){v.z=-.21*s;v.applyMatrix4(r.body.matrixWorld);q.p.copy(v);}}
+      }
       for(const q of cl.P){
         if(q.pin)continue;
-        v.copy(q.p).applyMatrix4(cl.inv);let moved=false;
-        // the back: nothing crosses into the trunk
-        if(v.y>-.6*s&&v.y<.72*s&&Math.abs(v.x)<.42*s&&v.z>-.21*s){v.z=-.21*s;moved=true;}
-        // the hips and the seat: a sphere the cloth slides over
-        const cx=v.x,cy=v.y+.02*s,cz=v.z+.02*s,d=Math.hypot(cx,cy,cz),R=.33*s;
-        if(d<R&&d>1e-4){v.x=cx*R/d;v.y=cy*R/d-.02*s;v.z=cz*R/d-.02*s;moved=true;}
-        if(moved){v.applyMatrix4(bm);q.p.copy(v);}
+        for(const sp of cl.spheres){ // slid over hips, thighs and shins
+          cv.copy(q.p).sub(sp.w);const d=cv.length();
+          if(d<sp.r&&d>1e-4){cv.multiplyScalar(sp.r/d);q.p.copy(sp.w).add(cv);}
+        }
         if(q.p.y<gy){q.p.y=gy;q.o.x=q.p.x-(q.p.x-q.o.x)*.5;q.o.z=q.p.z-(q.p.z-q.o.z)*.5;}
       }
     }
@@ -3624,7 +3659,7 @@ function updateRigExtras(r,dt){
     }
     if(r.capeMesh)fitCape(r);
   }
-  if(r.cloth)stepCloth(r,dt);
+  if(r.cloths&&r.cloths.length)stepCloth(r,dt);
   if(r.heart&&r.heartOn){
     const p=1+Math.sin(G.time*7)*.25;
     r.heart.scale.setScalar(p);
@@ -6994,7 +7029,7 @@ function renderHero(){
   if(LOADOUT.weapon==='bow')poseBowCarry(heroRig);
   heroRig.root.rotation.y=.6;heroScene.add(heroRig.root);
   updateRigExtras(heroRig,.016);
-  if(heroRig.cloth)for(let i=0;i<80;i++)stepCloth(heroRig,1/60);   // the cape settles before the portrait
+  if(heroRig.cloths&&heroRig.cloths.length)for(let i=0;i<80;i++)stepCloth(heroRig,1/60);   // the cloth settles before the portrait
   const prevRT=renderer.getRenderTarget(),prevC=new THREE.Color();renderer.getClearColor(prevC);const prevA=renderer.getClearAlpha();
   renderer.setRenderTarget(heroRT);renderer.setClearColor(0x0b0d12,1);renderer.clear();renderer.render(heroScene,heroCam);
   const px=new Uint8Array(W*H*4);renderer.readRenderTargetPixels(heroRT,0,0,W,H,px);
