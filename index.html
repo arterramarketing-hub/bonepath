@@ -3099,6 +3099,26 @@ function poseTiger(r,p){
   r.legR.rotation.x=lR*(1-u);r.kneeR.rotation.x=.25*(1-u);r.legL.rotation.x=lL*(1-u);r.kneeL.rotation.x=kL*(1-u);
   r.body.position.y=r.baseY+by*(1-u)*r.s;
 }
+/* the waterfowl: the blade comes out of the saya in one rising diagonal,
+   then the body wheels under it with the blade held out while the air
+   cuts all round — the shoulders turning back and forth, the arms
+   whipping — and settles back to chudan */
+function poseFowl(r,p,t){
+  if(p<.15){poseKatana(r,.32+.32*(p/.15),2);r.torso.rotation.x+=.25;}
+  else if(p<.78){
+    const k=(p-.15)/.63;
+    poseKatana(r,.64,2);
+    r.torso.rotation.y+=Math.sin(t*13)*.9;r.body.rotation.y+=Math.sin(t*13+1)*.35;
+    r.torso.rotation.x+=.15+Math.sin(t*9)*.12;
+    r.armR.rotation.x+=Math.sin(t*21)*.4;r.armR.rotation.z+=Math.cos(t*17)*.3;
+    r.foreR.rotation.x+=Math.sin(t*19)*.3;
+    r.weapon.rotation.z+=Math.sin(t*23)*.4;
+    r.head.rotation.y=-Math.sin(t*13)*.5;
+    r.body.position.y=r.baseY-(.1+Math.sin(t*11)*.06)*r.s;
+    r.legR.rotation.x=.3+Math.sin(t*13)*.25;r.legL.rotation.x=-.3-Math.sin(t*13)*.25;r.kneeL.rotation.x=.35;r.kneeR.rotation.x=.2;
+  }
+  else poseKatana(r,.64+.36*(p-.78)/.22,2);
+}
 /* the bounce: the blade has hit stone and comes back off it — arms flung
    up and back, the trunk rocked, a half step taken with it, then the
    carry gathered up again */
@@ -4058,7 +4078,7 @@ try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
 const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','katana']],
-  katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade']],
+  katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl']],
   armour:[['knight','knight plate'],['thief','thief cloth'],['og','OG knight']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker']],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
@@ -4069,7 +4089,8 @@ const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on 
   pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last',
   iai:'the blade walked back into the saya at the hip, then one cut as the body flashes five metres through them; they fall when it clicks home',
   thrust:'the point held back beside the right hip, already on its line; release and a long low lunge drives it straight through whoever stands there — a hard poke that throws them off their feet',
-  tiger:'the blade raised high over the head, then driven into the ground: three shock waves tear up the earth and race forward one after another, each throwing whatever it crosses into the air'};
+  tiger:'the blade raised high over the head, then driven into the ground: three shock waves tear up the earth and race forward one after another, each throwing whatever it crosses into the air',
+  fowl:'sheathed at the hip, then drawn in one rising diagonal cut — and the air itself keeps cutting: a storm of pale slashes wheels round the body for most of a second, striking everything within three metres again and again'};
 function boneBurst(x,y,z,color,n,speed){
   for(let i=0;i<n;i++){
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,
@@ -4233,11 +4254,12 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
   scene.add(arc);
   let t=0;
   effects.push({update(dt){
-    t+=dt;const p=t/.11;
+    t+=dt;const p=t/(arc.life||.11);
     m.opacity=(kind==='cross'?.55:.34)*(1-p*p);
     if(p>=1){scene.remove(arc);g.dispose();m.dispose();return false;}
     return true;
   }});
+  return arc;
 }
 /* steel on steel, or steel on stone: a hard white burst with a flash */
 function clashSparks(x,y,z,n){
@@ -4642,7 +4664,7 @@ const player={
       this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
   },
   // the roll's window, and the whole of the finishing cut: nothing touches the executioner
-  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab'||this.state==='iai';},
+  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8);},
   takeHit(dmg,fx,fz,heavy){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
@@ -4949,7 +4971,15 @@ const player={
       this.sprintT=0;this.sprinting=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       this.sheathDone=false;
-      if(this.weapon()==='bow')AudioSys.bowDraw();else if(this.weapon()!=='katana'||LOADOUT.katanaCharge!=='iai')AudioSys.windup();
+      if(this.weapon()==='bow')AudioSys.bowDraw();else if(this.weapon()!=='katana'||!katSheathes())AudioSys.windup();
+    };
+    // the waterfowl: one rising cut out of the saya, and then the air
+    // keeps cutting all round the body
+    const startFowl=()=>{
+      this.state='fowl';this.t=0;this.hitDone=false;this.sfxDone=false;this.fowlTick=0;this.fowlArc=0;this.fowlSnd=0;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      G.glowFlash=1;
     };
     // the tiger blade: the raised blade driven into the ground, and three
     // shock waves tear away up the line
@@ -5130,8 +5160,8 @@ const player={
       const released=IN.chargeRelease||!IN.chargeHeld;
       if(released||this.chargeT>1.8){
         if(this.weapon()==='bow')startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);
-        else if(this.chargeT<(this.weapon()==='katana'&&LOADOUT.katanaCharge==='iai'?.5:.3))startAttack(null);   // barely held: it's just a strike (the draw needs its blade home first)
-        else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else startIai();}
+        else if(this.chargeT<(this.weapon()==='katana'&&katSheathes()?.5:.3))startAttack(null);   // barely held: it's just a strike (a draw needs its blade home first)
+        else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else if(LOADOUT.katanaCharge==='fowl')startFowl();else startIai();}
         else if(LOADOUT.charge==='spin')startSpin();
         else if(LOADOUT.charge==='quake')startQuake();
         else startDouble();
@@ -5259,6 +5289,39 @@ const player={
         this.hitDone=true;
         const hit=this.meleeHit(this.chargeFull?58:42,3.4,.3,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
         if(hit){AudioSys.hit();AudioSys.gore();G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.12);G.vibr([30,20,50]);}
+      }
+      if(p>=1)this.state='free';
+    }
+    else if(this.state==='fowl'){
+      const DUR=1.05,p=this.t/DUR;
+      const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+      if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.2);}
+      if(!this.hitDone&&p>=.08){ // the draw: one rising diagonal, edge-first out of the saya
+        this.hitDone=true;
+        this.meleeHit(this.chargeFull?44:34,3.0,1.3,6,1.2,{trail:'sweep',dir:-1,cut:'gyaku',staggerAll:true});
+        slashArc(this.x,this.z,1.1,this.facing,0xffffff,'overhead',-1);
+      }
+      if(p>=.1&&p<.78){ // the storm: the air cuts, all round, again and again
+        const gy=heightAt(this.x,this.z);
+        this.fowlArc+=dt;this.fowlTick+=dt;this.fowlSnd+=dt;
+        while(this.fowlArc>0){this.fowlArc-=.024;
+          const a=slashArc(this.x+rr3(-.9,.9),this.z+rr3(-.9,.9),rr3(.5,2.1),Math.random()*TAU,Math.random()<.3?0xffffff:0xe4ecff,
+            Math.random()<.55?'sweep':'overhead',Math.random()<.5?1:-1);
+          a.scale.multiplyScalar(rr3(1.3,2.4));a.rotation.x+=rr3(-.7,.7);a.life=.16;}
+        if(this.fowlSnd>=.1){this.fowlSnd=0;AudioSys.airSlash();}
+        G.camShake=Math.max(G.camShake,.12);
+        if(this.fowlTick>=.09){this.fowlTick=0;
+          for(const e of enemies){
+            if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter')continue;
+            const dx=e.x-this.x,dz=e.z-this.z,d=Math.hypot(dx,dz);if(d>3.2+e.radius)continue;
+            const ey=e.crow?e.y:gy+1.1;if(Math.abs(ey-(gy+1.2))>1.6)continue;
+            const preHp=e.hp,ux=d>1e-3?dx/d:fx,uz=d>1e-3?dz/d:fz;
+            sparkBurst(e.x,gy+.7+Math.random()*1.0,e.z,5);AudioSys.hit();
+            e.takeHit(this.chargeFull?10:8,e.boss?2:99,this.x,this.z,.3,{dx:ux,dz:uz,up:.5});
+            if((e.hp>0||preHp>0)&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&!e.sliced)
+              katanaSlice(e,Math.atan2(ux,uz),['yoko','kesa','gyaku'][(Math.random()*3)|0]);
+          }
+        }
       }
       if(p>=1)this.state='free';
     }
@@ -5485,8 +5548,8 @@ const player={
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
     const bow=this.weapon()==='bow',kat=this.weapon()==='katana';
-    r.ikLeftArm=!bow&&!(kat&&((this.state==='charge'&&LOADOUT.katanaCharge==='iai')||this.state==='iai'))&&
-      ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab','kthrust','tiger'].includes(this.state);
+    r.ikLeftArm=!bow&&!(kat&&((this.state==='charge'&&katSheathes())||this.state==='iai'))&&
+      ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab','kthrust','tiger','fowl'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -5496,11 +5559,12 @@ const player={
       if(bow)poseBowCarry(r);
     }
     else if(this.state==='charge'){if(bow)poseBowDraw(r,this.chargeT/.6,t);
-      else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else poseIaiCharge(r,this.chargeT/.6,t);}
+      else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else poseIaiCharge(r,this.chargeT/.6,t);}   // (the draw and the waterfowl both wind in the saya)
       else poseCharge(r,this.chargeT/.6,t);}
     else if(this.state==='iai')poseIai(r,Math.min(1,this.t/.85));
     else if(this.state==='kthrust')poseKThrust(r,.28+Math.min(1,this.t/.5)*.72);   // it starts already chambered: the charge held it there
     else if(this.state==='tiger')poseTiger(r,Math.min(1,this.t/.8));
+    else if(this.state==='fowl')poseFowl(r,Math.min(1,this.t/1.05),t);
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
@@ -5553,7 +5617,7 @@ const player={
     // the katana lives in its saya while the draw is wound, and goes back
     // into it at the end of the cut
     if(kat&&r.sayaMount){
-      const SHT=.5,ip=this.state==='iai'?this.t/.85:0,home=ip>=.62,sheathing=this.state==='charge'&&LOADOUT.katanaCharge==='iai';
+      const SHT=.5,ip=this.state==='iai'?this.t/.85:0,home=ip>=.62,sheathing=this.state==='charge'&&katSheathes();
       r.ikRightT=null;r.ikLeftT=null;
       if(sheathing||home){
         if(r.weapon.parent!==r.sayaMount){r.sayaMount.add(r.weapon);if(r._sm)delete r._sm.weapon;}
@@ -6827,11 +6891,11 @@ function katanaSlice(e,facing,cut){
   gore(e,e.x,gy+1.2,e.z,16,1.4);goreDecal(e,e.x,e.z,.7);sparkBurst(e.x,gy+1.2,e.z,10);
   e.sliced=true;
   if(e.rag)endRagdoll(e);                 // (if this cut already killed it, the ragdoll gives way to the halves)
-  splitEnemy(e,facing,cut||'yoko');
+  splitEnemy(e,facing,cut||'yoko',true);        // sharp: the halves slide off the cut, they aren't thrown
   if(e.hp>0){e.noRag=true;e.die();}
   e.crumbled=true;e.rig.root.visible=false;
 }
-function splitEnemy(e,facing,cut){
+function splitEnemy(e,facing,cut,sharp){
   const r=e.rig,gh=heightAt(e.x,e.z),S=r.s||1;
   // the plane of the cut: down through the body for the finishing cut, or
   // wherever the blade went — level through the ribs, or on the diagonal
@@ -6874,23 +6938,38 @@ function splitEnemy(e,facing,cut){
     // thrown apart off the blade: a level cut sends the top half flying
     // forward and leaves the legs to buckle where they stand
     const lift=1-Math.hypot(n.x,n.z);
-    rag.kick(n.x*side+fx*(.3+(side>0?1.3:.15)*lift),n.z*side+fz*(.3+(side>0?1.3:.15)*lift),
-      2.6+Math.random(),(side>0?2.4+1.4*lift:2.4-2.0*lift)+(cut==='rising'?2.6:0));
-    const H={h,side,plane,local,rag,mats:[]};
+    const H={h,side,plane,local,rag,mats:[],hold:0,kicked:true};
+    if(!sharp){
+      rag.kick(n.x*side+fx*(.3+(side>0?1.3:.15)*lift),n.z*side+fz*(.3+(side>0?1.3:.15)*lift),
+        2.6+Math.random(),(side>0?2.4+1.4*lift:2.4-2.0*lift)+(cut==='rising'?2.6:0));
+    }else{
+      // the katana's cut is too clean to feel: nothing moves for a beat.
+      // Then the top slides off the cut face — sideways with the swing off
+      // a level cut, down the slope of a diagonal one — and gravity has it.
+      // The legs stand a moment longer, then the knees go
+      H.kicked=false;
+      if(side>0){H.hold=.22;
+        const sx=cut==='yoko'?-rx:cut==='kesa'?rx:cut==='gyaku'?-rx:n.x,sz=cut==='yoko'?-rz:cut==='kesa'?rz:cut==='gyaku'?-rz:n.z;
+        H.kick=()=>rag.kick(sx,sz,cut==='yoko'?.55:.75,0);}
+      else{H.hold=.6;const a=Math.random()*TAU;
+        H.kick=()=>rag.kick(cut==='yoko'||cut==='kesa'||cut==='gyaku'?Math.sin(a):-n.x,cut==='yoko'||cut==='kesa'||cut==='gyaku'?Math.cos(a):-n.z,.3,0);}
+    }
     h.traverse(o=>{if(o.isMesh)H.mats.push(o.material);});
     halves.push(H);
   }
-  let life=0;
+  let life=0;const T=sharp?.6:0;
   effects.push({update(dt){
     life+=dt;
     for(const H of halves){
+      if(life<H.hold)continue;                                     // the beat of stillness
+      if(!H.kicked){H.kicked=true;H.kick();}
       H.rag.step(dt);H.rag.apply();
       H.rag.rig.body.updateWorldMatrix(true,false);
       H.plane.copy(H.local).applyMatrix4(H.rag.rig.body.matrixWorld);
-      if(life>2.1)for(const m of H.mats)m.opacity=Math.max(0,1-(life-2.1)/.7);
+      if(life>2.1+T)for(const m of H.mats)m.opacity=Math.max(0,1-(life-2.1-T)/.7);
     }
     if(life>.05&&life<.35&&Math.random()<dt*20)gore(e,e.x,1.0,e.z,3,.8);
-    if(life>2.8){
+    if(life>2.8+T){
       for(const H of halves){scene.remove(H.h);for(const m of H.mats)m.dispose();
         const i=ragdolls.indexOf(H.rag);if(i>=0)ragdolls.splice(i,1);
         boneCollapse(H.h.position.x,H.h.position.z,(e.big?1.25:.9)*.75);}
@@ -7308,6 +7387,8 @@ function renderHero(){
 }
 function loadoutLabel(k){const v=LOADOUT[k];return (HERO_OPTS[k].find(o=>o[0]===v)||HERO_OPTS[k][0])[1];}
 function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon==='katana'?'katanaCharge':'charge';}
+// which katana specials wind in the saya (and so need the blade home before they fire)
+function katSheathes(){return LOADOUT.katanaCharge==='iai'||LOADOUT.katanaCharge==='fowl';}
 function cycleLoadout(k,d){
   if(k==='charge')k=chargeKey();
   const list=HERO_OPTS[k];let i=list.findIndex(o=>o[0]===LOADOUT[k]);

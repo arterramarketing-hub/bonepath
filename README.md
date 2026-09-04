@@ -83,7 +83,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the left hip; **gyaku-kesa**, rising back along the same line; and
     **tsuki**, the point straight in. Fast cuts for 30, and any small or
     medium horror below half its life is **cut in two along the line the
-    blade took** — level through the middle, or on the diagonal. Its
+    blade took** — level through the middle, or on the diagonal. The cut
+    is too clean to feel: nothing moves for a beat, then the top slides
+    off the cut face — sideways with the swing off a level cut, down the
+    slope of a diagonal one — and gravity has it, landing wherever it
+    tips; the legs stand a moment longer, and then the knees go. Its
     charge is chosen on the pause screen. The **iaido draw**: hold and
     the hands put the blade away — the right rides the hilt down as the
     blade comes back across the saya's mouth, swings into line and
@@ -103,7 +107,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the ground a stride ahead — three shock waves of torn earth race up
     the line one after another, six metres or to the first wall, each
     throwing whatever it crosses into the air for 24 (30 at a full
-    hold). The blade itself is one piece — a
+    hold). Or the **waterfowl**: wound in the saya like the draw, then
+    drawn in one rising diagonal cut — and the air keeps cutting: a
+    storm of pale slashes wheels round the body for most of a second,
+    striking everything within three metres again and again for 8 (10
+    at a full hold), the body untouchable inside it. The blade itself is one piece — a
     long thin box bent along its length into the curve, ground thin on
     the edge side and drawn to a point — so the curve reads unbroken,
     and its saya lies back along the left hip with the mouth forward
