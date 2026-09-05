@@ -2626,6 +2626,7 @@ function ring(n,rx,rz,y,o){o=o||{};const ph=o.phase!==undefined?o.phase:(n===8?M
     let k=1;if(o.star&&(i&1))k=o.star;
     let zs=1;if(o.asym)zs=sn>0?o.asym[0]:o.asym[1];
     let yy=y;if(o.star&&(i&1)&&o.starY)yy+=o.starY;if(o.yf)yy+=o.yf(i,c,sn);
+    if(o.jit){k*=1+(Math.random()-.5)*o.jit;yy+=(Math.random()-.5)*o.jit*rx*.5;}   // (fluff: a hide is never even)
     out.push([c*rx*k+(o.dx||0),yy,sn*rz*k*zs+(o.dz||0)]);}
   return out;}
 function loft(rings,opts){opts=opts||{};
@@ -2664,7 +2665,7 @@ function sheetDress(rig,o){
   strip(rig.head);strip(rig.torso);strip(rig.body,c=>c===rig.saya);
   for(const k of['armR','armL','foreR','foreL','legR','legL','kneeR','kneeL'])strip(rig[k]);
   const sword=o.weapon==='sheetsword';if(sword)strip(rig.weapon);
-  const C={plate:0x4a5044,plateD:0x3c4238,steel:0x6e7466,brass:0x8a8058,fur:0xd9cfab,green:0x3d6c5e,leather:0x5a3e28,boot:0x4a3f30,blade:0xb8bcc0,dark:0x0a0b0a};
+  const C={plate:0x46523f,plateD:0x384334,steel:0x6a7460,brass:0x8c7f56,fur:0xd2c69f,green:0x3d6c5e,leather:0x5a3e28,boot:0x3f3a2e,blade:0xb4b8ba,dark:0x0a0b0a};
   const mPlate=flatMat(C.plate),mPlateD=flatMat(C.plateD),mSteel=flatMat(C.steel),mBrass=flatMat(C.brass),mFur=flatMat(C.fur),
     mGreen=flatMat(C.green),mLeather=flatMat(C.leather),mBoot=flatMat(C.boot),mBlade=flatMat(C.blade),mDark=flatMat(C.dark,{vertexColors:false}),
     mMail=psx(new THREE.MeshLambertMaterial({map:texCache.shMail,flatShading:true,vertexColors:true}));
@@ -2673,18 +2674,18 @@ function sheetDress(rig,o){
   const box=(g,mat,w,h,d,x,y,z,rx,ry,rz)=>{const m=new THREE.Mesh(facet(GBox(w*s,h*s,d*s).toNonIndexed(),.05),mat);m.position.set(x*s,y*s,z*s);if(rx)m.rotation.x=rx;if(ry)m.rotation.y=ry;if(rz)m.rotation.z=rz;g.add(m);return m;};
   const A=[1,.92];
   // ---- the helm: a bascinet with a proud rim at the brow and a low comb
-  add(rig.head,loft([R(8,.10,.10,.04,{asym:A}),R(8,.145,.14,.11,{asym:A}),R(8,.165,.155,.24,{asym:A}),
-    R(8,.19,.18,.265,{asym:[1,.9]}),R(8,.19,.18,.285,{asym:[1,.9]}),R(8,.16,.15,.30,{asym:A}),R(8,.15,.14,.37,{asym:A}),R(8,.10,.095,.43),[[0,.475*s,0]]]),mSteel,.06);
-  box(rig.head,mDark,.18,.03,.03,0,.245,.152);                                     // the one slit, across
-  box(rig.head,mDark,.03,.06,.03,0,.195,.15);                                      // the short bar under it
-  for(const [z,y,rx] of[[-.1,.40,-.5],[0,.455,0],[.1,.40,.5]])box(rig.head,mBrass,.02,.035,.12,0,y,z-.02,rx);   // the comb, in three
+  add(rig.head,loft([R(8,.10,.10,.04,{asym:A}),R(8,.15,.145,.11,{asym:A}),R(8,.17,.16,.25,{asym:A}),
+    R(8,.195,.185,.28,{asym:[1,.9]}),R(8,.195,.185,.305,{asym:[1,.9]}),R(8,.17,.16,.33,{asym:A}),R(8,.155,.145,.40,{asym:A}),R(8,.11,.10,.46),[[0,.51*s,0]]]),mSteel,.06);
+  box(rig.head,mDark,.19,.03,.03,0,.255,.158);                                     // the one slit, across
+  box(rig.head,mDark,.03,.09,.03,0,.19,.155);                                      // the bar down from it
+  for(const [z,y,rx] of[[-.1,.43,-.5],[0,.49,0],[.1,.43,.5]])box(rig.head,mBrass,.02,.035,.12,0,y,z-.02,rx);   // the comb, in three
   add(rig.head,loft([R(8,.15,.14,.10,{asym:[.6,1]}),R(8,.19,.18,.03,{asym:[.55,1.05]}),R(8,.2,.19,-.01,{asym:[.5,1.1]})]),mSteel,.06);   // the neck skirt
   // ---- the gorget under it, in the tabard's green
   add(rig.torso,loft([R(8,.11,.10,.56),R(8,.135,.12,.63),R(8,.13,.115,.66)]),mGreen,.05);
   // ---- the cuirass, lamed three times, a rolled collar
-  add(rig.torso,loft([R(8,.20,.16,-.06,{asym:[1,.85]}),R(8,.22,.18,.08,{asym:[1,.85]}),R(8,.25,.20,.26,{asym:[1,.85]}),
-    R(8,.26,.21,.40,{asym:[1,.85]}),R(8,.23,.19,.52,{asym:[1,.85]}),R(8,.15,.12,.60,{asym:[1,.85]})],{capTop:true}),mPlate,.07);
-  for(const [y,r,rz] of[[.12,.232,.185],[.26,.252,.2],[.40,.258,.205]])
+  add(rig.torso,loft([R(8,.21,.17,-.06,{asym:[1,.85]}),R(8,.235,.19,.06,{asym:[1,.85]}),R(8,.265,.21,.22,{asym:[1,.85]}),
+    R(8,.28,.22,.38,{asym:[1,.85]}),R(8,.25,.2,.50,{asym:[1,.85]}),R(8,.16,.13,.60,{asym:[1,.85]})],{capTop:true}),mPlate,.07);
+  for(const [y,r,rz] of[[.04,.232,.188],[.16,.255,.204],[.28,.272,.215],[.40,.278,.219]])
     add(rig.torso,loft([R(8,r,rz,y,{asym:[1,.85]}),R(8,r+.022,rz+.018,y+.05,{asym:[1,.85]}),R(8,r+.022,rz+.018,y+.075,{asym:[1,.85]})]),mPlate,.07);
   add(rig.torso,loft([R(8,.16,.13,.60),R(8,.15,.12,.66)]),mSteel,.06);
   // the baldric, the belt with its buckle, the strap below
@@ -2693,31 +2694,36 @@ function sheetDress(rig,o){
   box(rig.torso,mSteel,.06,.06,.02,0,.025,.20);
   add(rig.torso,loft([R(8,.222,.182,-.10,{asym:[1,.85]}),R(8,.226,.186,-.08,{asym:[1,.85]})]),mLeather,.05);
   // ---- the pelt: over both shoulders, torn to points at the hem, standing up behind the neck
-  add(rig.torso,loft([R(12,.13,.11,.66),R(12,.34,.27,.60,{asym:[.85,1]}),R(12,.40,.30,.52,{asym:[.85,1.05]}),
-    R(12,.37,.28,.42,{star:.62,starY:.08*s,asym:[.85,1.05],yf:(i,c,sn)=>sn<0?.07*s*sn:0})]),mFur,.08);
-  add(rig.torso,loft([R(8,.16,.09,.62,{dz:-.06*s}),R(8,.15,.07,.72,{dz:-.09*s}),[[0,.78*s,-.11*s]]]),mFur,.08);
+  const J=.1;
+  add(rig.torso,loft([R(16,.14,.12,.70,{jit:J}),R(16,.36,.28,.64,{asym:[.85,1],jit:J}),R(16,.42,.32,.55,{asym:[.85,1.05],jit:J}),
+    R(16,.40,.30,.45,{star:.6,starY:.09*s,asym:[.85,1.05],yf:(i,c,sn)=>sn<0?.06*s*sn:0})]),mFur,.09);
+  add(rig.torso,loft([R(16,.30,.24,.58,{phase:Math.PI/16,asym:[.85,1],jit:J}),R(16,.37,.28,.49,{phase:Math.PI/16,asym:[.85,1.05],jit:J}),
+    R(16,.35,.27,.39,{phase:Math.PI/16,star:.55,starY:.08*s,asym:[.85,1.05],yf:(i,c,sn)=>sn<0?.06*s*sn:0})]),mFur,.09);
+  add(rig.torso,loft([R(8,.17,.10,.64,{dz:-.06*s,jit:J}),R(8,.15,.07,.74,{dz:-.09*s,jit:J}),[[0,.80*s,-.11*s]]]),mFur,.09);
   // ---- the arms: a domed pauldron, plate upper arm, elbow cop, vambrace, a cuffed gauntlet
   for(const [sh,el] of[[rig.armR,rig.foreR],[rig.armL,rig.foreL]]){
-    add(sh,loft([R(8,.145,.145,-.08),R(8,.145,.145,-.02),R(8,.12,.12,.05),R(8,.05,.05,.10),[[0,.12*s,0]]]),mPlate,.07);
-    add(sh,loft([R(8,.085,.085,-.05),R(8,.078,.078,-.34*AL)]),mPlate,.07);
-    add(el,loft([R(8,.07,.07,-.03),R(8,.065,.065,.03),R(8,.03,.03,.06),[[0,.07*s,0]]]),mPlate,.07);
-    add(el,loft([R(8,.072,.072,-.02),R(8,.062,.062,-.26*AL)]),mPlate,.07);
-    add(el,loft([R(8,.082,.082,-.24*AL),R(8,.075,.075,-.28*AL)]),mSteel,.06);
-    add(el,loft([R(6,.06,.06,-.28*AL),R(6,.066,.066,-.34*AL),R(6,.05,.05,-.40*AL)],{capBottom:true}),mSteel,.06);
+    add(sh,loft([R(8,.16,.16,-.09),R(8,.16,.16,-.02),R(8,.13,.13,.06),R(8,.06,.06,.11),[[0,.13*s,0]]]),mPlate,.07);
+    add(sh,loft([R(8,.10,.10,-.05),R(8,.095,.095,-.2*AL),R(8,.085,.085,-.34*AL)]),mPlate,.07);
+    add(el,loft([R(8,.08,.08,-.03),R(8,.075,.075,.03),R(8,.035,.035,.07),[[0,.08*s,0]]]),mPlate,.07);
+    add(el,loft([R(8,.082,.082,-.02),R(8,.07,.07,-.26*AL)]),mPlate,.07);
+    add(el,loft([R(8,.092,.092,-.24*AL),R(8,.085,.085,-.28*AL)]),mSteel,.06);
+    add(el,loft([R(6,.07,.07,-.28*AL),R(6,.076,.076,-.34*AL),R(6,.058,.058,-.41*AL)],{capBottom:true}),mSteel,.06);
   }
   // ---- the mail fauld, off the belt to the thigh
   add(rig.body,loft([R(8,.22,.18,-.02,{asym:[1,.9]}),R(8,.26,.21,-.2,{asym:[1,.9]}),R(8,.30,.24,-.38,{asym:[1,.9]})]),mMail,.05);
   // ---- the legs: cuisse, poleyn, greave, boot with a toe and a cuff
   for(const [hip,kn] of[[rig.legR,rig.kneeR],[rig.legL,rig.kneeL]]){
-    add(hip,loft([R(8,.10,.10,0),R(8,.095,.095,-.2*L),R(8,.09,.09,-.4*L)]),mPlateD,.07);
-    add(kn,loft([R(8,.085,.085,-.04),R(8,.09,.09,0),R(8,.06,.06,.06),[[0,.08*s,0]]]),mPlate,.07);
-    add(kn,loft([R(8,.085,.085,-.02),R(8,.075,.075,-.16*L),R(8,.072,.072,-.28*L)]),mPlateD,.07);
-    add(kn,loft([R(8,.09,.09,-.27*L),R(8,.085,.085,-.31*L)]),mBoot,.06);
-    add(kn,loft([R(8,.08,.08,-.31*L),R(8,.078,.085,-.37*L,{dz:.01*s}),R(8,.075,.11,-.415*L,{dz:.035*s}),R(8,.07,.11,-.43*L,{dz:.04*s})],{capBottom:true}),mBoot,.06);
+    const sd=(Math.sign(hip.position.x)||1)*.02*s;                                  // set a little wider than the pivots
+    add(hip,loft([R(8,.12,.115,0,{dx:sd}),R(8,.11,.105,-.2*L,{dx:sd}),R(8,.10,.095,-.4*L,{dx:sd})]),mPlateD,.07);
+    add(kn,loft([R(8,.095,.095,-.04,{dx:sd}),R(8,.10,.10,0,{dx:sd}),R(8,.065,.065,.06,{dx:sd}),[[sd,.085*s,0]]]),mPlate,.07);
+    add(kn,loft([R(8,.095,.095,-.02,{dx:sd}),R(8,.088,.088,-.16*L,{dx:sd}),R(8,.085,.085,-.28*L,{dx:sd})]),mPlateD,.07);
+    add(kn,loft([R(8,.105,.105,-.27*L,{dx:sd}),R(8,.098,.098,-.31*L,{dx:sd})]),mBoot,.06);
+    add(kn,loft([R(8,.095,.095,-.31*L,{dx:sd}),R(8,.095,.10,-.37*L,{dx:sd,dz:.015*s}),R(8,.095,.13,-.415*L,{dx:sd,dz:.045*s}),R(8,.09,.13,-.43*L,{dx:sd,dz:.05*s})],{capBottom:true}),mBoot,.06);
   }
   // ---- the sword: a diamond-section blade to a point, a plain cross, a long grip, an octagonal pommel
   if(sword){const w=rig.weapon;
-    const bl=add(w,loft([R(4,.065,.016,-.34,{phase:0}),R(4,.062,.015,-.9,{phase:0}),R(4,.055,.013,-1.35,{phase:0}),[[0,-1.58*s,0]]],{capBottom:true}),mBlade,.04);
+    const bl=add(w,loft([R(4,.075,.018,-.34,{phase:0}),R(4,.072,.017,-.9,{phase:0}),R(4,.062,.014,-1.35,{phase:0}),[[0,-1.6*s,0]]],{capBottom:true}),mBlade,.04);
+    for(const zz of[.012,-.012])box(w,mPlateD,.025,1.0,.006,0,-.86,zz);          // the fuller, either face
     box(w,mPlate,.34,.045,.06,0,-.40,0);box(w,mBlade,.09,.08,.05,0,-.34,0);
     add(w,loft([R(8,.03,.03,-.36),R(8,.032,.032,-.05),R(8,.03,.03,.22)]),mLeather,.06);
     add(w,loft([R(8,.03,.03,.22),R(8,.05,.05,.27),R(8,.05,.05,.31),R(8,.03,.03,.34)],{capTop:true}),mSteel,.05);
@@ -3152,9 +3158,9 @@ function buildHumanoid(o){
       const tab=(cols,x0,x1,z0,rows,len)=>makeCloth({parent:body,ROWS:rows,COLS:cols,mat:o.tabardMat||o.torsoMat,liningColor:0x1e4a46,
         rest:(r,c)=>new THREE.Vector3(x0+(x1-x0)*c/(cols-1),-.02*s-r*(len/(rows-1)),z0*(1-r*.02)),
         spheres:[hipS,...legS]});
-      tab(3,-.21*s,-.03*s,.22*s,6,.74*s);   // the front, split at the centre: left...
-      tab(3,.03*s,.21*s,.22*s,6,.74*s);     // ...and right, to the knee
-      tab(5,-.25*s,.25*s,-.2*s,6,.76*s);    // the back panel
+      tab(3,-.24*s,-.02*s,.22*s,6,.74*s);   // the front, split at the centre: left...
+      tab(3,.02*s,.24*s,.22*s,6,.74*s);     // ...and right, to the knee
+      tab(5,-.27*s,.27*s,-.2*s,6,.76*s);    // the back panel
     }else{
     panel(3,.07*s,.3*s,.21*s,6,.82*s);     // front right
     panel(3,-.3*s,-.07*s,.21*s,6,.82*s);   // front left
