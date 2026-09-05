@@ -21,16 +21,20 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   pilgrim**: a lit portrait of your knight with three selectors under it.
   **Weapon** — the greatsword, the longbow, or the katana. **Armour** —
   **sheet knight** (built part by part against an eight-view reference
-  sheet: a rounded steel helm rising to a short spike with a T of dark —
-  the eye slit across, the nasal down from it — over a teal gorget; a
-  broad straw pelt over both shoulders, its rim hung with torn points of
-  hide; an olive-grey cuirass lamed four times across the chest under a
-  leather baldric; a broad knotworked belt with gold edges and a square
-  buckle; one long teal tabard panel front and back to the shin, real
-  cloth, with a gold scroll border; dark leather trousers into tan boots
-  with a rolled cuff at mid-calf; slimmer plated arms; and a straight
-  greatsword with a fuller, a plain cross, a long wrapped grip and a round
-  pommel, carried across the shoulder. The hero is drawn CRISP: a second
+  sheet: a rounded olive-steel helm with a rim round the brow, a low comb
+  and a small point, one eye slit across the face with a short bar of
+  dark under it, a flared neck skirt and a teal gorget; a broad pale
+  straw pelt over both shoulders, standing up behind the neck, its hem
+  cut into ten wide torn tongues of hide that hang over the arms; a
+  dark olive-green cuirass, matte and faceted, lamed across the chest
+  under a leather baldric; a leather belt with a square buckle and a
+  thinner strap below; a mail fauld from the belt to the thigh; over it
+  a muted green-teal tabard to the knee — two panels in front, split at
+  the centre, and one behind — as real cloth with a cream cross-and-lily
+  border; olive plate cuisses and greaves into dark brown boots with a
+  low cuff; slimmer plated arms; and a broad straight greatsword with a
+  fuller, a plain cross, a long wrapped grip and a round pommel, carried
+  across the shoulder. The hero is drawn CRISP: a second
   pass renders the player alone at the device's full resolution and lays
   it over the PSX frame, hidden wherever the low-res world's depth says
   the world is nearer, and graded the same way — so the knight reads like
