@@ -5204,9 +5204,11 @@ const player={
       }
       // a full charge's second cut breaks anything that isn't the Warden outright
       // which way the blade throws them: a sweep flings them sideways
-      // along the cut, the thrust drives them straight back, the overhead
-      // beats them down on their face
-      const tr=opts.trail||'sweep',sd=opts.dir||1,lx=-fz*sd,lz=fx*sd;
+      // along the cut — WITH the blade's momentum, so dir 1 (the first cut,
+      // coiled to the right and whipped through to the left) throws them
+      // to the hero's left, dir -1 to the right — the thrust drives them
+      // straight back, the overhead beats them down on their face
+      const tr=opts.trail||'sweep',sd=opts.dir||1,lx=fz*sd,lz=-fx*sd;   // (fz,-fx) is the hero's left
       const hv=tr==='thrust'?{dx:fx,dz:fz,up:1.2}:tr==='overhead'?{dx:fx,dz:fz,up:-.7}:
         {dx:fx*.4+lx*.92,dz:fz*.4+lz*.92,up:1.7};
       {const l=Math.hypot(hv.dx,hv.dz)||1;hv.dx/=l;hv.dz/=l;}
@@ -5807,7 +5809,7 @@ const player={
         if(n>this.hitDone&&n<=4){
           this.hitDone=n;AudioSys.swing();G.camShake=Math.max(G.camShake,.08);
           const hit=this.meleeHit(this.chargeFull?19:15,2.5,TAU,n===4?3:2,.6,
-            {trail:'sweep',dir:1,quietMiss:true,staggerAll:this.chargeFull&&n===4});
+            {trail:'sweep',dir:-1,quietMiss:true,staggerAll:this.chargeFull&&n===4});   // clockwise: the blade comes round left to right
           if(hit){AudioSys.hit();G.hitstop=Math.max(G.hitstop,.05);}
         }
       }
@@ -7453,7 +7455,7 @@ function splitEnemy(e,facing,cut,sharp){
       // The legs stand a moment longer, then the knees go
       H.kicked=false;
       if(side>0){H.hold=.5;
-        const sx=cut==='yoko'?-rx:cut==='kesa'?rx:cut==='gyaku'?-rx:n.x,sz=cut==='yoko'?-rz:cut==='kesa'?rz:cut==='gyaku'?-rz:n.z;
+        const sx=cut==='yoko'?rx:cut==='kesa'?rx:cut==='gyaku'?-rx:n.x,sz=cut==='yoko'?rz:cut==='kesa'?rz:cut==='gyaku'?-rz:n.z;   // the level cut slides them off to the LEFT, the way the blade went
         H.kick=()=>rag.kick(sx,sz,cut==='yoko'?1.1:1.3,0);
         // nothing below the cut holds it up: those particles fall through the
         // floor, so the top comes down onto its chest and hands, not its legs

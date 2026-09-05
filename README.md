@@ -371,8 +371,11 @@ Everything is generated at boot inside the one file:
   **verlet ragdoll** — no physics library: point masses at the joints,
   distance constraints for the bones, braces for the trunk, gravity,
   the ground with friction, and the walls — and the body falls the way
-  the blade sent it — a sweep flings it sideways along the cut, a thrust
-  straight back, an overhead down on its face — tumbles, and lies where
+  the blade sent it — a sweep flings it sideways along the cut, WITH the
+  blade's momentum (the first cut comes round right to left and throws
+  them to the hero's left, the second the other way; the whirlwind, and a
+  katana's level cut, likewise), a thrust straight back, an overhead down
+  on its face — tumbles, and lies where
   it lands before the bones
   come apart into the soil. The knight's cape is a sheet of verlet cloth
   pinned across the shoulder blades — it hangs, folds and swings on its
