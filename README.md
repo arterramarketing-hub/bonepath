@@ -121,7 +121,7 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     top slides off the cut face in ONE piece — sideways with the swing
     off a level cut, down the slope of a diagonal one — and drops onto
     its chest wherever it tips, nothing under it to hold it up; the legs
-    stand almost a second longer, and then the knees go. Nothing
+    stand almost a second longer, in plain view, and then the knees go. Nothing
     comes off the line but a glint, the halves never flash red, and the katana
     never takes an arm or a head, nor blasts a skeleton apart — its cut
     is the whole body, and blasting is the greatsword's business. Its
@@ -175,7 +175,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the finishing cut. Swing into **stone** — a wall, a column, the
     ruins — and the blade **bounces off** in a shower of sparks: the arms
     are flung back with it, the knight staggers half a step, and nothing
-    on the far side is touched. A trunk or a lantern post only checks the
+    on the far side is touched — but a horror standing BETWEEN the blade
+    and the stone is cut on the way, the swing only stops at the wall. A trunk or a lantern post only checks the
     blade in sparks and the swing carries on; pews and gravestones break
   - **the finishing cut** — break a small or medium horror's poise and
     a bright blade-mark hangs over it while it reels. Tap with it in

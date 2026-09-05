@@ -5168,7 +5168,7 @@ const player={
     // every swing carries a chance of a telling blow
     const crit=Math.random()<.15;
     if(crit)dmg=Math.round(dmg*1.8);
-    let hitAny=false,clashed=false;
+    let hitAny=false,clashed=false,bounce=null;
     // the pews of the nave splinter under the blade
     if(strikeBreakables(this.x,this.z,fx,fz,reach,arc))clashed=true;
     // the blade meets STONE first: a swing into a wall, a gravestone, a
@@ -5181,15 +5181,19 @@ const player={
       //  in sparks and the swing carries on)
       clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,stone.stone?14:8);
       AudioSys.clang();G.camShake=Math.max(G.camShake,stone.stone?.3:.14);G.hitstop=Math.max(G.hitstop,stone.stone?.08:.04);G.vibr(stone.stone?[30,20,40]:20);
-      if(stone.stone&&!opts.noBounce){this.recoil(stone);return false;}
+      // ...but whatever stands BETWEEN the blade and the stone is cut on the
+      // way: the swing only stops at the wall, it doesn't pass through a
+      // horror to get there. The bounce comes after the reckoning below.
+      if(stone.stone&&!opts.noBounce)bounce=stone;
       clashed=true;
     }
+    const stoneD=bounce?Math.hypot(bounce.x-this.x,bounce.z-this.z)+.15:Infinity;  // nothing beyond the wall is touched: a horror is in the way when its middle stands short of the stone
     for(const e of enemies){
       if(e.hp<=0||(e.state==='dormant'||e.untouchable)||e.state==='scatter')continue;
       // a crow is only in blade-reach when it swoops low or is grounded
       if(e.crow&&e.y-heightAt(e.x,e.z)>2)continue;
       const dx=e.x-this.x,dz=e.z-this.z,d=Math.hypot(dx,dz);
-      if(d>reach+e.radius)continue;
+      if(d>reach+e.radius||d>stoneD)continue;
       const ang=Math.acos(clamp((dx*fx+dz*fz)/(d||1),-1,1));
       if(ang>arc)continue;
       // steel on steel: catch a horror's weapon mid-swing and the blades
@@ -5266,6 +5270,7 @@ const player={
     }
     if(hitAny||!opts.quietMiss)
       slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xe8c890:0xb8c4cc,opts.trail||'sweep',opts.dir||1);
+    if(bounce){this.recoil(bounce);return hitAny;}                    // and now the stone throws the blade back
     return hitAny||clashed;
   },
   update(dt){
@@ -7434,11 +7439,15 @@ function splitEnemy(e,facing,cut,sharp){
       o.material.transparent=true;o.material.side=THREE.DoubleSide;}});
     h.position.set(e.x,gh,e.z);h.rotation.set(0,e.facing,0);
     scene.add(h);h.updateMatrixWorld(true);
-    const local=plane.clone().applyMatrix4(h.matrixWorld).applyMatrix4(bodyInv);   // into the hips' space
-    plane.copy(local).applyMatrix4(h.matrixWorld);
     const list=[];h.traverse(o=>list.push(o));
     const rigH={root:h,s:r.s,AL:r.AL,L:r.L,humanoid:true};
     NAMES.forEach((k,i)=>rigH[k]=list[idx[i]]);
+    // into the hips' space, and straight back out through the HIPS' matrix
+    // — the root's is wrong by the hips' height, and used to put the cut at
+    // the feet until the half's first update: the top half was the whole
+    // body and the legs were nowhere, then popped back when the knees went
+    const local=plane.clone().applyMatrix4(h.matrixWorld).applyMatrix4(rigH.body.matrixWorld.clone().invert());
+    plane.copy(local).applyMatrix4(rigH.body.matrixWorld);
     const rag=makeRagdoll(rigH,sharp&&side>0);ragdolls.push(rag);
     // thrown apart off the blade, up and outward, with a twist
     // thrown apart off the blade: a level cut sends the top half flying
