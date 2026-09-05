@@ -99,12 +99,16 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     and every small or medium horror within two metres and a bit is
     blown apart into its bones, to crawl back together in time; the big
     and the Warden only take the blow
-  - **the ultra greatsword** — a colossal slab of a blade, longer and
-    heavier than the greatsword, carried the same way and sharing its
-    charges. Every light swing takes half again as long to come round,
-    but whatever it lands on is knocked back like nothing: all but the
-    Warden are thrown off their feet and sent flying, the blow lands
-    with a heavier stop, and it hits harder besides.
+  - **the ultra greatsword** — a slab of a blade a foot wide, thick as a
+    plank, single-edged with its spine clipped to the point and two holes
+    through its base, on a short thick grip under a block of a guard;
+    longer and heavier than the greatsword, carried the same way and
+    sharing its charges. Every light swing takes half again as long to
+    come round, and the screen jolts as the weight lands at the end of
+    every arc whether it found anything or not; whatever it does land on
+    is knocked back like nothing: all but the Warden are thrown off their
+    feet and sent flying, the blow lands with a heavier stop, and it
+    hits harder besides.
   - **the katana** — overpowered on purpose. Carried in **chudan**, both
     hands on the grip before the navel and the point levelled at the
     throat, and it fights the way a katana does: **yoko-giri**, the level

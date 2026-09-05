@@ -2654,6 +2654,23 @@ function loft(rings,opts){opts=opts||{};
 function facet(g,amt){const n=g.attributes.position.count,col=new Float32Array(n*3);
   for(let i=0;i<n;i+=3){const k=1+(Math.random()*2-1)*(amt||.07);for(let j=0;j<3;j++){col[(i+j)*3]=k;col[(i+j)*3+1]=k;col[(i+j)*3+2]=k;}}
   g.setAttribute('color',new THREE.BufferAttribute(col,3));return g;}
+/* the ultra greatsword's blade, in the Buster's shape: a slab a foot wide
+   and three-quarters of an inch thick, single-edged, the spine clipped on
+   the diagonal to the point at the edge corner, two holes through its
+   base. Built in the weapon frame: down -y from the guard, width along x
+   (the edge at -x), thickness along z. */
+function busterBlade(s){
+  const W=.32*s,y0=-.62*s,y1=-2.4*s,clip=.38*s,T=.075*s,bv=.012*s;
+  const sh=new THREE.Shape();
+  sh.moveTo(-W/2,y0);sh.lineTo(W/2,y0);sh.lineTo(W/2,y1+clip);sh.lineTo(-W/2,y1);sh.lineTo(-W/2,y0);
+  for(const hy of[-.8,-.96]){const h=new THREE.Path();h.absarc(.06*s,hy*s,.036*s,0,Math.PI*2,true);sh.holes.push(h);}
+  const g=new THREE.ExtrudeGeometry(sh,{depth:T-2*bv,bevelEnabled:true,bevelThickness:bv,bevelSize:bv,bevelSegments:1,curveSegments:8});
+  g.translate(0,0,-(T-2*bv)/2);
+  const P=g.attributes.position,UV=g.attributes.uv;
+  for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),d=(x+W/2)/(.1*s);
+    if(d<1)P.setZ(i,P.getZ(i)*(.2+.8*Math.max(0,d)));                 // the edge side ground thin
+    UV.setXY(i,(x+W/2)/W,(y-y1)/(y0-y1));}
+  g.computeVertexNormals();return g;}
 function flatMat(hex,extra){return psx(new THREE.MeshLambertMaterial(Object.assign({color:new THREE.Color(hex).convertSRGBToLinear(),flatShading:true,vertexColors:true},extra||{})));}   // (hex is the colour as SEEN: sRGB)
 
 /* the sheet knight, dressed part by part in lofted plate over the same
@@ -2721,8 +2738,14 @@ function sheetDress(rig,o){
     add(kn,loft([R(8,.095,.095,-.31*L,{dx:sd}),R(8,.095,.10,-.37*L,{dx:sd,dz:.015*s}),R(8,.095,.13,-.415*L,{dx:sd,dz:.045*s}),R(8,.09,.13,-.43*L,{dx:sd,dz:.05*s})],{capBottom:true}),mBoot,.06);
   }
   // ---- the sword: a diamond-section blade to a point, a plain cross, a long grip, an octagonal pommel
-  if(sword){const w=rig.weapon;
-    const bw=U?.1:.075,bt=U?.024:.018,bL=U?2.35:1.6,cx=U?-.5:-.34;
+  if(sword&&U){const w=rig.weapon;                                       // the ultra: the Buster's slab
+    const bl=add(w,busterBlade(s),mBlade,.04);
+    box(w,mPlate,.38,.1,.13,0,-.56,0);                                    // the guard block
+    add(w,loft([R(8,.04,.04,-.52),R(8,.043,.043,-.05),R(8,.04,.04,.22)]),mLeather,.06);   // the thick grip
+    add(w,loft([R(8,.03,.03,.2),R(8,.06,.06,.25),R(8,.06,.06,.3),R(8,.03,.03,.34)],{capTop:true}),mSteel,.05);   // the round pommel
+    rig.bladeMesh=bl;rig.reach=3.4*s;rig.gripLo=-.44;rig.gripHi=.08;
+  }else if(sword){const w=rig.weapon;
+    const bw=.075,bt=.018,bL=1.6,cx=-.34;
     const bl=add(w,loft([R(4,bw,bt,cx,{phase:0}),R(4,bw*.95,bt*.95,cx-(bL+cx)*.4,{phase:0}),R(4,bw*.82,bt*.8,cx-(bL+cx)*.75,{phase:0}),[[0,-bL*s,0]]],{capBottom:true}),mBlade,.04);
     for(const zz of[bt*.7,-bt*.7])box(w,mPlateD,.025,(bL+cx)*.8,.006,0,(cx-bL)/2,zz);   // the fuller, either face
     box(w,mPlate,U?.5:.34,U?.06:.045,U?.08:.06,0,cx-.06,0);box(w,mBlade,U?.12:.09,U?.12:.08,.05,0,cx,0);
@@ -3032,21 +3055,17 @@ function buildHumanoid(o){
       w.add(M(GSph(.05*s,7,5),bladeM,0,.24*s,0));                          // the pommel
       rig.reach=2.9*s;rig.bladeMesh=bl;rig.gripLo=-.3;rig.gripHi=.2;
     }else if(o.weapon==='ultra'){
-      /* the ULTRA greatsword: a slab of steel as long as the knight is
-         tall — a long haft under a great wheel pommel, a heavy straight
-         cross, a deep ricasso and a colossal blade with a fuller, carried
-         across the shoulder because nothing else could hold it */
+      /* the ULTRA greatsword, in the Buster's shape: a slab of steel a
+         foot wide and as long as the knight is tall, single-edged, its
+         spine clipped to the point, two holes through its base; a short
+         thick wrapped haft under a block of a guard, a round pommel —
+         carried across the shoulder because nothing else could hold it */
       const gripM2=o.clothMat||gripM;
-      const wheel=M(GCyl(.075*s,.075*s,.036*s,8),gripM,0,.12*s,0);wheel.rotation.x=Math.PI/2;w.add(wheel);
-      w.add(M(GCyl(.032*s,.038*s,.6*s,6),gripM2,0,-.2*s,0));            // the haft
-      for(const y of[.04,-.14,-.32])w.add(M(GCyl(.042*s,.042*s,.018*s,6),gripM,0,y*s,0));   // its bindings
-      w.add(M(GBox(.5*s,.065*s,.085*s),gripM,0,-.54*s,0));              // the cross, a bar of iron
-      w.add(M(GBox(.12*s,.22*s,.05*s),bladeM,0,-.68*s,0));              // the ricasso
-      const bl=M(GBox(.19*s,1.3*s,.046*s),bladeM,0,-1.44*s,0);          // the blade
-      const bl2=M(GBox(.15*s,.26*s,.04*s),bladeM,0,-2.2*s,0);           // its taper
-      const tip=M(GCone(.075*s,.2*s,4),bladeM,0,-2.42*s,0);tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;tip.scale.z=.55;
-      w.add(bl,bl2,tip);
-      for(const zz of[.026,-.026])w.add(M(GBox(.04*s,1.1*s,.006*s),lam({color:0x5c646a}),0,-1.4*s,zz*s));   // the fuller, either face
+      w.add(M(GSph(.06*s,7,5),gripM,0,.12*s,0));                         // the pommel, a round knob
+      w.add(M(GCyl(.04*s,.046*s,.6*s,7),gripM2,0,-.2*s,0));              // the thick wrapped haft
+      for(const y of[.04,-.14,-.32])w.add(M(GCyl(.05*s,.05*s,.02*s,7),gripM,0,y*s,0));   // its bindings
+      w.add(M(GBox(.38*s,.1*s,.13*s),gripM,0,-.56*s,0));                 // the guard, a block of iron
+      const bl=M(busterBlade(s),bladeM,0,0,0);w.add(bl);                  // the blade, the Buster's slab
       rig.reach=3.4*s;rig.bladeMesh=bl;rig.gripLo=-.44;rig.gripHi=.08;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
@@ -4982,7 +5001,9 @@ const player={
   },
   weapon(){return LOADOUT.weapon==='ultra'?'sword':LOADOUT.weapon;},   // (the ultra greatsword is a greatsword to every rule but weight)
   ultra(){return LOADOUT.weapon==='ultra';},
-  swing(){return this.ultra()?1.5:1;},                                   // the ultra's swings take half again as long
+  swing(){return this.ultra()?1.5:1;},
+  // the slab's weight lands at the end of every arc: the camera jolts and the ground takes a thud
+  ultraThud(p,at,n){n=n||1;if(this.ultra()&&(this.thudDone|0)<n&&p>=at){this.thudDone=n;G.camShake=Math.max(G.camShake,.3);AudioSys.bodyfall();G.vibr(25);}},                                   // the ultra's swings take half again as long
   atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.ultra()?1.05:.68;},
   // the pilgrim's body is remade from the loadout: same place, same facing
   rebuild(){
@@ -5301,7 +5322,7 @@ const player={
     const startRollAtk=(d)=>{
       if(this.weapon()==='bow'){startShoot(null);return;}
       this.draw();
-      this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;
+      this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.queued=false;this.rollAtkQueued=null;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       else if(d!==null&&d!==undefined)this.facing=d;
@@ -5319,7 +5340,7 @@ const player={
       this.atkDur=this.atkDurFor();
       this.t=0;this.combo=0;this.chain=0;
       this.queued=false;this.qDir=null;this.hitDone=false;
-      this.sfxDone=false;
+      this.sfxDone=false;this.thudDone=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       else if(s&&s.sx!==null)this.facing=swipeWorld(s);
       else{ // tap/keyboard: quietly square up to the nearest horror
@@ -5357,7 +5378,7 @@ const player={
     // the waterfowl: one rising cut out of the saya, and then the air
     // keeps cutting all round the body
     const startFowl=()=>{
-      this.state='fowl';this.t=0;this.hitDone=false;this.sfxDone=false;this.fowlTick=0;this.fowlArc=0;this.fowlSnd=0;
+      this.state='fowl';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.fowlTick=0;this.fowlArc=0;this.fowlSnd=0;
       this.chargeFull=this.chargeT>=.6;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       G.glowFlash=1;
@@ -5365,28 +5386,28 @@ const player={
     // the tiger blade: the raised blade driven into the ground, and three
     // shock waves tear away up the line
     const startTiger=()=>{
-      this.state='tiger';this.t=0;this.hitDone=false;this.sfxDone=false;
+      this.state='tiger';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.chargeFull=this.chargeT>=.6;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
     };
     // the piercing thrust: the point chambered at the hip, then a lunge
     // that drives it straight through whoever is in the line
     const startKThrust=()=>{
-      this.state='kthrust';this.t=0;this.hitDone=false;this.sfxDone=false;
+      this.state='kthrust';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.chargeFull=this.chargeT>=.6;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
     };
     // the iaido draw: five metres through them in a flash, and they fall
     // only when the blade clicks home
     const startIai=()=>{
-      this.state='iai';this.t=0;this.hitDone=false;this.sfxDone=false;this.iaiHits=[];
+      this.state='iai';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.iaiHits=[];
       this.chargeFull=this.chargeT>=.6;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       G.glowFlash=1;
     };
     // a quick shot: nock, draw, loose
     const startShoot=(s)=>{
-      this.state='shoot';this.t=0;this.hitDone=false;this.sfxDone=false;this.queued=false;this.qDir=null;
+      this.state='shoot';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.queued=false;this.qDir=null;
       this.sprintT=0;this.sprinting=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       else if(s&&s.sx!==null)this.facing=swipeWorld(s);
@@ -5400,7 +5421,7 @@ const player={
     };
     // the whirlwind: the coil lets go into two full turns with the blade out
     const startSpin=()=>{
-      this.state='spin';this.t=0;this.hitDone=0;this.sfxDone=0;this.queued=false;this.qDir=null;
+      this.state='spin';this.t=0;this.hitDone=0;this.sfxDone=0;this.thudDone=0;this.queued=false;this.qDir=null;
       this.chargeFull=this.chargeT>=.6;
       G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
       boneBurst(this.x,.15,this.z,0x4a463a,4,1.4);
@@ -5416,14 +5437,14 @@ const player={
     };
     // the earthshaker: the blade hauled overhead and driven into the flags
     const startQuake=()=>{
-      this.state='quake';this.t=0;this.hitDone=false;this.sfxDone=false;this.queued=false;this.qDir=null;
+      this.state='quake';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.queued=false;this.qDir=null;
       this.chargeFull=this.chargeT>=.6;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       G.glowFlash=1;
     };
     // the double slash: the coil lets go into two fast cuts, forward and back
     const startDouble=()=>{
-      this.state='dslash';this.t=0;this.hitDone=0;this.sfxDone=0;this.queued=false;this.qDir=null;
+      this.state='dslash';this.t=0;this.hitDone=0;this.sfxDone=0;this.thudDone=0;this.queued=false;this.qDir=null;
       this.chargeFull=this.chargeT>=.6;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
@@ -5432,7 +5453,7 @@ const player={
     // the dash cut: a wide low sweep flung straight out of a full sprint
     const startSprintAtk=()=>{
       this.draw();
-      this.state='sprintatk';this.t=0;this.hitDone=false;this.sfxDone=false;
+      this.state='sprintatk';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       boneBurst(this.x,.12,this.z,0x4a463a,4,1.4);   // skid dust
@@ -5442,7 +5463,7 @@ const player={
     // comes down fast, and what it meets it parts
     const startExecute=(e)=>{
       this.draw();
-      this.state='execute';this.t=0;this.execT=e;this.hitDone=false;this.sfxDone=false;
+      this.state='execute';this.t=0;this.execT=e;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
       e.state='held';e.t=0;e.vx=0;e.vz=0;
       this.facing=Math.atan2(e.x-this.x,e.z-this.z);
@@ -5489,6 +5510,7 @@ const player={
     }
     else if(this.state==='execute'){
       const bowE=this.weapon()==='bow',DUR=(bowE?.9:.62)*this.swing(),p=this.t/DUR,e=this.execT;
+      if(!bowE)this.ultraThud(p,.85);
       if(!e||e.hp<=0&&!this.hitDone){this.state='free';G.slowMo=1;}
       else{
         // step in to the killing distance during the wind-up
@@ -5560,6 +5582,7 @@ const player={
       if(foe&&p<.08)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
       if(this.sfxDone<1&&p>=.05){this.sfxDone=1;AudioSys.swing();}
       if(this.sfxDone<2&&p>=.4){this.sfxDone=2;AudioSys.swing();}
+      this.ultraThud(p,.3);this.ultraThud(p,.66,2);
       const dmg=this.chargeFull?22:16;
       // the first cut sweeps right to left; the second comes straight back,
       // and a full coil's second cut breaks anything that isn't the Warden
@@ -5580,7 +5603,7 @@ const player={
         if(this.queued){ // flows on into the chain
           this.state='attack';this.t=0;this.combo=2;this.chain=2;
           this.atkDur=this.atkDurFor();
-          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
       }
@@ -5789,12 +5812,13 @@ const player={
         }
       }
       if(p>=.83&&!this.sfxDone){this.sfxDone=true;this.facing=wrapA(this.facing);}
+      this.ultraThud(p,.86);
       if(IN.swipe&&IN.swipe.kind==='atk'&&p>.85){this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;}
       if(p>=1){
         if(this.queued){
           this.state='attack';this.t=0;this.combo=2;this.chain=2;
           this.atkDur=this.atkDurFor();
-          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
       }
@@ -5802,6 +5826,7 @@ const player={
     else if(this.state==='sprintatk'){
       const DUR=.5*this.swing(),p=this.t/DUR;
       if(!this.sfxDone&&p>=.12){this.sfxDone=true;AudioSys.swing();G.camShake=Math.max(G.camShake,.1);}
+      this.ultraThud(p,.8);
       if(p<.5){ // the run's momentum drives the point home
         const sp=10*(1-p*.8);
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
@@ -5817,7 +5842,7 @@ const player={
       if(p>=1){
         if(this.queued){
           this.state='attack';this.t=0;this.combo=0;this.chain=1;
-          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
       }
@@ -5840,6 +5865,7 @@ const player={
     else if(this.state==='rollatk'){
       const DUR=.44*this.swing(),p=this.t/DUR;
       if(!this.sfxDone&&p>=.15){this.sfxDone=true;AudioSys.swing();}
+      this.ultraThud(p,.8);
       if(p>.1&&p<.5){ // the momentum of the roll carries into the cut
         this.x+=Math.sin(this.facing)*7.5*dt;this.z+=Math.cos(this.facing)*7.5*dt;
       }
@@ -5855,7 +5881,7 @@ const player={
       if(p>=1){
         if(this.queued){ // flows on into the normal chain
           this.state='attack';this.t=0;this.combo=0;this.chain=1;
-          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null&&this.qDir!==undefined)this.facing=this.qDir;
           this.qDir=null;
         }else this.state='free';
@@ -5876,6 +5902,7 @@ const player={
       // of the blade even when it finds nothing
       if(!this.sfxDone&&p>=.36){this.sfxDone=true;if(this.ultra())AudioSys.heavySwing();else AudioSys.swing();
         G.camShake=Math.max(G.camShake,this.ultra()?.16:.09);}
+      this.ultraThud(p,.78);
       // lunge through the cut — the blade goes and finds them,
       // but only strides hard when something is there to reach
       if(p>.34&&p<.68){
@@ -5905,7 +5932,7 @@ const player={
         if(this.queued){
           this.combo=(this.combo+1)%4;this.chain++;this.t=0;
           this.atkDur=this.atkDurFor();
-          this.queued=false;this.hitDone=false;this.sfxDone=false;
+          this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
         }else this.state='free';
