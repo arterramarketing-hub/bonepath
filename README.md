@@ -20,6 +20,21 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   cathedral — with the full touch and keyboard control lists, and **the
   pilgrim**: a lit portrait of your knight with three selectors under it.
   **Weapon** — the greatsword, the longbow, or the katana. **Armour** —
+  **sheet knight** (built part by part against an eight-view reference
+  sheet: a rounded steel helm rising to a short spike with a T of dark —
+  the eye slit across, the nasal down from it — over a teal gorget; a
+  broad straw pelt over both shoulders, its rim hung with torn points of
+  hide; an olive-grey cuirass lamed four times across the chest under a
+  leather baldric; a broad knotworked belt with gold edges and a square
+  buckle; one long teal tabard panel front and back to the shin, real
+  cloth, with a gold scroll border; dark leather trousers into tan boots
+  with a rolled cuff at mid-calf; slimmer plated arms; and a straight
+  greatsword with a fuller, a plain cross, a long wrapped grip and a round
+  pommel, carried across the shoulder. The hero is drawn CRISP: a second
+  pass renders the player alone at the device's full resolution and lays
+  it over the PSX frame, hidden wherever the low-res world's depth says
+  the world is nearer, and graded the same way — so the knight reads like
+  the sheet while the world keeps its grain),
   **knight plate** (the sculpted knight, after a Faraam-style reference:
   a ridged helm with a central bar and an eye slit to either side, one
   small fur pelt, one piece turned from a profile and roughed with

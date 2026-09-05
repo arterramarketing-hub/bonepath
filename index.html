@@ -636,6 +636,84 @@ function buildTextures(){
     ctx.strokeStyle='rgba(200,214,190,.75)';ctx.lineWidth=2;ctx.strokeRect(6,6,S-12,S-12);
     ctx.lineWidth=1;for(let i=0;i<S;i+=8){ctx.beginPath();ctx.arc(i+4,S-9,2.5,0,Math.PI);ctx.stroke();ctx.beginPath();ctx.arc(i+4,9,2.5,Math.PI,TAU);ctx.stroke();}
   });
+  /* ---- the sheet knight's cloth and steel, after the eight-view reference ---- */
+  /* the tabard: bright teal cloth, a gold scroll border, a centre seam */
+  makeTex('shTabard',256,(ctx,S)=>{
+    srand(201);ctx.fillStyle='#2f7570';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,7,[14,32,30],.45);
+    for(let y=0;y<S;y+=3){ctx.fillStyle=`rgba(140,200,190,${rr(.02,.05)})`;ctx.fillRect(0,y,S,1);}
+    for(let x=0;x<S;x+=3){ctx.fillStyle=`rgba(10,40,38,${rr(.02,.05)})`;ctx.fillRect(x,0,1,S);}
+    // the gold border: two lines and a run of scrolls between them
+    const gold='rgba(206,170,86,.95)',gold2='rgba(160,124,52,.9)';
+    ctx.strokeStyle=gold;ctx.lineWidth=3;ctx.strokeRect(9,9,S-18,S-18);
+    ctx.strokeStyle=gold2;ctx.lineWidth=1.5;ctx.strokeRect(19,19,S-38,S-38);
+    ctx.strokeStyle=gold;ctx.lineWidth=2;
+    const scroll=(x,y,dx,dy)=>{ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*1.5);ctx.stroke();ctx.beginPath();ctx.arc(x+dx*8,y+dy*8,4,Math.PI,Math.PI*2.5);ctx.stroke();};
+    for(let i=14;i<S-14;i+=16){scroll(i,14,1,0);scroll(i,S-14,1,0);scroll(14,i,0,1);scroll(S-14,i,0,1);}
+    ctx.fillStyle='rgba(206,170,86,.9)';
+    for(let i=14;i<S-14;i+=16){ctx.fillRect(i+6,12,2,4);ctx.fillRect(i+6,S-16,2,4);ctx.fillRect(12,i+6,4,2);ctx.fillRect(S-16,i+6,4,2);}
+    ctx.fillStyle='rgba(20,60,56,.5)';ctx.fillRect(S/2-1,20,2,S-40);         // the seam
+  });
+  /* the fur: pale straw, strands light over dark, long and matted */
+  makeTex('shFur',128,(ctx,S)=>{
+    srand(203);ctx.fillStyle='#b8a476';ctx.fillRect(0,0,S,S);
+    for(let i=0;i<1100;i++){const x=rnd()*S,y=rnd()*S,l=rr(5,14),a=rr(-.45,.45)+Math.PI/2;
+      ctx.strokeStyle=rnd()<.55?`rgba(232,220,178,${rr(.35,.75)})`:`rgba(96,80,46,${rr(.25,.55)})`;ctx.lineWidth=rr(.7,1.5);
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);ctx.stroke();}
+    grime(ctx,S,fbm,10,[70,64,44],.22);
+  });
+  /* its fringe: the same pelt, the bottom torn into hanging points */
+  makeTex('shFurFringe',128,(ctx,S)=>{
+    srand(205);ctx.fillStyle='#b8a476';ctx.fillRect(0,0,S,S);
+    for(let i=0;i<700;i++){const x=rnd()*S,y=rnd()*S,l=rr(6,18),a=rr(-.3,.3)+Math.PI/2;
+      ctx.strokeStyle=rnd()<.55?`rgba(232,220,178,${rr(.35,.75)})`:`rgba(96,80,46,${rr(.25,.55)})`;ctx.lineWidth=rr(.7,1.6);
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);ctx.stroke();}
+    ctx.globalCompositeOperation='destination-out';
+    ctx.beginPath();ctx.moveTo(0,S);
+    for(let x=0;x<=S;x+=rr(7,13)){ctx.lineTo(x,S-rr(10,58));ctx.lineTo(x+rr(3,6),S-rr(0,8));}
+    ctx.lineTo(S,S);ctx.closePath();ctx.fill();
+    ctx.globalCompositeOperation='source-over';
+  });
+  /* the plate: olive-grey steel, brushed, a row of rivets, worn at the edges */
+  makeTex('shPlate',128,(ctx,S)=>{
+    srand(207);ctx.fillStyle='#3d4237';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,12,[18,20,14],.5);
+    for(let y=0;y<S;y+=2){ctx.fillStyle=`rgba(150,156,140,${rr(.02,.06)})`;ctx.fillRect(0,y,S,1);}
+    for(let i=0;i<14;i++){ctx.strokeStyle=`rgba(160,168,150,${rr(.1,.3)})`;ctx.lineWidth=1;
+      const x=rnd()*S,y=rnd()*S,a=rr(0,TAU),l=rr(5,20);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);ctx.stroke();}
+    for(let x=8;x<S;x+=16){ctx.fillStyle='#2a2d26';ctx.beginPath();ctx.arc(x,S-10,2.2,0,TAU);ctx.fill();ctx.fillStyle='#8a9080';ctx.beginPath();ctx.arc(x-.6,S-10.6,1.1,0,TAU);ctx.fill();}
+    speckle(ctx,S,90,['#2a2d26','#7a8070'],1,2);
+  });
+  /* the helm and gauntlets: brighter steel with the same olive cast */
+  makeTex('shHelm',128,(ctx,S)=>{
+    srand(209);ctx.fillStyle='#5e665e';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,12,[24,26,22],.45);
+    for(let y=0;y<S;y+=2){ctx.fillStyle=`rgba(190,196,186,${rr(.02,.07)})`;ctx.fillRect(0,y,S,1);}
+    for(let i=0;i<10;i++){ctx.strokeStyle=`rgba(200,206,196,${rr(.1,.3)})`;ctx.lineWidth=1;
+      const x=rnd()*S,y=rnd()*S,a=rr(0,TAU),l=rr(4,16);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);ctx.stroke();}
+    speckle(ctx,S,80,['#4a4f48','#a8aea4'],1,2);
+  });
+  /* the belt: a broad brown band, knotwork in a paler leather, gold at the edges */
+  makeTex('shBelt',128,(ctx,S)=>{
+    srand(211);ctx.fillStyle='#5a3b22';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,6,[22,14,8],.45);
+    ctx.strokeStyle='rgba(176,140,84,.9)';ctx.lineWidth=2.2;
+    for(let x=0;x<S;x+=16){ctx.beginPath();ctx.ellipse(x+8,S/2,9,14,0,0,TAU);ctx.stroke();ctx.beginPath();ctx.ellipse(x+8,S/2,4,7,0,0,TAU);ctx.stroke();}
+    ctx.beginPath();ctx.moveTo(0,S/2-9);for(let x=0;x<=S;x+=8)ctx.lineTo(x,S/2+(((x/8)|0)%2?9:-9));ctx.stroke();
+    ctx.fillStyle='rgba(206,170,86,.95)';ctx.fillRect(0,0,S,6);ctx.fillRect(0,S-6,S,6);
+    ctx.fillStyle='rgba(120,90,40,.9)';ctx.fillRect(0,6,S,2);ctx.fillRect(0,S-8,S,2);
+  });
+  /* the trousers: dark oiled leather */
+  makeTex('shLeather',128,(ctx,S)=>{
+    srand(213);ctx.fillStyle='#3a2c24';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,6,[16,10,8],.5);speckle(ctx,S,260,['#4a3a2e','#2a1e18','#54402f'],1,2);
+  });
+  /* the boots: tan leather, scuffed */
+  makeTex('shBoot',128,(ctx,S)=>{
+    srand(215);ctx.fillStyle='#8a6a44';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,6,[26,18,10],.5);speckle(ctx,S,260,['#9a7a52','#6a4e30','#a88a5e'],1,2);
+    for(let y=0;y<S;y+=4){ctx.fillStyle=`rgba(40,26,14,${rr(.03,.08)})`;ctx.fillRect(0,y,S,1);}
+  });
   /* -- leather: dark brown with grain -- */
   makeTex('leather',128,(ctx,S)=>{
     srand(139);ctx.fillStyle='#4a3324';ctx.fillRect(0,0,S,S);
@@ -910,20 +988,54 @@ const hazeRT=new THREE.WebGLRenderTarget(4,4,{
 hazeRT.texture.encoding=THREE.sRGBEncoding;
 if(HAZE_SEP)hazeRT.depthTexture=rt.depthTexture;
 const hazeScene=HAZE_SEP?new THREE.Scene():scene;
+/* the crisp pass: the hero alone is drawn again at the DEVICE's resolution
+   into its own buffer and laid over the PSX frame by the grade quad —
+   hidden behind the world wherever the low-res depth says the world is
+   nearer. Layer 1 is the hero's; every light shines on both layers. Needs
+   the depth texture, like the haze does. */
+const HERO_HI=HAZE_SEP;
+const crispRT=new THREE.WebGLRenderTarget(4,4,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true});
+crispRT.texture.encoding=THREE.sRGBEncoding;
+const heroRes={value:new THREE.Vector2(1,1)};
+const worldDepth={value:HAZE_SEP?rt.depthTexture:null};
+const heroClip={value:1};   // (0: draw the hero unclipped — for renders that use another camera)
+// a hero material: no vertex snap, and every fragment checks the world's
+// depth under it before it draws
+function heroify(m){
+  if(!HERO_HI||m.userData.hero)return m;
+  m.userData.hero=true;
+  m.onBeforeCompile=s=>{
+    s.uniforms.uWorldDepth=worldDepth;s.uniforms.uHeroRes=heroRes;s.uniforms.uHeroClip=heroClip;
+    s.fragmentShader='uniform sampler2D uWorldDepth;uniform vec2 uHeroRes;uniform float uHeroClip;\n'+s.fragmentShader.replace(
+      '#include <clipping_planes_fragment>',
+      `#include <clipping_planes_fragment>
+       if(uHeroClip>0.5){ vec2 suv=gl_FragCoord.xy/uHeroRes; float wd=texture2D(uWorldDepth,suv).r;
+         if(gl_FragCoord.z>wd+0.0004) discard; }`);
+  };
+  m.needsUpdate=true;return m;
+}
+function heroifyObject(root){
+  root.traverse(o=>{
+    if(o.isLight){o.layers.enable(0);o.layers.enable(1);return;}
+    o.layers.set(1);
+    if(o.isMesh||o.isSprite){const ms=Array.isArray(o.material)?o.material:[o.material];for(const m of ms)if(m)heroify(m);}
+  });
+}
+let lightSweep=0;
 renderer.setClearColor(0x000000,1);
 const postScene=new THREE.Scene();
 const postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const gradeMat=new THREE.ShaderMaterial({
-  uniforms:{tex:{value:rt.texture},uPx:{value:new THREE.Vector2(1/240,1/135)},
-    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0},uExpo:{value:1.04}},
+  uniforms:{tex:{value:rt.texture},uPx:{value:new THREE.Vector2(1/240,1/135)},uSize:{value:new THREE.Vector2(240,135)},
+    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0},uExpo:{value:1.04},
+    tHero:{value:crispRT.texture},uHeroOn:{value:HERO_HI?1:0}},
   depthTest:false,depthWrite:false,
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
   fragmentShader:[
     'precision mediump float;',
-    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform float uHazeOn;uniform float uExpo;uniform vec2 uPx;varying vec2 vUv;',
+    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform sampler2D tHero;uniform float uHazeOn;uniform float uHeroOn;uniform float uExpo;uniform vec2 uPx;uniform vec2 uSize;varying vec2 vUv;',
     'float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}',
-    'void main(){',
-    '  vec3 c=texture2D(tex,vUv).rgb;',
+    'vec3 grade(vec3 c,vec2 px){',
     '  c*=uExpo;',
     '  c=mix(c,c*c*(3.0-2.0*c),.62);',
     '  float l=dot(c,vec3(.299,.587,.114));',
@@ -931,21 +1043,35 @@ const gradeMat=new THREE.ShaderMaterial({
     '  c+=vec3(.028,.068,.062)*(1.0-smoothstep(0.0,.42,l));',
     '  c*=mix(vec3(1.0),vec3(1.17,1.05,.80),smoothstep(.42,1.0,l));',
     '  c*=vec3(.975,1.025,.99);',
-    '  float d=bayer2(gl_FragCoord.xy*.5)*.25+bayer2(gl_FragCoord.xy);',
+    '  float d=bayer2(px*.5)*.25+bayer2(px);',
     // quantize + dither the BRIGHTNESS only and keep the hue: rounding each
     // channel on its own turned every lit gradient into off-colour speckle
     '  c=clamp(c,0.,1.);',
     '  float lum=dot(c,vec3(.299,.587,.114));',
     '  float q=floor(lum*63.0+d)/63.0;',
     '  c=lum>.001?clamp(c*(q/lum),0.,1.):vec3(0.);',
+    '  return c;}',
+    'void main(){',
+    // the world: graded and dithered on ITS pixel grid, however big the screen
+    '  vec3 c=grade(texture2D(tex,vUv).rgb,floor(vUv*uSize));',
     // the haze rides on top, untouched by the grade: just soft light
     '  c+=texture2D(hazeTex,vUv).rgb*uHazeOn;',
+    // the hero, crisp, graded the same way on the device's grid
+    '  vec4 h=texture2D(tHero,vUv);',
+    '  c=mix(c,grade(h.rgb,gl_FragCoord.xy),h.a*uHeroOn);',
     '  gl_FragColor=vec4(c,1.0);',
     '}'].join('\n')});
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
 function renderFrame(){
   renderer.setRenderTarget(rt);
   renderer.render(scene,camera);
+  if(HERO_HI){
+    if(--lightSweep<=0){lightSweep=90;scene.traverse(o=>{if(o.isLight){o.layers.enable(0);o.layers.enable(1);}});}  // (new lights come and go)
+    const bg=scene.background;scene.background=null;
+    renderer.setRenderTarget(crispRT);renderer.setClearColor(0x000000,0);renderer.clear();
+    camera.layers.set(1);renderer.render(scene,camera);camera.layers.set(0);
+    renderer.setClearColor(0x000000,1);scene.background=bg;
+  }
   if(HAZE_SEP){
     renderer.setRenderTarget(hazeRT);
     renderer.autoClearDepth=false;   // keep the scene's depth: walls hide the haze
@@ -965,9 +1091,12 @@ function resize(){
   // (before, portrait was rendered ~100 pixels wide and stretched)
   const short=Math.min(w,h),k=Math.min(INTERNAL_H,short)/short;
   const iw=Math.round(w*k),ih=Math.round(h*k);
-  renderer.setSize(iw,ih,false);
+  // the canvas itself is the device's size when the hero is drawn crisp
+  // (the PSX frame is upscaled onto it); otherwise it is the small frame
+  if(HERO_HI){renderer.setSize(w,h,false);crispRT.setSize(w,h);heroRes.value.set(w,h);}
+  else renderer.setSize(iw,ih,false);
   rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
-  gradeMat.uniforms.uPx.value.set(2/iw,2/ih);
+  gradeMat.uniforms.uPx.value.set(2/iw,2/ih);gradeMat.uniforms.uSize.value.set(iw,ih);
   camera.aspect=w/h;camera.updateProjectionMatrix();
   snapUniform.value.set(iw/2,ih/2);
 }
@@ -988,7 +1117,7 @@ function psx(mat){
 function lam(opts){return psx(new THREE.MeshLambertMaterial(opts));}
 // moonlight glints: these surfaces catch a specular highlight
 const SHINY={iron:[0x9fb2c0,26],blade:[0xcfe0ea,60],helm:[0x9fb2c0,26],bone:[0x6a7a70,12],
-  blacksteel:[0xb0bcc8,44],helmB:[0xb0bcc8,44],mail:[0x7a828a,20]};
+  blacksteel:[0xb0bcc8,44],helmB:[0xb0bcc8,44],mail:[0x7a828a,20],shHelm:[0x8a948a,18],shPlate:[0x5a6458,10]};
 function mat(name,extra){
   const o=Object.assign({map:texCache[name]},extra||{});
   const s=SHINY[name];
@@ -2521,6 +2650,12 @@ function buildHumanoid(o){
     {const p=cuG.attributes.position;for(let i=0;i<p.count;i++)p.setX(i,p.getX(i)*1.36);cuG.computeVertexNormals();}
     const cu=M(cuG,o.chestMat||o.torsoMat,0,0,0);
     torso.add(cu);
+    if(o.sheet){ // the chest is lamed: four bands stand a little proud of the plate, one over the other
+      for(let i=0;i<4;i++){const y=.1+i*.11,rr0=.205+i*.013;
+        const lg=asym(GLathe([[rr0-.01,y],[rr0+.026,y+.03],[rr0+.022,y+.085]]),.74,.55);
+        const p=lg.attributes.position;for(let k=0;k<p.count;k++)p.setX(k,p.getX(k)*1.36);lg.computeVertexNormals();
+        torso.add(M(lg,o.chestMat||o.torsoMat,0,0,0));}
+    }
     torso.add(M(GBox(.05*s,.5*s,.03*s),limb,0,.28*s,-.19*s));                       // spine ridge
     {const cg=asym(GLathe([[.17,.55],[.19,.6],[.165,.64]]),.85,.7);const p=cg.attributes.position;for(let i=0;i<p.count;i++)p.setX(i,p.getX(i)*1.2);cg.computeVertexNormals();torso.add(M(cg,limb,0,0,0));} // rolled collar
     torso.add(M(GCyl(.24*s,.24*s,.05*s,10),limb,0,.02*s,0));                        // belt
@@ -2560,7 +2695,18 @@ function buildHumanoid(o){
     // the barbute turned from a profile: a smooth skull, a flare at the
     // cheeks, the T-slot dark, a comb down the crown
     head.add(M(asym(GLathe([[.09,.06],[.13,.1],[.148,.2],[.145,.3],[.12,.38],[.06,.43],[0,.44]],16),1.04,.96),o.headMat,0,0,0));
-    if(o.faraam){
+    if(o.sheet){
+      // the sheet's helm: a rounded skull rising to a short spike, a T of
+      // dark — the nasal bar down the middle, the eye slit across — a
+      // flared guard at the neck, and a teal gorget showing under the rim
+      head.add(M(GBox(.2*s,.028*s,.03*s),SOCK,0,.27*s,.135*s));                     // the eye slit
+      head.add(M(GBox(.03*s,.19*s,.03*s),SOCK,0,.165*s,.14*s));                     // the nasal, dark, down from it: a T
+      head.add(M(GBox(.24*s,.014*s,.035*s),limb,0,.29*s,.135*s));                   // the brow ridge over the slit
+      head.add(M(GCone(.028*s,.13*s,6),limb,0,.5*s,0));                             // the spike
+      head.add(M(GCyl(.15*s,.185*s,.07*s,14),o.headMat,0,.055*s,-.01*s));           // the neck guard, flared
+      const sc=new THREE.Mesh(new THREE.TorusGeometry(.1*s,.032*s,6,12),o.torsoMat);sc.rotation.x=Math.PI/2;sc.position.y=.04*s;psx(sc.material);head.add(sc);
+      const sc2=new THREE.Mesh(new THREE.TorusGeometry(.185*s,.035*s,6,14),o.torsoMat);sc2.rotation.x=Math.PI/2;sc2.position.y=.63*s;psx(sc2.material);torso.add(sc2);
+    }else if(o.faraam){
       // the face: a solid plate with a ridge running from the crest down
       // its middle to the chin, and one eye slit to either side of it
       head.add(M(GBox(.21*s,.024*s,.03*s),SOCK,0,.27*s,.135*s));                    // the eye slit
@@ -2617,14 +2763,35 @@ function buildHumanoid(o){
       geo.computeVertexNormals();return geo;};
     // one small pelt: it sits on the shoulders, shallow over the chest so
     // the scarf shows, and reaches only to the shoulder blades behind
+    if(o.sheet){
+      // the sheet's pelt: broad — out past the pauldrons and down over the
+      // upper arms, fuller behind — its rim hung with torn points of hide
+      const mantle=asym(GLathe([[.06,.75],[.15,.74],[.26,.68],[.33,.58],[.37,.48],[.37,.38],[.35,.31]],20),.7,.9);
+      {const p=mantle.attributes.position;for(let k=0;k<p.count;k++)p.setX(k,p.getX(k)*1.15);mantle.computeVertexNormals();}
+      torso.add(M(shag(mantle,.17),furM,0,0,0));
+      const fm=o.fringeMat||furM;
+      for(let i=0;i<22;i++){const a=i/22*TAU,rx=.35*1.15*s,rz=.35*s*(Math.cos(a)>0?.7:.9);
+        const x=Math.sin(a)*rx,z=Math.cos(a)*rz;
+        const f=new THREE.Mesh(new THREE.PlaneGeometry(.16*s,.16*s),fm);
+        f.position.set(x,.3*s-.06*s,z);f.rotation.y=a+Math.PI/2;f.rotation.x=-.08;torso.add(f);}
+    }else{
     const mantle=asym(GLathe([[.06,.66],[.18,.65],[.29,.6],[.36,.53],[.385,.47],[.37,.41],[.34,.4]],18),.6,.82);
     {const p=mantle.attributes.position;for(let k=0;k<p.count;k++)p.setX(k,p.getX(k)*1.28);mantle.computeVertexNormals();}
     torso.add(M(shag(mantle,.14),furM,0,0,0));
+    }
     /* the baldric across the chest, and the belt */
     const leatherM=o.leatherMat||o.gripMat;
-    const bd=M(GBox(.065*s,.72*s,.018*s),leatherM,0,.27*s,.26*s);bd.rotation.z=-.85;bd.rotation.x=.08;torso.add(bd);
+    const bd=M(GBox(o.sheet?.05*s:.065*s,.72*s,.018*s),o.sheet?(o.gripMat||leatherM):leatherM,0,.27*s,.26*s);bd.rotation.z=-.85;bd.rotation.x=.08;torso.add(bd);
+    if(o.sheet){
+      const bm=o.beltMat||leatherM;bm.map=bm.map.clone();bm.map.needsUpdate=true;bm.map.repeat.set(5,1);
+      const bg=asym(GLathe([[.24,-.05],[.25,.0],[.245,.06],[.235,.1]],16),.8,.62);
+      {const p=bg.attributes.position;for(let k=0;k<p.count;k++)p.setX(k,p.getX(k)*1.3);bg.computeVertexNormals();}
+      torso.add(M(bg,bm,0,0,0));                                                                                      // the broad band
+      torso.add(M(GBox(.07*s,.07*s,.02*s),limb,0,.03*s,.27*s));                                                       // its buckle
+    }else{
     const belt=new THREE.Mesh(new THREE.TorusGeometry(.245*s,.03*s,5,14),leatherM);belt.rotation.x=Math.PI/2;belt.position.y=.03*s;psx(belt.material);torso.add(belt);
     torso.add(M(GBox(.06*s,.06*s,.02*s),limb,0,.03*s,.25*s));                                                       // the buckle
+    }
   }
   /* arms: shoulder -> tapered upper -> elbow -> tapered fore (+hand) */
   const armThick=sk?[.05,.04]:[.08,.065];
@@ -2644,8 +2811,8 @@ function buildHumanoid(o){
     }else{
       sh.add(M(GSph(.055*s,5,4),limb,0,0,0));                       // shoulder knob
     }
-    sh.add(M(GCyl(armThick[0]*(o.faraam?1.25:1)*s,armThick[1]*(o.faraam?1.1:1)*s,.32*AL*s,o.faraam?7:5),limb,0,-.17*AL*s,0));   // plate upper arm
-    if(o.faraam){const bi=M(GSph(.1*s,7,5),limb,0,-.13*AL*s,.01*s);bi.scale.set(1.05,1.5,1.05);sh.add(bi);           // the bicep, in plate
+    sh.add(M(GCyl(armThick[0]*(o.sheet?1.1:o.faraam?1.25:1)*s,armThick[1]*(o.faraam?1.1:1)*s,.32*AL*s,o.faraam?7:5),o.sheet?(o.plateMat||limb):limb,0,-.17*AL*s,0));   // plate upper arm
+    if(o.faraam){const bi=M(GSph(o.sheet?.085*s:.1*s,7,5),o.sheet?(o.plateMat||limb):limb,0,-.13*AL*s,.01*s);bi.scale.set(1.05,1.5,1.05);sh.add(bi);           // the bicep, in plate
       const st=new THREE.Mesh(new THREE.TorusGeometry(armThick[0]*1.2*s,.014*s,5,10),o.leatherMat||limb);st.position.y=-.22*AL*s;psx(st.material);sh.add(st);}   // a strap round it
     const el=new THREE.Group();el.position.y=-.34*AL*s;sh.add(el);
     el.add(M(GCyl(armThick[1]*(o.faraam?1.1:1)*s,armThick[1]*.85*s,.3*AL*s,o.faraam?7:5),o.faraam?(o.upperMat||limb):limb,0,-.15*AL*s,0));   // the forearm: mail, under this set
@@ -2710,6 +2877,20 @@ function buildHumanoid(o){
       const saya=M(GBox(.05*s,1.3*s,.034*s),gripM2,.2*s,-.4*s,-.04*s);   // +x: the LEFT hip (the sword arm is mirrored to -x)
       saya.rotation.z=-.2;saya.rotation.x=.75;body.add(saya);rig.saya=saya;         // lying back along the hip, its mouth forward and up, the way one is worn
       const mount=new THREE.Group();mount.position.set(0,.66*s,0);saya.add(mount);rig.sayaMount=mount;
+    }else if(o.weapon==='sheetsword'){
+      /* the sheet's greatsword: a broad straight blade with a shallow
+         fuller, a plain straight cross, a long leather-wrapped grip with
+         a round pommel — carried across the shoulder like the claymore */
+      const bl=M(GBox(.115*s,1.18*s,.032*s),bladeM,0,-1.0*s,0);
+      const ful=M(GBox(.03*s,.9*s,.036*s),o.clothMat||gripM,0,-.9*s,0);ful.material=lam({color:0x6a7278});   // the fuller, darker
+      const tip=M(GCone(.058*s,.2*s,4),bladeM,0,-1.69*s,0);tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;tip.scale.z=.55;
+      w.add(bl,ful,tip);
+      w.add(M(GBox(.34*s,.045*s,.06*s),gripM,0,-.4*s,0));                  // the cross
+      w.add(M(GBox(.09*s,.08*s,.05*s),bladeM,0,-.34*s,0));                  // the ricasso block
+      w.add(M(GCyl(.03*s,.032*s,.62*s,7),o.clothMat||gripM,0,-.08*s,0));    // the long wrapped grip
+      for(let i=0;i<6;i++)w.add(M(GCyl(.034*s,.034*s,.012*s,7),gripM,0,-.34*s+i*.1*s,0));   // its binding
+      w.add(M(GSph(.05*s,7,5),bladeM,0,.24*s,0));                          // the pommel
+      rig.reach=2.9*s;rig.bladeMesh=bl;rig.gripLo=-.3;rig.gripHi=.2;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
          a LONG two-hand haft under a wheel pommel, guard far down the
@@ -2776,8 +2957,12 @@ function buildHumanoid(o){
     hip.add(M(GCyl(legThick[0]*s,legThick[1]*s,.38*L*s,o.faraam?7:5),legM,0,-.2*L*s,0));
     const kn=new THREE.Group();kn.position.y=-.4*L*s;hip.add(kn);
     kn.add(M(GSph(sk?.05*s:.07*s,5,4),sk?limb:(o.plateMat||limb),0,0,0)); // knee knob / poleyn
-    kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*L*s,o.faraam?7:5),o.faraam?(o.leatherMat||legM):legM,0,-.21*L*s,0));
-    if(o.faraam)kn.add(M(GCyl(legThick[1]*1.3*s,legThick[1]*1.1*s,.1*L*s,8),o.leatherMat||legM,0,-.05*L*s,0));   // the boot's top, at the knee
+    if(o.sheet){kn.add(M(GCyl(legThick[1]*s,legThick[1]*.95*s,.12*L*s,7),legM,0,-.06*L*s,0));                        // the trouser to mid-calf...
+      kn.add(M(GCyl(legThick[1]*1.02*s,legThick[1]*.82*s,.3*L*s,7),o.leatherMat||legM,0,-.27*L*s,0));}                // ...then the boot
+    else kn.add(M(GCyl(legThick[1]*s,legThick[1]*.8*s,.4*L*s,o.faraam?7:5),o.faraam?(o.leatherMat||legM):legM,0,-.21*L*s,0));
+    if(o.sheet){kn.add(M(GCyl(legThick[1]*1.35*s,legThick[1]*1.15*s,.09*L*s,8),o.leatherMat||legM,0,-.12*L*s,0));   // the boot's rolled cuff, at mid-calf
+      kn.add(M(GCyl(legThick[1]*1.05*s,legThick[1]*.9*s,.03*L*s,8),o.gripMat,0,-.19*L*s,0));}                          // and its strap
+    else if(o.faraam)kn.add(M(GCyl(legThick[1]*1.3*s,legThick[1]*1.1*s,.1*L*s,8),o.leatherMat||legM,0,-.05*L*s,0));   // the boot's top, at the knee
     const foot=M(GSph(.075*s,5,4),o.faraam?(o.leatherMat||legM):limb,0,-.42*L*s,.05*s);           // rounded sabaton, or a boot
     foot.scale.set(1.1,.55,1.7);kn.add(foot);
     return {hip,kn};
@@ -2831,9 +3016,17 @@ function buildHumanoid(o){
     const panel=(cols,x0,x1,z0,rows,len)=>makeCloth({parent:body,ROWS:rows,COLS:cols,mat:o.torsoMat,liningColor:0x1c3230,
       rest:(r,c)=>new THREE.Vector3(x0+(x1-x0)*c/(cols-1),-.02*s-r*(len/(rows-1)),z0*(1-r*.02)),
       spheres:[hipS,...legS]});
+    if(o.sheet){
+      const tab=(cols,x0,x1,z0,rows,len)=>makeCloth({parent:body,ROWS:rows,COLS:cols,mat:o.tabardMat||o.torsoMat,liningColor:0x1e4a46,
+        rest:(r,c)=>new THREE.Vector3(x0+(x1-x0)*c/(cols-1),-.02*s-r*(len/(rows-1)),z0*(1-r*.02)),
+        spheres:[hipS,...legS]});
+      tab(4,-.19*s,.19*s,.22*s,7,1.0*s);    // the front panel, to the shin
+      tab(5,-.25*s,.25*s,-.2*s,7,1.02*s);   // the back panel
+    }else{
     panel(3,.07*s,.3*s,.21*s,6,.82*s);     // front right
     panel(3,-.3*s,-.07*s,.21*s,6,.82*s);   // front left
     panel(5,-.24*s,.24*s,-.2*s,6,.9*s);    // back
+    }
   }
   if(o.cape&&!o.clothCape){
     const capeM=o.cape;
@@ -3795,9 +3988,23 @@ function updateRigExtras(r,dt){
 /* factory: the cast */
 function makeKnightRig(lo){
   lo=lo||{};
-  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',thief=lo.armour==='thief',og=lo.armour==='og';
-  const wpn=bow?'bow':kat?'katana':'claymore';
-  const r=buildHumanoid(thief?{
+  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',thief=lo.armour==='thief',og=lo.armour==='og',sheet=lo.armour==='sheet';
+  const wpn=bow?'bow':kat?'katana':sheet?'sheetsword':'claymore';
+  const r=buildHumanoid(sheet?{
+    // the sheet knight, after the eight-view reference: olive plate lamed
+    // across the chest under a broad straw pelt, a spiked steel helm with
+    // a T of dark, a teal gorget, a leather baldric, a broad knotworked
+    // belt, a long bordered teal tabard front and back over dark trousers
+    // and tan boots, and a straight greatsword across the shoulder
+    scale:1,
+    torsoMat:mat('shTabard'),tabardMat:mat('shTabard'),headMat:mat('shHelm'),limbMat:mat('shHelm'),
+    bladeMat:mat('blade'),gripMat:mat('leather'),
+    weapon:wpn,clothMat:mat('leather'),
+    chestMat:mat('shPlate'),plateMat:mat('shPlate'),
+    upperMat:mat('shPlate'),legMat:mat('shLeather'),leatherMat:mat('shBoot'),furMat:mat('shFur'),
+    fringeMat:mat('shFurFringe',{alphaTest:.5,side:THREE.DoubleSide}),beltMat:mat('shBelt'),
+    legLen:1.18,mirrorArms:true,sculpt:true,faraam:true,sheet:true,
+  }:thief?{
     // the thief's set: dark quilted cloth, a leather jerkin, wrapped
     // limbs, a deep hood and a short mantle — nothing that shines
     scale:1,
@@ -3828,7 +4035,7 @@ function makeKnightRig(lo){
     upperMat:mat('mail'),legMat:mat('leather',{color:0x8a7a6a}),leatherMat:mat('leather'),furMat:mat('fur'),
     legLen:1.15,mirrorArms:true,sculpt:true,faraam:true,
   });
-  r.loadout={weapon:bow?'bow':kat?'katana':'sword',armour:thief?'thief':og?'og':'knight'};
+  r.loadout={weapon:bow?'bow':kat?'katana':'sword',armour:sheet?'sheet':thief?'thief':og?'og':'knight'};
   return r;
 }
 function makeHollowRig(big,caster){
@@ -4070,7 +4277,7 @@ try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
 const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','katana']],
   katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl']],
-  armour:[['knight','knight plate'],['thief','thief cloth'],['og','OG knight']],
+  armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade']],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot'],['bomb','bomb arrow']]};
 const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on the air alone — an X of crossed cuts — that flies on ahead; a full charge\'s second cut staggers all but the Warden',
@@ -4623,6 +4830,7 @@ const player={
     this.rig=makeKnightRig(LOADOUT);
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
+    heroifyObject(this.rig.root);                 // the hero draws crisp, on its own layer
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
     this.rig.weapon.add(this.bladeLight);
@@ -7621,7 +7829,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
