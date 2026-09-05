@@ -2616,6 +2616,115 @@ function GSph(r,ws,hs){const k='s'+r+'|'+ws+'|'+hs;
 function GCone(r,h,seg){const k='k'+r+'|'+h+'|'+seg;
   return geoCache[k]||(geoCache[k]=new THREE.ConeGeometry(r,h,seg));}
 function M(geo,m,x,y,z){const me=new THREE.Mesh(geo,m);me.position.set(x||0,y||0,z||0);return me;}
+/* ---------------- the low-poly kit: lofted, faceted hulls ----------------
+   The sheet's knight is a hand-built mesh: every part is a hull of 6-12
+   sided rings, flat-shaded, painted in patches. These build exactly that:
+   rings of points lofted into non-indexed triangles (so every face keeps
+   its own normal), a random tint per face, and flat Lambert materials. */
+function ring(n,rx,rz,y,o){o=o||{};const ph=o.phase!==undefined?o.phase:(n===8?Math.PI/8:0),out=[];
+  for(let i=0;i<n;i++){const t=i/n*TAU+ph,c=Math.cos(t),sn=Math.sin(t);
+    let k=1;if(o.star&&(i&1))k=o.star;
+    let zs=1;if(o.asym)zs=sn>0?o.asym[0]:o.asym[1];
+    let yy=y;if(o.star&&(i&1)&&o.starY)yy+=o.starY;if(o.yf)yy+=o.yf(i,c,sn);
+    out.push([c*rx*k+(o.dx||0),yy,sn*rz*k*zs+(o.dz||0)]);}
+  return out;}
+function loft(rings,opts){opts=opts||{};
+  const pos=[];const tri=(a,b,c)=>{pos.push(a[0],a[1],a[2],b[0],b[1],b[2],c[0],c[1],c[2]);};
+  for(let i=0;i<rings.length-1;i++){const A=rings[i],B=rings[i+1];
+    if(B.length===1){const t=B[0];for(let j=0;j<A.length;j++)tri(A[j],A[(j+1)%A.length],t);continue;}
+    if(A.length===1){const t=A[0];for(let j=0;j<B.length;j++)tri(t,B[(j+1)%B.length],B[j]);continue;}
+    const n=A.length;for(let j=0;j<n;j++){const a=A[j],b=A[(j+1)%n],c=B[(j+1)%n],d=B[j];tri(a,d,c);tri(a,c,b);}}
+  const cap=(Rg)=>{const n=Rg.length;let cx=0,cy=0,cz=0;for(const p of Rg){cx+=p[0];cy+=p[1];cz+=p[2];}const c=[cx/n,cy/n,cz/n];
+    for(let j=0;j<n;j++)tri(Rg[j],Rg[(j+1)%n],c);};
+  if(opts.capTop)cap(rings[rings.length-1]);if(opts.capBottom)cap(rings[0]);
+  // every face turned to point away from the hull's centre (the rings may
+  // wind either way; a hull's faces must all look out)
+  const cen=[0,0,0];let cnt=0;for(const Rg of rings)for(const p of Rg){cen[0]+=p[0];cen[1]+=p[1];cen[2]+=p[2];cnt++;}
+  cen[0]/=cnt;cen[1]/=cnt;cen[2]/=cnt;
+  for(let i=0;i<pos.length;i+=9){
+    const ax=pos[i],ay=pos[i+1],az=pos[i+2],bx=pos[i+3],by=pos[i+4],bz=pos[i+5],cx=pos[i+6],cy=pos[i+7],cz=pos[i+8];
+    const ux=bx-ax,uy=by-ay,uz=bz-az,vx=cx-ax,vy=cy-ay,vz=cz-az;
+    const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    const mx=(ax+bx+cx)/3-cen[0],my=(ay+by+cy)/3-cen[1],mz=(az+bz+cz)/3-cen[2];
+    const d=nx*(opts.outX!==undefined?opts.outX:mx)+ny*my+nz*mz;
+    if(d<0){pos[i+3]=cx;pos[i+4]=cy;pos[i+5]=cz;pos[i+6]=bx;pos[i+7]=by;pos[i+8]=bz;}}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.computeVertexNormals();return g;}
+function facet(g,amt){const n=g.attributes.position.count,col=new Float32Array(n*3);
+  for(let i=0;i<n;i+=3){const k=1+(Math.random()*2-1)*(amt||.07);for(let j=0;j<3;j++){col[(i+j)*3]=k;col[(i+j)*3+1]=k;col[(i+j)*3+2]=k;}}
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));return g;}
+function flatMat(hex,extra){return psx(new THREE.MeshLambertMaterial(Object.assign({color:new THREE.Color(hex).convertSRGBToLinear(),flatShading:true,vertexColors:true},extra||{})));}   // (hex is the colour as SEEN: sRGB)
+
+/* the sheet knight, dressed part by part in lofted plate over the same
+   skeleton: the primitives buildHumanoid hung on the groups come off, and
+   these go on. Nothing about the joints changes. */
+function sheetDress(rig,o){
+  const s=rig.s,AL=rig.AL||1,L=rig.L||1;
+  const strip=(g,keep)=>{for(const c of g.children.slice()){if(keep&&keep(c))continue;if(c.isMesh)g.remove(c);}};
+  strip(rig.head);strip(rig.torso);strip(rig.body,c=>c===rig.saya);
+  for(const k of['armR','armL','foreR','foreL','legR','legL','kneeR','kneeL'])strip(rig[k]);
+  const sword=o.weapon==='sheetsword';if(sword)strip(rig.weapon);
+  const C={plate:0x4a5044,plateD:0x3c4238,steel:0x6e7466,brass:0x8a8058,fur:0xd9cfab,green:0x3d6c5e,leather:0x5a3e28,boot:0x4a3f30,blade:0xb8bcc0,dark:0x0a0b0a};
+  const mPlate=flatMat(C.plate),mPlateD=flatMat(C.plateD),mSteel=flatMat(C.steel),mBrass=flatMat(C.brass),mFur=flatMat(C.fur),
+    mGreen=flatMat(C.green),mLeather=flatMat(C.leather),mBoot=flatMat(C.boot),mBlade=flatMat(C.blade),mDark=flatMat(C.dark,{vertexColors:false}),
+    mMail=psx(new THREE.MeshLambertMaterial({map:texCache.shMail,flatShading:true,vertexColors:true}));
+  const R=(n,rx,rz,y,o2)=>ring(n,rx*s,rz*s,y*s,o2);
+  const add=(g,geo,mat,amt)=>{const m=new THREE.Mesh(facet(geo,amt),mat);g.add(m);return m;};
+  const box=(g,mat,w,h,d,x,y,z,rx,ry,rz)=>{const m=new THREE.Mesh(facet(GBox(w*s,h*s,d*s).toNonIndexed(),.05),mat);m.position.set(x*s,y*s,z*s);if(rx)m.rotation.x=rx;if(ry)m.rotation.y=ry;if(rz)m.rotation.z=rz;g.add(m);return m;};
+  const A=[1,.92];
+  // ---- the helm: a bascinet with a proud rim at the brow and a low comb
+  add(rig.head,loft([R(8,.10,.10,.04,{asym:A}),R(8,.145,.14,.11,{asym:A}),R(8,.165,.155,.24,{asym:A}),
+    R(8,.19,.18,.265,{asym:[1,.9]}),R(8,.19,.18,.285,{asym:[1,.9]}),R(8,.16,.15,.30,{asym:A}),R(8,.15,.14,.37,{asym:A}),R(8,.10,.095,.43),[[0,.475*s,0]]]),mSteel,.06);
+  box(rig.head,mDark,.18,.03,.03,0,.245,.152);                                     // the one slit, across
+  box(rig.head,mDark,.03,.06,.03,0,.195,.15);                                      // the short bar under it
+  for(const [z,y,rx] of[[-.1,.40,-.5],[0,.455,0],[.1,.40,.5]])box(rig.head,mBrass,.02,.035,.12,0,y,z-.02,rx);   // the comb, in three
+  add(rig.head,loft([R(8,.15,.14,.10,{asym:[.6,1]}),R(8,.19,.18,.03,{asym:[.55,1.05]}),R(8,.2,.19,-.01,{asym:[.5,1.1]})]),mSteel,.06);   // the neck skirt
+  // ---- the gorget under it, in the tabard's green
+  add(rig.torso,loft([R(8,.11,.10,.56),R(8,.135,.12,.63),R(8,.13,.115,.66)]),mGreen,.05);
+  // ---- the cuirass, lamed three times, a rolled collar
+  add(rig.torso,loft([R(8,.20,.16,-.06,{asym:[1,.85]}),R(8,.22,.18,.08,{asym:[1,.85]}),R(8,.25,.20,.26,{asym:[1,.85]}),
+    R(8,.26,.21,.40,{asym:[1,.85]}),R(8,.23,.19,.52,{asym:[1,.85]}),R(8,.15,.12,.60,{asym:[1,.85]})],{capTop:true}),mPlate,.07);
+  for(const [y,r,rz] of[[.12,.232,.185],[.26,.252,.2],[.40,.258,.205]])
+    add(rig.torso,loft([R(8,r,rz,y,{asym:[1,.85]}),R(8,r+.022,rz+.018,y+.05,{asym:[1,.85]}),R(8,r+.022,rz+.018,y+.075,{asym:[1,.85]})]),mPlate,.07);
+  add(rig.torso,loft([R(8,.16,.13,.60),R(8,.15,.12,.66)]),mSteel,.06);
+  // the baldric, the belt with its buckle, the strap below
+  box(rig.torso,mLeather,.05,.72,.018,0,.27,.24,.08,0,-.85);
+  add(rig.torso,loft([R(8,.215,.175,-.02,{asym:[1,.85]}),R(8,.222,.182,.02,{asym:[1,.85]}),R(8,.215,.175,.07,{asym:[1,.85]})]),mLeather,.05);
+  box(rig.torso,mSteel,.06,.06,.02,0,.025,.20);
+  add(rig.torso,loft([R(8,.222,.182,-.10,{asym:[1,.85]}),R(8,.226,.186,-.08,{asym:[1,.85]})]),mLeather,.05);
+  // ---- the pelt: over both shoulders, torn to points at the hem, standing up behind the neck
+  add(rig.torso,loft([R(12,.13,.11,.66),R(12,.34,.27,.60,{asym:[.85,1]}),R(12,.40,.30,.52,{asym:[.85,1.05]}),
+    R(12,.37,.28,.42,{star:.62,starY:.08*s,asym:[.85,1.05],yf:(i,c,sn)=>sn<0?.07*s*sn:0})]),mFur,.08);
+  add(rig.torso,loft([R(8,.16,.09,.62,{dz:-.06*s}),R(8,.15,.07,.72,{dz:-.09*s}),[[0,.78*s,-.11*s]]]),mFur,.08);
+  // ---- the arms: a domed pauldron, plate upper arm, elbow cop, vambrace, a cuffed gauntlet
+  for(const [sh,el] of[[rig.armR,rig.foreR],[rig.armL,rig.foreL]]){
+    add(sh,loft([R(8,.145,.145,-.08),R(8,.145,.145,-.02),R(8,.12,.12,.05),R(8,.05,.05,.10),[[0,.12*s,0]]]),mPlate,.07);
+    add(sh,loft([R(8,.085,.085,-.05),R(8,.078,.078,-.34*AL)]),mPlate,.07);
+    add(el,loft([R(8,.07,.07,-.03),R(8,.065,.065,.03),R(8,.03,.03,.06),[[0,.07*s,0]]]),mPlate,.07);
+    add(el,loft([R(8,.072,.072,-.02),R(8,.062,.062,-.26*AL)]),mPlate,.07);
+    add(el,loft([R(8,.082,.082,-.24*AL),R(8,.075,.075,-.28*AL)]),mSteel,.06);
+    add(el,loft([R(6,.06,.06,-.28*AL),R(6,.066,.066,-.34*AL),R(6,.05,.05,-.40*AL)],{capBottom:true}),mSteel,.06);
+  }
+  // ---- the mail fauld, off the belt to the thigh
+  add(rig.body,loft([R(8,.22,.18,-.02,{asym:[1,.9]}),R(8,.26,.21,-.2,{asym:[1,.9]}),R(8,.30,.24,-.38,{asym:[1,.9]})]),mMail,.05);
+  // ---- the legs: cuisse, poleyn, greave, boot with a toe and a cuff
+  for(const [hip,kn] of[[rig.legR,rig.kneeR],[rig.legL,rig.kneeL]]){
+    add(hip,loft([R(8,.10,.10,0),R(8,.095,.095,-.2*L),R(8,.09,.09,-.4*L)]),mPlateD,.07);
+    add(kn,loft([R(8,.085,.085,-.04),R(8,.09,.09,0),R(8,.06,.06,.06),[[0,.08*s,0]]]),mPlate,.07);
+    add(kn,loft([R(8,.085,.085,-.02),R(8,.075,.075,-.16*L),R(8,.072,.072,-.28*L)]),mPlateD,.07);
+    add(kn,loft([R(8,.09,.09,-.27*L),R(8,.085,.085,-.31*L)]),mBoot,.06);
+    add(kn,loft([R(8,.08,.08,-.31*L),R(8,.078,.085,-.37*L,{dz:.01*s}),R(8,.075,.11,-.415*L,{dz:.035*s}),R(8,.07,.11,-.43*L,{dz:.04*s})],{capBottom:true}),mBoot,.06);
+  }
+  // ---- the sword: a diamond-section blade to a point, a plain cross, a long grip, an octagonal pommel
+  if(sword){const w=rig.weapon;
+    const bl=add(w,loft([R(4,.065,.016,-.34,{phase:0}),R(4,.062,.015,-.9,{phase:0}),R(4,.055,.013,-1.35,{phase:0}),[[0,-1.58*s,0]]],{capBottom:true}),mBlade,.04);
+    box(w,mPlate,.34,.045,.06,0,-.40,0);box(w,mBlade,.09,.08,.05,0,-.34,0);
+    add(w,loft([R(8,.03,.03,-.36),R(8,.032,.032,-.05),R(8,.03,.03,.22)]),mLeather,.06);
+    add(w,loft([R(8,.03,.03,.22),R(8,.05,.05,.27),R(8,.05,.05,.31),R(8,.03,.03,.34)],{capTop:true}),mSteel,.05);
+    rig.bladeMesh=bl;rig.reach=2.9*s;rig.gripLo=-.3;rig.gripHi=.2;
+  }
+}
+
 
 function buildHumanoid(o){
   const s=o.scale||1,sk=o.skeletal,SC=!!o.sculpt;
@@ -3125,6 +3234,7 @@ function buildHumanoid(o){
   rig.hunch=o.hunch||0;
   rig.humanoid=true;rig.s=s;rig.AL=AL;rig.L=L;rig.skeletal=!!sk;   // the ragdoll and the gore read these
   rig.baseY=(0.92+((o.legLen||1)-1)*.8)*s;
+  if(o.sheet)sheetDress(rig,o);                                   // the sheet knight: lofted plate over the same bones
   rig.capeSway=0;rig._spNow=0;
   return rig;
 }
@@ -4021,13 +4131,13 @@ function makeKnightRig(lo){
     // belt, a long bordered teal tabard front and back over dark trousers
     // and tan boots, and a straight greatsword across the shoulder
     scale:1,
-    torsoMat:mat('shTabard'),tabardMat:mat('shTabard'),headMat:mat('shHelm'),limbMat:mat('shHelm'),
+    torsoMat:mat('shTabard'),tabardMat:mat('shTabard',{flatShading:true}),headMat:mat('shHelm'),limbMat:mat('shHelm'),
     bladeMat:mat('blade'),gripMat:mat('leather'),
     weapon:wpn,clothMat:mat('leather'),
     chestMat:mat('shPlate'),plateMat:mat('shPlate'),
     upperMat:mat('shPlate'),legMat:mat('shGreave'),leatherMat:mat('shBoot'),furMat:mat('shFur'),mailMat:mat('shMail'),
     fringeMat:mat('shFurFringe',{alphaTest:.5,side:THREE.DoubleSide}),beltMat:mat('shBelt'),
-    legLen:1.1,mirrorArms:true,sculpt:true,faraam:true,sheet:true,
+    legLen:1.06,mirrorArms:true,sculpt:true,faraam:true,sheet:true,
   }:thief?{
     // the thief's set: dark quilted cloth, a leather jerkin, wrapped
     // limbs, a deep hood and a short mantle — nothing that shines

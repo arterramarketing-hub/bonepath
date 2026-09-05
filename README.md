@@ -20,25 +20,23 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   cathedral — with the full touch and keyboard control lists, and **the
   pilgrim**: a lit portrait of your knight with three selectors under it.
   **Weapon** — the greatsword, the longbow, or the katana. **Armour** —
-  **sheet knight** (built part by part against an eight-view reference
-  sheet: a rounded olive-steel helm with a rim round the brow, a low comb
-  and a small point, one eye slit across the face with a short bar of
-  dark under it, a flared neck skirt and a teal gorget; a broad pale
-  straw pelt over both shoulders, standing up behind the neck, its hem
-  cut into ten wide torn tongues of hide that hang over the arms; a
-  dark olive-green cuirass, matte and faceted, lamed across the chest
-  under a leather baldric; a leather belt with a square buckle and a
-  thinner strap below; a mail fauld from the belt to the thigh; over it
-  a muted green-teal tabard to the knee — two panels in front, split at
-  the centre, and one behind — as real cloth with a cream cross-and-lily
-  border; olive plate cuisses and greaves into dark brown boots with a
-  low cuff; slimmer plated arms; and a broad straight greatsword with a
-  fuller, a plain cross, a long wrapped grip and a round pommel, carried
-  across the shoulder. The hero is drawn CRISP: a second
-  pass renders the player alone at the device's full resolution and lays
-  it over the PSX frame, hidden wherever the low-res world's depth says
-  the world is nearer, and graded the same way — so the knight reads like
-  the sheet while the world keeps its grain),
+  **sheet knight** (hand-modelled low-poly, after an eight-view
+  reference sheet: every part is a hull of six-to-twelve-sided rings
+  lofted into flat-shaded facets and painted in patches — a bascinet
+  with a proud rim at the brow, a low brass comb and one dark slit
+  across the face over a green gorget; a straw pelt over both shoulders
+  torn to points at the hem and standing up behind the neck; an
+  olive-green cuirass lamed three times under a leather baldric and
+  belt; domed pauldrons, plate arms and cuffed gauntlets; a mail fauld
+  off the belt; a green tabard bordered in cream crosses and lilies,
+  split in front, real cloth to the knee; plate cuisses and greaves into
+  dark boots with a toe; and a straight diamond-section greatsword with a
+  plain cross, a long grip and an octagonal pommel, carried across the
+  shoulder. The hero is drawn CRISP: a second pass renders the player
+  alone at the device's full resolution and lays it over the PSX frame,
+  hidden wherever the low-res world's depth says the world is nearer,
+  and graded the same way — so the facets read clean while the world
+  keeps its grain),
   **knight plate** (the sculpted knight, after a Faraam-style reference:
   a ridged helm with a central bar and an eye slit to either side, one
   small fur pelt, one piece turned from a profile and roughed with
