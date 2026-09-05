@@ -3104,19 +3104,10 @@ function poseTiger(r,p){
    cuts all round — the shoulders turning back and forth, the arms
    whipping — and settles back to chudan */
 function poseFowl(r,p,t){
+  // ONE cut: the rising diagonal out of the saya — then the body holds
+  // dead still at the end of it, blade out, while the air does the rest
   if(p<.15){poseKatana(r,.32+.32*(p/.15),2);r.torso.rotation.x+=.25;}
-  else if(p<.78){
-    const k=(p-.15)/.63;
-    poseKatana(r,.64,2);
-    r.torso.rotation.y+=Math.sin(t*13)*.9;r.body.rotation.y+=Math.sin(t*13+1)*.35;
-    r.torso.rotation.x+=.15+Math.sin(t*9)*.12;
-    r.armR.rotation.x+=Math.sin(t*21)*.4;r.armR.rotation.z+=Math.cos(t*17)*.3;
-    r.foreR.rotation.x+=Math.sin(t*19)*.3;
-    r.weapon.rotation.z+=Math.sin(t*23)*.4;
-    r.head.rotation.y=-Math.sin(t*13)*.5;
-    r.body.position.y=r.baseY-(.1+Math.sin(t*11)*.06)*r.s;
-    r.legR.rotation.x=.3+Math.sin(t*13)*.25;r.legL.rotation.x=-.3-Math.sin(t*13)*.25;r.kneeL.rotation.x=.35;r.kneeR.rotation.x=.2;
-  }
+  else if(p<.78){poseKatana(r,.64,2);r.torso.rotation.x+=.1+Math.sin(t*1.7)*.015;}
   else poseKatana(r,.64+.36*(p-.78)/.22,2);
 }
 /* the bounce: the blade has hit stone and comes back off it — arms flung
@@ -4080,7 +4071,7 @@ function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADO
 const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','katana']],
   katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl']],
   armour:[['knight','knight plate'],['thief','thief cloth'],['og','OG knight']],
-  charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker']],
+  charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade']],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
 const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on the air alone — an X of crossed cuts — that flies on ahead; a full charge\'s second cut staggers all but the Warden',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
@@ -4089,8 +4080,8 @@ const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on 
   pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last',
   iai:'the blade walked back into the saya at the hip, then one cut as the body flashes five metres through them; they fall when it clicks home',
   thrust:'the point held back beside the right hip, already on its line; release and a long low lunge drives it straight through whoever stands there — a hard poke that throws them off their feet',
-  tiger:'the blade raised high over the head, then driven into the ground: three shock waves tear up the earth and race forward one after another, each throwing whatever it crosses into the air',
-  fowl:'sheathed at the hip, then drawn in one rising diagonal cut — and the air itself keeps cutting: a storm of pale slashes wheels round the body for most of a second, striking everything within three metres again and again'};
+  tiger:'the blade raised high over the head, then driven into the ground: three shock waves tear out of the earth in a fan — one straight, one to either side — running far and scarring the ground behind them, each throwing whatever it crosses into the air',
+  fowl:'sheathed at the hip, then drawn in one rising diagonal cut and held there — while the air itself keeps cutting: a storm of pale slashes wheels round the still body for most of a second, striking everything within three metres again and again'};
 function boneBurst(x,y,z,color,n,speed){
   for(let i=0;i<n;i++){
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,
@@ -4118,6 +4109,19 @@ function gore(e,x,y,z,n,pow){
   else bloodSpray(x,y,z,n,pow);
 }
 function goreDecal(e,x,z,s){if(!(e&&e.rig&&e.rig.skeletal))bloodDecal(x,z,s);}
+/* smoke: soft grey puffs that swell, rise a little and thin away */
+function smokePuff(x,y,z,n){
+  for(let i=0;i<n;i++){
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0x7c7c84,transparent:true,opacity:.5,depthWrite:false}));
+    const sc=rr3(.35,.6);s.scale.set(sc,sc,1);
+    s.position.set(x+rr3(-.25,.25),y+rr3(-.15,.15),z+rr3(-.25,.25));scene.add(s);
+    const vx=rr3(-.25,.25),vz=rr3(-.25,.25),vy=rr3(.35,.7),life=rr3(.7,1.1);let t=0;
+    effects.push({update(dt){t+=dt;const p=t/life;
+      s.position.x+=vx*dt;s.position.y+=vy*dt;s.position.z+=vz*dt;
+      const k=sc+p*1.3;s.scale.set(k,k,1);s.material.opacity=.5*(1-p)*(1-p);
+      if(p>=1){scene.remove(s);s.material.dispose();return false;}return true;}});
+  }
+}
 const DECAL_MAX=42,decals=[];
 let decalGeo=null,decalMats=null;
 function bloodDecal(x,z,s){
@@ -4821,8 +4825,8 @@ const player={
       }
       // a clean cut takes something with it — an arm off a sweep or a
       // thrust, the head off an overhead — and the thing keeps coming
-      if(e.hp>0&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&Math.random()<.17)
-        severLimb(e,tr,hv);
+      if(e.hp>0&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&this.weapon()!=='katana'&&Math.random()<.17)
+        severLimb(e,tr,hv);                                        // (never the katana: its cut is the whole body, clean)
       // the katana: below half their life, the edge simply goes through them
       // — whether the cut leaves them standing or is the one that kills
       if(this.weapon()==='katana'&&!opts.noSlice&&(e.hp>0||preHp>0)&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&!e.sliced)
@@ -5164,6 +5168,8 @@ const player={
         else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else if(LOADOUT.katanaCharge==='fowl')startFowl();else startIai();}
         else if(LOADOUT.charge==='spin')startSpin();
         else if(LOADOUT.charge==='quake')startQuake();
+        else if(LOADOUT.charge==='thrust')startKThrust();
+        else if(LOADOUT.charge==='tiger')startTiger();
         else startDouble();
       }
     }
@@ -5287,7 +5293,8 @@ const player={
       if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.glowFlash=.5;}
       if(!this.hitDone&&p>=.2){ // the point goes in: a narrow line, driven hard
         this.hitDone=true;
-        const hit=this.meleeHit(this.chargeFull?58:42,3.4,.3,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
+        const wm=this.weapon()==='sword'?1.3:1;                    // the greatsword's point hits harder
+        const hit=this.meleeHit((this.chargeFull?58:42)*wm,3.4,.3,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
         if(hit){AudioSys.hit();AudioSys.gore();G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.12);G.vibr([30,20,50]);}
       }
       if(p>=1)this.state='free';
@@ -5334,8 +5341,8 @@ const player={
         const fx=Math.sin(this.facing),fz=Math.cos(this.facing),gx=this.x+fx*1.2,gz=this.z+fz*1.2,gy=heightAt(gx,gz);
         AudioSys.quake();G.camShake=Math.max(G.camShake,.7);G.hitstop=Math.max(G.hitstop,.06);G.vibr([60,30,90]);
         clashSparks(gx,gy+.1,gz,14);boneBurst(gx,gy+.1,gz,0x4a463a,12,2.4);
-        const dmg=this.chargeFull?30:24;
-        for(let i=0;i<3;i++)groundWave(gx,gz,this.facing,dmg,i*.14);
+        const dmg=(this.chargeFull?30:24)*(this.weapon()==='sword'?1.25:1);
+        [0,-.42,.42].forEach((a,i)=>groundWave(gx,gz,this.facing+a,dmg,i*.05));   // three, fanned: one straight, one to either side
       }
       if(p>=1)this.state='free';
     }
@@ -5560,6 +5567,8 @@ const player={
     }
     else if(this.state==='charge'){if(bow)poseBowDraw(r,this.chargeT/.6,t);
       else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else poseIaiCharge(r,this.chargeT/.6,t);}   // (the draw and the waterfowl both wind in the saya)
+      else if(LOADOUT.charge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);
+      else if(LOADOUT.charge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);
       else poseCharge(r,this.chargeT/.6,t);}
     else if(this.state==='iai')poseIai(r,Math.min(1,this.t/.85));
     else if(this.state==='kthrust')poseKThrust(r,.28+Math.min(1,this.t/.5)*.72);   // it starts already chambered: the charge held it there
@@ -6594,7 +6603,7 @@ class GraveGhoul{
    same low-poly body that walked now falls, tumbles and lies where the
    blow sent it. */
 const RAG_H=1/60,RAG_MAX=7,ragdolls=[];
-function makeRagdoll(rig){
+function makeRagdoll(rig,rigid){
   rig.root.updateMatrixWorld(true);
   const s=rig.s||1,AL=rig.AL||1,L=rig.L||1;
   const wp=g=>g.getWorldPosition(new THREE.Vector3());
@@ -6621,6 +6630,9 @@ function makeRagdoll(rig){
   [[headTop,shR],[headTop,shL],[headTop,chest]].forEach(([a,b])=>link(a,b,.3));
   // limits: a limb folds, but never through itself
   link(hipR,ftR,1,true);link(hipL,ftL,1,true);link(shR,haR,1,true);link(shL,haL,1,true);
+  // rigid: every particle tied to every other — the thing moves as ONE
+  // piece, nothing flops (the top half of a clean cut keeps its shape)
+  if(rigid)for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++)link(i,j);
   const bones=[[rig.body,pelvis,chest],[rig.torso,pelvis,chest],[rig.head,neck,headTop],
     [rig.armR,shR,elR],[rig.foreR,elR,haR],[rig.armL,shL,elL],[rig.foreL,elL,haL],
     [rig.legR,hipR,knR],[rig.kneeR,knR,ftR],[rig.legL,hipL,knL],[rig.kneeL,knL,ftL]]
@@ -6812,12 +6824,31 @@ function airSlash(x,z,facing,dmg,full){
     return true;
   }});
 }
+/* a scar in the ground: a dark torn strip left where a shock wave went,
+   fading out after ten seconds; the oldest give way past sixty */
+const SCAR_MAX=60,scars=[];let scarGeo=null,scarMat=null,scarRim=null;
+function groundScar(x,z,facing){
+  if(!scarGeo){scarGeo=new THREE.PlaneGeometry(.5,1.05);
+    scarMat=new THREE.MeshBasicMaterial({color:0x14120f,transparent:true,opacity:.82,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+    scarRim=new THREE.MeshBasicMaterial({color:0x3e3830,transparent:true,opacity:.45,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});}
+  const m=new THREE.Mesh(scarGeo,scarMat.clone()),rim=new THREE.Mesh(scarGeo,scarRim.clone());
+  rim.scale.set(1.5,1.15,1);m.add(rim);
+  m.rotation.order='YXZ';m.rotation.set(-Math.PI/2,facing+rr3(-.15,.15),0);
+  m.position.set(x+rr3(-.12,.12),heightAt(x,z)+.02,z+rr3(-.12,.12));scene.add(m);
+  scars.push(m);
+  if(scars.length>SCAR_MAX){const old=scars.shift();scene.remove(old);old.material.dispose();old.children[0].material.dispose();}
+  let t=0;effects.push({update(dt){t+=dt;
+    if(scars.indexOf(m)<0)return false;
+    if(t>9){const k=Math.max(0,1-(t-9)/2);m.material.opacity=.82*k;rim.material.opacity=.35*k;
+      if(k<=0){scene.remove(m);scars.splice(scars.indexOf(m),1);m.material.dispose();rim.material.dispose();return false;}}
+    return true;}});
+}
 /* a shock wave through the ground: a low crescent of torn earth that races
    up the line, kicking dust and stone as it goes, and throws whatever it
    crosses into the air — it dies on a wall, or six metres out */
 function groundWave(x,z,facing,dmg,delay){
   const fx=Math.sin(facing),fz=Math.cos(facing);
-  let px=x,pz=z,life=-delay,dustT=0,mesh=null,mat=null;const hitSet=new Set();
+  let px=x,pz=z,life=-delay,dustT=0,scarD=0,mesh=null,mat=null;const hitSet=new Set();
   const build=()=>{
     const g=new THREE.RingGeometry(.55,1.15,14,1,-Math.PI*.36,Math.PI*.72);   // a flat crescent, open forward
     const pos=g.attributes.position,col=[];
@@ -6833,10 +6864,11 @@ function groundWave(x,z,facing,dmg,delay){
   effects.push({update(dt){
     life+=dt;if(life<0)return true;
     if(!mesh){build();AudioSys.rumble();}
-    const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;
+    const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;scarD+=st;
     const gy=heightAt(px,pz);
+    while(scarD>=.5){scarD-=.5;groundScar(px-fx*scarD,pz-fz*scarD,facing);}   // the ground stays torn where it passed
     mesh.position.set(px,gy+.06+Math.sin(life*40)*.03,pz);
-    mat.opacity=.55*Math.max(0,1-life/.6);
+    mat.opacity=.55*Math.max(0,1-life/1.15);
     while(dustT>0){dustT-=.05;boneBurst(px+(Math.random()-.5)*1.2,gy+.05,pz+(Math.random()-.5)*.4,0x4a463a,3,1.6);}
     G.camShake=Math.max(G.camShake,.08);
     for(const e of enemies){
@@ -6847,7 +6879,7 @@ function groundWave(x,z,facing,dmg,delay){
       G.hitstop=Math.max(G.hitstop,.04);
     }
     const probe={x:px,z:pz};pushOut(probe,.05);
-    if(life>.6||Math.hypot(probe.x-px,probe.z-pz)>.01){scene.remove(mesh);mesh.geometry.dispose();mat.dispose();return false;}
+    if(life>1.15||Math.hypot(probe.x-px,probe.z-pz)>.01){scene.remove(mesh);mesh.geometry.dispose();mat.dispose();return false;}
     return true;
   }});
 }
@@ -6888,7 +6920,7 @@ function katanaSlice(e,facing,cut){
   AudioSys.sever();AudioSys.hit();
   G.camShake=Math.max(G.camShake,.55);G.hitstop=Math.max(G.hitstop,.12);G.vibr([40,20,70]);
   const gy=heightAt(e.x,e.z);
-  gore(e,e.x,gy+1.2,e.z,16,1.4);goreDecal(e,e.x,e.z,.7);sparkBurst(e.x,gy+1.2,e.z,10);
+  smokePuff(e.x,gy+1.1,e.z,9);sparkBurst(e.x,gy+1.2,e.z,6);         // a clean cut: smoke off the line, nothing else
   e.sliced=true;
   if(e.rag)endRagdoll(e);                 // (if this cut already killed it, the ragdoll gives way to the halves)
   splitEnemy(e,facing,cut||'yoko',true);        // sharp: the halves slide off the cut, they aren't thrown
@@ -6933,7 +6965,7 @@ function splitEnemy(e,facing,cut,sharp){
     const list=[];h.traverse(o=>list.push(o));
     const rigH={root:h,s:r.s,AL:r.AL,L:r.L,humanoid:true};
     NAMES.forEach((k,i)=>rigH[k]=list[idx[i]]);
-    const rag=makeRagdoll(rigH);ragdolls.push(rag);
+    const rag=makeRagdoll(rigH,sharp&&side>0);ragdolls.push(rag);
     // thrown apart off the blade, up and outward, with a twist
     // thrown apart off the blade: a level cut sends the top half flying
     // forward and leaves the legs to buckle where they stand
@@ -6948,16 +6980,16 @@ function splitEnemy(e,facing,cut,sharp){
       // a level cut, down the slope of a diagonal one — and gravity has it.
       // The legs stand a moment longer, then the knees go
       H.kicked=false;
-      if(side>0){H.hold=.22;
+      if(side>0){H.hold=.75;
         const sx=cut==='yoko'?-rx:cut==='kesa'?rx:cut==='gyaku'?-rx:n.x,sz=cut==='yoko'?-rz:cut==='kesa'?rz:cut==='gyaku'?-rz:n.z;
         H.kick=()=>rag.kick(sx,sz,cut==='yoko'?.55:.75,0);}
-      else{H.hold=.6;const a=Math.random()*TAU;
+      else{H.hold=1.15;const a=Math.random()*TAU;
         H.kick=()=>rag.kick(cut==='yoko'||cut==='kesa'||cut==='gyaku'?Math.sin(a):-n.x,cut==='yoko'||cut==='kesa'||cut==='gyaku'?Math.cos(a):-n.z,.3,0);}
     }
     h.traverse(o=>{if(o.isMesh)H.mats.push(o.material);});
     halves.push(H);
   }
-  let life=0;const T=sharp?.6:0;
+  let life=0;const T=sharp?1.15:0;
   effects.push({update(dt){
     life+=dt;
     for(const H of halves){
@@ -6968,7 +7000,8 @@ function splitEnemy(e,facing,cut,sharp){
       H.plane.copy(H.local).applyMatrix4(H.rag.rig.body.matrixWorld);
       if(life>2.1+T)for(const m of H.mats)m.opacity=Math.max(0,1-(life-2.1-T)/.7);
     }
-    if(life>.05&&life<.35&&Math.random()<dt*20)gore(e,e.x,1.0,e.z,3,.8);
+    if(sharp){if(life<.9&&Math.random()<dt*9)smokePuff(e.x,gh+.95+Math.random()*.4,e.z,1);}   // a thin smoke off the cut, no gore
+    else if(life>.05&&life<.35&&Math.random()<dt*20)gore(e,e.x,1.0,e.z,3,.8);
     if(life>2.8+T){
       for(const H of halves){scene.remove(H.h);for(const m of H.mats)m.dispose();
         const i=ragdolls.indexOf(H.rag);if(i>=0)ragdolls.splice(i,1);
@@ -7530,7 +7563,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
