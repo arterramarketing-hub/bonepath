@@ -250,7 +250,8 @@ The element gutters out after a time — or is lost with your life.
 
 A landed cut can also take something with it: a sweep or a thrust
 sometimes shears an arm off at the shoulder, an overhead sometimes takes
-the head — the piece flies, lands and lies there, and the horror keeps
+the head — the piece flies, lands and lies there in the body's own
+colour (never the red of the hit flash), and the horror keeps
 coming without it. Every swing also carries a chance of a **telling blow** — near double
 damage with a golden ring and a crack like a bell — and a telling
 blow blasts a small skeleton clean apart: real bones and a skull go

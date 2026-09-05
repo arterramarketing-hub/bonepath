@@ -7380,7 +7380,9 @@ function severLimb(e,trail,hv,want){
   else if(key==='legL'||key==='legR'){const kk=key==='legL'?'kneeL':'kneeR';                // a leg: the knee goes with it
     r[key]=stub;const ks=new THREE.Group();ks.position.copy(r[kk].position);stub.add(ks);r[kk]=ks;e.severedLeg=true;}
   else{r.armL=stub;const fs=new THREE.Group();fs.position.copy(r.foreL.position);stub.add(fs);r.foreL=fs;e.severedArm=true;}
-  g.traverse(o=>{if(o.isMesh)o.material=o.material.clone();});
+  // its own materials, cut from an UNLIT body: the blow's red flash is on
+  // the horror at this instant, and a copy of it would stay red for good
+  g.traverse(o=>{if(o.isMesh){o.material=o.material.clone();if(o.material.emissive)o.material.emissive.setHex(0x000000);}});
   g.position.copy(wp);g.quaternion.copy(wq);scene.add(g);
   loosePiece(g,key==='head'?.16*(r.s||1):key[0]==='l'?.09*(r.s||1):.07*(r.s||1),
     hv.dx*2.4+rr3(-.8,.8),hv.dz*2.4+rr3(-.8,.8),2.6+Math.random()*1.6,true);
@@ -7436,6 +7438,7 @@ function splitEnemy(e,facing,cut,sharp){
     const h=r.root.clone(true);
     const plane=new THREE.Plane(nl.clone().multiplyScalar(side),.01-side*nl.y*hc);
     h.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.clippingPlanes=[plane];
+      if(o.material.emissive)o.material.emissive.setHex(0x000000);           // (no hit-flash frozen into the halves)
       o.material.transparent=true;o.material.side=THREE.DoubleSide;}});
     h.position.set(e.x,gh,e.z);h.rotation.set(0,e.facing,0);
     scene.add(h);h.updateMatrixWorld(true);
