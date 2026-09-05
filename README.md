@@ -19,7 +19,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   deaths, time, the state of the two mini-bosses, the Warden and the
   cathedral — with the full touch and keyboard control lists, and **the
   pilgrim**: a lit portrait of your knight with three selectors under it.
-  **Weapon** — the greatsword, the longbow, or the katana. **Armour** —
+  **Weapon** — the greatsword, the ultra greatsword, the longbow, or the
+  katana. **Armour** —
   **sheet knight** (hand-modelled low-poly, after an eight-view
   reference sheet: every part is a hull of six-to-twelve-sided rings
   lofted into flat-shaded facets and painted in patches — a bascinet
@@ -98,6 +99,12 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     and every small or medium horror within two metres and a bit is
     blown apart into its bones, to crawl back together in time; the big
     and the Warden only take the blow
+  - **the ultra greatsword** — a colossal slab of a blade, longer and
+    heavier than the greatsword, carried the same way and sharing its
+    charges. Every light swing takes half again as long to come round,
+    but whatever it lands on is knocked back like nothing: all but the
+    Warden are thrown off their feet and sent flying, the blow lands
+    with a heavier stop, and it hits harder besides.
   - **the katana** — overpowered on purpose. Carried in **chudan**, both
     hands on the grip before the navel and the point levelled at the
     throat, and it fights the way a katana does: **yoko-giri**, the level
@@ -110,8 +117,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     top slides off the cut face in ONE piece — sideways with the swing
     off a level cut, down the slope of a diagonal one — and drops onto
     its chest wherever it tips, nothing under it to hold it up; the legs
-    stand almost a second longer, and then the knees go. Only smoke
-    comes off the line, the halves never flash red, and the katana
+    stand almost a second longer, and then the knees go. Nothing
+    comes off the line but a glint, the halves never flash red, and the katana
     never takes an arm or a head, nor blasts a skeleton apart — its cut
     is the whole body, and blasting is the greatsword's business. Its
     charge is chosen on the pause screen. The **iaido draw**: hold and
@@ -133,10 +140,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     blade high over the head in jodan, and the release drives it into
     the ground a stride ahead — three shock waves heave out of it in a
     fan, one straight and one to either side, five metres or to the
-    first wall: a mound of the ground's own earth rides ahead of each,
-    a lip of it stands up behind, clods of it fly, and the ground stays
-    scarred where they passed, in its own colour turned dark (the scars
-    last ten seconds). Each throws whatever it crosses into the air for
+    first wall: as each front passes, slabs of the ground tear up
+    behind it — flipped on their leading edge, the turf on top, brown
+    earth underneath — stand a moment, then settle back cracked, and
+    the clods fly; the ground stays scarred brown where they passed,
+    the dirt showing through (the scars fade in ten seconds). Each throws whatever it crosses into the air for
     24 (30 at a full hold), and more often than not takes a leg out
     from under a small or medium horror. The greatsword can take the
     **piercing thrust** and the **tiger blade** too, from its own charge

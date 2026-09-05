@@ -2664,7 +2664,7 @@ function sheetDress(rig,o){
   const strip=(g,keep)=>{for(const c of g.children.slice()){if(keep&&keep(c))continue;if(c.isMesh)g.remove(c);}};
   strip(rig.head);strip(rig.torso);strip(rig.body,c=>c===rig.saya);
   for(const k of['armR','armL','foreR','foreL','legR','legL','kneeR','kneeL'])strip(rig[k]);
-  const sword=o.weapon==='sheetsword';if(sword)strip(rig.weapon);
+  const sword=o.weapon==='sheetsword'||o.weapon==='ultra',U=o.weapon==='ultra';if(sword)strip(rig.weapon);
   const C={plate:0x46523f,plateD:0x384334,steel:0x6a7460,brass:0x8c7f56,fur:0xd2c69f,green:0x3d6c5e,leather:0x5a3e28,boot:0x3f3a2e,blade:0xb4b8ba,dark:0x0a0b0a};
   const mPlate=flatMat(C.plate),mPlateD=flatMat(C.plateD),mSteel=flatMat(C.steel),mBrass=flatMat(C.brass),mFur=flatMat(C.fur),
     mGreen=flatMat(C.green),mLeather=flatMat(C.leather),mBoot=flatMat(C.boot),mBlade=flatMat(C.blade),mDark=flatMat(C.dark,{vertexColors:false}),
@@ -2722,12 +2722,13 @@ function sheetDress(rig,o){
   }
   // ---- the sword: a diamond-section blade to a point, a plain cross, a long grip, an octagonal pommel
   if(sword){const w=rig.weapon;
-    const bl=add(w,loft([R(4,.075,.018,-.34,{phase:0}),R(4,.072,.017,-.9,{phase:0}),R(4,.062,.014,-1.35,{phase:0}),[[0,-1.6*s,0]]],{capBottom:true}),mBlade,.04);
-    for(const zz of[.012,-.012])box(w,mPlateD,.025,1.0,.006,0,-.86,zz);          // the fuller, either face
-    box(w,mPlate,.34,.045,.06,0,-.40,0);box(w,mBlade,.09,.08,.05,0,-.34,0);
-    add(w,loft([R(8,.03,.03,-.36),R(8,.032,.032,-.05),R(8,.03,.03,.22)]),mLeather,.06);
-    add(w,loft([R(8,.03,.03,.22),R(8,.05,.05,.27),R(8,.05,.05,.31),R(8,.03,.03,.34)],{capTop:true}),mSteel,.05);
-    rig.bladeMesh=bl;rig.reach=2.9*s;rig.gripLo=-.3;rig.gripHi=.2;
+    const bw=U?.1:.075,bt=U?.024:.018,bL=U?2.35:1.6,cx=U?-.5:-.34;
+    const bl=add(w,loft([R(4,bw,bt,cx,{phase:0}),R(4,bw*.95,bt*.95,cx-(bL+cx)*.4,{phase:0}),R(4,bw*.82,bt*.8,cx-(bL+cx)*.75,{phase:0}),[[0,-bL*s,0]]],{capBottom:true}),mBlade,.04);
+    for(const zz of[bt*.7,-bt*.7])box(w,mPlateD,.025,(bL+cx)*.8,.006,0,(cx-bL)/2,zz);   // the fuller, either face
+    box(w,mPlate,U?.5:.34,U?.06:.045,U?.08:.06,0,cx-.06,0);box(w,mBlade,U?.12:.09,U?.12:.08,.05,0,cx,0);
+    add(w,loft([R(8,.03,.03,cx-.02),R(8,.032,.032,-.05),R(8,.03,.03,.22)]),mLeather,.06);
+    add(w,loft([R(8,.03,.03,.22),R(8,U?.07:.05,U?.07:.05,.27),R(8,U?.07:.05,U?.07:.05,.31),R(8,.03,.03,.34)],{capTop:true}),mSteel,.05);
+    rig.bladeMesh=bl;rig.reach=(U?3.4:2.9)*s;rig.gripLo=U?-.44:-.3;rig.gripHi=U?.08:.2;
   }
 }
 
@@ -3030,6 +3031,23 @@ function buildHumanoid(o){
       for(let i=0;i<6;i++)w.add(M(GCyl(.034*s,.034*s,.012*s,7),gripM,0,-.34*s+i*.1*s,0));   // its binding
       w.add(M(GSph(.05*s,7,5),bladeM,0,.24*s,0));                          // the pommel
       rig.reach=2.9*s;rig.bladeMesh=bl;rig.gripLo=-.3;rig.gripHi=.2;
+    }else if(o.weapon==='ultra'){
+      /* the ULTRA greatsword: a slab of steel as long as the knight is
+         tall — a long haft under a great wheel pommel, a heavy straight
+         cross, a deep ricasso and a colossal blade with a fuller, carried
+         across the shoulder because nothing else could hold it */
+      const gripM2=o.clothMat||gripM;
+      const wheel=M(GCyl(.075*s,.075*s,.036*s,8),gripM,0,.12*s,0);wheel.rotation.x=Math.PI/2;w.add(wheel);
+      w.add(M(GCyl(.032*s,.038*s,.6*s,6),gripM2,0,-.2*s,0));            // the haft
+      for(const y of[.04,-.14,-.32])w.add(M(GCyl(.042*s,.042*s,.018*s,6),gripM,0,y*s,0));   // its bindings
+      w.add(M(GBox(.5*s,.065*s,.085*s),gripM,0,-.54*s,0));              // the cross, a bar of iron
+      w.add(M(GBox(.12*s,.22*s,.05*s),bladeM,0,-.68*s,0));              // the ricasso
+      const bl=M(GBox(.19*s,1.3*s,.046*s),bladeM,0,-1.44*s,0);          // the blade
+      const bl2=M(GBox(.15*s,.26*s,.04*s),bladeM,0,-2.2*s,0);           // its taper
+      const tip=M(GCone(.075*s,.2*s,4),bladeM,0,-2.42*s,0);tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;tip.scale.z=.55;
+      w.add(bl,bl2,tip);
+      for(const zz of[.026,-.026])w.add(M(GBox(.04*s,1.1*s,.006*s),lam({color:0x5c646a}),0,-1.4*s,zz*s));   // the fuller, either face
+      rig.reach=3.4*s;rig.bladeMesh=bl;rig.gripLo=-.44;rig.gripHi=.08;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
          a LONG two-hand haft under a wheel pommel, guard far down the
@@ -4128,8 +4146,8 @@ function updateRigExtras(r,dt){
 /* factory: the cast */
 function makeKnightRig(lo){
   lo=lo||{};
-  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',thief=lo.armour==='thief',og=lo.armour==='og',sheet=lo.armour==='sheet';
-  const wpn=bow?'bow':kat?'katana':sheet?'sheetsword':'claymore';
+  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',ultra=lo.weapon==='ultra',thief=lo.armour==='thief',og=lo.armour==='og',sheet=lo.armour==='sheet';
+  const wpn=bow?'bow':kat?'katana':ultra?'ultra':sheet?'sheetsword':'claymore';
   const r=buildHumanoid(sheet?{
     // the sheet knight, after the eight-view reference: olive plate lamed
     // across the chest under a broad straw pelt, a spiked steel helm with
@@ -4415,7 +4433,7 @@ const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock',
 try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
-const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','katana']],
+const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana']],
   katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl']],
   armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade']],
@@ -4962,8 +4980,10 @@ const player={
     this.rebuild();
     this.respawn();
   },
-  weapon(){return LOADOUT.weapon;},
-  atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:.68;},
+  weapon(){return LOADOUT.weapon==='ultra'?'sword':LOADOUT.weapon;},   // (the ultra greatsword is a greatsword to every rule but weight)
+  ultra(){return LOADOUT.weapon==='ultra';},
+  swing(){return this.ultra()?1.5:1;},                                   // the ultra's swings take half again as long
+  atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.ultra()?1.05:.68;},
   // the pilgrim's body is remade from the loadout: same place, same facing
   rebuild(){
     if(this.rig)scene.remove(this.rig.root);
@@ -5170,7 +5190,13 @@ const player={
         {dx:fx*.4+lx*.92,dz:fz*.4+lz*.92,up:1.7};
       {const l=Math.hypot(hv.dx,hv.dz)||1;hv.dx/=l;hv.dz/=l;}
       const preHp=e.hp;
-      e.takeHit(dmg,opts.staggerAll&&!e.boss?99:poise,this.x,this.z,kb,hv);
+      if(this.ultra()){kb*=3.5;hv.up*=1.6;dmg=Math.round(dmg*1.4);}       // the ultra greatsword: they leave the ground
+      e.takeHit(dmg,(opts.staggerAll||this.ultra())&&!e.boss?99:poise,this.x,this.z,kb,hv);
+      if(this.ultra()){G.hitstop=Math.max(G.hitstop,.12);G.camShake=Math.max(G.camShake,.35);
+        // whatever it meets and doesn't kill is flung bodily off its feet, a good many metres
+        if(e.hp>0&&!e.boss&&!e.mini&&e.rig.humanoid&&e.state!=='scatter'){
+          e.state='down';e.t=0;e.poise=0;e.lastHit={dx:hv.dx,dz:hv.dz,kb:3,up:2.4};
+          AudioSys.bodyfall();startRagdoll(e,hv.dx,hv.dz,14,3.2);}}
       if(parry&&e.hp>0&&e.state!=='down'&&e.state!=='scatter'){
         e.state='stagger';e.t=0;e.poise=0;e.attack=null;      // the parry opens them up
       }
@@ -5462,7 +5488,7 @@ const player={
       }
     }
     else if(this.state==='execute'){
-      const bowE=this.weapon()==='bow',DUR=bowE?.9:.62,p=this.t/DUR,e=this.execT;
+      const bowE=this.weapon()==='bow',DUR=(bowE?.9:.62)*this.swing(),p=this.t/DUR,e=this.execT;
       if(!e||e.hp<=0&&!this.hitDone){this.state='free';G.slowMo=1;}
       else{
         // step in to the killing distance during the wind-up
@@ -5525,7 +5551,7 @@ const player={
       }
     }
     else if(this.state==='dslash'){
-      const DUR=.95,p=this.t/DUR;
+      const DUR=.95*this.swing(),p=this.t/DUR;
       // a short driving step under each cut
       if(p<.13||(p>.34&&p<.47)){
         const sp=p<.13?7:6;
@@ -5750,7 +5776,7 @@ const player={
       if(p>=1)this.state='free';
     }
     else if(this.state==='spin'){
-      const DUR=.95,p=this.t/DUR;
+      const DUR=.95*this.swing(),p=this.t/DUR;
       if(p>.08&&p<.83){
         this.facing-=17.6*dt;                                   // two full turns, clockwise from above
         this.x+=Math.sin(this.facing)*1.6*dt;this.z+=Math.cos(this.facing)*1.6*dt;
@@ -5774,7 +5800,7 @@ const player={
       }
     }
     else if(this.state==='sprintatk'){
-      const DUR=.5,p=this.t/DUR;
+      const DUR=.5*this.swing(),p=this.t/DUR;
       if(!this.sfxDone&&p>=.12){this.sfxDone=true;AudioSys.swing();G.camShake=Math.max(G.camShake,.1);}
       if(p<.5){ // the run's momentum drives the point home
         const sp=10*(1-p*.8);
@@ -5812,7 +5838,7 @@ const player={
       }else if(this.t>=DUR){this.state='free';this.postRollT=0;}
     }
     else if(this.state==='rollatk'){
-      const DUR=.44,p=this.t/DUR;
+      const DUR=.44*this.swing(),p=this.t/DUR;
       if(!this.sfxDone&&p>=.15){this.sfxDone=true;AudioSys.swing();}
       if(p>.1&&p<.5){ // the momentum of the roll carries into the cut
         this.x+=Math.sin(this.facing)*7.5*dt;this.z+=Math.cos(this.facing)*7.5*dt;
@@ -5848,8 +5874,8 @@ const player={
       }
       // the whoosh rides the whip, and the camera flinches at the mass
       // of the blade even when it finds nothing
-      if(!this.sfxDone&&p>=.36){this.sfxDone=true;AudioSys.swing();
-        G.camShake=Math.max(G.camShake,.09);}
+      if(!this.sfxDone&&p>=.36){this.sfxDone=true;if(this.ultra())AudioSys.heavySwing();else AudioSys.swing();
+        G.camShake=Math.max(G.camShake,this.ultra()?.16:.09);}
       // lunge through the cut — the blade goes and finds them,
       // but only strides hard when something is there to reach
       if(p>.34&&p<.68){
@@ -5927,14 +5953,14 @@ const player={
     else if(this.state==='fowl')poseFowl(r,Math.min(1,this.t/1.05),t);
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
-    else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/.95));
+    else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/(.95*this.swing())));
     else if(this.state==='quake')poseHeavy(r,Math.min(1,this.t/1.0));
     else if(this.state==='recoil')poseRecoil(r,Math.min(1,this.t/.42));
     else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
       if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
-    else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/.64));
-    else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/.5));
-    else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseUppercut(r,Math.min(1,this.t/.62));}
+    else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/(.64*this.swing())));
+    else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/(.5*this.swing())));
+    else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseUppercut(r,Math.min(1,this.t/(.62*this.swing())));}
     else if(this.state==='roll'){
       const TUMBLE=.46,DUR=.58,C=CARRY;
       const p=Math.min(1,this.t/TUMBLE);                          // the tumble
@@ -5951,7 +5977,7 @@ const player={
       r.foreR.rotation.x=-1.4*(1-e)+C.fRx*e;r.foreL.rotation.x=-1.4*(1-e)+C.fLx*e;
     }
     else if(this.state==='attack'){if(kat)poseKatana(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);else poseLight(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);}
-    else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/.44));
+    else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/(.44*this.swing())));
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
 
@@ -7201,20 +7227,39 @@ function airSlash(x,z,facing,dmg,full){
     return true;
   }});
 }
+// the oldest scar or slab gives way
+function scarDrop(){const old=scars.shift();scene.remove(old);old.traverse(o=>{if(o.isMesh){(Array.isArray(o.material)?o.material:[o.material]).forEach(mm=>mm.dispose());}});}
+/* a slab of the ground torn up as a shock wave passes: hinged at its leading
+   edge, it rips up to sixty-odd degrees in a fifth of a second showing the
+   earth under it, hangs, then settles back cracked and stays a while */
+function tearSlab(x,z,facing,tint){
+  const w=rr3(.35,.55),d=rr3(.4,.6),h=.08;
+  const top=new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(1.05)}),earth=new THREE.MeshLambertMaterial({color:new THREE.Color(0x5a4632).convertSRGBToLinear()});
+  const g=new THREE.Group();g.rotation.order='YXZ';g.rotation.y=facing;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),[earth,earth,top,earth,earth,earth]);
+  m.position.set(0,h/2,-d/2);g.add(m);                                   // the slab lies behind the hinge
+  g.position.set(x,heightAt(x,z)+.01,z);scene.add(g);
+  scars.push(g);if(scars.length>SCAR_MAX)scarDrop();
+  let t=0;effects.push({update(dt){t+=dt;
+    if(scars.indexOf(g)<0)return false;
+    g.rotation.x=t<.18?1.15*easeOut(t/.18):t<.45?1.15:t<.95?1.15-(1.15-.22)*easeInOut((t-.45)/.5):.22;
+    if(t>8){const k=Math.max(0,1-(t-8)/2);top.transparent=earth.transparent=true;top.opacity=earth.opacity=k;
+      if(k<=0){scene.remove(g);scars.splice(scars.indexOf(g),1);top.dispose();earth.dispose();return false;}}
+    return true;}});
+}
 /* a scar in the ground: a dark torn strip left where a shock wave went,
    fading out after ten seconds; the oldest give way past sixty */
 const SCAR_MAX=60,scars=[];let scarGeo=null;
 function groundScar(x,z,facing,tint){
   if(!scarGeo)scarGeo=new THREE.PlaneGeometry(.5,1.05);
-  tint=tint||groundTintAt(x,z);
-  // the ground's own colour, turned darker where it is torn, a shade lighter at the lip
-  const m=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(.55),transparent:true,opacity:.9,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
-  const rim=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(1.25),transparent:true,opacity:.6,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+  // the dirt under the ground, laid bare: dark earth down the middle, a lighter earth at the lip
+  const m=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:new THREE.Color(0x4a3826).convertSRGBToLinear(),transparent:true,opacity:.92,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  const rim=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:new THREE.Color(0x6b5238).convertSRGBToLinear(),transparent:true,opacity:.7,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
   rim.scale.set(1.5,1.15,1);m.add(rim);
   m.rotation.order='YXZ';m.rotation.set(-Math.PI/2,facing+rr3(-.15,.15),0);
   m.position.set(x+rr3(-.12,.12),heightAt(x,z)+.02,z+rr3(-.12,.12));scene.add(m);
   scars.push(m);
-  if(scars.length>SCAR_MAX){const old=scars.shift();scene.remove(old);old.material.dispose();old.children[0].material.dispose();}
+  if(scars.length>SCAR_MAX)scarDrop();
   let t=0;effects.push({update(dt){t+=dt;
     if(scars.indexOf(m)<0)return false;
     if(t>9){const k=Math.max(0,1-(t-9)/2);m.material.opacity=.9*k;rim.material.opacity=.6*k;
@@ -7239,32 +7284,29 @@ function groundTintAt(x,z){
    crosses into the air — it dies on a wall, or six metres out */
 function groundWave(x,z,facing,dmg,delay){
   const fx=Math.sin(facing),fz=Math.cos(facing),LIFE=.38;              // five metres, then it's spent
-  let px=x,pz=z,life=-delay,dustT=0,scarD=0,mesh=null,mat=null,tint=null,earthM=null;const hitSet=new Set();
+  let px=x,pz=z,life=-delay,dustT=0,scarD=0,slabD=0,mesh=null,mat=null,tint=null;const hitSet=new Set();
   const build=()=>{
     tint=groundTintAt(px,pz);
     const g=new THREE.RingGeometry(.55,1.15,14,1,-Math.PI*.36,Math.PI*.72);   // a flat crescent, open forward
     const pos=g.attributes.position,col=[];
     for(let i=0;i<pos.count;i++){const r=Math.hypot(pos.getX(i),pos.getY(i));const k=.35+.65*(1-(r-.55)/.6);col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-    mat=new THREE.MeshBasicMaterial({color:0xd8c8a8,vertexColors:true,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
-    mesh=new THREE.Mesh(g,mat);mesh.rotation.set(-Math.PI/2,0,-facing+Math.PI/2);scene.add(mesh);
-    // the ground itself heaves up under the wave: a low mound of the same
-    // earth rides ahead of it, and a lip of it stands up behind
-    earthM=new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(1.15)});
-    const mound=new THREE.Mesh(new THREE.SphereGeometry(1,10,6),earthM);mound.scale.set(1.25,.42,.9);mound.position.set(0,.15,-.05);
-    mound.rotation.x=Math.PI/2;mesh.add(mound);                        // (the crescent lies flat: its +z is up)
-    const lip=new THREE.Mesh(new THREE.BoxGeometry(1.7,.28,.34),earthM);lip.position.set(0,-.55,.08);lip.rotation.x=.5;mesh.add(lip);
+    mat=new THREE.MeshBasicMaterial({color:0xd8c8a8,vertexColors:true,transparent:true,opacity:.25,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
+    mesh=new THREE.Mesh(g,mat);mesh.rotation.set(-Math.PI/2,0,-facing+Math.PI/2);scene.add(mesh);   // (only a faint mark of the front now)
   };
   effects.push({update(dt){
     life+=dt;if(life<0)return true;
     if(!mesh){build();AudioSys.rumble();}
-    const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;scarD+=st;
+    const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;scarD+=st;slabD+=st;
     const gy=heightAt(px,pz);
     while(scarD>=.5){scarD-=.5;groundScar(px-fx*scarD,pz-fz*scarD,facing,tint);}   // the ground stays torn where it passed
-    mesh.position.set(px,gy+.06+Math.sin(life*40)*.03,pz);
-    const k=Math.max(0,1-life/LIFE);mat.opacity=.4*k;earthM.opacity=1;
-    while(dustT>0){dustT-=.04;                                       // clods of it thrown up and out as it goes
-      boneBurst(px+(Math.random()-.5)*1.3,gy+.15,pz+(Math.random()-.5)*.4,tint.getHex(),3,2.4);}
+    while(slabD>=.3){slabD-=.3;                                      // and it TEARS UP as the front goes over: slabs rip up behind it
+      const rx=Math.cos(facing),rz=-Math.sin(facing);
+      for(const sd of[1,-1]){const o=sd*rr3(.12,.42);tearSlab(px-fx*slabD+rx*o,pz-fz*slabD+rz*o,facing,tint);}}
+    mesh.position.set(px,gy+.06,pz);
+    const k=Math.max(0,1-life/LIFE);mat.opacity=.25*k;
+    while(dustT>0){dustT-=.04;                                       // clods of earth thrown up and out as it goes
+      boneBurst(px+(Math.random()-.5)*1.3,gy+.15,pz+(Math.random()-.5)*.4,0x5a4632,3,2.6);}
     G.camShake=Math.max(G.camShake,.08);
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||e.crow||hitSet.has(e))continue;
@@ -7277,7 +7319,7 @@ function groundWave(x,z,facing,dmg,delay){
       G.hitstop=Math.max(G.hitstop,.04);
     }
     const probe={x:px,z:pz};pushOut(probe,.05);
-    if(life>LIFE||Math.hypot(probe.x-px,probe.z-pz)>.01){scene.remove(mesh);mesh.geometry.dispose();mat.dispose();earthM.dispose();return false;}
+    if(life>LIFE||Math.hypot(probe.x-px,probe.z-pz)>.01){scene.remove(mesh);mesh.geometry.dispose();mat.dispose();return false;}
     return true;
   }});
 }
@@ -7322,7 +7364,7 @@ function katanaSlice(e,facing,cut){
   AudioSys.sever();AudioSys.hit();
   G.camShake=Math.max(G.camShake,.55);G.hitstop=Math.max(G.hitstop,.12);G.vibr([40,20,70]);
   const gy=heightAt(e.x,e.z);
-  smokePuff(e.x,gy+1.1,e.z,9);sparkBurst(e.x,gy+1.2,e.z,6);         // a clean cut: smoke off the line, nothing else
+  sparkBurst(e.x,gy+1.2,e.z,6);                                       // a clean cut: a glint off the line, nothing else
   e.flashUntil=0;if(e.mats)for(const m of e.mats)m.emissive.setHex(0x000000);   // the halves are cut from an unlit body: no red on them
   e.sliced=true;
   if(e.rag)endRagdoll(e);                 // (if this cut already killed it, the ragdoll gives way to the halves)
@@ -7406,7 +7448,7 @@ function splitEnemy(e,facing,cut,sharp){
       H.plane.copy(H.local).applyMatrix4(H.rag.rig.body.matrixWorld);
       if(life>2.1+T)for(const m of H.mats)m.opacity=Math.max(0,1-(life-2.1-T)/.7);
     }
-    if(sharp){if(life<.9&&Math.random()<dt*9)smokePuff(e.x,gh+.95+Math.random()*.4,e.z,1);}   // a thin smoke off the cut, no gore
+    if(sharp){}                                                     // (nothing comes off a clean cut)
     else if(life>.05&&life<.35&&Math.random()<dt*20)gore(e,e.x,1.0,e.z,3,.8);
     if(life>2.8+T){
       for(const H of halves){scene.remove(H.h);for(const m of H.mats)m.dispose();
