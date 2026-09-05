@@ -75,7 +75,12 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     path takes the shaft **and keeps it** — it is planted in the body and
     rides with it through every pose and fall. Into the ground or the
     stone, it sticks. The finishing move with a bow in hand is a shaft
-    through the skull at point-blank
+    through the skull at point-blank. Its third charge is the **bomb
+    arrow**: a shaft with a charge bound behind the head that bursts on
+    the first thing it meets — a flash, fire, smoke, a scorched ring —
+    and every small or medium horror within two metres and a bit is
+    blown apart into its bones, to crawl back together in time; the big
+    and the Warden only take the blow
   - **the katana** — overpowered on purpose. Carried in **chudan**, both
     hands on the grip before the navel and the point levelled at the
     throat, and it fights the way a katana does: **yoko-giri**, the level
@@ -84,13 +89,14 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     **tsuki**, the point straight in. Fast cuts for 30, and any small or
     medium horror below half its life is **cut in two along the line the
     blade took** — level through the middle, or on the diagonal. The cut
-    is too clean to feel: nothing moves for three quarters of a second,
-    then the top slides off the cut face in ONE piece — sideways with
-    the swing off a level cut, down the slope of a diagonal one — and
-    gravity has it, landing wherever it tips; the legs stand a moment
-    longer, and then the knees go. Only smoke comes off the line, and
-    the katana never takes an arm or a head — its cut is the whole
-    body. Its
+    is too clean to feel: nothing moves for half a second, then the
+    top slides off the cut face in ONE piece — sideways with the swing
+    off a level cut, down the slope of a diagonal one — and drops onto
+    its chest wherever it tips, nothing under it to hold it up; the legs
+    stand almost a second longer, and then the knees go. Only smoke
+    comes off the line, the halves never flash red, and the katana
+    never takes an arm or a head, nor blasts a skeleton apart — its cut
+    is the whole body, and blasting is the greatsword's business. Its
     charge is chosen on the pause screen. The **iaido draw**: hold and
     the hands put the blade away — the right rides the hilt down as the
     blade comes back across the saya's mouth, swings into line and
@@ -102,16 +108,20 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the sheath, and then they fall in two. Or the **piercing thrust**:
     the blade never goes away — the hold chambers the point level
     beside the right hip with the hips square, already on its line, and
-    the release is one motion, a long low lunge that drives it straight
-    out and through whoever stands there — a poke, not a swing, 42 (58
-    at a full hold), that staggers all but the Warden and throws them
-    back off their feet. Or the **tiger blade**: the hold raises the
+    the release is one motion, a long low lunge of three metres that
+    drives it straight out and through whoever stands there — a poke,
+    not a swing, four metres of reach, 42 (58 at a full hold), that
+    staggers all but the Warden and throws them back off their feet,
+    the streak of it a straight line forward at the point's height. Or the **tiger blade**: the hold raises the
     blade high over the head in jodan, and the release drives it into
-    the ground a stride ahead — three shock waves of torn earth tear
-    out of it in a fan, one straight and one to either side, fifteen
-    metres or to the first wall, scarring the ground dark where they
-    pass (the scars last ten seconds), each throwing whatever it crosses
-    into the air for 24 (30 at a full hold). The greatsword can take the
+    the ground a stride ahead — three shock waves heave out of it in a
+    fan, one straight and one to either side, five metres or to the
+    first wall: a mound of the ground's own earth rides ahead of each,
+    a lip of it stands up behind, clods of it fly, and the ground stays
+    scarred where they passed, in its own colour turned dark (the scars
+    last ten seconds). Each throws whatever it crosses into the air for
+    24 (30 at a full hold), and more often than not takes a leg out
+    from under a small or medium horror. The greatsword can take the
     **piercing thrust** and the **tiger blade** too, from its own charge
     list, and its point and its waves hit a quarter harder. Or the **waterfowl**: wound in the saya like the draw, then
     drawn in one rising diagonal cut and held dead still at the end of

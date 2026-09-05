@@ -4072,15 +4072,16 @@ const HERO_OPTS={weapon:[['sword','greatsword'],['bow','longbow'],['katana','kat
   katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl']],
   armour:[['knight','knight plate'],['thief','thief cloth'],['og','OG knight']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade']],
-  bowCharge:[['knock','knockback shot'],['pierce','piercing shot']]};
+  bowCharge:[['knock','knockback shot'],['pierce','piercing shot'],['bomb','bomb arrow']]};
 const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on the air alone — an X of crossed cuts — that flies on ahead; a full charge\'s second cut staggers all but the Warden',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
   quake:'the blade hauled overhead while the ground groans and the screen shakes, then driven into the flags: every small and medium horror near is blasted five body-lengths away, some of them bursting into bones on the way',
   knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
   pierce:'a shaft that goes clean through — up to four of them in a line, and it stays in the last',
+  bomb:'a shaft with a charge bound behind the head: it bursts on whatever it meets, and every small or medium horror in the blast is blown apart into its bones — they crawl back together, in time',
   iai:'the blade walked back into the saya at the hip, then one cut as the body flashes five metres through them; they fall when it clicks home',
   thrust:'the point held back beside the right hip, already on its line; release and a long low lunge drives it straight through whoever stands there — a hard poke that throws them off their feet',
-  tiger:'the blade raised high over the head, then driven into the ground: three shock waves tear out of the earth in a fan — one straight, one to either side — running far and scarring the ground behind them, each throwing whatever it crosses into the air',
+  tiger:'the blade raised high over the head, then driven into the ground: three shock waves heave the earth up in a fan — one straight, one to either side — five metres out, scarring the ground behind them, throwing whatever they cross into the air and taking the legs out from under the small and the medium',
   fowl:'sheathed at the hip, then drawn in one rising diagonal cut and held there — while the air itself keeps cutting: a storm of pale slashes wheels round the still body for most of a second, striking everything within three metres again and again'};
 function boneBurst(x,y,z,color,n,speed){
   for(let i=0;i<n;i++){
@@ -4212,9 +4213,9 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
   kind=kind||'sweep';dir=dir||1;
   let g;
   if(kind==='thrust'){
-    g=new THREE.PlaneGeometry(.12,2.4,1,10);                       // a streak along the point's line
+    g=new THREE.PlaneGeometry(.12,3.2,1,12);                       // a streak along the point's line
     const pos=g.attributes.position,col=[];
-    for(let i=0;i<pos.count;i++){const v=(pos.getY(i)+1.2)/2.4;     // 0 hilt .. 1 tip
+    for(let i=0;i<pos.count;i++){const v=(pos.getY(i)+1.6)/3.2;     // 0 hilt .. 1 tip
       const k=Math.pow(Math.sin(v*Math.PI),.7);col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   }else if(kind==='cross'){
@@ -4239,9 +4240,11 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
   const arc=new THREE.Mesh(g,m);
   const gy=heightAt(parentX,parentZ);
   if(kind==='thrust'){
-    arc.rotation.set(Math.PI/2,0,0);                                 // lay the streak flat, pointing forward...
-    arc.rotation.y=facing;                                           // ...along the facing
-    arc.position.set(parentX+Math.sin(facing)*1.0,gy+y+.05,parentZ+Math.cos(facing)*1.0);
+    // a straight line forward along the facing, level at the point's height:
+    // two crossed planes, so it reads from any angle
+    arc.rotation.order='YXZ';arc.rotation.set(0,facing-Math.PI/2,Math.PI/2);
+    const c2=new THREE.Mesh(g,m);c2.rotation.y=Math.PI/2;arc.add(c2);
+    arc.position.set(parentX+Math.sin(facing)*1.7,gy+y+.05,parentZ+Math.cos(facing)*1.7);
   }else if(kind==='overhead'){
     arc.rotation.set(0,facing,0);                                    // a vertical crescent in the swing plane
     arc.rotation.x=dir>0?.2:-.2;
@@ -4634,8 +4637,8 @@ const player={
     AudioSys.loose(heavy);G.vibr(heavy?25:12);
     if(heavy)G.camShake=Math.max(G.camShake,.18);
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
-    const spd=kind==='light'?19:kind==='knock'?24:27;
-    const dmg=kind==='light'?14:kind==='knock'?26:22;
+    const spd=kind==='light'?19:kind==='knock'?24:kind==='bomb'?22:27;
+    const dmg=kind==='light'?14:kind==='knock'?26:kind==='bomb'?12:22;
     shootArrow(this.x+fx*.6,heightAt(this.x,this.z)+1.35,this.z+fz*.6,fx,fz,spd,dmg,kind);
   },
   respawn(){
@@ -4835,7 +4838,7 @@ const player={
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
         // if life remains in it, the bones will crawl back together
-        if(e.hp>0&&!e.big&&!e.boss)e.scatter();
+        if(e.hp>0&&!e.big&&!e.boss&&this.weapon()!=='katana')e.scatter();   // (a heavy blade's doing; the katana cuts, it doesn't blast)
       }
       if(el){
         elemBurst(el,(this.x+e.x)/2,1.2,(this.z+e.z)/2);
@@ -5286,15 +5289,15 @@ const player={
     else if(this.state==='kthrust'){
       const DUR=.5,p=this.t/DUR;                                   // the point was chambered through the charge: it goes straight out
       if(foe&&p<.08)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),20*dt);
-      if(p<.26){ // the lunge: a long low step behind the point
-        const pr={x:this.x+Math.sin(this.facing)*13*dt,z:this.z+Math.cos(this.facing)*13*dt};
+      if(p<.3){ // the lunge: a long low step behind the point — three metres of it
+        const pr={x:this.x+Math.sin(this.facing)*22*dt,z:this.z+Math.cos(this.facing)*22*dt};
         pushOut(pr,.32);this.x=pr.x;this.z=pr.z;
       }
       if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.glowFlash=.5;}
       if(!this.hitDone&&p>=.2){ // the point goes in: a narrow line, driven hard
         this.hitDone=true;
         const wm=this.weapon()==='sword'?1.3:1;                    // the greatsword's point hits harder
-        const hit=this.meleeHit((this.chargeFull?58:42)*wm,3.4,.3,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
+        const hit=this.meleeHit((this.chargeFull?58:42)*wm,4.2,.3,6,2.6,{trail:'thrust',staggerAll:true,noSlice:true});
         if(hit){AudioSys.hit();AudioSys.gore();G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.12);G.vibr([30,20,50]);}
       }
       if(p>=1)this.state='free';
@@ -6670,7 +6673,8 @@ function makeRagdoll(rig,rigid){
           dx*=f;dy*=f;dz*=f;
           a.x+=dx;a.y+=dy;a.z+=dz;b.x-=dx;b.y-=dy;b.z-=dz;
         }
-        for(const q of P){
+        for(let qi=0;qi<P.length;qi++){const q=P[qi];
+          if(rag.noFloor&&rag.noFloor.has(qi))continue;   // (a cut-away part: nothing under it)
           const gy=heightAt(q.p.x,q.p.z)+q.r;
           if(q.p.y<gy){q.p.y=gy;q.o.y=q.p.y;               // the ground takes the fall
             q.o.x=q.p.x-(q.p.x-q.o.x)*.55;q.o.z=q.p.z-(q.p.z-q.o.z)*.55;} // and most of the slide
@@ -6737,7 +6741,7 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
   a.position.set(x,y,z);
   a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(dx,0,dz).normalize());
   // a pale glow rides the shaft in flight so the eye can follow it through the dark
-  const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:kind==='light'?0xfff0c0:0xffc890,
+  const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:kind==='light'?0xfff0c0:kind==='bomb'?0xff6a30:0xffc890,
     transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending}));
   gl.scale.set(.55,.55,1);gl.position.y=-.55;a.add(gl);a._glow=gl;
   scene.add(a);
@@ -6759,6 +6763,7 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
       const cx=a.position.x+dx*st*tt,cz=a.position.z+dz*st*tt;
       if(Math.hypot(e.x-cx,e.z-cz)>e.radius+.3)continue;
       hitSet.add(e);
+      if(kind==='bomb'){bombBurst(cx,a.position.y,cz,dx,dz);scene.remove(a);return false;}   // it bursts on the first thing it meets
       arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,kind==='pierce'&&pierced<3&&!e.boss);
       if(kind==='pierce'&&pierced<3&&!e.boss){pierced++;continue;}   // and on through
       return false;                                                  // it stays in them
@@ -6766,6 +6771,7 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
     a.position.x=nx;a.position.z=nz;
     const gy=heightAt(nx,nz),probe={x:nx,z:nz};pushOut(probe,.05);constrain(probe,G.bossActive);
     if(a.position.y<gy+.05||Math.hypot(probe.x-nx,probe.z-nz)>.01||life>1.8){
+      if(kind==='bomb'){bombBurst(a.position.x,Math.max(a.position.y,gy+.3),a.position.z,dx,dz);scene.remove(a);return false;}
       AudioSys.arrowStone();if(a._glow)a._glow.visible=false;
       if(a.position.y<gy+.05)a.position.y=gy+.05;
       let t2=0;effects.push({update(d){t2+=d;if(t2>18){scene.remove(a);return false;}return true;}});
@@ -6773,6 +6779,29 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
     }
     return true;
   }});
+}
+/* the bomb arrow's burst: a flash, a ring of fire and smoke, and every
+   small or medium horror within two metres and a bit is blown apart into
+   its bones — it crawls back together, given time. The big and the boss
+   only take the blow */
+function bombBurst(x,y,z,dx,dz){
+  AudioSys.quake();AudioSys.hit();G.camShake=Math.max(G.camShake,.6);G.hitstop=Math.max(G.hitstop,.08);G.vibr([60,30,90]);
+  const gy=heightAt(x,z);
+  const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffb060,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending}));
+  f.scale.set(1.6,1.6,1);f.position.set(x,y,z);scene.add(f);
+  let t=0;effects.push({update(dt){t+=dt;const p=t/.22;f.material.opacity=1-p;f.scale.setScalar(1.6+p*3.2);
+    if(p>=1){scene.remove(f);f.material.dispose();return false;}return true;}});
+  sparkBurst(x,y,z,22);boneBurst(x,y,z,0xff7a30,14,3.4);boneBurst(x,y,z,0x3a3430,10,2.6);smokePuff(x,y+.2,z,8);
+  for(let i=0;i<4;i++)groundScar(x+rr3(-.5,.5),z+rr3(-.5,.5),Math.random()*TAU);          // the ground is scorched, not bled on
+  const R=2.3;
+  for(const e of enemies){
+    if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter')continue;
+    const ey=e.crow?e.y:heightAt(e.x,e.z)+1.0,ddx=e.x-x,ddz=e.z-z,d=Math.hypot(ddx,ddz,ey-y);
+    if(d>R+e.radius)continue;
+    const ux=d>1e-3?ddx/d:dx,uz=d>1e-3?ddz/d:dz;
+    e.takeHit(e.boss?20:26,e.boss?3:99,x,z,1.2,{dx:ux,dz:uz,up:1.5});
+    if(e.hp>0&&!e.big&&!e.boss&&!e.mini&&!e.crow&&e.rig&&e.rig.humanoid)e.scatter(ux,uz,2.2+Math.random());
+  }
 }
 function arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,through){
   const el=player.element;
@@ -6826,12 +6855,13 @@ function airSlash(x,z,facing,dmg,full){
 }
 /* a scar in the ground: a dark torn strip left where a shock wave went,
    fading out after ten seconds; the oldest give way past sixty */
-const SCAR_MAX=60,scars=[];let scarGeo=null,scarMat=null,scarRim=null;
-function groundScar(x,z,facing){
-  if(!scarGeo){scarGeo=new THREE.PlaneGeometry(.5,1.05);
-    scarMat=new THREE.MeshBasicMaterial({color:0x14120f,transparent:true,opacity:.82,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
-    scarRim=new THREE.MeshBasicMaterial({color:0x3e3830,transparent:true,opacity:.45,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});}
-  const m=new THREE.Mesh(scarGeo,scarMat.clone()),rim=new THREE.Mesh(scarGeo,scarRim.clone());
+const SCAR_MAX=60,scars=[];let scarGeo=null;
+function groundScar(x,z,facing,tint){
+  if(!scarGeo)scarGeo=new THREE.PlaneGeometry(.5,1.05);
+  tint=tint||groundTintAt(x,z);
+  // the ground's own colour, turned darker where it is torn, a shade lighter at the lip
+  const m=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(.55),transparent:true,opacity:.9,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  const rim=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(1.25),transparent:true,opacity:.6,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
   rim.scale.set(1.5,1.15,1);m.add(rim);
   m.rotation.order='YXZ';m.rotation.set(-Math.PI/2,facing+rr3(-.15,.15),0);
   m.position.set(x+rr3(-.12,.12),heightAt(x,z)+.02,z+rr3(-.12,.12));scene.add(m);
@@ -6839,61 +6869,83 @@ function groundScar(x,z,facing){
   if(scars.length>SCAR_MAX){const old=scars.shift();scene.remove(old);old.material.dispose();old.children[0].material.dispose();}
   let t=0;effects.push({update(dt){t+=dt;
     if(scars.indexOf(m)<0)return false;
-    if(t>9){const k=Math.max(0,1-(t-9)/2);m.material.opacity=.82*k;rim.material.opacity=.35*k;
+    if(t>9){const k=Math.max(0,1-(t-9)/2);m.material.opacity=.9*k;rim.material.opacity=.6*k;
       if(k<=0){scene.remove(m);scars.splice(scars.indexOf(m),1);m.material.dispose();rim.material.dispose();return false;}}
     return true;}});
+}
+/* the colour of the ground under a point — the flags of the plinth, or the
+   soil — averaged once off its own texture, so anything that pretends to
+   be that ground matches it */
+const groundTint={};
+function groundTintAt(x,z){
+  const key=(Math.abs(x)<PW&&Math.abs(z)<PL)?'flag':'dirt';
+  if(!groundTint[key]){
+    const c=texCache[key].image,ctx=c.getContext('2d'),d=ctx.getImageData(0,0,c.width,c.height).data;
+    let r=0,g=0,b=0,n=0;for(let i=0;i<d.length;i+=16){r+=d[i];g+=d[i+1];b+=d[i+2];n++;}
+    groundTint[key]=new THREE.Color(r/n/255,g/n/255,b/n/255).convertSRGBToLinear();
+  }
+  return groundTint[key];
 }
 /* a shock wave through the ground: a low crescent of torn earth that races
    up the line, kicking dust and stone as it goes, and throws whatever it
    crosses into the air — it dies on a wall, or six metres out */
 function groundWave(x,z,facing,dmg,delay){
-  const fx=Math.sin(facing),fz=Math.cos(facing);
-  let px=x,pz=z,life=-delay,dustT=0,scarD=0,mesh=null,mat=null;const hitSet=new Set();
+  const fx=Math.sin(facing),fz=Math.cos(facing),LIFE=.38;              // five metres, then it's spent
+  let px=x,pz=z,life=-delay,dustT=0,scarD=0,mesh=null,mat=null,tint=null,earthM=null;const hitSet=new Set();
   const build=()=>{
+    tint=groundTintAt(px,pz);
     const g=new THREE.RingGeometry(.55,1.15,14,1,-Math.PI*.36,Math.PI*.72);   // a flat crescent, open forward
     const pos=g.attributes.position,col=[];
     for(let i=0;i<pos.count;i++){const r=Math.hypot(pos.getX(i),pos.getY(i));const k=.35+.65*(1-(r-.55)/.6);col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-    mat=new THREE.MeshBasicMaterial({color:0xd8c8a8,vertexColors:true,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
+    mat=new THREE.MeshBasicMaterial({color:0xd8c8a8,vertexColors:true,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
     mesh=new THREE.Mesh(g,mat);mesh.rotation.set(-Math.PI/2,0,-facing+Math.PI/2);scene.add(mesh);
-    // a lip of ground thrown up behind the crescent
-    const lip=new THREE.Mesh(new THREE.BoxGeometry(1.5,.22,.3),mat2||(mat2=new THREE.MeshLambertMaterial({color:0x5a5244})));
-    lip.position.set(0,0,-.5);lip.rotation.x=.4;mesh.add(lip);
+    // the ground itself heaves up under the wave: a low mound of the same
+    // earth rides ahead of it, and a lip of it stands up behind
+    earthM=new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(1.15)});
+    const mound=new THREE.Mesh(new THREE.SphereGeometry(1,10,6),earthM);mound.scale.set(1.25,.42,.9);mound.position.set(0,.15,-.05);
+    mound.rotation.x=Math.PI/2;mesh.add(mound);                        // (the crescent lies flat: its +z is up)
+    const lip=new THREE.Mesh(new THREE.BoxGeometry(1.7,.28,.34),earthM);lip.position.set(0,-.55,.08);lip.rotation.x=.5;mesh.add(lip);
   };
-  let mat2=null;
   effects.push({update(dt){
     life+=dt;if(life<0)return true;
     if(!mesh){build();AudioSys.rumble();}
     const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;scarD+=st;
     const gy=heightAt(px,pz);
-    while(scarD>=.5){scarD-=.5;groundScar(px-fx*scarD,pz-fz*scarD,facing);}   // the ground stays torn where it passed
+    while(scarD>=.5){scarD-=.5;groundScar(px-fx*scarD,pz-fz*scarD,facing,tint);}   // the ground stays torn where it passed
     mesh.position.set(px,gy+.06+Math.sin(life*40)*.03,pz);
-    mat.opacity=.55*Math.max(0,1-life/1.15);
-    while(dustT>0){dustT-=.05;boneBurst(px+(Math.random()-.5)*1.2,gy+.05,pz+(Math.random()-.5)*.4,0x4a463a,3,1.6);}
+    const k=Math.max(0,1-life/LIFE);mat.opacity=.4*k;earthM.opacity=1;
+    while(dustT>0){dustT-=.04;                                       // clods of it thrown up and out as it goes
+      boneBurst(px+(Math.random()-.5)*1.3,gy+.15,pz+(Math.random()-.5)*.4,tint.getHex(),3,2.4);}
     G.camShake=Math.max(G.camShake,.08);
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||e.crow||hitSet.has(e))continue;
       if(Math.hypot(e.x-px,e.z-pz)>e.radius+1.1)continue;
       hitSet.add(e);AudioSys.hit();sparkBurst(e.x,gy+.6,e.z,8);gore(e,e.x,gy+.8,e.z,5,1.1);
       e.takeHit(dmg,e.boss?4:99,px-fx,pz-fz,1.1,{dx:fx,dz:fz,up:1.9});
+      // the force of it can take the legs out from under the small and the medium
+      if(e.hp>0&&!e.big&&!e.boss&&!e.mini&&e.rig.humanoid&&e.state!=='scatter'&&!e.severedLeg&&Math.random()<.6)
+        severLimb(e,'sweep',{dx:fx,dz:fz,up:1.2},Math.random()<.5?'legL':'legR');
       G.hitstop=Math.max(G.hitstop,.04);
     }
     const probe={x:px,z:pz};pushOut(probe,.05);
-    if(life>1.15||Math.hypot(probe.x-px,probe.z-pz)>.01){scene.remove(mesh);mesh.geometry.dispose();mat.dispose();return false;}
+    if(life>LIFE||Math.hypot(probe.x-px,probe.z-pz)>.01){scene.remove(mesh);mesh.geometry.dispose();mat.dispose();earthM.dispose();return false;}
     return true;
   }});
 }
 /* a limb comes off: the group is cut out of the rig and thrown, a stub is
    left behind for the poses to move, the stump bleeds, and the horror
    keeps coming without it */
-function severLimb(e,trail,hv){
+function severLimb(e,trail,hv,want){
   const r=e.rig;
   const wantHead=trail==='overhead'||(trail==='sweep'&&Math.random()<.4);
-  let key=null;
-  if(wantHead&&!e.severedHead)key='head';
-  else if(!e.severedArm)key='armL';
-  else if(!e.severedHead)key='head';
-  if(!key)return false;
+  let key=want||null;
+  if(!key){
+    if(wantHead&&!e.severedHead)key='head';
+    else if(!e.severedArm)key='armL';
+    else if(!e.severedHead)key='head';
+  }
+  if(!key||!r[key])return false;
   const g=r[key];
   r.root.updateMatrixWorld(true);
   const wp=g.getWorldPosition(new THREE.Vector3()),wq=g.getWorldQuaternion(new THREE.Quaternion());
@@ -6901,10 +6953,12 @@ function severLimb(e,trail,hv){
   parent.remove(g);
   const stub=new THREE.Group();stub.position.copy(lp);parent.add(stub);
   if(key==='head'){r.head=stub;e.severedHead=true;}
+  else if(key==='legL'||key==='legR'){const kk=key==='legL'?'kneeL':'kneeR';                // a leg: the knee goes with it
+    r[key]=stub;const ks=new THREE.Group();ks.position.copy(r[kk].position);stub.add(ks);r[kk]=ks;e.severedLeg=true;}
   else{r.armL=stub;const fs=new THREE.Group();fs.position.copy(r.foreL.position);stub.add(fs);r.foreL=fs;e.severedArm=true;}
   g.traverse(o=>{if(o.isMesh)o.material=o.material.clone();});
   g.position.copy(wp);g.quaternion.copy(wq);scene.add(g);
-  loosePiece(g,key==='head'?.16*(r.s||1):.07*(r.s||1),
+  loosePiece(g,key==='head'?.16*(r.s||1):key[0]==='l'?.09*(r.s||1):.07*(r.s||1),
     hv.dx*2.4+rr3(-.8,.8),hv.dz*2.4+rr3(-.8,.8),2.6+Math.random()*1.6,true);
   e.hp-=key==='head'?6:4;
   gore(e,wp.x,wp.y,wp.z,14,1.2);goreDecal(e,e.x+rr3(-.4,.4),e.z+rr3(-.4,.4),.45);
@@ -6921,6 +6975,7 @@ function katanaSlice(e,facing,cut){
   G.camShake=Math.max(G.camShake,.55);G.hitstop=Math.max(G.hitstop,.12);G.vibr([40,20,70]);
   const gy=heightAt(e.x,e.z);
   smokePuff(e.x,gy+1.1,e.z,9);sparkBurst(e.x,gy+1.2,e.z,6);         // a clean cut: smoke off the line, nothing else
+  e.flashUntil=0;if(e.mats)for(const m of e.mats)m.emissive.setHex(0x000000);   // the halves are cut from an unlit body: no red on them
   e.sliced=true;
   if(e.rag)endRagdoll(e);                 // (if this cut already killed it, the ragdoll gives way to the halves)
   splitEnemy(e,facing,cut||'yoko',true);        // sharp: the halves slide off the cut, they aren't thrown
@@ -6980,16 +7035,19 @@ function splitEnemy(e,facing,cut,sharp){
       // a level cut, down the slope of a diagonal one — and gravity has it.
       // The legs stand a moment longer, then the knees go
       H.kicked=false;
-      if(side>0){H.hold=.75;
+      if(side>0){H.hold=.5;
         const sx=cut==='yoko'?-rx:cut==='kesa'?rx:cut==='gyaku'?-rx:n.x,sz=cut==='yoko'?-rz:cut==='kesa'?rz:cut==='gyaku'?-rz:n.z;
-        H.kick=()=>rag.kick(sx,sz,cut==='yoko'?.55:.75,0);}
-      else{H.hold=1.15;const a=Math.random()*TAU;
+        H.kick=()=>rag.kick(sx,sz,cut==='yoko'?1.1:1.3,0);
+        // nothing below the cut holds it up: those particles fall through the
+        // floor, so the top comes down onto its chest and hands, not its legs
+        rag.noFloor=new Set();rag.P.forEach((q,i)=>{if(q.p.y<gh+hc-.05)rag.noFloor.add(i);});}
+      else{H.hold=1.4;const a=Math.random()*TAU;
         H.kick=()=>rag.kick(cut==='yoko'||cut==='kesa'||cut==='gyaku'?Math.sin(a):-n.x,cut==='yoko'||cut==='kesa'||cut==='gyaku'?Math.cos(a):-n.z,.3,0);}
     }
     h.traverse(o=>{if(o.isMesh)H.mats.push(o.material);});
     halves.push(H);
   }
-  let life=0;const T=sharp?1.15:0;
+  let life=0;const T=sharp?1.4:0;
   effects.push({update(dt){
     life+=dt;
     for(const H of halves){
@@ -7563,7 +7621,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
