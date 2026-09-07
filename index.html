@@ -4615,6 +4615,70 @@ function shockRing(x,z,color,maxR,dur){
    streak) that tapers to nothing at both ends and toward the hilt —
    the taper is painted into the vertex colours, which under additive
    blending is the same as fading — and is gone in a tenth of a second */
+/* the blade's OWN trail: every frame of a swing the hilt and the tip are
+   sampled where the rig really put them, and a ribbon is drawn through
+   the last eighth of a second of them, fading with age — so the trail is
+   the path the blade actually took, whatever the pose did. It only
+   draws while the tip is moving fast relative to the knight (the whip,
+   not the wind-up), and only in a swinging state. A hit warms it gold. */
+const TRAIL_N=18,TRAIL_LIFE=.13,TRAIL_SPEED=12,TRAIL_SUB=4;   // (SUB: the ribbon is drawn through a spline of the samples, this many strips per sample, so a fast whip caught in four frames still reads as an arc)
+const SWING_STATES=new Set(['attack','dslash','spin','rollatk','sprintatk','execute','backstab','iai','kthrust','tiger','fowl','quake']);
+const bladeTrail=(()=>{
+  const geo=new THREE.BufferGeometry();
+  const NV=TRAIL_N*TRAIL_SUB+1,pos=new Float32Array(NV*2*3),col=new Float32Array(NV*2*3);
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const idx=[];for(let i=0;i<NV-1;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}
+  geo.setIndex(idx);
+  const mat=new THREE.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
+  const mesh=new THREE.Mesh(geo,mat);mesh.frustumCulled=false;mesh.visible=false;scene.add(mesh);
+  const samples=[];const B=new THREE.Vector3(),T=new THREE.Vector3(),prevT=new THREE.Vector3();let havePrev=false,prevPX=0,prevPZ=0,flash=0;
+  const pale=new THREE.Color(0xb8c4cc),gold=new THREE.Color(0xe8c890),c=new THREE.Color();
+  // where the blade runs, in the weapon group's frame: the tip is the
+  // lowest point of anything hung on the group, the base sits just under
+  // the lower hand (the cross)
+  function extents(r){
+    if(r._trailTip!==undefined)return;
+    const w=r.weapon;let minY=-.6*(r.s||1);const v=new THREE.Vector3();
+    for(const o of w.children){if(!o.isMesh||!o.geometry)continue;o.updateMatrix();const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();const bb=g.boundingBox;
+      for(let k=0;k<8;k++){v.set(k&1?bb.max.x:bb.min.x,k&2?bb.max.y:bb.min.y,k&4?bb.max.z:bb.min.z).applyMatrix4(o.matrix);if(v.y<minY)minY=v.y;}}
+    r._trailTip=minY;r._trailBase=((r.gripLo!==undefined?r.gripLo:-.3)-.15)*(r.s||1);
+  }
+  return {
+    hit(){flash=1;},
+    update(dt){
+      const r=player.rig;
+      if(dt<=0)return;
+      if(!r||!r.weapon||player.weapon()==='bow'||player.state==='dead'){samples.length=0;havePrev=false;mesh.visible=false;return;}
+      extents(r);
+      r.root.updateMatrixWorld(true);
+      B.set(0,r._trailBase,0);r.weapon.localToWorld(B);T.set(0,r._trailTip,0);r.weapon.localToWorld(T);
+      let fast=false;
+      if(havePrev){const vx=(T.x-prevT.x)-(player.x-prevPX),vy=T.y-prevT.y,vz=(T.z-prevT.z)-(player.z-prevPZ);fast=Math.hypot(vx,vy,vz)/dt>TRAIL_SPEED;}
+      prevT.copy(T);prevPX=player.x;prevPZ=player.z;havePrev=true;
+      for(const s of samples)s.age+=dt;
+      while(samples.length&&samples[0].age>TRAIL_LIFE)samples.shift();
+      const swinging=SWING_STATES.has(player.state);
+      if(swinging&&fast){samples.push({b:B.clone(),t:T.clone(),age:0});if(samples.length>TRAIL_N)samples.shift();}
+      else if(!swinging)samples.length=0;
+      flash=Math.max(0,flash-dt*7);
+      const n=samples.length;
+      if(n<2){mesh.visible=false;return;}
+      c.copy(pale).lerp(gold,flash);
+      // a smooth ribbon through the samples: splines for the tip and the hilt
+      const m=(n-1)*TRAIL_SUB+1;
+      const tc=new THREE.CatmullRomCurve3(samples.map(s=>s.t)),bc=new THREE.CatmullRomCurve3(samples.map(s=>s.b));
+      const tp=tc.getPoints(m-1),bp=bc.getPoints(m-1);
+      for(let i=0;i<m;i++){const u=i/(m-1)*(n-1),j=Math.min(n-2,Math.floor(u)),f=u-j;
+        const age=samples[j].age+(samples[j+1].age-samples[j].age)*f,k=Math.max(0,1-age/TRAIL_LIFE),o=i*6,b=bp[i],t=tp[i];
+        pos[o]=b.x;pos[o+1]=b.y;pos[o+2]=b.z;pos[o+3]=t.x;pos[o+4]=t.y;pos[o+5]=t.z;
+        col[o]=c.r*k*.2;col[o+1]=c.g*k*.2;col[o+2]=c.b*k*.2;             // faint at the hilt
+        col[o+3]=c.r*k;col[o+4]=c.g*k;col[o+5]=c.b*k;}                   // bright at the tip
+      geo.attributes.position.needsUpdate=true;geo.attributes.color.needsUpdate=true;
+      geo.setDrawRange(0,(m-1)*6);mesh.visible=true;
+    },
+    samples,mesh,
+  };
+})();
 function slashArc(parentX,parentZ,y,facing,color,kind,dir){
   kind=kind||'sweep';dir=dir||1;
   let g;
@@ -5296,8 +5360,11 @@ const player={
       G.vibr(crit?70:dmg>20?50:25);
       if(crit)AudioSys.crit();
     }
-    if(hitAny||!opts.quietMiss)
-      slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xe8c890:0xb8c4cc,opts.trail||'sweep',opts.dir||1);
+    // the sweep and the overhead leave the blade's OWN ribbon (see bladeTrail);
+    // only the thrust adds its streak along the point's line
+    if(hitAny)bladeTrail.hit();
+    if((opts.trail||'sweep')==='thrust'&&(hitAny||!opts.quietMiss))
+      slashArc(this.x+fx*.9,this.z+fz*.9,1.05,this.facing,hitAny?0xe8c890:0xb8c4cc,'thrust',opts.dir||1);
     if(bounce){this.recoil(bounce);return hitAny;}                    // and now the stone throws the blade back
     return hitAny||clashed;
   },
@@ -5627,7 +5694,9 @@ const player={
         if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.25);}}
       if(this.hitDone<2&&p>=.57){this.hitDone=2;
         const hit=this.meleeHit(dmg,2.7,1.2,3,.7,{trail:'sweep',dir:-1,staggerAll:this.chargeFull});
-        if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);}
+        if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);}}
+      // ...and once the second cut is through, its swiftness leaves the blade as the X
+      if(this.hitDone<3&&p>=.7){this.hitDone=3;
         AudioSys.airSlash();G.camShake=Math.max(G.camShake,.2);G.glowFlash=Math.max(G.glowFlash||0,.6);
         airSlash(this.x,this.z,this.facing,this.chargeFull?30:22,this.chargeFull);}
       if(IN.swipe&&IN.swipe.kind==='atk'&&p>.8){
@@ -5700,8 +5769,7 @@ const player={
           }
         }
         this.x=nx;this.z=nz;G.slowMo=.45;
-        if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.2);
-          slashArc(this.x,this.z,1.2,this.facing,0xdde8ff,'sweep',-1);}
+        if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.2);}
       }else G.slowMo=1;
       if(!this.hitDone&&p>=.62){ // the blade clicks home — and only now do they fall
         this.hitDone=true;AudioSys.sheath();
@@ -5740,7 +5808,6 @@ const player={
       if(!this.hitDone&&p>=.08){ // the draw: one rising diagonal, edge-first out of the saya
         this.hitDone=true;
         this.meleeHit(this.chargeFull?44:34,3.0,1.3,6,1.2,{trail:'sweep',dir:-1,cut:'gyaku',staggerAll:true});
-        slashArc(this.x,this.z,1.1,this.facing,0xffffff,'overhead',-1);
       }
       if(p>=.1&&p<.78){ // the storm: the air cuts, all round, again and again
         const gy=heightAt(this.x,this.z);
@@ -7996,6 +8063,7 @@ function frame(now){
     if(G.mode==='play'){
       if(IN.swipe)$('swipeHint').style.opacity=0;
       player.update(wdt);
+      bladeTrail.update(wdt);                                 // the blade's ribbon, off the rig as posed this frame
       // enough marrow held calls the cathedral open
       if(!G.cathedralOpen&&player.marrow>=G.marrowGoal)openCathedral();
       // at the eight-hundredth marrow, something with a cracked halo comes down
@@ -8078,7 +8146,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 // debug/testing handle
-window.BP={G,player,enemies,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={G,player,enemies,bladeTrail,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

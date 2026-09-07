@@ -68,9 +68,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     run's momentum carrying it deep — narrow, but it reaches
   - **hold still, then release** — the **charged attack** chosen on the
     pause screen. With the sword, the **double slash** — two fast
-    cuts, forward and back, and no more; the second cut's swiftness
-    carries on off the blade as an X of two crossed cut lines that races
-    six metres ahead and cuts whatever it crosses — or the **whirlwind** — the blade held out level while the whole body turns
+    cuts, forward and back, and no more; once the second is through,
+    its swiftness leaves the blade as an X of two crossed cut lines that
+    races six metres ahead and cuts whatever it crosses — or the **whirlwind** — the blade held out level while the whole body turns
     twice, four cuts all round, the last of a full charge staggering all
     but the Warden. With the bow, either the **knockback shot** — a heavy
     shaft that throws them back off their feet and staggers all but the
@@ -171,6 +171,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     some of them burst into bones that fly the same way. The Warden and
     the two that are not hollows only take the blow
   - **flick in ANY direction** — dodge roll with i-frames that way
+  - **the blade's trail** — every swing leaves a ribbon of light along
+    the path the blade REALLY took: each frame the hilt and the tip are
+    sampled off the posed rig and a spline ribbon is drawn through the
+    last eighth of a second of them, bright at the tip, fading with age,
+    warmed gold by a hit. It only appears while the tip is whipping fast
+    relative to the knight, so wind-ups, walking and sprinting leave
+    nothing; a thrust adds a streak along the point's line.
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
     white sparks, a clang, and its attack is broken — it reels, open to
