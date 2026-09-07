@@ -171,13 +171,19 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     some of them burst into bones that fly the same way. The Warden and
     the two that are not hollows only take the blow
   - **flick in ANY direction** — dodge roll with i-frames that way
-  - **the blade's trail** — every swing leaves a ribbon of light along
-    the path the blade REALLY took: each frame the hilt and the tip are
-    sampled off the posed rig and a spline ribbon is drawn through the
-    last eighth of a second of them, bright at the tip, fading with age,
-    warmed gold by a hit. It only appears while the tip is whipping fast
-    relative to the knight, so wind-ups, walking and sprinting leave
-    nothing; a thrust adds a streak along the point's line.
+  - **the blade's trail** — every swing leaves a ribbon along the path
+    the blade REALLY took, done the PSX way: each frame the hilt and the
+    tip are sampled off the posed rig and a TAPERED spline ribbon is
+    drawn through the last tenth of a second of them — blade-wide at the
+    sword, a sliver at the tail. Its fade is a coverage ramp, four fifths
+    at the blade to nothing at the tail, cut as a 4x4 ordered screen-door
+    dither in its own shader over the additive blend (the PS1 blended,
+    but had no per-pixel alpha); its vertices take the world's snap so it
+    wobbles like the sword; its colour is the blade's own, the tip edge
+    pushed toward white as a hot core, warmed gold by a hit. It only
+    appears while the tip is whipping fast relative to the knight, so
+    wind-ups, walking and sprinting leave nothing; a thrust adds a streak
+    along the point's line.
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
     white sparks, a clang, and its attack is broken — it reels, open to
