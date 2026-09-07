@@ -33,11 +33,10 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   split in front, real cloth to the knee; plate cuisses and greaves into
   dark boots with a toe; and a straight diamond-section greatsword with a
   plain cross, a long grip and an octagonal pommel, carried across the
-  shoulder. The hero is drawn CRISP: a second pass renders the player
-  alone at the device's full resolution and lays it over the PSX frame,
-  hidden wherever the low-res world's depth says the world is nearer,
-  and graded the same way — so the facets read clean while the world
-  keeps its grain),
+  shoulder. The hero is drawn in the PSX frame with everything else —
+  snapped, dithered and graded on the same coarse grid. (The crisp pass
+  that once drew the player alone at the device's resolution is still in
+  the code behind a switch, off.)
   **knight plate** (the sculpted knight, after a Faraam-style reference:
   a ridged helm with a central bar and an eye slit to either side, one
   small fur pelt, one piece turned from a profile and roughed with
@@ -93,7 +92,10 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     path takes the shaft **and keeps it** — it is planted in the body and
     rides with it through every pose and fall. Into the ground or the
     stone, it sticks. The finishing move with a bow in hand is a shaft
-    through the skull at point-blank. Its third charge is the **bomb
+    through the skull at point-blank. At full draw the bow arm is aimed
+    straight down the facing however far the chest turns side-on, the
+    limbs upright and the string to the cheek, so the nocked arrow points
+    where the shot will go. Its third charge is the **bomb
     arrow**: a shaft with a charge bound behind the head that bursts on
     the first thing it meets — a flash, fire, smoke, a scorched ring —
     and every small or medium horror within two metres and a bit is

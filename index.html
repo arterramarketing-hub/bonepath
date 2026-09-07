@@ -1010,7 +1010,7 @@ const hazeScene=HAZE_SEP?new THREE.Scene():scene;
    hidden behind the world wherever the low-res depth says the world is
    nearer. Layer 1 is the hero's; every light shines on both layers. Needs
    the depth texture, like the haze does. */
-const HERO_HI=HAZE_SEP;
+const HERO_HI=false;        // off: the hero is drawn in the PSX frame with the rest of the world (set to HAZE_SEP for the crisp pass)
 const crispRT=new THREE.WebGLRenderTarget(4,4,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true});
 crispRT.texture.encoding=THREE.sRGBEncoding;
 const heroRes={value:new THREE.Vector2(1,1)};
@@ -1032,6 +1032,7 @@ function heroify(m){
   m.needsUpdate=true;return m;
 }
 function heroifyObject(root){
+  if(!HERO_HI)return;                                   // (the hero stays on the world's layer, snapped and dithered like everything else)
   root.traverse(o=>{
     if(o.isLight){o.layers.enable(0);o.layers.enable(1);return;}
     o.layers.set(1);
@@ -3321,14 +3322,36 @@ function poseBowCarry(r){
 }
 /* the draw: side-on to the mark, the bow arm out straight and level, the
    string hand hauled back to the cheek. q = how far the string is drawn */
+/* point an arm (its bone runs down local -y) along dirRoot, in the RIG's
+   frame, and twist it so its local z meets upRoot — whatever the trunk
+   under it has turned by. Blended in by e from the pose already set. */
+const _aq=new THREE.Quaternion(),_ai=new THREE.Quaternion(),_ad=new THREE.Vector3(),_au=new THREE.Vector3(),_az=new THREE.Vector3(),_ax=new THREE.Vector3();
+function aimArm(r,arm,dirRoot,upRoot,e){
+  _aq.identity();const chain=[];for(let g=arm.parent;g&&g!==r.root;g=g.parent)chain.unshift(g);
+  for(const c of chain)_aq.multiply(c.quaternion);                     // root -> the arm's parent
+  _ai.copy(_aq).invert();
+  _ad.copy(dirRoot).applyQuaternion(_ai).normalize();_au.copy(upRoot).applyQuaternion(_ai);
+  if(r.mirrorArms){_ad.x*=-1;_au.x*=-1;}                             // (the mirrored rig flips the arm's lateral channels after the pose: aim at the mirror image, and the flip puts it right)
+  const q=new THREE.Quaternion().setFromUnitVectors(_ax.set(0,-1,0),_ad);
+  _az.set(0,0,1).applyQuaternion(q);                                   // where the bone's z went
+  _au.addScaledVector(_ad,-_au.dot(_ad)).normalize();_az.addScaledVector(_ad,-_az.dot(_ad)).normalize();
+  let ang=Math.acos(clamp(_az.dot(_au),-1,1));if(_ax.crossVectors(_az,_au).dot(_ad)<0)ang=-ang;
+  q.premultiply(_ai.setFromAxisAngle(_ad,ang));                        // the twist about the bone
+  arm.quaternion.slerp(q,e);
+}
+const _fwd=new THREE.Vector3(0,0,1),_up=new THREE.Vector3(0,1,0);
 function poseBowDraw(r,q,t){
   const e=easeOut(clamp(q,0,1));
   r.torso.rotation.y=-.55*e;r.body.rotation.y=-.25*e;
   r.torso.rotation.x+=.06*e;
-  r.armL.rotation.set(-1.5*e-.42*(1-e),.12*e,.34*e+.14*(1-e));r.foreL.rotation.set(-.3*(1-e)-.05*e,0,0);
-  r.weapon.rotation.set(.35*(1-e)+.06*e,0,-.12*e);
+  // the bow arm is AIMED: straight down the facing however far the chest
+  // has turned side-on, the limbs upright, the string toward the archer
+  // (the old fixed angles left it pointing seventy degrees off to the right)
+  r.armL.rotation.set(-1.5*e-.42*(1-e),.12*e,.34*e+.14*(1-e));aimArm(r,r.armL,_fwd,_up,e);
+  r.foreL.rotation.set(-.3*(1-e),0,0);
+  r.weapon.rotation.set(.35*(1-e),0,0);
   r.armR.rotation.set(-1.45*e,0,-.55*e);r.foreR.rotation.set(-1.95*e,0,0);
-  r.head.rotation.y=.5*e;r.head.rotation.x-=.08*e;
+  r.head.rotation.y=.8*e;r.head.rotation.x-=.08*e;                  // the eye down the arrow
   r.legR.rotation.x=.2*e;r.legL.rotation.x=-.2*e;r.kneeL.rotation.x=.25*e;
   r.body.position.y=r.baseY-.05*e*r.s;
   if(r.bow){r.bow.nock.visible=q>.02;r.bow.nock.position.y=r.bow.tipY+.34*e*r.s;
@@ -4618,6 +4641,7 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
       const k=Math.pow(Math.sin(clamp(along,0,1)*Math.PI),.8)*(.35+.65*(r-1.3)/.32); // ends and hilt fade
       col.push(k,k,k);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+    if(kind!=='overhead')g.rotateX(-Math.PI/2);                       // the sweep's ring lies flat; its middle is still along +x
   }
   const m=new THREE.MeshBasicMaterial({color,vertexColors:true,transparent:true,opacity:kind==='cross'?.55:.34,
     side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
@@ -4630,16 +4654,21 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
     const c2=new THREE.Mesh(g,m);c2.rotation.y=Math.PI/2;arc.add(c2);
     arc.position.set(parentX+Math.sin(facing)*1.7,gy+y+.05,parentZ+Math.cos(facing)*1.7);
   }else if(kind==='overhead'){
-    arc.rotation.set(0,facing,0);                                    // a vertical crescent in the swing plane
-    arc.rotation.x=dir>0?.2:-.2;
+    // a vertical crescent in the plane of the chop: the ring stands on
+    // edge with its middle turned to the facing, the arc running from
+    // high over the head down to the ground ahead
+    arc.rotation.order='YXZ';arc.rotation.set(0,facing-Math.PI/2,.55);
     arc.position.set(parentX,gy+y+.35,parentZ);
   }else if(kind==='cross'){
     arc.rotation.set(0,facing,dir*Math.PI*.33);                      // a cut line facing its flight, rolled past the diagonal — a wide X;
     arc.position.set(parentX,gy+y,parentZ);                          // two of them, mirrored, make the X
   }else{
-    arc.rotation.x=-Math.PI/2+.3*dir;                                // a canted horizontal crescent
-    arc.rotation.z=-facing+Math.PI/2;
-    if(dir<0)arc.scale.x=-1;
+    // a level crescent AHEAD of the hero: its middle on the facing, its
+    // ends out to either side, rolled a little about the facing so the
+    // end the cut finishes on rides higher. (It used to be turned about
+    // the world's axes, which left the first cut's crescent behind the
+    // hero and the second's in front.)
+    arc.rotation.order='YXZ';arc.rotation.set(.3*dir,facing-Math.PI/2,0);
     arc.position.set(parentX,gy+y,parentZ);
   }
   scene.add(arc);
