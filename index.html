@@ -3889,10 +3889,9 @@ function fitCape(r){
    with almost no wind-up between them — the forward sweep, then the
    backhand straight back across the same line */
 function poseDouble(r,p){
-  if(p<.34)poseLight(r,.3+.7*(p/.34),0);
-  else if(p<.68)poseLight(r,.22+.78*((p-.34)/.34),1);
-  else poseLight(r,.3+.7*((p-.68)/.32),0);              // and the third, thrown at the air
-  r.torso.rotation.x+=.1;                               // leaning into all three
+  if(p<.5)poseLight(r,.3+.7*(p/.5),0);                  // the forward sweep
+  else poseLight(r,.22+.78*((p-.5)/.5),1);              // and straight back — TWO cuts, no third
+  r.torso.rotation.x+=.1;                               // leaning into both
 }
 /* the finishing cut, from the ground up: the blade drawn low and back past
    the hip with the body sunk, then whipped up through them to the sky */
@@ -5609,30 +5608,29 @@ const player={
       }
     }
     else if(this.state==='dslash'){
-      const DUR=.95*this.swing(),p=this.t/DUR;
-      // a short driving step under each cut
-      if(p<.13||(p>.34&&p<.47)){
-        const sp=p<.13?7:6;
+      const DUR=.8*this.swing(),p=this.t/DUR;
+      // a long driving lunge under each cut: the coil comes out as ground covered
+      if(p<.16||(p>.42&&p<.6)){
+        const sp=p<.16?10:9;
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
       }
       if(foe&&p<.08)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
       if(this.sfxDone<1&&p>=.05){this.sfxDone=1;AudioSys.swing();}
-      if(this.sfxDone<2&&p>=.4){this.sfxDone=2;AudioSys.swing();}
-      this.ultraThud(p,.3);this.ultraThud(p,.66,2);
+      if(this.sfxDone<2&&p>=.45){this.sfxDone=2;AudioSys.swing();}
+      this.ultraThud(p,.38);this.ultraThud(p,.85,2);
       const dmg=this.chargeFull?22:16;
-      // the first cut sweeps right to left; the second comes straight back,
-      // and a full coil's second cut breaks anything that isn't the Warden
-      if(this.hitDone<1&&p>=.13){this.hitDone=1;
+      // TWO cuts and no more: the first sweeps right to left; the second
+      // comes straight back (a full coil's second cut breaks anything that
+      // isn't the Warden), and the air carries the second cut on as the X
+      if(this.hitDone<1&&p>=.16){this.hitDone=1;
         const hit=this.meleeHit(dmg,2.7,1.2,2,.45,{trail:'sweep',dir:1});
         if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.25);}}
-      if(this.hitDone<2&&p>=.48){this.hitDone=2;
+      if(this.hitDone<2&&p>=.57){this.hitDone=2;
         const hit=this.meleeHit(dmg,2.7,1.2,3,.7,{trail:'sweep',dir:-1,staggerAll:this.chargeFull});
-        if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);}}
-      // the third cut is made on the air alone, and the air carries it on
-      if(this.hitDone<3&&p>=.8){this.hitDone=3;
+        if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);}
         AudioSys.airSlash();G.camShake=Math.max(G.camShake,.2);G.glowFlash=Math.max(G.glowFlash||0,.6);
         airSlash(this.x,this.z,this.facing,this.chargeFull?30:22,this.chargeFull);}
-      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.85){
+      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.8){
         this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
       }
       if(p>=1){

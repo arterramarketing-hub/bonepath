@@ -68,10 +68,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     run's momentum carrying it deep — narrow, but it reaches
   - **hold still, then release** — the **charged attack** chosen on the
     pause screen. With the sword, the **double slash** — two fast
-    cuts, forward and back, then a third made on the air alone: nothing
-    but the swift of the blade, an X of two crossed cut lines mirroring
-    the pair before it, that races on six metres ahead and cuts whatever
-    it crosses — or the **whirlwind** — the blade held out level while the whole body turns
+    cuts, forward and back, and no more; the second cut's swiftness
+    carries on off the blade as an X of two crossed cut lines that races
+    six metres ahead and cuts whatever it crosses — or the **whirlwind** — the blade held out level while the whole body turns
     twice, four cuts all round, the last of a full charge staggering all
     but the Warden. With the bow, either the **knockback shot** — a heavy
     shaft that throws them back off their feet and staggers all but the
@@ -81,7 +80,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     knight coils onto the rear leg with the point levelled at the prey;
     your own glow draws in tight and burns hotter as the charge fills (a
     ring and a chime at full). Let go and the coil comes out as two fast
-    cuts with a driving step under each: the forward sweep, then the
+    cuts with a long driving lunge under each (a stride and a half of
+    ground in all): the forward sweep, then the
     backhand straight back across the same line. A full charge's pair
     hits ~3× a light strike and its second cut **staggers anything that
     isn't the Warden outright** — brutes included — and a stagger is
