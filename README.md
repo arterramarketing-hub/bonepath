@@ -221,6 +221,24 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     that follows the push: a nudge steers, a shove wheels; and a nudge
     within fifteen degrees of the heading only eases it round, never
     snaps.
+  - **moving under the eye** — locked on, the body stays on the foe:
+    walking, and sprinting toward or around it. Only a sprint held
+    clearly AWAY (past about 115° off the foe) turns the body to the
+    heading, and it comes back on the foe once the sprint swings within
+    95° again — there is no line for the facing to flicker over. The
+    sprint itself starts the instant the stick passes three-quarters (a
+    slammed stick is a sprint now) and only drops to a walk below
+    two-thirds, so a thumb hovering on the line doesn't flicker between
+    the two; speed ramps over a tenth of a second instead of jumping,
+    stops quicker than it starts, and runs a little slower sideways or
+    back than straight ahead. The walk is DIRECTIONAL: the stride runs
+    backward for a backpedal, shortens as the walk turns sideways, and
+    a side-step swings the legs out toward the side it goes with the
+    trunk leaning into it, the cycle clocked by the ground covered so
+    the feet match the pace. The lock camera is damped: it lets a few
+    degrees go so circling doesn't keep re-aiming under the thumb,
+    never swings faster than a set rate, and holds still while the foe
+    is within a stride, where the line through it would flip.
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
     white sparks, a clang, and its attack is broken — it reels, open to
@@ -230,12 +248,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     on the far side is touched — but a horror standing BETWEEN the blade
     and the stone is cut on the way, the swing only stops at the wall. A lantern post only checks the
     blade in sparks and the swing carries on; a **tree** takes the
-    edge: the bark changes colour where it bit — a pale streak of the
-    lighter wood painted flat onto the trunk at blade height, no
-    thickness to it, lying the way the blade travelled: flat for a
-    sweep, upright for an overhead, a short nick for a thrust — with a
-    few chips of wood, and the marks stay (the last forty-eight of
-    them); pews, gravestones and the town sign break
+    edge: the bark changes colour where it bit. Nothing is added to the
+    trunk — the first blow gives that tree a bark texture of its own and
+    every blow paints a pale streak of the lighter wood INTO it, at
+    blade height on the side the blade came from, lying the way the
+    blade travelled: flat for a sweep, upright for an overhead, a nick
+    for a thrust — with a few chips of wood; the marks stay for the
+    run; pews, gravestones and the town sign break
   - **the finishing cut** — break a small or medium horror's poise and
     a bright blade-mark hangs over it while it reels. Tap with it in
     reach and the knight steps in, drops low with the greatsword drawn
@@ -286,8 +305,8 @@ the far southern edge: one long corpse-run to win it back. There is no rest and 
 what the fallen shed. Nothing on a horror's body glows before it
 strikes any more — the tell is in **the eyes**: every hollow has them
 now (dark in their sockets on the small ones), and a quarter second
-before the arm comes down they flare **red** and swell (white was lost
-against the bone). That quarter
+before the arm comes down they **glow** — lit up hot in their own
+colour, swollen, with a halo of it. That quarter
 second is the moment to roll: a roll begun on the flare — even a beat
 late — is still untouchable when the blow lands, which is what the
 timing is meant to teach. Bone-throwers with green eyes lob shots you can

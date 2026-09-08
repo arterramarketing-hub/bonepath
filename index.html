@@ -2526,7 +2526,7 @@ function buildWorld(){
   function tree(px,pz,tall){
     const tr=new THREE.Group();
     const h=tall?rr(4.5,6.5):rr(3.4,4.6);
-    tr.add(cyl(.14,.32,h,5,M.bark,0,h/2,0));
+    const trunk=cyl(.14,.32,h,5,M.bark,0,h/2,0);tr.add(trunk);
     const nb=2+((rnd()*4)|0);
     for(let bI=0;bI<nb;bI++){
       const br=cyl(.03,.1,rr(1.2,2.4),4,M.bark,0,0,0);
@@ -2535,7 +2535,7 @@ function buildWorld(){
     if(rnd()<.25)tr.add(cyl(.34,.22,.16,6,M.bark,rr(-.3,.3),h*rr(.7,.9),rr(-.3,.3)));
     tr.position.set(px,heightAt(px,pz),pz);tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
     world.add(tr);addObstacle(px,pz,.4);
-    obstacles[obstacles.length-1].tree={h,r:.32-.18*Math.min(1,1.1/h)};   // the trunk's height and its girth at blade height: a swing leaves its mark there
+    obstacles[obstacles.length-1].tree={h,r:.32-.18*Math.min(1,1.1/h),trunk,grp:tr};   // the trunk itself, its height and its girth at blade height: a swing marks its bark
   }
   function ruinWall(px,pz,len,ry,h){
     const w=box(len,h,.55,M.wall,px,heightAt(px,pz)+h/2,pz,ry);w.rotation.z=rr(-.03,.03);world.add(w);
@@ -2636,7 +2636,7 @@ function buildWorld(){
       // and you see the courses of the wall going into the dark, no water
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.15,.9,8,1,true),M.wall);ring.position.set(x,gy+.45,z);world.add(ring);   // the outer wall, open at the top
       const rim=new THREE.Mesh(new THREE.RingGeometry(.78,1.06,8),M.wall);rim.rotation.x=-Math.PI/2;rim.position.set(x,gy+.9,z);world.add(rim);   // the rim: stone with nothing in the middle
-      const innerM=M.wall.clone();innerM.side=THREE.BackSide;innerM.color=new THREE.Color(0x6a6660).convertSRGBToLinear();          // the inside of the shaft: the same stone, in shadow
+      const innerM=mat('wall',{side:THREE.BackSide,color:new THREE.Color(0x6a6660).convertSRGBToLinear()});          // the inside of the shaft: the same stone, in shadow
       const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.78,.74,3.9,8,3,true),innerM);shaft.position.set(x,gy-1.05,z);world.add(shaft);
       const floor=new THREE.Mesh(new THREE.CircleGeometry(.74,8),new THREE.MeshBasicMaterial({color:0x030405}));floor.rotation.x=-Math.PI/2;floor.position.set(x,gy-2.98,z);world.add(floor);   // dry, and black
       const ry=rnd()*TAU,lx=Math.cos(ry),lz=-Math.sin(ry);
@@ -3802,12 +3802,19 @@ function poseIdle(r,t){
   r.head.rotation.y=Math.sin(t*.5)*.12;
   r.head.rotation.x+=Math.sin(t*1.7+.5)*.015;
 }
-function poseWalk(r,t,sp,shamble){
+/* fwd and lat (optional) are the move direction in the walker's own frame:
+   fwd +1 straight ahead, -1 straight back; lat +1 to its LEFT. Given them
+   the stride runs backward for a backpedal, shortens as the walk turns
+   sideways, and a side-step swings both legs out toward the side it goes,
+   the trunk leaning into the move — so a locked-on circle no longer skates */
+function poseWalk(r,t,sp,shamble,fwd,lat){
   const f=shamble?5.2:7.5,amp=shamble?.5:.62;
-  const s=Math.sin(t*f),c=Math.cos(t*f);
-  const w=s*amp*sp,w2=c*amp*sp;
+  const dir=fwd===undefined?1:(fwd<-.15?-1:1),side=lat||0,along=fwd===undefined?1:Math.max(.3,Math.abs(fwd));
+  const s=Math.sin(t*f)*dir,c=Math.cos(t*f)*dir;
+  const w=s*amp*sp*along,w2=c*amp*sp*along;
   r.legR.rotation.x=w;r.legL.rotation.x=-w;
   r.kneeR.rotation.x=Math.max(0,-w2)*.9;r.kneeL.rotation.x=Math.max(0,w2)*.9;
+  if(side){const a=Math.abs(side)*sp*.42*SIDE_STEP;r.legL.rotation.z+=Math.sign(side)*a*Math.max(0,Math.sin(t*f));r.legR.rotation.z+=Math.sign(side)*a*Math.max(0,-Math.sin(t*f));}   // the side-step: the leading leg reaches out, the other is drawn after it
   if(!r.armed){ // unarmed rigs swing their arms; the knight keeps both hands on the grip
     r.armR.rotation.x+=-w*.5;
     r.foreR.rotation.x+=-Math.max(0,w)*.35;
@@ -3821,8 +3828,8 @@ function poseWalk(r,t,sp,shamble){
   }
   r.body.rotation.y=s*.07*sp;                         // hips swing...
   r.torso.rotation.y=-s*.13*sp;                       // ...shoulders answer
-  r.torso.rotation.z=-s*.035*sp;                      // weight shifts over the planted foot
-  r.torso.rotation.x+=.09*sp;                         // leaning into the march
+  r.torso.rotation.z=-s*.035*sp-side*.09*sp*SIDE_STEP; // weight shifts over the planted foot; and leans into a side-step
+  r.torso.rotation.x+=.09*sp*(fwd===undefined?1:fwd);  // leaning into the march (and back, a little, off a backpedal)
   r.head.rotation.y=s*.05*sp;                         // gaze stays level
   r.head.rotation.x-=.07*sp;
   // rise over the planted leg, then a hard drop into each heel strike
@@ -4061,11 +4068,14 @@ function poseRollAtk(r,p){
 }
 /* full sprint: a driving run — long low strides, trunk pitched into
    it, the greatsword hauled back along the hip so it trails the runner */
-function poseRun(r,t){
+const SIDE_STEP=1;   // which way a leg's z-rotation swings it out (checked by probe: +1 puts the left leg out to the walker's left)
+function poseRun(r,t,fwd,lat){
   const f=10.5,amp=1.0,C=(r.carry||CARRY);
-  const s=Math.sin(t*f),c=Math.cos(t*f);
-  r.legR.rotation.x=s*amp;r.legL.rotation.x=-s*amp;
-  r.kneeR.rotation.x=Math.max(0,-c)*1.5;r.kneeL.rotation.x=Math.max(0,c)*1.5;
+  const dir=fwd===undefined?1:(fwd<-.15?-1:1),side=lat||0,along=fwd===undefined?1:Math.max(.4,Math.abs(fwd));
+  const s=Math.sin(t*f)*dir,c=Math.cos(t*f)*dir;
+  r.legR.rotation.x=s*amp*along;r.legL.rotation.x=-s*amp*along;
+  r.kneeR.rotation.x=Math.max(0,-c)*1.5*along;r.kneeL.rotation.x=Math.max(0,c)*1.5*along;
+  if(side){const a=Math.abs(side)*.5*SIDE_STEP;r.legL.rotation.z+=Math.sign(side)*a*Math.max(0,Math.sin(t*f));r.legR.rotation.z+=Math.sign(side)*a*Math.max(0,-Math.sin(t*f));r.torso.rotation.z-=side*.12*SIDE_STEP;}
   r.body.rotation.y=s*.12;
   r.torso.rotation.y=-s*.2;
   r.torso.rotation.z=-s*.05;
@@ -5095,26 +5105,43 @@ function bladeMeetsStone(x,z,fx,fz,reach,arc){
   return best;
 }
 
-/* a swing into a TREE leaves its mark: the bark changes colour where the
-   edge bit — a pale streak of the lighter wood painted flat onto the
-   trunk, no thickness at all, lying the way the blade travelled: flat
-   for a sweep, upright for an overhead, a short nick for a thrust — and a
-   few chips of wood fly. The streak is a decal pressed to the trunk's
-   face, drawn just ahead of the bark so it never fights it */
-const treeMarks=[];let treeMarkM=null;
+/* a swing into a TREE leaves its mark IN THE BARK: nothing is added to
+   the trunk — its texture is painted. The first blow gives that tree a
+   bark of its own (a copy of the shared one), and every blow after
+   paints a pale streak of the lighter wood into it where the edge bit,
+   at blade height, round the trunk on the side the blade came from:
+   flat for a sweep, upright for an overhead, a nick for a thrust. A few
+   chips of wood fly. The streak lives in the texture, so it lies on the
+   bark exactly, never floating off it */
+let treeMarkCount=0;
 function markTree(o,hx,hz,tr,sd){
-  if(!treeMarkM)treeMarkM=new THREE.MeshLambertMaterial({color:new THREE.Color(0xc9ad84).convertSRGBToLinear(),
-    polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,side:THREE.DoubleSide});
+  const T=o.tree,trunk=T.trunk;if(!trunk)return;
+  if(!T.tex){
+    const src=trunk.material.map,img=src.image,S=img.width;
+    const cv=document.createElement('canvas');cv.width=cv.height=S;cv.getContext('2d').drawImage(img,0,0);
+    const tex=new THREE.CanvasTexture(cv);tex.magFilter=src.magFilter;tex.minFilter=src.minFilter;tex.wrapS=src.wrapS;tex.wrapT=src.wrapT;tex.encoding=src.encoding;tex.anisotropy=1;tex.repeat.copy(src.repeat);
+    const m=mat('bark');m.map=tex;trunk.material=m;T.tex=tex;T.cv=cv;
+  }
+  // where on the bark: the trunk's own frame turns with the tree, so the
+  // hit direction is brought into it; the cylinder's u runs round from
+  // its local +z, v up from the foot (the texture's top row is v=1)
   const dx=hx-o.x,dz=hz-o.z,d=Math.hypot(dx,dz)||1,nx=dx/d,nz=dz/d;
-  const gy=heightAt(o.x,o.z),y=gy+1.05+Math.random()*.16,r=o.tree.r+.006;
-  const len=tr==='thrust'?.12:.4,m=new THREE.Mesh(new THREE.PlaneGeometry(len,.075),treeMarkM);
-  m.position.set(o.x+nx*r,y,o.z+nz*r);
-  m.rotation.y=Math.atan2(nx,nz);
-  m.rotation.z=tr==='overhead'?Math.PI/2+(Math.random()-.5)*.3:tr==='thrust'?Math.random()*Math.PI:(Math.random()-.5)*.35-(sd||1)*.18;
-  m.renderOrder=1;
-  world.add(m);treeMarks.push(m);
-  if(treeMarks.length>48){const old=treeMarks.shift();world.remove(old);old.geometry.dispose();}
-  boneBurst(o.x+nx*(r+.05),y,o.z+nz*(r+.05),0xc9ad84,4,1.6);
+  const ry=T.grp.rotation.y,lx=nx*Math.cos(ry)-nz*Math.sin(ry),lz=nx*Math.sin(ry)+nz*Math.cos(ry);
+  let th=Math.atan2(lx,lz);if(th<0)th+=TAU;
+  const S=T.cv.width,rep=T.tex.repeat,circ=TAU*T.r;
+  const u=((th/TAU)*rep.x)%1,y=1.02+Math.random()*.2,v=((y/T.h)*rep.y)%1;
+  const px=u*S,py=(1-v)*S;
+  const ctx=T.cv.getContext('2d');
+  const wl=(tr==='thrust'?.1:.38)/circ*rep.x*S,ht=Math.max(2,(.07/T.h)*rep.y*S);   // the streak's length and height, in texels
+  const ang=tr==='overhead'?Math.PI/2+(Math.random()-.5)*.3:tr==='thrust'?Math.random()*Math.PI:(Math.random()-.5)*.3-(sd||1)*.15;
+  for(const ox of[0,-S,S]){   // drawn thrice so a streak over the seam wraps round
+    ctx.save();ctx.translate(px+ox,py);ctx.rotate(ang);
+    ctx.fillStyle='#d2b88f';ctx.fillRect(-wl/2,-ht/2,wl,ht);
+    ctx.fillStyle='#e6d2a8';ctx.fillRect(-wl*.35,-ht/2,wl*.7,Math.max(1,ht*.45));   // the fresh split down its middle
+    ctx.fillStyle='rgba(60,40,22,.55)';for(let k=0;k<3;k++)ctx.fillRect(-wl/2+Math.random()*wl,(Math.random()<.5?-1:1)*ht/2-1,2,1);   // torn edges
+    ctx.restore();}
+  T.tex.needsUpdate=true;treeMarkCount++;
+  boneBurst(o.x+nx*(T.r+.06),heightAt(o.x,o.z)+y,o.z+nz*(T.r+.06),0xc9ad84,4,1.6);
 }
 
 /* thrown bone: dodge it, block it, or wear it */
@@ -5912,22 +5939,44 @@ const player={
       if(this.weapon()==='bow')AudioSys.bowDraw();else AudioSys.cleave();G.vibr(30);
     };
     if(this.state==='free'){
-      // past three-quarters on the stick the walk breaks into a sprint
-      const run=mAmt>.78;
+      // THE SPRINT: past three-quarters on the stick the walk breaks into a
+      // sprint AT ONCE (a slammed stick is a sprint now, not in a quarter
+      // second) — and it only drops back to a walk below two-thirds, so a
+      // thumb hovering on the line doesn't flicker between the two
+      const run=this.sprinting?mAmt>.66:mAmt>.78;
       this.sprinting=run;
       this.sprintT=run?this.sprintT+dt:0;
+      // the move, in the hero's own frame: ahead (+) or back, and to its left (+)
+      const hfx=Math.sin(this.facing),hfz=Math.cos(this.facing);
+      const relF=mAmt>0?mvx*hfx+mvz*hfz:0,relL=mAmt>0?mvx*hfz-mvz*hfx:0;
+      this.relF=lerp(this.relF||0,relF,Math.min(1,12*dt));this.relL=lerp(this.relL||0,relL,Math.min(1,12*dt));
+      // the speed: a short ramp (never a jump at the sprint line — but
+      // short: a tenth of a second to three-quarters), a quicker stop, and
+      // back or sideways a little slower than straight ahead
+      const wantSp=mAmt>0?(run?7.2:4.3*Math.min(1,mAmt*1.35))*(.85+.15*Math.max(0,relF)):0;
+      this.spd=lerp(this.spd||0,wantSp,Math.min(1,(wantSp>(this.spd||0)?14:22)*dt));
+      if(mAmt>0){this.x+=mvx*this.spd*dt;this.z+=mvz*this.spd*dt;}
+      else if(this.spd>.05){this.x+=(this.moveX||0)*this.spd*dt;this.z+=(this.moveZ||0)*this.spd*dt;}   // the last stride's carry as it stops
+      this.strideT=(this.strideT||0)+dt*(this.spd/4.3);    // the walk cycle's clock runs with the ground covered, so the feet match the pace
       if(mAmt>0){
-        const sp=run?7.2:4.3*Math.min(1,mAmt*1.35);
-        this.x+=mvx*sp*dt;this.z+=mvz*sp*dt;
-        // a sprint always faces where it's going; a walk keeps its eye on the foe
-        if(!foe||run){
+        const heading=Math.atan2(mvx,mvz);
+        if(foe){
+          // LOCKED: the body stays on the foe — walking, and sprinting toward
+          // or around it. Only a sprint held clearly AWAY (past ~115° off the
+          // foe) turns the body to the heading, and it comes back on the foe
+          // once the sprint swings within ~95° again: no line to flicker over
+          const toFoe=Math.atan2(foe.x-this.x,foe.z-this.z),off=Math.abs(wrapA(heading-toFoe));
+          if(run&&off>(this.runAway?1.66:2.0))this.runAway=true;else if(!run||off<1.66)this.runAway=false;
+          if(this.runAway)this.facing=angLerp(this.facing,heading,6*dt);
+          else this.facing=angLerp(this.facing,toFoe,(run?14:10)*dt);
+        }else{
           // the turn rate follows the stick's push — a nudge steers, a shove
           // wheels — and a nudge within fifteen degrees of the heading only
           // eases it round, never snaps
-          const want=Math.atan2(mvx,mvz),diff=Math.abs(wrapA(want-this.facing));
+          const diff=Math.abs(wrapA(heading-this.facing));
           const rate=(4+10*Math.min(1,mAmt))*(diff<.26?.35:1);
-          this.facing=angLerp(this.facing,want,rate*dt);}
-      }
+          this.facing=angLerp(this.facing,heading,rate*dt);}
+      }else this.runAway=false;
       if(IN.chargeHeld){startCharge();return this.post(dt);}
       // footfalls ride the ACTUAL heel strikes of the walk cycle
       const heel=this.rig._heel||0;
@@ -5938,7 +5987,7 @@ const player={
       }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
       if(mAmt>0){this.moveX=mvx;this.moveZ=mvz;} // the follow camera reads this
-      if(foe&&!this.sprinting)this.facing=angLerp(this.facing,
+      if(foe&&mAmt===0)this.facing=angLerp(this.facing,
         Math.atan2(foe.x-this.x,foe.z-this.z),10*dt);
       // block pushback drift
       this.x+=this.vx*dt;this.z+=this.vz*dt;
@@ -6410,8 +6459,8 @@ const player={
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
-      if(this.sprinting&&this.moveAmt>.5)poseRun(r,t);
-      else if(this.moveAmt>.05)poseWalk(r,t,Math.min(1,this.moveAmt/.78),false);
+      if(this.sprinting&&this.moveAmt>.5)poseRun(r,t,this.relF,this.relL);
+      else if(this.moveAmt>.05)poseWalk(r,this.strideT||t,Math.min(1,this.moveAmt/.78),false,this.relF,this.relL);
       else poseIdle(r,t);
       if(bow)poseBowCarry(r);
     }
@@ -6863,14 +6912,18 @@ class Enemy{
 
     if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:0x000000); // frost-bitten glow
-    // the tell: nothing on the body glows before a blow. The EYES flare
-    // RED (white was lost against the bone) and swell — a quarter second
-    // before the arm comes down, which is the moment to
-    // roll: a roll begun on the flare is still untouchable when it lands
+    // the tell: nothing on the body glows before a blow. The EYES GLOW —
+    // their own colour, lit up hot and swollen, with a halo of it — a
+    // quarter second before the arm comes down, which is the moment to
+    // roll: a roll begun on the glow is still untouchable when it lands
     const cue=this.state==='windup'&&this.hp>0&&this.t>=this.windDur()-EYE_CUE;
     if(r.eyes&&cue!==!!this.eyeCue){
-      if(cue){this._eyeSaved=r.eyes.map(e=>[e.material.color.getHex(),e.scale.x]);for(const e of r.eyes){e.material.color.setHex(0xff2412);e.scale.setScalar(2.4);}}
-      else if(this._eyeSaved)r.eyes.forEach((e,i)=>{if(this._eyeSaved[i]){e.material.color.setHex(this._eyeSaved[i][0]);e.scale.setScalar(this._eyeSaved[i][1]);}});
+      if(cue){this._eyeSaved=r.eyes.map(e=>[e.material.color.getHex(),e.scale.x]);
+        for(const e of r.eyes){const c=e.material.color,h={};c.getHSL(h);c.setHSL(h.h,Math.max(h.s,.75),Math.max(h.l,.62));e.scale.setScalar(1.9);
+          const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:c.clone(),transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending}));
+          gl.scale.set(.24,.24,1);gl.userData.cue=true;e.add(gl);}}
+      else if(this._eyeSaved)r.eyes.forEach((e,i)=>{if(this._eyeSaved[i]){e.material.color.setHex(this._eyeSaved[i][0]);e.scale.setScalar(this._eyeSaved[i][1]);}
+        for(const c of e.children.slice())if(c.userData.cue){e.remove(c);c.material.dispose();}});
       this.eyeCue=cue;
     }
     // the jaw hangs slack, gapes through the windup, snaps on the strike
@@ -8136,8 +8189,13 @@ function updateCamera(dt){
       G.camPitch=lerp(G.camPitch,.3,Math.min(1,.8*dt));
     }
   }else{
+    // the lock camera sits behind the line through the foe — but damped:
+    // it lets a few degrees go (so circling doesn't keep re-aiming under
+    // the thumb), never swings faster than a set rate, and holds still
+    // while the foe is within a stride, where the line through it flips
     const want=Math.atan2(player.x-foe.x,player.z-foe.z);
-    G.camYaw=angLerp(G.camYaw,want,5*dt);
+    const diff=wrapA(want-G.camYaw),near=Math.hypot(player.x-foe.x,player.z-foe.z)<1.3;
+    if(!near&&Math.abs(diff)>.1)G.camYaw+=clamp(diff*5*dt,-2.4*dt,2.4*dt);
     G.camPitch=lerp(G.camPitch,.3,4*dt);
   }
   const dist=G.camDist||5.1,py=1.55;
@@ -8600,7 +8658,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,treeMarks,markTree,worldLights,texCache,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},worldLights,texCache,wrapA,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
