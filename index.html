@@ -230,6 +230,7 @@
       <div class="stat"><span>the Unburied</span><b id="psGhoul">—</b></div>
       <div class="stat"><span>the Gravewarden</span><b id="psWarden">—</b></div>
       <div class="stat"><span>the cathedral</span><b id="psCath">sealed</b></div>
+      <div class="stat"><span>this field</span><b id="psRun">—</b></div>
     </div>
     <div class="col">
       <h3>Touch</h3>
@@ -1151,6 +1152,7 @@ function matNS(name,extra){
 /* ---------------- audio: tiny haunted synth ---------------- */
 const AudioSys=(()=>{
   let ac=null,master=null,noiseBuf=null,started=false;
+  let rainG=null,rainLevel=0;                                     // the rain bed's gain, and the level asked for before the graph exists
   let verbSend=null,verbWet=null,space=0;
   /* the whole mix goes through a grimy chain — tape saturation, a dull
      low-pass and a stone-room reverb — so nothing comes out clean. (No
@@ -1218,6 +1220,15 @@ const AudioSys=(()=>{
     src2.connect(f2).connect(g2).connect(master);src2.start();
     const lfo3=ac.createOscillator();lfo3.frequency.value=.11;
     const lg3=ac.createGain();lg3.gain.value=.004;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
+    // the rain, when the run has it: a hiss of noise through a bandpass, and a
+    // lower patter under it, both breathing a little; its gain is the level
+    {const rs=ac.createBufferSource();rs.buffer=noiseBuf;rs.loop=true;rs.playbackRate.value=1.4;
+      const rf=ac.createBiquadFilter();rf.type='bandpass';rf.frequency.value=2600;rf.Q.value=.5;
+      const rs2=ac.createBufferSource();rs2.buffer=noiseBuf;rs2.loop=true;rs2.playbackRate.value=.6;
+      const rf2=ac.createBiquadFilter();rf2.type='lowpass';rf2.frequency.value=700;
+      rainG=ac.createGain();rainG.gain.value=rainLevel*.085;
+      rs.connect(rf).connect(rainG);rs2.connect(rf2).connect(rainG);rainG.connect(master);rs.start();rs2.start();
+      const rl=ac.createOscillator();rl.frequency.value=.13;const rlg=ac.createGain();rlg.gain.value=.012;rl.connect(rlg).connect(rainG.gain);rl.start();}
     // the field is never silent: far-off creaks, a crow, a chain — sparse and random
     const farOff=()=>{
       if(!ac)return;const t=now(),r=Math.random();
@@ -1503,6 +1514,14 @@ const AudioSys=(()=>{
     bossMusic,musicStart,setMusic,layersStart,setThreat,setHeart,
     // the world holds still: the whole graph sleeps
     pause(on){if(!ac)return;if(on)ac.suspend();else ac.resume();},
+    // the rain's level: 0, a light rain, or a storm
+    setRain(level){rainLevel=level;if(rainG&&ac)rainG.gain.setTargetAtTime(level*.085,ac.currentTime,2);},
+    // thunder: a near bolt cracks first and rolls hard; a far one only rolls, long and low
+    thunder(near){if(!ac)return;const t=now();
+      if(near){noise(t,{peak:.55,att:.003,dec:.3,f0:2400,f1:160});tone(t,{f:90,f2:40,type:'sawtooth',peak:.22,att:.005,dec:.4});}
+      noise(t+(near?.06:0),{peak:near?.5:.3,att:near?.08:.5,dec:near?2.4:3.4,f0:170,f1:45});
+      noise(t+.5,{peak:near?.28:.2,att:.3,dec:2.6,f0:120,f1:40});
+      tone(t,{f:44,f2:26,type:'sine',peak:near?.4:.25,att:.12,dec:2.6});},
     start,setSpace,
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
@@ -1941,6 +1960,76 @@ const ARENA=[0,0],ARENA_R=9.6;        // (legacy)
 const DOOR_A=Math.PI/2;               // the portal faces SOUTH (+z)
 const ALTAR=[0,-19.5];                // the altar at the nave's north end
 const START=[0,50];
+
+/* ---------------- THE RUN ----------------
+   Everything that changes between playthroughs is drawn from ONE seed
+   (a fresh one each load, or ?seed=N in the address for the same field
+   again): the time of day, the weather, which authored chunk fills each
+   of the six wedges round the cathedral, the shapes the ground takes
+   under them, where the well and the town sign stand, where the
+   lanterns are, and — over in the game — what the host is and where it
+   sleeps. The cathedral, its plinth and the roads never move. */
+const RUN={seed:0,time:'night',weather:'clear',wedges:[],terrain:[],landmarkWedges:[],rare:null,rareWedge:-1,village:'',lamp:1};
+const WEDGE_N=6;
+function wedgeAngle(i){return Math.PI/6+i*Math.PI/3;}          // 30, 90 (south: the start), 150, 210, 270 (north), 330 degrees
+function seedRun(){
+  let s=0;try{const q=new URLSearchParams(location.search).get('seed');if(q)s=(parseInt(q,10)>>>0)||0;}catch(e){}
+  if(!s)s=((Math.random()*4294967295)>>>0)||1;
+  RUN.seed=s;
+  // the generator is a plain LCG: neighbouring seeds share their first draws, so the seed is hashed first and the first few draws thrown away
+  let h=s^0x9e3779b9;h=Math.imul(h^(h>>>16),0x85ebca6b);h=Math.imul(h^(h>>>13),0xc2b2ae35);h=(h^(h>>>16))>>>0;
+  srand(h);for(let k=0;k<6;k++)rnd();
+  const pick=a=>a[(rnd()*a.length)|0];
+  RUN.time=pick(['sunrise','noon','dusk','night','night']);
+  RUN.weather=pick(['clear','clear','clear','rain','storm']);
+  RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
+  RUN.village=pick(['Ashmere','Gallowmoor','Hollowfen','Wrenhallow','Carrowdene','Blackwold','Sallow Cross','Marrowgate']);
+  // the six wedges: a chunk each, no kind more than twice; the south
+  // wedge (the pilgrim's walk in) is never walled off by ruins or a chapel
+  const pool=['graves','wood','ruins','hollow','causeway','chapel'],used={};
+  RUN.wedges.length=0;RUN.terrain.length=0;
+  for(let i=0;i<WEDGE_N;i++){
+    // the south and north wedges sit on their roads: their chunks are swung a
+    // little to one side so a causeway or a rank of graves isn't laid ON the road
+    const a=wedgeAngle(i)+((i===1||i===4)?(rnd()<.5?-.3:.3):0),south=i===1;let kind='graves';
+    for(let tries=0;tries<40;tries++){kind=pick(pool);if((used[kind]||0)>=2)continue;if(south&&(kind==='ruins'||kind==='chapel'||kind==='causeway'))continue;break;}
+    used[kind]=(used[kind]||0)+1;
+    const d=rr(32,HEX_AP-20),cx=Math.cos(a)*d,cz=Math.sin(a)*d;
+    RUN.wedges.push({i,a,kind,cx,cz,d,seed:(s+i*7919)>>>0});
+  }
+  // the ground's shapes: each chunk asks for the lie of land it wants
+  for(const w of RUN.wedges){
+    const dx=Math.cos(w.a),dz=Math.sin(w.a);
+    if(w.kind==='hollow')RUN.terrain.push({t:'bowl',cx:w.cx,cz:w.cz,r:rr(9,12),d:rr(1.6,2.4)});
+    else if(w.kind==='causeway')RUN.terrain.push({t:'ridge',cx:w.cx,cz:w.cz,dx,dz,len:rr(18,26),h:rr(1.4,2.2),w:rr(3,4.5)});
+    else if(w.kind==='chapel'||w.kind==='ruins')RUN.terrain.push({t:'terrace',cx:w.cx,cz:w.cz,r:rr(10,14),h:rr(1.2,2)});
+    else if(w.kind==='graves'&&rnd()<.5)RUN.terrain.push({t:'terrace',cx:w.cx,cz:w.cz,r:rr(9,12),h:rr(.8,1.3)});
+    else if(w.kind==='wood'&&rnd()<.6)RUN.terrain.push({t:'stream',cx:w.cx,cz:w.cz,dx:-dz,dz:dx,len:rr(18,28),d:rr(.9,1.4),w:rr(2.5,3.5)});
+  }
+  { // and one dry stream bed cuts across a wedge on top of it all
+    const w=pick(RUN.wedges),a=rnd()*TAU;
+    RUN.terrain.push({t:'stream',cx:w.cx*.8,cz:w.cz*.8,dx:Math.cos(a),dz:Math.sin(a),len:rr(22,34),d:rr(.7,1.1),w:rr(2.2,3)});
+  }
+  // the landmarks: the well and the town sign, in two different wedges (never the south)
+  const order=RUN.wedges.map(w=>w.i).filter(i=>i!==1);for(let i=order.length-1;i>0;i--){const j=(rnd()*(i+1))|0;[order[i],order[j]]=[order[j],order[i]];}
+  RUN.landmarkWedges=[order[0],order[1]];
+  // a rare turn: one wedge's whole host burns red
+  RUN.rare=rnd()<.1?'redhost':null;RUN.rareWedge=RUN.rare?pick(RUN.wedges).i:-1;
+}
+/* the seed's shapes in the ground, added to the rolling base: bowls,
+   terraces with a soft scarp, ridges, and stream beds that bend */
+function terrainAt(x,z){
+  let h=0;
+  for(const f of RUN.terrain){
+    if(f.t==='bowl'){const d=Math.hypot(x-f.cx,z-f.cz)/f.r;if(d<1){const k=1-d*d;h-=f.d*k*k;}}
+    else if(f.t==='terrace'){const d=Math.hypot(x-f.cx,z-f.cz),k=clamp((f.r-d)/4,0,1);h+=f.h*k*k*(3-2*k);}
+    else{const px=x-f.cx,pz=z-f.cz,along=px*f.dx+pz*f.dz;let across=px*(-f.dz)+pz*f.dx;
+      if(f.t==='stream')across+=along*along*.012;                          // the bed bends
+      const e=clamp((f.len/2-Math.abs(along))/5,0,1),g=Math.exp(-(across*across)/(2*f.w*f.w));
+      h+=(f.t==='ridge'?f.h:-f.d)*g*e*e*(3-2*e);}
+  }
+  return h;
+}
 // signed distance to an axis-aligned rectangle (negative inside)
 function rectSD(x,z,hw,hl){
   const dx=Math.abs(x)-hw,dz=Math.abs(z)-hl;
@@ -1970,8 +2059,9 @@ function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyo
   const d=Math.hypot(x,z);
   const outFade=Math.max(0,1-Math.max(0,d-(HEX_AP-16))/13);
   return inFade*outFade*
-    (Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6
-     +Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1;
+    ((Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6
+     +Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1
+     +terrainAt(x,z));                                   // and the seed's own shapes on top
 }
 // what anything standing at (x,z) stands ON: the plinth, the stair, or the soil
 function heightAt(x,z){
@@ -2193,6 +2283,7 @@ function trampleBreakables(x,z,r,kind){
 }
 
 function buildWorld(){
+  seedRun();
   const M={
     flag:mat('flag'),dirt:mat('dirt'),wall:mat('wall'),oss:mat('ossuary'),
     grave:mat('grave'),bone:mat('bone'),bark:mat('bark'),iron:mat('iron'),
@@ -2203,7 +2294,7 @@ function buildWorld(){
   // away and falls into the dark. (The invisible hex clamp stops
   // anyone a stride short of the drop.)
   {
-    const geo=new THREE.PlaneGeometry(150,150,56,56);
+    const geo=new THREE.PlaneGeometry(150,150,100,100);   // fine enough for the seed's bowls and scarps
     geo.rotateX(-Math.PI/2);
     const pos=geo.attributes.position;
     for(let i=0;i<pos.count;i++){
@@ -2376,49 +2467,28 @@ function buildWorld(){
     scene.add(beam);
   }
 
-  /* EAST QUARTER — the grave rows: an ordered cemetery.
-     Ranks of stones in arcs, every one facing the cathedral. */
+  /* THE WEDGES — six of them round the cathedral, each an authored chunk
+     the seed chose: the grave rows, the hollow wood, the ruins, a sunken
+     hollow, a causeway of standing stones, a roofless chapel. Every chunk
+     builds about its wedge's centre angle, keeps off the roads, and sits
+     on the ground the seed shaped for it. */
   const graveGeo=new THREE.BoxGeometry(.7,1.1,.16);
   const crossV=new THREE.BoxGeometry(.16,1.2,.16);
   const crossH=new THREE.BoxGeometry(.6,.16,.16);
   const slabGeo=new THREE.BoxGeometry(.8,.18,1.6);
-  srand(888);
-  {
-    for(let row=0;row<5;row++){
-      const rad=24+row*5.5;
-      const span=.62-row*.05;                 // arcs narrow with distance
-      const n=6+row;
-      for(let i=0;i<n;i++){
-        const a=(-span/2+span*i/(n-1))+0;     // centred on EAST (a=0)
-        const px=Math.cos(a)*rad,pz=Math.sin(a)*rad;
-        if(!clearSpot(px,pz,.9))continue;
-        const kind=rnd();
-        let m;
-        if(kind<.6)m=new THREE.Mesh(graveGeo,M.grave);
-        else if(kind<.85){
-          m=new THREE.Group();
-          const v=new THREE.Mesh(crossV,M.grave),hh=new THREE.Mesh(crossH,M.grave);
-          hh.position.y=.35;v.add(hh);m.add(v);v.position.y=.6;
-        }else{
-          m=new THREE.Mesh(slabGeo,M.grave);m.position.y=.09;
-        }
-        if(m.isMesh&&kind<.6)m.position.y=.5;
-        m.position.x=px;m.position.z=pz;m.position.y+=heightAt(px,pz);
-        m.rotation.y=Math.atan2(-px,-pz);     // every stone faces the nave
-        m.rotation.z=rr(-.08,.08);m.rotation.x=rr(-.05,.05);
-        world.add(m);
-        { // a stone is a thin slab, not a pillar: a short wall across its face
-          const ry=m.rotation.y,lx=Math.cos(ry),lz=-Math.sin(ry);
-          addWall(px-lx*.32,pz-lz*.32,px+lx*.32,pz+lz*.32,.2);
-          // and two blows break it
-          breakables.push({g:m,x:px,z:pz,hw:.45,hd:.45,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'grave',mat:M.grave});
-        }
-      }
-    }
+  function stone(px,pz,kind){                                              // a grave: headstone, cross or slab, facing the nave, and it breaks
+    let m;
+    if(kind<.6)m=new THREE.Mesh(graveGeo,M.grave);
+    else if(kind<.85){m=new THREE.Group();const v=new THREE.Mesh(crossV,M.grave),hh=new THREE.Mesh(crossH,M.grave);hh.position.y=.35;v.add(hh);m.add(v);v.position.y=.6;}
+    else{m=new THREE.Mesh(slabGeo,M.grave);m.position.y=.09;}
+    if(m.isMesh&&kind<.6)m.position.y=.5;
+    m.position.x=px;m.position.z=pz;m.position.y+=heightAt(px,pz);
+    m.rotation.y=Math.atan2(-px,-pz);m.rotation.z=rr(-.08,.08);m.rotation.x=rr(-.05,.05);
+    world.add(m);
+    const ry=m.rotation.y,lx=Math.cos(ry),lz=-Math.sin(ry);
+    addWall(px-lx*.32,pz-lz*.32,px+lx*.32,pz+lz*.32,.2);
+    breakables.push({g:m,x:px,z:pz,hw:.45,hd:.45,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'grave',mat:M.grave});
   }
-
-  /* WEST QUARTER — the hollow wood: groves of dead trees. */
-  srand(999);
   function tree(px,pz,tall){
     const tr=new THREE.Group();
     const h=tall?rr(4.5,6.5):rr(3.4,4.6);
@@ -2426,146 +2496,216 @@ function buildWorld(){
     const nb=2+((rnd()*4)|0);
     for(let bI=0;bI<nb;bI++){
       const br=cyl(.03,.1,rr(1.2,2.4),4,M.bark,0,0,0);
-      br.position.y=h*rr(.55,.95);
-      br.rotation.z=rr(.5,1.2)*(rnd()<.5?1:-1);
-      br.rotation.y=rnd()*TAU;
-      br.translateY(.6);
-      tr.add(br);
+      br.position.y=h*rr(.55,.95);br.rotation.z=rr(.5,1.2)*(rnd()<.5?1:-1);br.rotation.y=rnd()*TAU;br.translateY(.6);tr.add(br);
     }
     if(rnd()<.25)tr.add(cyl(.34,.22,.16,6,M.bark,rr(-.3,.3),h*rr(.7,.9),rr(-.3,.3)));
-    tr.position.set(px,heightAt(px,pz),pz);
-    tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
-    world.add(tr);
-    addObstacle(px,pz,.4);
+    tr.position.set(px,heightAt(px,pz),pz);tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
+    world.add(tr);addObstacle(px,pz,.4);
   }
-  {
-    const GROVES=[[Math.PI*.86,30],[Math.PI*1.1,40],[Math.PI*.97,52]];
-    for(const[ga,gd]of GROVES){
-      const gx=Math.cos(ga)*gd,gz=Math.sin(ga)*gd;
-      let planted=0;
-      for(let i=0;i<40&&planted<8;i++){
-        const px=gx+rr(-6.5,6.5),pz=gz+rr(-6.5,6.5);
-        if(!clearSpot(px,pz,1.5))continue;
-        planted++;tree(px,pz,rnd()<.4);
-      }
-    }
-    // a few lone sentinels out on the moor
-    let lone=0;
-    for(let i=0;i<60&&lone<7;i++){
-      const a=rnd()*TAU,d=23+rnd()*(HEX_AP-26);
-      const px=Math.cos(a)*d,pz=Math.sin(a)*d;
-      if(!clearSpot(px,pz,2.4))continue;
-      lone++;tree(px,pz,true);
-    }
-  }
-
-  /* NORTH QUARTER — the ruins: two roofless buildings and a fallen
-     tower, walls with proper collider chains. */
-  srand(551);
   function ruinWall(px,pz,len,ry,h){
-    const w=box(len,h,.55,M.wall,px,heightAt(px,pz)+h/2,pz,ry);
-    w.rotation.z=rr(-.03,.03);
-    world.add(w);
-    // a box rotated ry about Y runs along (cos ry, -sin ry): one true
-    // wall collider along that length, half a slab thick
+    const w=box(len,h,.55,M.wall,px,heightAt(px,pz)+h/2,pz,ry);w.rotation.z=rr(-.03,.03);world.add(w);
     const lx=Math.cos(ry),lz=-Math.sin(ry);
     addWall(px-lx*len/2,pz-lz*len/2,px+lx*len/2,pz+lz*len/2,.3,true);
   }
   function ruinHouse(cx,cz,ry,wLen,dLen){
-    // L runs along the long walls, N across them
     const lx=Math.cos(ry),lz=-Math.sin(ry),nx=Math.sin(ry),nz=Math.cos(ry);
-    // two long walls; one short wall; the fourth side fell long ago
     ruinWall(cx+nx*dLen/2,cz+nz*dLen/2,wLen,ry,rr(1.5,2.1));
     ruinWall(cx-nx*dLen/2,cz-nz*dLen/2,wLen*rr(.55,.8),ry,rr(1,1.6));
     ruinWall(cx+lx*wLen/2,cz+lz*wLen/2,dLen,ry+Math.PI/2,rr(1.3,1.9));
   }
-  {
-    const a1=-Math.PI/2-.28,a2=-Math.PI/2+.3;
-    ruinHouse(Math.cos(a1)*30,Math.sin(a1)*30,a1+.4,8,6);
-    ruinHouse(Math.cos(a2)*42,Math.sin(a2)*42,a2-.7,9,7);
-    // the fallen tower
-    const tx=Math.cos(-Math.PI/2)*52,tz=Math.sin(-Math.PI/2)*52;
-    const th=5.5;
-    world.add(cyl(1.4,1.7,th,7,M.wall,tx,heightAt(tx,tz)+th/2,tz));
-    const stub=cyl(1.2,1.4,4,7,M.wall,tx+3.4,heightAt(tx+3.4,tz+1)+.7,tz+1);
-    stub.rotation.z=1.35;world.add(stub);
-    addObstacle(tx,tz,1.8,true);addObstacle(tx+3.4,tz+1,1.4,true);
-    addWisp(tx,heightAt(tx,tz)+th+.5,tz,0x88b7a8,.55);
-    addHaze(tx,heightAt(tx,tz)+th+.5,tz,0x88b7a8,2.6,.1);
-  }
-
-  // bone piles: thickest among the grave rows, scarce elsewhere
-  srand(1234);
-  let piles=0;
-  for(let i=0;i<80&&piles<12;i++){
-    const east=rnd()<.6;
-    const a=east?rr(-.5,.5):rnd()*TAU;
-    const d=23+rnd()*(HEX_AP-25);
-    const px=Math.cos(a)*d,pz=Math.sin(a)*d;
-    if(!clearSpot(px,pz,.4))continue;
-    piles++;
-    const pile=new THREE.Group();
-    const n=2+((rnd()*4)|0);
-    for(let k=0;k<n;k++){
-      const bn=box(rr(.3,.7),.09,.09,M.bone,rr(-.4,.4),.05+k*.02,rr(-.4,.4),rnd()*TAU);
-      pile.add(bn);
-    }
-    if(rnd()<.6){
-      const sk=new THREE.Mesh(new THREE.SphereGeometry(.14,6,5),M.bone);
-      sk.position.set(rr(-.2,.2),.14,rr(-.2,.2));pile.add(sk);
-    }
+  function bonePile(px,pz){
+    const pile=new THREE.Group(),n=2+((rnd()*4)|0);
+    for(let k=0;k<n;k++)pile.add(box(rr(.3,.7),.09,.09,M.bone,rr(-.4,.4),.05+k*.02,rr(-.4,.4),rnd()*TAU));
+    if(rnd()<.6){const sk=new THREE.Mesh(new THREE.SphereGeometry(.14,6,5),M.bone);sk.position.set(rr(-.2,.2),.14,rr(-.2,.2));pile.add(sk);}
     pile.position.set(px,heightAt(px,pz),pz);world.add(pile);
   }
+  function standingStone(px,pz,h){
+    const st=cyl(rr(.32,.45),rr(.45,.6),h,5,M.wall,px,heightAt(px,pz)+h/2,pz);st.rotation.z=rr(-.09,.09);st.rotation.y=rnd()*TAU;world.add(st);addObstacle(px,pz,.6,true);
+  }
+  // a random point in the wedge, off the roads and everything placed so far
+  const inWedge=(w,minD,maxD,spread,pad)=>{for(let k=0;k<40;k++){const a=w.a+rr(-spread,spread),d=Math.min(HEX_AP-8,rr(minD,maxD)),x=Math.cos(a)*d,z=Math.sin(a)*d;if(clearSpot(x,z,pad))return [x,z];}return null;};
+  const CHUNKS={
+    graves(w){                                                              // ranks of stones in arcs, every one facing the nave
+      for(let row=0;row<5;row++){const rad=24+row*5.5,span=.62-row*.05,n=6+row;
+        for(let i=0;i<n;i++){const a=w.a-span/2+span*i/(n-1),px=Math.cos(a)*rad,pz=Math.sin(a)*rad;
+          if(!clearSpot(px,pz,.9))continue;stone(px,pz,rnd());}}
+    },
+    wood(w){                                                                // groves of dead trees
+      for(const[da,gd]of[[-.26,30],[.2,40],[-.04,52]]){const gx=Math.cos(w.a+da)*gd,gz=Math.sin(w.a+da)*gd;let planted=0;
+        for(let i=0;i<40&&planted<8;i++){const px=gx+rr(-6.5,6.5),pz=gz+rr(-6.5,6.5);if(!clearSpot(px,pz,1.5))continue;planted++;tree(px,pz,rnd()<.4);}}
+    },
+    ruins(w){                                                               // two roofless houses on the terrace, and maybe the fallen tower
+      for(const[da,d]of[[-.28,30],[.3,42]]){let a=w.a+da;if(nearRoad(Math.cos(a)*d,Math.sin(a)*d))a+=.22;
+        ruinHouse(Math.cos(a)*d,Math.sin(a)*d,a+rr(-.7,.7),rr(7,9),rr(5.5,7));}
+      if(rnd()<.75){const tx=Math.cos(w.a)*52,tz=Math.sin(w.a)*52,th=5.5;
+        world.add(cyl(1.4,1.7,th,7,M.wall,tx,heightAt(tx,tz)+th/2,tz));
+        const stub=cyl(1.2,1.4,4,7,M.wall,tx+3.4,heightAt(tx+3.4,tz+1)+.7,tz+1);stub.rotation.z=1.35;world.add(stub);
+        addObstacle(tx,tz,1.8,true);addObstacle(tx+3.4,tz+1,1.4,true);
+        addWisp(tx,heightAt(tx,tz)+th+.5,tz,0x88b7a8,.55);addHaze(tx,heightAt(tx,tz)+th+.5,tz,0x88b7a8,2.6,.1);}
+    },
+    hollow(w){                                                              // a sunken bowl full of bones, slabs about its rim
+      let piles=0;for(let i=0;i<40&&piles<7;i++){const a=rnd()*TAU,d=rnd()*6.5,px=w.cx+Math.cos(a)*d,pz=w.cz+Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;bonePile(px,pz);}
+      for(let i=0;i<3;i++){const a=rnd()*TAU,px=w.cx+Math.cos(a)*9.5,pz=w.cz+Math.sin(a)*9.5;if(clearSpot(px,pz,.9))stone(px,pz,.9);}
+      const p=inWedge(w,w.d+8,w.d+12,.35,2);if(p)tree(p[0],p[1],true);
+    },
+    causeway(w){                                                            // standing stones along the ridge's crest, one fallen
+      const dx=Math.cos(w.a),dz=Math.sin(w.a);let fallen=false;
+      for(let along=-9;along<=9;along+=3){const j=rr(-.8,.8),px=w.cx+dx*along-dz*j,pz=w.cz+dz*along+dx*j;
+        if(!clearSpot(px,pz,.8))continue;
+        if(!fallen&&rnd()<.25){fallen=true;const b=box(2.2,.6,.6,M.wall,px,heightAt(px,pz)+.3,pz,rnd()*TAU);world.add(b);addObstacle(px,pz,.9,true);}
+        else standingStone(px,pz,rr(2.2,3.4));}
+    },
+    chapel(w){                                                              // a roofless chapel on its terrace: three walls, a lancet, candles, four graves before the door
+      const ry=w.a+Math.PI/2,lx=Math.cos(ry),lz=-Math.sin(ry),nx=Math.cos(w.a),nz=Math.sin(w.a);   // the long walls run across the wedge; the door faces the nave
+      const cx=w.cx,cz=w.cz;
+      ruinWall(cx+nx*2.6,cz+nz*2.6,7,ry,3.2);                                // the back wall, tallest
+      ruinWall(cx+lx*3.5,cz+lz*3.5,5.2,ry+Math.PI/2,rr(2,2.8));ruinWall(cx-lx*3.5,cz-lz*3.5,5.2,ry+Math.PI/2,rr(2,2.8));
+      const glassM=new THREE.MeshBasicMaterial({map:texCache.glass,color:0x9aa4c4});
+      for(const sd of[1,-1]){const win=new THREE.Mesh(new THREE.PlaneGeometry(1.1,2.2),glassM);
+        win.position.set(cx+nx*(2.6-sd*.32),heightAt(cx,cz)+1.9,cz+nz*(2.6-sd*.32));win.rotation.y=Math.atan2(-nx*sd,-nz*sd);world.add(win);}
+      addHaze(cx+nx*1.8,heightAt(cx,cz)+1.9,cz+nz*1.8,0x8fa6d8,3.2,.16);
+      const px=cx-lx*1.6,pz=cz-lz*1.6,gy=heightAt(px,pz);                     // a candle stand inside, still burning
+      world.add(cyl(.05,.09,1.6,5,M.iron,px,gy+.8,pz));world.add(cyl(.3,.34,.05,7,M.iron,px,gy+1.6,pz));
+      for(let k=0;k<5;k++){const a=k/5*TAU;world.add(cyl(.03,.035,.18,5,M.bone,px+Math.cos(a)*.22,gy+1.7,pz+Math.sin(a)*.22));}
+      addWisp(px,gy+1.85,pz,0xf0a648,.4);const l=new THREE.PointLight(0xe8a050,1.2*RUN.lamp,11,2);l.position.set(px,gy+1.9,pz);scene.add(l);
+      lanternLights.push({l,ph:Math.random()*TAU,hz:addHaze(px,gy+1.85,pz,0xffd9a0,4,.2),base:1.2*RUN.lamp});addObstacle(px,pz,.24);
+      for(let i=0;i<4;i++){const gx=cx-nx*rr(5,8)+lx*rr(-3,3),gz=cz-nz*rr(5,8)+lz*rr(-3,3);if(clearSpot(gx,gz,.9))stone(gx,gz,rnd());}
+      RUN.chapelLantern=[cx-nx*3.4+lx*2.2,cz-nz*3.4+lz*2.2];
+    },
+  };
+  for(const w of RUN.wedges){srand(w.seed);CHUNKS[w.kind](w);}
 
-  // moonlight & ambience — dimmer now; the fires matter more
-  const hemi=new THREE.HemisphereLight(0x46596a,0x201d18,.26);
-  const moonL=new THREE.DirectionalLight(0x9cb2c4,.21);
-  moonL.position.set(28,52,-34);
+  // bone piles across the field, thickest in the grave rows and the hollows; and a few lone sentinel trees
+  srand(RUN.seed^0xb0e5);
+  {let piles=0;const gw=RUN.wedges.filter(w=>w.kind==='graves'||w.kind==='hollow');
+    for(let i=0;i<80&&piles<10;i++){const w=gw.length&&rnd()<.6?gw[(rnd()*gw.length)|0]:null;
+      const a=w?w.a+rr(-.5,.5):rnd()*TAU,d=23+rnd()*(HEX_AP-25),px=Math.cos(a)*d,pz=Math.sin(a)*d;
+      if(!clearSpot(px,pz,.4))continue;piles++;bonePile(px,pz);}
+    let lone=0;for(let i=0;i<60&&lone<6;i++){const a=rnd()*TAU,d=23+rnd()*(HEX_AP-26),px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,2.4))continue;lone++;tree(px,pz,true);}
+  }
+
+  /* THE LANDMARKS — the well and the town sign, each beside a road in
+     its own wedge, where the seed put them */
+  srand(RUN.seed^0x1a2d);
+  RUN.landmarkSpots=[];
+  const roadside=(w)=>{                                                    // a clear spot a stride or two off the wedge's nearest road
+    const ra=[Math.PI/2,0,Math.PI,-Math.PI/2].sort((p,q)=>Math.abs(wrapAngle(p-w.a))-Math.abs(wrapAngle(q-w.a)))[0];
+    for(let k=0;k<40;k++){const d=rr(26,HEX_AP-14),side=rnd()<.5?1:-1,off=rr(3.4,5.2);
+      const x=Math.cos(ra)*d-Math.sin(ra)*side*off,z=Math.sin(ra)*d+Math.cos(ra)*side*off;
+      if(clearSpot(x,z,1.6))return [x,z,ra];}
+    return null;};
+  {const w=RUN.wedges[RUN.landmarkWedges[0]],p=roadside(w);
+    if(p){const[x,z]=p,gy=heightAt(x,z);                                   // THE WELL: a stone ring, two posts, a crossbar and a bucket
+      world.add(cyl(1.05,1.15,.9,8,M.wall,x,gy+.45,z));
+      const dark=new THREE.Mesh(new THREE.CylinderGeometry(.82,.82,.06,8),new THREE.MeshBasicMaterial({color:0x05070a}));dark.position.set(x,gy+.92,z);world.add(dark);
+      const ry=rnd()*TAU,lx=Math.cos(ry),lz=-Math.sin(ry);
+      for(const sd of[1,-1])world.add(cyl(.07,.09,2.2,5,M.bark,x+lx*sd*1.05,gy+1.1,z+lz*sd*1.05));
+      world.add(box(2.4,.1,.1,M.bark,x,gy+2.15,z,ry));
+      world.add(cyl(.03,.03,.9,3,M.iron,x,gy+1.7,z));world.add(cyl(.14,.11,.22,6,M.iron,x,gy+1.2,z));   // the rope and the bucket
+      addObstacle(x,z,1.3,true);RUN.landmarkSpots.push([x,z]);}
+  }
+  {const w=RUN.wedges[RUN.landmarkWedges[1]],p=roadside(w);
+    if(p){const[x,z,ra]=p,gy=heightAt(x,z);                                // THE TOWN SIGN: a post and a board with the village's name, readable from the road
+      makeTex('sign',256,(ctx,S)=>{ctx.fillStyle='#4a3826';ctx.fillRect(0,0,S,S);
+        for(let i=0;i<S;i+=6){ctx.fillStyle=`rgba(0,0,0,${.05+(i%18===0?.15:0)})`;ctx.fillRect(0,i,S,2);}
+        ctx.fillStyle='#d8cfae';ctx.font='bold 46px Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(RUN.village.toUpperCase(),S/2,S*.38);ctx.font='24px Georgia, serif';ctx.fillText('THE BONE PATH',S/2,S*.66);});
+      const bm=new THREE.MeshLambertMaterial({map:texCache.sign});
+      world.add(cyl(.07,.09,2.4,5,M.bark,x,gy+1.2,z));
+      const board=new THREE.Mesh(new THREE.BoxGeometry(1.5,.55,.08),bm);board.position.set(x,gy+2.05,z);board.rotation.y=Math.atan2(Math.cos(ra),Math.sin(ra));world.add(board);
+      addObstacle(x,z,.22);RUN.landmarkSpots.push([x,z]);}
+  }
+
+  /* THE SKY AND ITS LIGHT — by the hour the seed chose. Night is the
+     moon and the stars; sunrise and dusk a low sun and a coloured sky;
+     noon a high white sun, a pale haze, and lanterns barely showing. */
+  const TIMES={
+    night:  {hemi:[0x46596a,0x201d18,.26],sun:[0x9cb2c4,.21,[28,52,-34]],fog:0x090d12,sky:'sky',moon:true,sunSprite:null,expo:1.04,lamp:1,dust:.5},
+    dusk:   {hemi:[0x7a4e62,0x2a1a14,.5],sun:[0xff8a4a,.6,[-60,12,14]],fog:0x2a1a26,sky:'skyDusk',moon:false,sunSprite:{pos:[-96,14,22],col:0xff9a4a,size:26},expo:1.0,lamp:.9,dust:.3},
+    sunrise:{hemi:[0xb08a8a,0x3a2a24,.55],sun:[0xffc48a,.65,[62,10,-12]],fog:0x3a2c34,sky:'skyDawn',moon:false,sunSprite:{pos:[98,12,-20],col:0xffd090,size:24},expo:1.0,lamp:.7,dust:.25},
+    noon:   {hemi:[0x9fb4d0,0x5a5244,.9],sun:[0xfff4dc,.95,[20,80,10]],fog:0x8a96a4,sky:'skyDay',moon:false,sunSprite:{pos:[30,120,15],col:0xfff8e8,size:18},expo:.95,lamp:.35,dust:.12},
+  };
+  const T=TIMES[RUN.time];RUN.fog=new THREE.Color(T.fog);
+  makeTex('skyDay',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#3a5a8a');g.addColorStop(.5,'#7a94b8');g.addColorStop(.85,'#a8b4bc');g.addColorStop(1,'#a8b4bc');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
+  makeTex('skyDusk',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#1a1428');g.addColorStop(.45,'#5a2a4a');g.addColorStop(.72,'#b8563a');g.addColorStop(.85,'#d08a4a');g.addColorStop(1,'#2a1a26');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
+  makeTex('skyDawn',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#2a2a44');g.addColorStop(.45,'#7a5a7a');g.addColorStop(.72,'#d89060');g.addColorStop(.85,'#f0c080');g.addColorStop(1,'#3a2c34');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
+  scene.background=RUN.fog.clone();
+  const hemi=new THREE.HemisphereLight(T.hemi[0],T.hemi[1],T.hemi[2]);
+  const moonL=new THREE.DirectionalLight(T.sun[0],T.sun[1]);
+  moonL.position.set(T.sun[2][0],T.sun[2][1],T.sun[2][2]);
   scene.add(hemi,moonL);
-  worldLights.hemi=hemi;worldLights.moon=moonL;
-
-  // the night sky: a star-dome the fog can't touch
+  worldLights.hemi=hemi;worldLights.moon=moonL;worldLights.hemiBase=T.hemi[2];worldLights.moonBase=T.sun[1];worldLights.expo=T.expo;
   const dome=new THREE.Mesh(new THREE.SphereGeometry(210,16,10),
-    new THREE.MeshBasicMaterial({map:texCache.sky,side:THREE.BackSide,
-      fog:false,depthWrite:false}));
-  dome.position.set(0,0,0);dome.renderOrder=-2;
-  scene.add(dome);
-
-  // the moon itself, huge and haloed
-  const moon=new THREE.Sprite(new THREE.SpriteMaterial({
-    map:texCache.moon,transparent:true,opacity:.95,fog:false,depthWrite:false}));
-  moon.scale.set(34,34,1);moon.position.set(64,56,-98);
-  scene.add(moon);
+    new THREE.MeshBasicMaterial({map:texCache[T.sky],side:THREE.BackSide,fog:false,depthWrite:false}));
+  dome.renderOrder=-2;scene.add(dome);worldLights.dome=dome;
+  if(T.moon){const moon=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.moon,transparent:true,opacity:.95,fog:false,depthWrite:false}));
+    moon.scale.set(34,34,1);moon.position.set(64,56,-98);scene.add(moon);}
+  if(T.sunSprite){const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:T.sunSprite.col,transparent:true,opacity:.9,fog:false,depthWrite:false,blending:THREE.AdditiveBlending}));
+    sun.scale.set(T.sunSprite.size,T.sunSprite.size,1);sun.position.set(...T.sunSprite.pos);scene.add(sun);}
 
   // drifting grave-dust
   {
     const N=170,pts=new Float32Array(N*3),drift=[];
     srand(2025);
-    for(let i=0;i<N;i++){
-      pts[i*3]=rr(-55,55);pts[i*3+1]=rr(.2,6);pts[i*3+2]=rr(-55,55);
-      drift.push(rr(.05,.25),rr(0,TAU));
-    }
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
-    const pm=new THREE.PointsMaterial({map:texCache.glow,color:0x9aa48c,size:.09,
-      transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending});
-    const P=new THREE.Points(geo,pm);
-    scene.add(P);
-    wispSystems.push({dust:true,pts:P,drift});
+    for(let i=0;i<N;i++){pts[i*3]=rr(-55,55);pts[i*3+1]=rr(.2,6);pts[i*3+2]=rr(-55,55);drift.push(rr(.05,.25),rr(0,TAU));}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+    const pm=new THREE.PointsMaterial({map:texCache.glow,color:0x9aa48c,size:.09,transparent:true,opacity:T.dust,depthWrite:false,blending:THREE.AdditiveBlending});
+    const P=new THREE.Points(geo,pm);scene.add(P);wispSystems.push({dust:true,pts:P,drift});
   }
-  /* iron lanterns line the roads — small warm islands in the murk */
+  /* THE LANTERNS — where the seed hung them: always at the ring's four
+     junctions and the head of the stair; one or two down each quarter
+     road at seeded distances; one by each landmark and the chapel door;
+     and a few strays in the wedges */
+  srand(RUN.seed^0x1a47);
   {
     const spots=[];
-    for(const a of [Math.PI/2,0,Math.PI,-Math.PI/2]){ // road junctions at the ring, set beside the road
-      const p=ringPoint(a,RING_OFF+1.6);
-      spots.push([p[0]-Math.sin(a)*2.4,p[1]+Math.cos(a)*2.4]);
-      // midway and far down each quarter road
-      spots.push([Math.cos(a)*34,Math.sin(a)*34,true]);
-      if(a===Math.PI/2)spots.push([Math.cos(a)*47,Math.sin(a)*47,true]); // lighting the spawn walk
+    for(const a of [Math.PI/2,0,Math.PI,-Math.PI/2]){
+      const p=ringPoint(a,RING_OFF+1.6);spots.push([p[0]-Math.sin(a)*2.4,p[1]+Math.cos(a)*2.4]);
+      const n=a===Math.PI/2?2:1+(rnd()<.5?1:0);
+      for(let k=0;k<n;k++){const d=a===Math.PI/2&&k===1?47:rr(30,50),side=rnd()<.5?1:-1;spots.push([Math.cos(a)*d-Math.sin(a)*side*2.1,Math.sin(a)*d+Math.cos(a)*side*2.1]);}
     }
-    for(const s of spots)makeLantern(s[0]+(s[2]?1.9:0),s[1]+(s[2]?.4:0));
-    // and two at the head of the stair
+    for(const s of RUN.landmarkSpots)spots.push([s[0]+rr(-1,1)+2.2,s[1]+rr(-1,1)]);
+    if(RUN.chapelLantern)spots.push(RUN.chapelLantern);
+    for(let k=0;k<2;k++){const w=RUN.wedges[(rnd()*WEDGE_N)|0],p=inWedge(w,26,50,.4,1.2);if(p)spots.push(p);}
+    for(const s of spots)makeLantern(s[0],s[1]);
     for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),PL-.9);
+  }
+  setupWeather();
+}
+function wrapAngle(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
+
+/* THE WEATHER — clear, light rain, or a storm with thunder and lightning.
+   Rain is a cloud of streaks that lives round the camera and falls
+   through it; a storm's bolts light the whole sky and the field for a
+   few frames, the thunder arriving after, by how far the bolt was. */
+const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0};
+function setupWeather(){
+  if(RUN.weather==='clear')return;
+  const storm=RUN.weather==='storm';WX.level=storm?1:.5;
+  makeTex('rain',32,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'rgba(200,214,230,0)');g.addColorStop(.35,'rgba(200,214,230,.9)');g.addColorStop(.8,'rgba(200,214,230,.7)');g.addColorStop(1,'rgba(200,214,230,0)');ctx.fillStyle=g;ctx.fillRect(S/2-1,0,2,S);});
+  const N=storm?900:360,pts=new Float32Array(N*3),sp=new Float32Array(N);
+  for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=rr(9,14);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+  const pm=new THREE.PointsMaterial({map:texCache.rain,color:0xc8d4e2,size:storm?.75:.6,transparent:true,opacity:storm?.55:.38,depthWrite:false});
+  WX.rain=new THREE.Points(geo,pm);WX.rain.frustumCulled=false;scene.add(WX.rain);WX.pts=pts;WX.speeds=sp;
+  WX.nextBolt=storm?rr(3,8):0;
+  AudioSys.setRain(WX.level);
+}
+function updateWeather(dt){
+  if(!WX.rain)return;
+  const cx=camera.position.x,cz=camera.position.z,cy=camera.position.y,P=WX.pts,S=WX.speeds,n=S.length;
+  const wind=Math.sin(G.time*.4)*1.2;
+  for(let i=0;i<n;i++){const o=i*3;
+    P[o+1]-=S[i]*dt;P[o]+=wind*dt;
+    if(P[o+1]<cy-9||Math.abs(P[o]-cx)>18||Math.abs(P[o+2]-cz)>18){P[o]=cx+rr3(-18,18);P[o+1]=cy+rr3(6,13);P[o+2]=cz+rr3(-18,18);}
+  }
+  WX.rain.geometry.attributes.position.needsUpdate=true;
+  if(RUN.weather==='storm'){
+    WX.nextBolt-=dt;
+    if(WX.nextBolt<=0){WX.nextBolt=rr3(5,14);WX.flash=1;WX.pop=.13;const near=Math.random()<.4;
+      setTimeout(()=>AudioSys.thunder(near),near?250:rr3(900,2200));}
+    if(WX.pop>0){WX.pop-=dt;if(WX.pop<=0)WX.flash=Math.max(WX.flash,.7);}   // the second pop of a double flash
+    WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;
   }
 }
 
@@ -2588,11 +2728,11 @@ function makeLantern(x,z){
   const wx=x+Math.sin(grp.rotation.y)*0+.42*Math.cos(grp.rotation.y),
         wz=z-.42*Math.sin(grp.rotation.y);
   addWisp(wx,gy+2.4,wz,0xf0a648,.4);
-  const l=new THREE.PointLight(0xe8913c,.8,8,2);
+  const l=new THREE.PointLight(0xe8913c,.8*RUN.lamp,8,2);                      // (by day a lantern barely shows)
   l.position.set(wx,gy+2.45,wz);
   scene.add(l);
-  const hz=addHaze(wx,gy+2.4,wz,0xffd9a0,4.4,.2);
-  lanternLights.push({l,ph:Math.random()*TAU,hz});
+  const hz=addHaze(wx,gy+2.4,wz,0xffd9a0,4.4,.2*RUN.lamp);
+  lanternLights.push({l,ph:Math.random()*TAU,hz,base:.8*RUN.lamp});
 }
 
 /* a soft haze around a light: a big, faint additive disc drawn in the
@@ -2613,10 +2753,11 @@ function addWisp(x,y,z,color,size){
 }
 
 function updateAmbient(t,dt){
+  updateWeather(dt);
   for(const L of lanternLights){
     const b=L.base||.72;
     L.l.intensity=b+(Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06)*(b/.72);
-    L.hz.material.opacity=.16+(L.l.intensity-b)*.5;               // the haze breathes with the flame
+    L.hz.material.opacity=(.16+(L.l.intensity-b)*.5)*(RUN.lamp<1?RUN.lamp:1);   // the haze breathes with the flame
   }
   for(const w of wispSystems){
     if(w.dust){
@@ -4819,8 +4960,7 @@ function impactBurst(x,y,z,n,heavy){
     f.scale.set(sc,sc*.8,1);f.position.set(x,y,z);f.visible=delay<=0;scene.add(f);
     let t=-delay;effects.push({update(dt){t+=dt;if(t<0)return true;f.visible=true;const p=t/life;f.material.opacity=1-p;f.scale.set(sc*(1+p*.8),sc*.8*(1+p*.8),1);
       if(p>=1){scene.remove(f);f.material.dispose();return false;}return true;}});};
-  mk(heavy?1.1:.8,0xfff1cf,.07,0);                                          // the flash
-  mk(heavy?1.5:1.1,0xffb864,.1,.03);                                        // and the warm bloom behind it
+  mk(heavy?1.1:.8,0xfff1cf,.07,0);                                          // the flash, and nothing soft behind it
 }
 function clashSparks(x,y,z,n){
   sparkBurst(x,y,z,n);
@@ -5660,7 +5800,13 @@ const player={
         const sp=run?7.2:4.3*Math.min(1,mAmt*1.35);
         this.x+=mvx*sp*dt;this.z+=mvz*sp*dt;
         // a sprint always faces where it's going; a walk keeps its eye on the foe
-        if(!foe||run)this.facing=angLerp(this.facing,Math.atan2(mvx,mvz),12*dt);
+        if(!foe||run){
+          // the turn rate follows the stick's push — a nudge steers, a shove
+          // wheels — and a nudge within fifteen degrees of the heading only
+          // eases it round, never snaps
+          const want=Math.atan2(mvx,mvz),diff=Math.abs(wrapA(want-this.facing));
+          const rate=(4+10*Math.min(1,mAmt))*(diff<.26?.35:1);
+          this.facing=angLerp(this.facing,want,rate*dt);}
       }
       if(IN.chargeHeld){startCharge();return this.post(dt);}
       // footfalls ride the ACTUAL heel strikes of the walk cycle
@@ -6289,7 +6435,7 @@ class Enemy{
     if(this.rig.eyes)for(const e of this.rig.eyes)
       e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:0x2c4a42);
   }
-  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)m.emissive.setHex(0xffffff);}   // one frame white, then the red
   scatter(dx,dz,sp){
     // blasted clean apart into a heap of bones (down a line, if a blow sent them)
     this.state='scatter';this.t=0;this.poise=0;
@@ -6306,7 +6452,11 @@ class Enemy{
     {const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
       this.lastHit=hv?{dx:hv.dx,dz:hv.dz,kb:kb||1,up:hv.up}:{dx:dx/l,dz:dz/l,kb:kb||1};
       this.flinchT=.24;this.flinchDx=this.lastHit.dx;this.flinchDz=this.lastHit.dz;}   // and it flinches the way the blow sent it
-    boneBurst(this.x,1.1*(this.boss?1.8:1),this.z,0xcfc4a3,5,2);
+    { // what comes off it: bone chips off a skeleton, a puff of grave dust off the big, stone grit off the Warden
+      const y=1.1*(this.boss?1.8:1);
+      if(this.boss)boneBurst(this.x,y,this.z,0x6e716c,9,2.6);
+      else if(this.big){boneBurst(this.x,y,this.z,0x8a7f66,7,1.5);smokePuff(this.x,y,this.z,2);}
+      else boneBurst(this.x,y,this.z,0xcfc4a3,6,2.2);}
     if(this.state==='dormant')this.wake();
     if(this.boss){$('bossfill').style.width=clamp(this.hp/this.maxHp*100,0,100)+'%';}
     if(this.hp<=0){this.die();return;}
@@ -6592,6 +6742,7 @@ class Enemy{
 
     // telegraph glint, kept subtle: a low breathing ember — amber for
     // light attackers, a red undertone for the heavy-handed
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil){
       if(this.state==='windup'){
         const on=((G.time*11)|0)%2===0;
@@ -6649,7 +6800,7 @@ class Crow{
     this.rig.root.visible=true;this._oa=undefined;
     this.y=heightAt(this.x,this.z)+.25;
   }
-  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)m.emissive.setHex(0xffffff);}   // one frame white, then the red
   takeHit(dmg,poise,fx,fz,kb){
     if(this.hp<=0)return;
     this.hp-=dmg;this.flash();
@@ -6753,6 +6904,7 @@ class Crow{
     const grounded=this.state==='downed'||this.state==='dead'||this.state==='roost';
     const f=grounded?1.15:.15+.8*Math.sin(this.flap);
     r.wingL.rotation.z=f;r.wingR.rotation.z=-f;
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)
       m.emissive.setHex(this.chillT>0?0x0d3542:
         this.state==='divewind'?0x2e0c06:0x000000);
@@ -6852,7 +7004,7 @@ class FallenAngel{
     this.crumbled=false;this.rig.root.visible=true;this.rig.root.rotation.set(0,0,0);
     this.engaged=false;this.untouchable=false;this.vx=0;this.vz=0;
   }
-  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)m.emissive.setHex(0xffffff);}   // one frame white, then the red
   scatter(){}
   takeHit(dmg,poise,fx,fz,kb){
     if(this.hp<=0||this.untouchable)return;
@@ -7001,6 +7153,7 @@ class FallenAngel{
     r.root.position.set(this.x,this.y-.9,this.z);           // hovering: feet trail above the ground
     r.root.rotation.y=this.facing;
     if(this.state!=='dead')r.root.rotation.x=this.state==='plunge'&&this.t>=.9&&this.t<1.1?.5:0;
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)
       m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='wingblade'||this.state==='lament')&&!this.hitDone?0x2e0c06:0x000000);
     if(r.haloM.emissive.getHex()===0x000000)r.haloM.emissive.setHex(0x2a2210);
@@ -7039,7 +7192,7 @@ class GraveGhoul{
     this.state='buried';this.t=0;this.crumbled=false;this.rig.root.visible=false;
     this.rig.root.rotation.set(0,0,0);this.engaged=false;this.untouchable=true;this.sink=1;this.burrowT=0;
   }
-  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)m.emissive.setHex(0xffffff);}   // one frame white, then the red
   scatter(){}
   takeHit(dmg,poise,fx,fz,kb){
     if(this.hp<=0||this.untouchable)return;
@@ -7180,6 +7333,7 @@ class GraveGhoul{
     r.root.position.set(this.x,gh-2.3*this.sink,this.z);
     r.root.rotation.y=this.facing;
     if(this.state!=='dead')r.root.rotation.x=0;
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)
       m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='rake'||this.state==='retch')&&!this.hitDone?0x2e0c06:0x000000);
   }
@@ -7718,25 +7872,49 @@ function spawnEnemies(){
   // A fixed host, sown across the quarters, asleep under the soil —
   // just enough marrow among them (1170) to call the cathedral open.
   // They only stir when the pilgrim comes near.
-  const sow=(kind,x,z)=>{const e=new Enemy(kind,x,z,{});enemies.push(e);return e;};
+  const sow=(kind,x,z,o)=>{const e=new Enemy(kind,x,z,o||{});enemies.push(e);return e;};
   const roost=(x,z)=>{const c=new Crow(x,z);c.state='roost';
     c.y=heightAt(x,z)+.25;enemies.push(c);return c;};
-  // the pilgrim's approach (south)
-  sow('hollow',3,42);sow('hollow',-4,36);sow('hollow',2,28);sow('hollow',-3,21);
-  // the ring road crossings
-  sow('hollow',14,6);sow('hollow',-14,-9);
-  // the grave rows (east)
-  sow('hollow',26,4);sow('hollow',33,-5);sow('hollow',40,7);
-  sow('caster',30,10);sow('caster',43,-3);sow('big',36,1);
-  roost(34,6);
-  enemies.push(new GraveGhoul(36,-9));               // the thing under the grave rows
-  // the hollow wood (west)
-  sow('hollow',-27,-3);sow('hollow',-35,6);sow('hollow',-44,-5);
-  sow('caster',-31,-9);sow('caster',-41,4);sow('big',-37,-2);
-  roost(-38,3);
-  // the ruins and the fallen tower (north)
-  sow('hollow',-6,-30);sow('hollow',5,-38);
-  sow('caster',-3,-44);sow('caster',8,-33);sow('big',0,-40);
+  /* THE HOST is sown from the run's seed: every wedge is given a marrow
+     budget and spends it on encounter templates drawn to suit its chunk —
+     a patrol strung beside the road, a caster on the high ground with two
+     guards, a brute in a hollow, an ambush lying low, a nest of casters,
+     a crow on a roost. The same total marrow is out there every run
+     (enough to open the cathedral), laid differently. A red-boned horror
+     costs its wedge no more than a plain one: its double marrow is the
+     pilgrim's bonus, not the field's spend. */
+  srand(RUN.seed^0x5eed);
+  const spot=(w,minD,maxD,spread,pad)=>{for(let k=0;k<30;k++){const a=w.a+rr(-spread,spread),d=Math.min(HEX_AP-9,rr(minD,maxD)),x=Math.cos(a)*d,z=Math.sin(a)*d;if(clearSpot(x,z,pad||.6))return [x,z];}return null;};
+  const high=(w)=>{let best=null,bh=-1e9;for(let k=0;k<14;k++){const p=spot(w,24,HEX_AP-12,.4);if(!p)continue;const h=groundAt(p[0],p[1]);if(h>bh){bh=h;best=p;}}return best;};
+  let crows=0;const red=(w)=>RUN.rare==='redhost'&&RUN.rareWedge===w.i?true:undefined;
+  const T={
+    pair:  {cost:70, place(w){const p=spot(w,24,50,.4);if(!p)return;sow('hollow',p[0],p[1],{red:red(w)});const q=spot(w,24,50,.4)||p;sow('hollow',q[0]+1.5,q[1],{red:red(w)});}},
+    patrol:{cost:105,place(w){const base=rr(26,40),sd=rnd()<.5?1:-1;for(let k=0;k<3;k++){const d=base+k*3.2,off=rr(2.4,3.6)*sd;sow('hollow',Math.cos(w.a)*d-Math.sin(w.a)*off,Math.sin(w.a)*d+Math.cos(w.a)*off,{red:red(w)});}}},
+    guard: {cost:115,place(w){const h=high(w)||spot(w,26,48,.4);if(!h)return;sow('caster',h[0],h[1],{red:red(w)});for(let k=0;k<2;k++){const p=spot(w,24,50,.45)||h;sow('hollow',p[0],p[1],{red:red(w)});}}},
+    brute: {cost:155,place(w){const p=spot(w,28,50,.4);if(!p)return;sow('big',p[0],p[1],{red:red(w)});const q=spot(w,24,50,.45)||p;sow('hollow',q[0],q[1],{red:red(w)});}},
+    ambush:{cost:70, place(w){for(let k=0;k<2;k++){const p=spot(w,24,46,.25,.5);if(p)sow('hollow',p[0],p[1],{red:red(w),ambush:true});}}},
+    nest:  {cost:90, place(w){const p=spot(w,30,52,.4);if(!p)return;sow('caster',p[0],p[1],{red:red(w)});sow('caster',p[0]+rr(-2,2),p[1]+rr(-2,2),{red:red(w)});}},
+    roost: {cost:25, place(w){if(crows>=3)return;const p=spot(w,26,50,.4);if(p){roost(p[0],p[1]);crows++;}}},
+  };
+  const WEIGHTS={graves:{pair:3,patrol:2,ambush:3,guard:1,brute:1,nest:1,roost:2},wood:{pair:3,patrol:1,ambush:3,guard:1,brute:1,nest:1,roost:3},
+    ruins:{pair:2,patrol:1,ambush:1,guard:3,brute:1,nest:2,roost:1},hollow:{pair:2,patrol:1,ambush:2,guard:1,brute:3,nest:1,roost:1},
+    causeway:{pair:2,patrol:3,ambush:1,guard:3,brute:1,nest:1,roost:1},chapel:{pair:2,patrol:1,ambush:2,guard:3,brute:1,nest:2,roost:1}};
+  const TOTAL=1000,SOUTH=105;                                             // (costs are coarse: the field ends up a little over, as the old fixed host did)
+  const shares=RUN.wedges.map(w=>w.i===1?0:rr(.7,1.3)),sum=shares.reduce((a,b)=>a+b,0);
+  let spent=0;
+  for(const w of RUN.wedges){
+    let budget=w.i===1?SOUTH:(TOTAL-SOUTH)*shares[w.i]/sum;const W=WEIGHTS[w.kind]||WEIGHTS.graves;
+    for(let guard=0;guard<12&&budget>=70;guard++){
+      const opts=Object.keys(T).filter(k=>T[k].cost<=budget&&(w.i!==1||k==='pair'||k==='patrol'||k==='ambush'));
+      let tw=0;for(const k of opts)tw+=W[k]||1;let r=rnd()*tw,pick=opts[0];for(const k of opts){r-=W[k]||1;if(r<=0){pick=k;break;}}
+      T[pick].place(w);budget-=T[pick].cost;spent+=T[pick].cost;
+    }
+  }
+  while(spent<TOTAL-60){const w=RUN.wedges[(rnd()*WEDGE_N)|0];T.pair.place(w);spent+=70;}   // (a failed placement or two never leaves the field short)
+  { // the thing under the grave rows — or under whatever lies where the seed put no graves
+    const gw=RUN.wedges.find(w=>w.kind==='graves')||RUN.wedges[(rnd()*WEDGE_N)|0];
+    const p=spot(gw,30,44,.3,1)||[gw.cx,gw.cz];enemies.push(new GraveGhoul(p[0],p[1]));
+  }
 }
 function pruneFallen(){
   // bury the long-dead so the field doesn't fill with ghosts
@@ -7888,7 +8066,15 @@ function lockCands(){
   return enemies
     .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&e.state!=='scatter'&&!e.untouchable
       &&Math.hypot(e.x-player.x,e.z-player.z)<15&&lockReach(e))
-    .sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
+    .sort((a,b)=>lockScore(a)-lockScore(b));
+}
+// how much the eye wants a horror: its distance, plus a penalty for standing
+// off to the side of or behind the camera's forward — the one in front of you
+// wins over the one at your shoulder even when the shoulder one is nearer
+function lockScore(e){
+  const dx=e.x-player.x,dz=e.z-player.z,d=Math.hypot(dx,dz)||1e-3;
+  const fx=-Math.sin(G.camYaw),fz=-Math.cos(G.camYaw),c=(dx*fx+dz*fz)/d;
+  return d+3.5*(1-c);
 }
 function updateLock(){
   // the eye holds the CLOSEST live horror, with a little stickiness so
@@ -7911,10 +8097,13 @@ function updateLock(){
   let foe=null;
   if(cands.length){
     foe=cands[0];
-    if(t&&!t.objective&&t!==foe&&cands.includes(t)&&
-       Math.hypot(t.x-player.x,t.z-player.z)
-         <Math.hypot(foe.x-player.x,foe.z-player.z)+.6)
-      foe=t;
+    if(t&&!t.objective&&t!==foe&&cands.includes(t)){
+      // hysteresis: the eye keeps what it has unless a rival has been CLEARLY
+      // better — by two metres' worth of score — for half a second running
+      const gap=lockScore(t)-lockScore(foe);
+      if(gap<2){G.lockRivalT=0;foe=t;}
+      else{G.lockRivalT=(G.lockRivalT||0)+(G.frameDt||.016);if(G.lockRivalT<.5)foe=t;else G.lockRivalT=0;}
+    }else G.lockRivalT=0;
   }
   G.lockTarget=foe;
   const c=foe;
@@ -8123,6 +8312,7 @@ function fillPause(){
   $('psGhoul').textContent=slain('ghoul')?'slain':enemies.some(e=>e.kind==='ghoul'&&e.engaged)?'awake':'sleeping';
   $('psWarden').textContent=G.bossDead?'slain':G.bossActive?'awake':'waiting';
   $('psCath').textContent=G.bossDead?'yours':G.cathedralOpen?'open':'sealed';
+  if($('psRun'))$('psRun').textContent=RUN.time+', '+(RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear')+' · '+RUN.village+' · #'+RUN.seed.toString(36);
 }
 function setPaused(on){
   if(G.mode!=='play'&&G.mode!=='dead')return;
@@ -8143,7 +8333,7 @@ function frame(now){
   if(IN.pausePressed){IN.pausePressed=false;setPaused(!G.paused);}
   if(G.paused){renderFrame();Input.consume();return;}
   if(G.mode==='play')G.playTime=(G.playTime||0)+dt;
-  let wdt=dt;
+  let wdt=dt;G.frameDt=dt;
   if(G.hitstop>0){G.hitstop-=dt;wdt=dt*.08;}
   else if(G.slowMo&&G.slowMo<1)wdt=dt*G.slowMo;        // the finishing cut's held breath
   G.time+=wdt;
@@ -8197,9 +8387,12 @@ function frame(now){
   // the nave has a roof, as far as the light is concerned: the sky's
   // glow and the moon drain away as you step inside, and the whole
   // picture sinks a stop darker
-  worldLights.hemi.intensity=.26*(1-.45*G.naveDim);
-  worldLights.moon.intensity=.21*(1-.55*G.naveDim);
-  gradeMat.uniforms.uExpo.value=1.04*(1+.06*G.naveDim);
+  {const f=WX.flash||0;                                                       // (a storm's bolt lights everything for a few frames)
+    worldLights.hemi.intensity=worldLights.hemiBase*(1-.45*G.naveDim)+f*2.4;
+    worldLights.moon.intensity=worldLights.moonBase*(1-.55*G.naveDim)+f*1.2;
+    if(worldLights.dome)worldLights.dome.material.color.setScalar(1+f*3.5);
+    if(RUN.fog)scene.background.copy(RUN.fog).lerp(WX_WHITE,f*.8);}
+  gradeMat.uniforms.uExpo.value=(worldLights.expo||1.04)*(1+.06*G.naveDim);
   AudioSys.setSpace(G.naveDim);
   AudioSys.setMusic(G.bossActive||G.mode==='victory'?0:G.mode==='dead'?.35:1);
   { // the threat layer follows what is hunting you; the heart follows your life
@@ -8236,7 +8429,8 @@ function frame(now){
 requestAnimationFrame(frame);
 
 // debug/testing handle
-window.BP={G,player,enemies,bladeTrail,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+const WX_WHITE=new THREE.Color(0xd8e0ee);
+window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

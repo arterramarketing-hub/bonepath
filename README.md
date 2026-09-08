@@ -187,17 +187,32 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     It only appears while the tip is whipping fast relative to the
     knight, past the wind-up, so walking and sprinting leave nothing; a
     thrust adds a streak along the point's line.
-  - **the blow lands** — a connecting hit is sold four ways at once: a
-    hard warm flash at the point of contact with a wider bloom a beat
-    behind it and a spray of sparks; the frame holds for a tenth of a
-    second (longer for a heavy blow or a telling one); the camera jolts;
-    and the horror FLINCHES the way the blow sent it — trunk and head
-    thrown back off a thrust, sideways off a sweep, hardest at the
-    instant and easing off over a quarter second. Each kind of horror
-    has its own smack: dry bone and clatter for the small skeletons, a
-    deeper crunch for the big, a wet thud for the Unburied, a knock of
-    stone with a ringing chip for the Warden, a snap of feathers for a
-    crow, a crack with a chime under it for the Fallen One.
+  - **the blow lands** — a connecting hit is sold mechanically, nothing
+    soft: a hard flash at the point of contact and a spray of sparks;
+    what comes off the horror is its own stuff — bone chips off a
+    skeleton, a puff of grave dust off the big, stone grit off the
+    Warden, black feathers off a crow, ichor off the Fallen One, bile
+    off the Unburied; the horror pops WHITE for a frame, then the red;
+    the frame holds for a tenth of a second (longer for a heavy blow or
+    a telling one); the camera jolts; and the horror FLINCHES the way
+    the blow sent it — trunk and head thrown back off a thrust, sideways
+    off a sweep, hardest at the instant and easing off over a quarter
+    second. Each kind of horror has its own smack: dry bone and clatter
+    for the small skeletons, a deeper crunch for the big, a wet thud for
+    the Unburied, a knock of stone with a ringing chip for the Warden, a
+    snap of feathers for a crow, a crack with a chime under it for the
+    Fallen One.
+  - **the eye (lock-on)** — the lock scores every live horror in reach
+    by its distance PLUS a penalty for standing off to the side of, or
+    behind, the camera's forward, so the one in front of you wins over
+    the one at your shoulder even when the shoulder one is nearer; and
+    it holds what it has unless a rival has been clearly better — by two
+    metres' worth of score — for half a second running, so a crowd
+    circling you no longer makes it jump.
+  - **the stick's turn** — the knight turns toward the stick at a rate
+    that follows the push: a nudge steers, a shove wheels; and a nudge
+    within fifteen degrees of the heading only eases it round, never
+    snaps.
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
     white sparks, a clang, and its attack is broken — it reels, open to
@@ -259,6 +274,68 @@ before they land; bone-throwers with green eyes lob shots you can
 sidestep or roll through. Break a small horror's poise to stun it,
 then land one more blow and it goes sprawling on the path — a real
 fall, limbs everywhere — and kicked while it's down, it stays down.
+
+## The run — one seed, a different field every time
+
+Everything that changes between playthroughs is drawn from ONE seed: a
+fresh one each load, or `?seed=N` on the address for the same field
+again (the pause screen names the field: hour, weather, village, seed).
+The cathedral, its plinth, the stair and the roads never move; around
+them the seed decides:
+
+- **the hour** — sunrise, noon, dusk or night (night twice as likely).
+  Night is the moon and the stars; sunrise and dusk a low sun on its
+  side of the sky, a coloured gradient sky, warm fog; noon a high white
+  sun, a pale haze and a blue sky, the lanterns barely showing. The
+  sky's two lights, the fog colour, the sky dome, the sun or moon
+  sprite, the grade's exposure and the lanterns' strength all follow.
+- **the weather** — clear (three in five), light rain, or a storm.
+  Rain is a cloud of streaks that lives round the camera and falls
+  through it, with its own hiss and patter under the wind; a storm has
+  nine hundred of them, and every five to fourteen seconds a bolt: the
+  sky dome, the fog and both sky lights leap for a few frames in a
+  double flash, and the thunder comes after — a near bolt cracks first
+  and rolls hard, a far one only rolls, long and low, a second or two
+  behind.
+- **the six wedges** — the field is cut into six wedges round the
+  cathedral, and each takes one authored chunk, no kind more than twice
+  a run: the **grave rows** (ranks of stones in arcs, every one facing
+  the nave), the **hollow wood** (three groves of dead trees), the
+  **ruins** (two roofless houses and, three times in four, the fallen
+  tower), a **sunken hollow** (a bowl full of bone piles, slabs about
+  its rim), a **causeway** (standing stones along a ridge's crest, one
+  fallen), or a **roofless chapel** (three walls, a lancet still lit
+  from within, a candle stand burning, four graves before its door).
+  The south wedge, the pilgrim's walk in, is never walled off. Every
+  chunk keeps off the roads and off everything placed before it.
+- **the ground** — each chunk asks for the lie of land it wants, and
+  the seed shapes it under the rolling base: a bowl under the hollow, a
+  ridge under the causeway, a terrace with a soft scarp under the ruins
+  and the chapel (and half the graveyards), a bending stream bed
+  through some woods — and one more dry stream bed cut across a wedge
+  on top of it all. Everything that stands on the ground reads the same
+  height, so it all follows.
+- **the landmarks** — a **well** (a stone ring, two posts, a crossbar,
+  a bucket on its rope) and a **town sign** (a post and a board with
+  the village's name, readable from the road: Ashmere, Gallowmoor,
+  Hollowfen, Wrenhallow, Carrowdene, Blackwold, Sallow Cross or
+  Marrowgate), each beside a road in its own wedge.
+- **the lanterns** — always at the ring's four junctions and the head
+  of the stair; one or two down each quarter road at seeded distances;
+  one by each landmark and the chapel's door; and a couple of strays.
+- **the host** — every wedge is given a marrow budget and spends it on
+  encounter templates drawn to suit its chunk: a **patrol** strung
+  beside the road, a **guard** (a caster on the highest ground with two
+  hollows), a **brute** (a big one and a hollow, likeliest in a hollow),
+  an **ambush** lying low till you are close, a **nest** of two
+  casters, a **pair**, a **crow** on a roost (three at most). The south
+  wedge gets a light budget and only the small templates. The same
+  total marrow is out there every run — a little over what the
+  cathedral asks — laid differently; the Unburied waits under the grave
+  rows, or under whatever lies where the seed put no graves. A
+  red-boned horror costs its wedge no more than a plain one: its double
+  marrow is the pilgrim's bonus, not the field's spend. One run in ten,
+  one wedge's whole host burns red.
 
 ## Elements
 
