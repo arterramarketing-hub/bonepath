@@ -208,7 +208,12 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the one at your shoulder even when the shoulder one is nearer; and
     it holds what it has unless a rival has been clearly better — by two
     metres' worth of score — for half a second running, so a crowd
-    circling you no longer makes it jump.
+    circling you no longer makes it jump. And it **lets go of what you
+    run from**: move with the marked horror well behind your heading for
+    a second and a half straight and the eye releases it, so the camera
+    comes round to where you are running; it comes back the moment you
+    strike, stop, turn toward the host, or take a blow — so running past
+    a pack costs you nothing, and turning to fight costs no button.
   - **the stick's turn** — the knight turns toward the stick at a rate
     that follows the push: a nudge steers, a shove wheels; and a nudge
     within fifteen degrees of the heading only eases it round, never
@@ -220,8 +225,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     ruins — and the blade **bounces off** in a shower of sparks: the arms
     are flung back with it, the knight staggers half a step, and nothing
     on the far side is touched — but a horror standing BETWEEN the blade
-    and the stone is cut on the way, the swing only stops at the wall. A trunk or a lantern post only checks the
-    blade in sparks and the swing carries on; pews and gravestones break
+    and the stone is cut on the way, the swing only stops at the wall. A lantern post only checks the
+    blade in sparks and the swing carries on; a **tree** takes the
+    edge: a pale gash of the lighter wood under the bark is left on the
+    trunk at blade height, lying the way the blade travelled — flat for
+    a sweep, upright for an overhead, a short stab for a thrust — with a
+    few chips of wood, and the marks stay (the last forty-eight of
+    them); pews, gravestones and the town sign break
   - **the finishing cut** — break a small or medium horror's poise and
     a bright blade-mark hangs over it while it reels. Tap with it in
     reach and the knight steps in, drops low with the greatsword drawn
@@ -269,8 +279,13 @@ Die and you drop every shard where you fell — your helm lies there on
 the path with the marrow burning inside it, under a shaft of pale light
 you can see from anywhere — and you wake again at the pilgrim's gate on
 the far southern edge: one long corpse-run to win it back. There is no rest and no fire to kindle: the only mending is
-what the fallen shed. Enemy windups flash amber and rasp
-before they land; bone-throwers with green eyes lob shots you can
+what the fallen shed. Nothing on a horror's body glows before it
+strikes any more — the tell is in **the eyes**: every hollow has them
+now (dark in their sockets on the small ones), and a quarter second
+before the arm comes down they flare white-hot and swell. That quarter
+second is the moment to roll: a roll begun on the flare — even a beat
+late — is still untouchable when the blow lands, which is what the
+timing is meant to teach. Bone-throwers with green eyes lob shots you can
 sidestep or roll through. Break a small horror's poise to stun it,
 then land one more blow and it goes sprawling on the path — a real
 fall, limbs everywhere — and kicked while it's down, it stays down.
@@ -279,7 +294,11 @@ fall, limbs everywhere — and kicked while it's down, it stays down.
 
 Everything that changes between playthroughs is drawn from ONE seed: a
 fresh one each load, or `?seed=N` on the address for the same field
-again (the pause screen names the field: hour, weather, village, seed).
+again. The seed is a plain whole number (up to 4,294,967,295) and it is
+the WHOLE description of a field: the pause screen shows it, and a
+**go to seed** row there takes any number typed in and loads that
+field. The same number always rebuilds the same field, as long as the
+generation code is the same build.
 The cathedral, its plinth, the stair and the roads never move; around
 them the seed decides:
 
@@ -315,11 +334,22 @@ them the seed decides:
   through some woods — and one more dry stream bed cut across a wedge
   on top of it all. Everything that stands on the ground reads the same
   height, so it all follows.
-- **the landmarks** — a **well** (a stone ring, two posts, a crossbar,
-  a bucket on its rope) and a **town sign** (a post and a board with
-  the village's name, readable from the road: Ashmere, Gallowmoor,
-  Hollowfen, Wrenhallow, Carrowdene, Blackwold, Sallow Cross or
-  Marrowgate), each beside a road in its own wedge.
+- **the landmarks** — a **well** (an open ring of stone with a dark
+  shaft going down inside it and nothing at the bottom; two posts, a
+  crossbar, a bucket on its rope) and a small **town sign** (a post
+  under two metres and a board a metre wide with the village's name,
+  readable from the road: Ashmere, Gallowmoor, Hollowfen, Wrenhallow,
+  Carrowdene, Blackwold, Sallow Cross or Marrowgate), each beside a road
+  in its own wedge. The sign breaks like a pew: two blows and the board
+  is knocked off whole to tumble away while the post snaps in two.
+- **the testing menu** — under *The field (testing)* on the pause
+  screen: the **hour** and the **weather** can be stepped through live
+  (the sky's lights, the dome, the sun or moon, the fog, the exposure,
+  the dust, the lanterns and the rain — with its hiss and the storm's
+  bolts — all re-set under the running game), **effects** and **music**
+  each have a switch (remembered between loads), and the seed row
+  above. `?time=noon&wx=storm` on the address does the same from the
+  start, the rest of the field still the seed's.
 - **the lanterns** — always at the ring's four junctions and the head
   of the stair; one or two down each quarter road at seeded distances;
   one by each landmark and the chapel's door; and a couple of strays.
@@ -361,7 +391,9 @@ colour (never the red of the hit flash), and the horror keeps
 coming without it. Every swing also carries a chance of a **telling blow** — near double
 damage with a golden ring and a crack like a bell — and a telling
 blow blasts a small skeleton clean apart: real bones and a skull go
-flying, tumble, and lie scattered on the path. If life remains in
+flying **down the line of the blow** — the way the blade was travelling,
+so a sweep from the left throws them right and a thrust throws them
+back — tumble, and lie scattered on the path. If life remains in
 it, the bones drag themselves back together and it climbs upright
 to come at you again.
 

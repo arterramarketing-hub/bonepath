@@ -65,6 +65,8 @@
   #pause .note{font-size:11px;opacity:.7;line-height:1.4;margin-top:6px;min-height:2.8em;}
   #pause .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
   #pause .btn2:active{background:rgba(200,190,160,.15);}
+  #pause .btn2.sm{padding:4px 10px;font-size:10px;margin-left:8px;}
+  #pause #seedIn{width:112px;background:rgba(0,0,0,.35);border:1px solid rgba(200,190,160,.35);color:#e6c97a;font:inherit;font-size:12px;padding:3px 6px;text-align:center;}
   #poison{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .4s;
     background:radial-gradient(ellipse at 50% 50%, rgba(40,90,20,0) 38%, rgba(60,130,25,.5) 100%);}
   #lowhp{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;
@@ -231,6 +233,13 @@
       <div class="stat"><span>the Gravewarden</span><b id="psWarden">—</b></div>
       <div class="stat"><span>the cathedral</span><b id="psCath">sealed</b></div>
       <div class="stat"><span>this field</span><b id="psRun">—</b></div>
+      <div class="stat"><span>seed</span><b id="psSeed">—</b></div>
+      <h3>The field (testing)</h3>
+      <div class="sel"><span>hour</span><div class="pick"><div class="arrow fld" data-k="hour" data-d="-1">&lsaquo;</div><b id="selHour">night</b><div class="arrow fld" data-k="hour" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>weather</span><div class="pick"><div class="arrow fld" data-k="weather" data-d="-1">&lsaquo;</div><b id="selWeather">clear</b><div class="arrow fld" data-k="weather" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>effects</span><div class="pick"><div class="arrow fld" data-k="sfx" data-d="1">&lsaquo;</div><b id="selSfx">on</b><div class="arrow fld" data-k="sfx" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>music</span><div class="pick"><div class="arrow fld" data-k="music" data-d="1">&lsaquo;</div><b id="selMusic">on</b><div class="arrow fld" data-k="music" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>go to seed</span><div class="pick"><input id="seedIn" inputmode="numeric" pattern="[0-9]*" placeholder="number"><div class="btn2 sm" id="btnSeed">Enter</div></div></div>
     </div>
     <div class="col">
       <h3>Touch</h3>
@@ -1152,7 +1161,11 @@ function matNS(name,extra){
 /* ---------------- audio: tiny haunted synth ---------------- */
 const AudioSys=(()=>{
   let ac=null,master=null,noiseBuf=null,started=false;
-  let rainG=null,rainLevel=0;                                     // the rain bed's gain, and the level asked for before the graph exists
+  let rainG=null,rainLevel=0;
+  // two buses under the master: every effect and the wind on one, every
+  // strand of music on the other — so either can be switched off (testing)
+  let sfxBus=null,musicMaster=null,sfxOn=true,musicWanted=true;
+  try{sfxOn=localStorage.getItem('bp_sfx')!=='0';musicWanted=localStorage.getItem('bp_music')!=='0';}catch(e){}                                     // the rain bed's gain, and the level asked for before the graph exists
   let verbSend=null,verbWet=null,space=0;
   /* the whole mix goes through a grimy chain — tape saturation, a dull
      low-pass and a stone-room reverb — so nothing comes out clean. (No
@@ -1176,6 +1189,8 @@ const AudioSys=(()=>{
     if(ac)return;
     ac=new (window.AudioContext||window.webkitAudioContext)();
     master=ac.createGain();master.gain.value=.7;
+    sfxBus=ac.createGain();sfxBus.gain.value=sfxOn?1:0;sfxBus.connect(master);
+    musicMaster=ac.createGain();musicMaster.gain.value=musicWanted?1:0;musicMaster.connect(master);
     const crush=ac.createWaveShaper();crush.curve=crushCurve();crush.oversample='none';
     const dull=ac.createBiquadFilter();dull.type='lowpass';dull.frequency.value=6800;dull.Q.value=.6;
     const rumble=ac.createBiquadFilter();rumble.type='highpass';rumble.frequency.value=32;
@@ -1206,7 +1221,7 @@ const AudioSys=(()=>{
     const src=ac.createBufferSource();src.buffer=noiseBuf;src.loop=true;
     const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=320;f.Q.value=.8;
     const g=ac.createGain();g.gain.value=.022;                    // faint: a breath at the edge of hearing
-    src.connect(f).connect(g).connect(master);src.start();
+    src.connect(f).connect(g).connect(sfxBus);src.start();
     const lfo=ac.createOscillator();lfo.frequency.value=.07;
     const lg=ac.createGain();lg.gain.value=190;
     lfo.connect(lg).connect(f.frequency);lfo.start();
@@ -1217,7 +1232,7 @@ const AudioSys=(()=>{
     const src2=ac.createBufferSource();src2.buffer=noiseBuf;src2.loop=true;src2.playbackRate.value=1.9;
     const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1400;f2.Q.value=.7;
     const g2=ac.createGain();g2.gain.value=.006;
-    src2.connect(f2).connect(g2).connect(master);src2.start();
+    src2.connect(f2).connect(g2).connect(sfxBus);src2.start();
     const lfo3=ac.createOscillator();lfo3.frequency.value=.11;
     const lg3=ac.createGain();lg3.gain.value=.004;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
     // the rain, when the run has it: a hiss of noise through a bandpass, and a
@@ -1227,7 +1242,7 @@ const AudioSys=(()=>{
       const rs2=ac.createBufferSource();rs2.buffer=noiseBuf;rs2.loop=true;rs2.playbackRate.value=.6;
       const rf2=ac.createBiquadFilter();rf2.type='lowpass';rf2.frequency.value=700;
       rainG=ac.createGain();rainG.gain.value=rainLevel*.085;
-      rs.connect(rf).connect(rainG);rs2.connect(rf2).connect(rainG);rainG.connect(master);rs.start();rs2.start();
+      rs.connect(rf).connect(rainG);rs2.connect(rf2).connect(rainG);rainG.connect(sfxBus);rs.start();rs2.start();
       const rl=ac.createOscillator();rl.frequency.value=.13;const rlg=ac.createGain();rlg.gain.value=.012;rl.connect(rlg).connect(rainG.gain);rl.start();}
     // the field is never silent: far-off creaks, a crow, a chain — sparse and random
     const farOff=()=>{
@@ -1242,7 +1257,7 @@ const AudioSys=(()=>{
     [[55,.03],[55.7,.027],[110,.012]].forEach(([hz,v])=>{
       const o=ac.createOscillator();o.frequency.value=hz;
       const og=ac.createGain();og.gain.value=v;
-      o.connect(og).connect(master);o.start();
+      o.connect(og).connect(sfxBus);o.start();
     });
   }
   function env(g,t0,a,peak,dec){
@@ -1258,7 +1273,7 @@ const AudioSys=(()=>{
     fl.frequency.setValueAtTime(f0,t0);
     fl.frequency.exponentialRampToValueAtTime(Math.max(40,f1),t0+att+dec);
     const g=ac.createGain();env(g,t0,att,peak,dec);
-    s.connect(fl).connect(g).connect(master);
+    s.connect(fl).connect(g).connect(sfxBus);
     s.start(t0);s.stop(t0+att+dec+.05);
   }
   function tone(t0,{f=220,f2=null,type='sine',peak=.2,att=.005,dec=.2}={}){
@@ -1267,7 +1282,7 @@ const AudioSys=(()=>{
     o.frequency.setValueAtTime(f,t0);
     if(f2)o.frequency.exponentialRampToValueAtTime(Math.max(20,f2),t0+att+dec);
     const g=ac.createGain();env(g,t0,att,peak,dec);
-    o.connect(g).connect(master);
+    o.connect(g).connect(sfxBus);
     o.start(t0);o.stop(t0+att+dec+.05);
   }
   const rr2=(a,b)=>a+Math.random()*(b-a);
@@ -1380,7 +1395,7 @@ const AudioSys=(()=>{
     radioBus=ac.createGain();radioBus.gain.value=.42;
     const mverb=ac.createConvolver();mverb.buffer=makeImpulse(4.6,2.0,.1);   // a long, dark hall
     const mwet=ac.createGain();mwet.gain.value=1.0;
-    radioBus.connect(mverb).connect(mwet).connect(master);
+    radioBus.connect(mverb).connect(mwet).connect(musicMaster);
     // a warbling tape echo under the signal: a short modulated delay that
     // feeds back on itself through a dull filter, so every note smears
     // and ghosts a little out of tune behind itself
@@ -1391,7 +1406,7 @@ const AudioSys=(()=>{
     wob2.connect(wg2).connect(dly.delayTime);wob2.start();
     const fb=ac.createGain();fb.gain.value=.22;const fbf=ac.createBiquadFilter();fbf.type='lowpass';fbf.frequency.value=1400;
     const dgain=ac.createGain();dgain.gain.value=.45;
-    musicBus.connect(hp).connect(lp).connect(pk).connect(ws).connect(radioBus).connect(master);
+    musicBus.connect(hp).connect(lp).connect(pk).connect(ws).connect(radioBus).connect(musicMaster);
     pk.connect(dly);dly.connect(fbf).connect(fb).connect(dly);dly.connect(dgain).connect(ws);
     const drift=ac.createOscillator();drift.frequency.value=.09;const dg=ac.createGain();dg.gain.value=.04;
     drift.connect(dg).connect(radioBus.gain);drift.start();
@@ -1431,7 +1446,7 @@ const AudioSys=(()=>{
   let layers=null;
   function layersStart(){
     if(!ac||layers)return;
-    const mk=()=>{const g=ac.createGain();g.gain.value=0;g.connect(master);return g;};
+    const mk=()=>{const g=ac.createGain();g.gain.value=0;g.connect(musicMaster);return g;};
     const droneG=mk();
     const df=ac.createBiquadFilter();df.type='lowpass';df.frequency.value=160;df.connect(droneG);
     [[36,.9,'sine'],[36.35,.8,'sine'],[72.2,.3,'triangle']].forEach(([hz,v,ty])=>{const o=ac.createOscillator();o.type=ty;o.frequency.value=hz;
@@ -1493,7 +1508,7 @@ const AudioSys=(()=>{
       return;
     }
     if(!bossN){
-      const g=ac.createGain();g.gain.value=0;g.connect(master);
+      const g=ac.createGain();g.gain.value=0;g.connect(musicMaster);
       const trem=ac.createGain();trem.gain.value=.5;trem.connect(g);
       const lfo=ac.createOscillator();lfo.frequency.value=2.1;
       const lg=ac.createGain();lg.gain.value=.45;lfo.connect(lg).connect(trem.gain);
@@ -1512,6 +1527,10 @@ const AudioSys=(()=>{
   }
   return {
     bossMusic,musicStart,setMusic,layersStart,setThreat,setHeart,
+    // the two switches (testing): the effects, and the music
+    setSfx(on){sfxOn=!!on;try{localStorage.setItem('bp_sfx',on?'1':'0');}catch(e){}if(sfxBus)sfxBus.gain.setTargetAtTime(on?1:0,ac.currentTime,.05);},
+    setMusicOn(on){musicWanted=!!on;try{localStorage.setItem('bp_music',on?'1':'0');}catch(e){}if(musicMaster)musicMaster.gain.setTargetAtTime(on?1:0,ac.currentTime,.1);},
+    sfxOn(){return sfxOn;},musicOn(){return musicWanted;},
     // the world holds still: the whole graph sleeps
     pause(on){if(!ac)return;if(on)ac.suspend();else ac.resume();},
     // the rain's level: 0, a light rain, or a storm
@@ -1982,6 +2001,8 @@ function seedRun(){
   const pick=a=>a[(rnd()*a.length)|0];
   RUN.time=pick(['sunrise','noon','dusk','night','night']);
   RUN.weather=pick(['clear','clear','clear','rain','storm']);
+  try{const q=new URLSearchParams(location.search),ht=q.get('time'),wq=q.get('wx');     // (testing: ?time=noon&wx=storm names them outright, the rest of the field still the seed's)
+    if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm'].includes(wq))RUN.weather=wq;}catch(e){}
   RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
   RUN.village=pick(['Ashmere','Gallowmoor','Hollowfen','Wrenhallow','Carrowdene','Blackwold','Sallow Cross','Marrowgate']);
   // the six wedges: a chunk each, no kind more than twice; the south
@@ -2212,6 +2233,18 @@ function breakPew(b){
     AudioSys.clang();AudioSys.arrowStone();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.14);G.vibr(20);
     return;
   }
+  if(b.kind==='sign'){
+    // the town sign: the board is knocked off whole, the post breaks in two
+    const gy=heightAt(b.x,b.z);
+    boneBurst(b.x,gy+1.4,b.z,0x5a4326,8,2.6);boneBurst(b.x,gy+1.2,b.z,0xb9a07c,5,1.8);
+    const board=new THREE.Mesh(new THREE.BoxGeometry(1.0,.38,.07),b.mat.clone());board.material.transparent=true;board.rotation.y=b.ry;
+    board.position.set(b.x,gy+1.62,b.z);scene.add(board);
+    {const a=Math.random()*TAU;loosePiece(board,.05,Math.cos(a)*2.4,Math.sin(a)*2.4,3.5,true);}
+    planetPiece(new THREE.CylinderGeometry(.06,.07,.9,5),b.post,b.x,gy+1.4,b.z,.06,2.2);
+    planetPiece(new THREE.CylinderGeometry(.07,.08,.8,5),b.post,b.x,gy+.5,b.z,.07,1.4);
+    AudioSys.hit();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.14);G.vibr(20);
+    return;
+  }
   const y=PH+.6;
   boneBurst(b.x,y,b.z,0x5a4326,10,3.2);boneBurst(b.x,y,b.z,0x2e2216,6,2);   // splinters
   // and the planks: the seat, back, ends and kneeler come apart into
@@ -2266,9 +2299,10 @@ function strikeBreakables(x,z,fx,fz,reach,arc){
   let hitAny=false;
   for(const b of breakables.slice()){
     const cx=clamp(x,b.x-b.hw,b.x+b.hw),cz=clamp(z,b.z-b.hd,b.z+b.hd);
-    const dx=cx-x,dz=cz-z,d=Math.hypot(dx,dz);
-    if(d>reach||d<.01)continue;
-    const ang=Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
+    let dx=cx-x,dz=cz-z,d=Math.hypot(dx,dz);
+    if(d<.01){dx=b.x-x;dz=b.z-z;d=Math.hypot(dx,dz);}   // standing within its bounds (a step-in carries you there): the thing itself is what the blade is at
+    if(d>reach)continue;
+    const ang=d<.05?0:Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
     if(ang>arc)continue;
     b.hp--;hitAny=true;
     boneBurst(cx,PH+.7,cz,0x5a4326,6,2);
@@ -2501,6 +2535,7 @@ function buildWorld(){
     if(rnd()<.25)tr.add(cyl(.34,.22,.16,6,M.bark,rr(-.3,.3),h*rr(.7,.9),rr(-.3,.3)));
     tr.position.set(px,heightAt(px,pz),pz);tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
     world.add(tr);addObstacle(px,pz,.4);
+    obstacles[obstacles.length-1].tree={h,r:.32-.18*Math.min(1,1.1/h)};   // the trunk's height and its girth at blade height: a swing leaves its mark there
   }
   function ruinWall(px,pz,len,ry,h){
     const w=box(len,h,.55,M.wall,px,heightAt(px,pz)+h/2,pz,ry);w.rotation.z=rr(-.03,.03);world.add(w);
@@ -2568,7 +2603,7 @@ function buildWorld(){
       world.add(cyl(.05,.09,1.6,5,M.iron,px,gy+.8,pz));world.add(cyl(.3,.34,.05,7,M.iron,px,gy+1.6,pz));
       for(let k=0;k<5;k++){const a=k/5*TAU;world.add(cyl(.03,.035,.18,5,M.bone,px+Math.cos(a)*.22,gy+1.7,pz+Math.sin(a)*.22));}
       addWisp(px,gy+1.85,pz,0xf0a648,.4);const l=new THREE.PointLight(0xe8a050,1.2*RUN.lamp,11,2);l.position.set(px,gy+1.9,pz);scene.add(l);
-      lanternLights.push({l,ph:Math.random()*TAU,hz:addHaze(px,gy+1.85,pz,0xffd9a0,4,.2),base:1.2*RUN.lamp});addObstacle(px,pz,.24);
+      lanternLights.push({l,ph:Math.random()*TAU,hz:addHaze(px,gy+1.85,pz,0xffd9a0,4,.2),base:1.2*RUN.lamp,lamp0:1.2});addObstacle(px,pz,.24);
       for(let i=0;i<4;i++){const gx=cx-nx*rr(5,8)+lx*rr(-3,3),gz=cz-nz*rr(5,8)+lz*rr(-3,3);if(clearSpot(gx,gz,.9))stone(gx,gz,rnd());}
       RUN.chapelLantern=[cx-nx*3.4+lx*2.2,cz-nz*3.4+lz*2.2];
     },
@@ -2596,8 +2631,11 @@ function buildWorld(){
     return null;};
   {const w=RUN.wedges[RUN.landmarkWedges[0]],p=roadside(w);
     if(p){const[x,z]=p,gy=heightAt(x,z);                                   // THE WELL: a stone ring, two posts, a crossbar and a bucket
-      world.add(cyl(1.05,1.15,.9,8,M.wall,x,gy+.45,z));
-      const dark=new THREE.Mesh(new THREE.CylinderGeometry(.82,.82,.06,8),new THREE.MeshBasicMaterial({color:0x05070a}));dark.position.set(x,gy+.92,z);world.add(dark);
+      const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.15,.9,8,1,true),M.wall);ring.position.set(x,gy+.45,z);world.add(ring);   // the wall of the well, open at the top
+      const rim=new THREE.Mesh(new THREE.RingGeometry(.8,1.06,8),M.wall);rim.rotation.x=-Math.PI/2;rim.position.set(x,gy+.9,z);world.add(rim);   // its rim: a ring of stone with nothing in the middle
+      const shaftM=new THREE.MeshBasicMaterial({color:0x07090c,side:THREE.BackSide});
+      const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,2.6,8,1,true),shaftM);shaft.position.set(x,gy-.4,z);world.add(shaft);       // the shaft: dark stone going down
+      const bottom=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,.04,8),new THREE.MeshBasicMaterial({color:0x020304}));bottom.position.set(x,gy-1.68,z);world.add(bottom);   // and no water at the bottom of it
       const ry=rnd()*TAU,lx=Math.cos(ry),lz=-Math.sin(ry);
       for(const sd of[1,-1])world.add(cyl(.07,.09,2.2,5,M.bark,x+lx*sd*1.05,gy+1.1,z+lz*sd*1.05));
       world.add(box(2.4,.1,.1,M.bark,x,gy+2.15,z,ry));
@@ -2611,20 +2649,22 @@ function buildWorld(){
         ctx.fillStyle='#d8cfae';ctx.font='bold 46px Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.fillText(RUN.village.toUpperCase(),S/2,S*.38);ctx.font='24px Georgia, serif';ctx.fillText('THE BONE PATH',S/2,S*.66);});
       const bm=new THREE.MeshLambertMaterial({map:texCache.sign});
-      world.add(cyl(.07,.09,2.4,5,M.bark,x,gy+1.2,z));
-      const board=new THREE.Mesh(new THREE.BoxGeometry(1.5,.55,.08),bm);board.position.set(x,gy+2.05,z);board.rotation.y=Math.atan2(Math.cos(ra),Math.sin(ra));world.add(board);
-      addObstacle(x,z,.22);RUN.landmarkSpots.push([x,z]);}
+      const sg=new THREE.Group();sg.position.set(x,gy,z);world.add(sg);
+      sg.add(cyl(.06,.08,1.9,5,M.bark,0,.95,0));
+      const board=new THREE.Mesh(new THREE.BoxGeometry(1.0,.38,.07),bm);board.position.set(0,1.62,0);board.rotation.y=Math.atan2(Math.cos(ra),Math.sin(ra));sg.add(board);
+      addObstacle(x,z,.2);RUN.landmarkSpots.push([x,z]);
+      breakables.push({g:sg,x,z,hw:.5,hd:.5,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'sign',mat:bm,post:M.bark,ry:board.rotation.y});}   // two blows and the board comes off the post
   }
 
   /* THE SKY AND ITS LIGHT — by the hour the seed chose. Night is the
      moon and the stars; sunrise and dusk a low sun and a coloured sky;
      noon a high white sun, a pale haze, and lanterns barely showing. */
-  const TIMES={
+  const TIMES=HOURS;{const _T={
     night:  {hemi:[0x46596a,0x201d18,.26],sun:[0x9cb2c4,.21,[28,52,-34]],fog:0x090d12,sky:'sky',moon:true,sunSprite:null,expo:1.04,lamp:1,dust:.5},
     dusk:   {hemi:[0x7a4e62,0x2a1a14,.5],sun:[0xff8a4a,.6,[-60,12,14]],fog:0x2a1a26,sky:'skyDusk',moon:false,sunSprite:{pos:[-96,14,22],col:0xff9a4a,size:26},expo:1.0,lamp:.9,dust:.3},
     sunrise:{hemi:[0xb08a8a,0x3a2a24,.55],sun:[0xffc48a,.65,[62,10,-12]],fog:0x3a2c34,sky:'skyDawn',moon:false,sunSprite:{pos:[98,12,-20],col:0xffd090,size:24},expo:1.0,lamp:.7,dust:.25},
     noon:   {hemi:[0x9fb4d0,0x5a5244,.9],sun:[0xfff4dc,.95,[20,80,10]],fog:0x8a96a4,sky:'skyDay',moon:false,sunSprite:{pos:[30,120,15],col:0xfff8e8,size:18},expo:.95,lamp:.35,dust:.12},
-  };
+  };Object.assign(HOURS,_T);}
   const T=TIMES[RUN.time];RUN.fog=new THREE.Color(T.fog);
   makeTex('skyDay',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#3a5a8a');g.addColorStop(.5,'#7a94b8');g.addColorStop(.85,'#a8b4bc');g.addColorStop(1,'#a8b4bc');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
   makeTex('skyDusk',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#1a1428');g.addColorStop(.45,'#5a2a4a');g.addColorStop(.72,'#b8563a');g.addColorStop(.85,'#d08a4a');g.addColorStop(1,'#2a1a26');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
@@ -2632,16 +2672,16 @@ function buildWorld(){
   scene.background=RUN.fog.clone();
   const hemi=new THREE.HemisphereLight(T.hemi[0],T.hemi[1],T.hemi[2]);
   const moonL=new THREE.DirectionalLight(T.sun[0],T.sun[1]);
-  moonL.position.set(T.sun[2][0],T.sun[2][1],T.sun[2][2]);
   scene.add(hemi,moonL);
-  worldLights.hemi=hemi;worldLights.moon=moonL;worldLights.hemiBase=T.hemi[2];worldLights.moonBase=T.sun[1];worldLights.expo=T.expo;
+  worldLights.hemi=hemi;worldLights.moon=moonL;
   const dome=new THREE.Mesh(new THREE.SphereGeometry(210,16,10),
     new THREE.MeshBasicMaterial({map:texCache[T.sky],side:THREE.BackSide,fog:false,depthWrite:false}));
   dome.renderOrder=-2;scene.add(dome);worldLights.dome=dome;
-  if(T.moon){const moon=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.moon,transparent:true,opacity:.95,fog:false,depthWrite:false}));
-    moon.scale.set(34,34,1);moon.position.set(64,56,-98);scene.add(moon);}
-  if(T.sunSprite){const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:T.sunSprite.col,transparent:true,opacity:.9,fog:false,depthWrite:false,blending:THREE.AdditiveBlending}));
-    sun.scale.set(T.sunSprite.size,T.sunSprite.size,1);sun.position.set(...T.sunSprite.pos);scene.add(sun);}
+  {const moon=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.moon,transparent:true,opacity:.95,fog:false,depthWrite:false}));
+    moon.scale.set(34,34,1);moon.position.set(64,56,-98);scene.add(moon);worldLights.moonSprite=moon;}
+  {const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffffff,transparent:true,opacity:.9,fog:false,depthWrite:false,blending:THREE.AdditiveBlending}));
+    scene.add(sun);worldLights.sunSprite=sun;}
+  applyTime(RUN.time);
 
   // drifting grave-dust
   {
@@ -2650,7 +2690,7 @@ function buildWorld(){
     for(let i=0;i<N;i++){pts[i*3]=rr(-55,55);pts[i*3+1]=rr(.2,6);pts[i*3+2]=rr(-55,55);drift.push(rr(.05,.25),rr(0,TAU));}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
     const pm=new THREE.PointsMaterial({map:texCache.glow,color:0x9aa48c,size:.09,transparent:true,opacity:T.dust,depthWrite:false,blending:THREE.AdditiveBlending});
-    const P=new THREE.Points(geo,pm);scene.add(P);wispSystems.push({dust:true,pts:P,drift});
+    const P=new THREE.Points(geo,pm);scene.add(P);wispSystems.push({dust:true,pts:P,drift});worldLights.dust=pm;
   }
   /* THE LANTERNS — where the seed hung them: always at the ring's four
      junctions and the head of the stair; one or two down each quarter
@@ -2678,6 +2718,32 @@ function wrapAngle(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
    Rain is a cloud of streaks that lives round the camera and falls
    through it; a storm's bolts light the whole sky and the field for a
    few frames, the thunder arriving after, by how far the bolt was. */
+const HOURS={};   // filled by buildWorld: night, dusk, sunrise, noon
+/* set the field to an hour — at build, or later from the testing menu: the
+   sky's two lights, the dome, the moon or the sun, the fog, the exposure,
+   the dust, and how much every lantern shows */
+function applyTime(name){
+  const T=HOURS[name];if(!T||!worldLights.hemi)return;
+  RUN.time=name;RUN.lamp=T.lamp;RUN.fog=new THREE.Color(T.fog);
+  worldLights.hemi.color.setHex(T.hemi[0]);worldLights.hemi.groundColor.setHex(T.hemi[1]);worldLights.hemiBase=T.hemi[2];
+  worldLights.moon.color.setHex(T.sun[0]);worldLights.moonBase=T.sun[1];worldLights.moon.position.set(T.sun[2][0],T.sun[2][1],T.sun[2][2]);
+  worldLights.expo=T.expo;
+  worldLights.dome.material.map=texCache[T.sky];worldLights.dome.material.needsUpdate=true;
+  if(worldLights.moonSprite)worldLights.moonSprite.visible=!!T.moon;
+  if(worldLights.sunSprite){const s=worldLights.sunSprite;s.visible=!!T.sunSprite;
+    if(T.sunSprite){s.material.color.setHex(T.sunSprite.col);s.scale.set(T.sunSprite.size,T.sunSprite.size,1);s.position.set(...T.sunSprite.pos);}}
+  if(worldLights.dust)worldLights.dust.opacity=T.dust;
+  for(const L of lanternLights)if(L.lamp0)L.base=L.lamp0*T.lamp;
+  scene.background.copy(RUN.fog);
+}
+/* set the weather — clear, light rain, or a storm — dropping whatever fell before */
+function setWeather(name){
+  if(!['clear','rain','storm'].includes(name))return;
+  if(WX.rain){scene.remove(WX.rain);WX.rain.geometry.dispose();WX.rain.material.dispose();WX.rain=null;WX.pts=null;WX.speeds=null;}
+  WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;RUN.weather=name;
+  AudioSys.setRain(0);
+  setupWeather();
+}
 const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0};
 function setupWeather(){
   if(RUN.weather==='clear')return;
@@ -2732,7 +2798,7 @@ function makeLantern(x,z){
   l.position.set(wx,gy+2.45,wz);
   scene.add(l);
   const hz=addHaze(wx,gy+2.4,wz,0xffd9a0,4.4,.2*RUN.lamp);
-  lanternLights.push({l,ph:Math.random()*TAU,hz,base:.8*RUN.lamp});
+  lanternLights.push({l,ph:Math.random()*TAU,hz,base:.8*RUN.lamp,lamp0:.8});
 }
 
 /* a soft haze around a light: a big, faint additive disc drawn in the
@@ -4419,7 +4485,7 @@ function makeHollowRig(big,caster){
     weapon:big?'club':caster?null:'sword',
     heldBone:!!caster,
     skeletal:true,hunch:(big?.22:caster?.38:.3)+Math.random()*.06,
-    eyes:big?0x86d9c2:caster?0x9fe06a:undefined,
+    eyes:big?0x86d9c2:caster?0x9fe06a:0x1a2622,   // every hollow has eyes now — the small ones dark in their sockets, until the tell flares them
   });
 }
 /* a carrion crow: black body, flapping wings, ember eyes */
@@ -4803,6 +4869,7 @@ function shockRing(x,z,color,maxR,dur){
    hit warms it gold. Samples are only kept while the tip is whipping
    fast relative to the knight, and only in a swinging state. */
 const TRAIL_N=12,TRAIL_LIFE=.1,TRAIL_SPEED=15,TRAIL_SUB=4;
+const EYE_CUE=.25;      // how long before the blow the eyes flare: a roll (untouchable from .03 to .38 s in) begun on the flare, even a beat late, carries through it
 const SWING_STATES=new Set(['attack','dslash','spin','rollatk','sprintatk','execute','backstab','iai','kthrust','tiger','fowl','quake']);
 const bladeTrail=(()=>{
   const geo=new THREE.BufferGeometry();
@@ -4974,19 +5041,19 @@ function clashSparks(x,y,z,n){
    wall, a stone, a trunk, a post — or the cathedral? returns the point */
 function bladeMeetsStone(x,z,fx,fz,reach,arc){
   let best=null,bd=reach;
-  const consider=(px,pz,r,stone)=>{
+  const consider=(px,pz,r,stone,o)=>{
     const dx=px-x,dz=pz-z,d=Math.hypot(dx,dz);
     if(d-r>bd||d<.05)return;
     const ang=Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
     if(ang>arc)return;
-    bd=d-r;best={x:x+dx/d*Math.max(.4,d-r),z:z+dz/d*Math.max(.4,d-r),stone:!!stone};
+    bd=d-r;best={x:x+dx/d*Math.max(.4,d-r),z:z+dz/d*Math.max(.4,d-r),stone:!!stone,o:o||null};
   };
   for(const o of obstacles){
     if(o.seg){
       const sx=o.bx-o.ax,sz=o.bz-o.az;
       const t=clamp(((x-o.ax)*sx+(z-o.az)*sz)/(sx*sx+sz*sz||1),0,1);
-      consider(o.ax+sx*t,o.az+sz*t,o.r,o.stone);
-    }else consider(o.x,o.z,o.r,o.stone);
+      consider(o.ax+sx*t,o.az+sz*t,o.r,o.stone,o);
+    }else consider(o.x,o.z,o.r,o.stone,o);
   }
   // the hall's walls, from either side, sparing the doorway
   if(Math.abs(cathDist(x,z))<reach+1){
@@ -4998,6 +5065,23 @@ function bladeMeetsStone(x,z,fx,fz,reach,arc){
     }
   }
   return best;
+}
+
+/* a swing into a TREE leaves its mark: a pale gash in the bark where the
+   edge bit, lying the way the blade travelled — flat for a sweep, upright
+   for an overhead, a short stab for a thrust — and a few chips of wood */
+const treeMarks=[];let treeMarkM=null;
+function markTree(o,hx,hz,tr,sd){
+  if(!treeMarkM)treeMarkM=new THREE.MeshLambertMaterial({color:new THREE.Color(0xb9a07c).convertSRGBToLinear()});   // the lighter wood under the bark
+  const dx=hx-o.x,dz=hz-o.z,d=Math.hypot(dx,dz)||1,nx=dx/d,nz=dz/d;
+  const gy=heightAt(o.x,o.z),y=gy+1.05+Math.random()*.16,r=o.tree.r+.015;
+  const len=tr==='thrust'?.14:.42,m=new THREE.Mesh(new THREE.BoxGeometry(len,.07,.035),treeMarkM);
+  m.position.set(o.x+nx*r,y,o.z+nz*r);
+  m.rotation.y=Math.atan2(nx,nz);
+  m.rotation.z=tr==='overhead'?Math.PI/2+(Math.random()-.5)*.3:tr==='thrust'?Math.random()*Math.PI:(Math.random()-.5)*.35-(sd||1)*.18;
+  world.add(m);treeMarks.push(m);
+  if(treeMarks.length>48){const old=treeMarks.shift();world.remove(old);old.geometry.dispose();}
+  boneBurst(o.x+nx*(r+.05),y,o.z+nz*(r+.05),0xb9a07c,4,1.6);
 }
 
 /* thrown bone: dodge it, block it, or wear it */
@@ -5488,8 +5572,9 @@ const player={
       // flung back with it, and nothing on the far side is touched
       // (only STONE throws the blade back: a trunk or a post is checked
       //  in sparks and the swing carries on)
-      clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,stone.stone?14:8);
-      AudioSys.clang();G.camShake=Math.max(G.camShake,stone.stone?.3:.14);G.hitstop=Math.max(G.hitstop,stone.stone?.08:.04);G.vibr(stone.stone?[30,20,40]:20);
+      if(stone.o&&stone.o.tree){markTree(stone.o,stone.x,stone.z,opts.trail||'sweep',opts.dir);AudioSys.hit();}   // a trunk: the edge bites and leaves a gash
+      else clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,stone.stone?14:8);
+      if(!(stone.o&&stone.o.tree))AudioSys.clang();G.camShake=Math.max(G.camShake,stone.stone?.3:.14);G.hitstop=Math.max(G.hitstop,stone.stone?.08:.04);G.vibr(stone.stone?[30,20,40]:20);
       // ...but whatever stands BETWEEN the blade and the stone is cut on the
       // way: the swing only stops at the wall, it doesn't pass through a
       // horror to get there. The bounce comes after the reckoning below.
@@ -5549,7 +5634,7 @@ const player={
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
         // if life remains in it, the bones will crawl back together
-        if(e.hp>0&&!e.big&&!e.boss&&this.weapon()!=='katana')e.scatter();   // (a heavy blade's doing; the katana cuts, it doesn't blast)
+        if(e.hp>0&&!e.big&&!e.boss&&this.weapon()!=='katana')e.scatter(hv.dx,hv.dz,3.4);   // (a heavy blade's doing; the katana cuts, it doesn't blast) — the bones fly the way the blow went
       }
       if(el){
         elemBurst(el,(this.x+e.x)/2,1.2,(this.z+e.z)/2);
@@ -5632,6 +5717,7 @@ const player={
       mvz=-Math.sin(cy)*IN.mx+Math.cos(cy)*IN.mz;
       const l=Math.hypot(mvx,mvz)||1;mvx/=l;mvz/=l;
     }else mAmt=0;
+    this.mvx=mvx;this.mvz=mvz;this.mvAmt=mAmt;
     // a swipe's screen vector, mapped the same way the stick is
     const swipeWorld=s=>{
       const cy=G.camYaw;
@@ -6487,6 +6573,7 @@ class Enemy{
       if(this.rig.eyes)for(const e of this.rig.eyes){e.material.color.setHex(0xff1a0c);e.scale.setScalar(1.4);
         const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff3a14,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending}));
         gl.scale.set(.55,.55,1);e.add(gl);}
+      if(this.eyeCue)this._eyeSaved=this.rig.eyes.map(()=>[0xff1a0c,1.4]);   // (mid-flare: what the eyes go back to is the burning red)
       if(this.rig.heart){this.rig.heart.material.color.setHex(0xff3a14);this.rig.heartOn=true;}
       AudioSys.roar();AudioSys.bossMusic(2);G.camShake=.5;
       bannerShow('THE MARROW STIRS','the warden remembers its rage');
@@ -6740,16 +6827,16 @@ class Enemy{
     else if(this.state!=='dormant')r.root.position.y=gh;
     r.root.rotation.y=this.facing;
 
-    // telegraph glint, kept subtle: a low breathing ember — amber for
-    // light attackers, a red undertone for the heavy-handed
     if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
-    if(G.time>=this.flashUntil){
-      if(this.state==='windup'){
-        const on=((G.time*11)|0)%2===0;
-        const hex=this.heavyHitter?(on?0x2e0c06:0x180503):(on?0x241704:0x120b02);
-        for(const m of this.mats)m.emissive.setHex(hex);
-      }else for(const m of this.mats)
-        m.emissive.setHex(this.chillT>0?0x0d3542:0x000000); // frost-bitten glow
+    if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:0x000000); // frost-bitten glow
+    // the tell: nothing on the body glows before a blow. The EYES flare —
+    // a quarter second before the arm comes down, which is the moment to
+    // roll: a roll begun on the flare is still untouchable when it lands
+    const cue=this.state==='windup'&&this.hp>0&&this.t>=this.windDur()-EYE_CUE;
+    if(r.eyes&&cue!==!!this.eyeCue){
+      if(cue){this._eyeSaved=r.eyes.map(e=>[e.material.color.getHex(),e.scale.x]);for(const e of r.eyes){e.material.color.setHex(0xfff2b8);e.scale.setScalar(2.2);}}
+      else if(this._eyeSaved)r.eyes.forEach((e,i)=>{if(this._eyeSaved[i]){e.material.color.setHex(this._eyeSaved[i][0]);e.scale.setScalar(this._eyeSaved[i][1]);}});
+      this.eyeCue=cue;
     }
     // the jaw hangs slack, gapes through the windup, snaps on the strike
     if(r.jaw)r.jaw.rotation.x=
@@ -8076,6 +8163,7 @@ function lockScore(e){
   const fx=-Math.sin(G.camYaw),fz=-Math.cos(G.camYaw),c=(dx*fx+dz*fz)/d;
   return d+3.5*(1-c);
 }
+const LOCK_LEAVE=1.5;   // seconds of running from the locked horror before the eye lets it go
 function updateLock(){
   // the eye holds the CLOSEST live horror, with a little stickiness so
   // two circling enemies don't make it flicker
@@ -8094,6 +8182,18 @@ function updateLock(){
     }
   }
   G.lockDeadAt=undefined;lockMarker.material.opacity=1;
+  // LEAVING: run from the horror you're locked on — moving with it well behind
+  // your heading — for a second and a half straight and the eye lets it go,
+  // so the camera comes round to where you're running. It comes back the
+  // moment you strike, stop, turn toward the host, or take a blow.
+  {const P=player,dt=G.frameDt||.016;
+    const away=(e)=>{const dx=e.x-P.x,dz=e.z-P.z,d=Math.hypot(dx,dz)||1;return (dx*P.mvx+dz*P.mvz)/d;};   // +1 toward it, -1 straight away
+    if(t&&!t.objective&&t.hp>0&&P.mvAmt>.4&&away(t)<-.2)G.lockAwayT=(G.lockAwayT||0)+dt;else G.lockAwayT=0;
+    if(G.lockAwayT>LOCK_LEAVE){G.lockOff=true;G.lockAwayT=0;}
+    if(G.lockOff){
+      const back=SWING_STATES.has(P.state)||P.state==='thrust'||P.state==='charge'||P.hurtGrace>0||P.mvAmt<.2||(cands.length&&P.mvAmt>.4&&away(cands[0])>.2);
+      if(back)G.lockOff=false;else{G.lockTarget=null;G.lockRivalT=0;lockMarker.visible=false;return;}
+    }}
   let foe=null;
   if(cands.length){
     foe=cands[0];
@@ -8298,8 +8398,37 @@ function fillHero(){
   $('heroTap').textContent=LOADOUT.weapon==='bow'?'tap — loose an arrow · hold still, release — the charged shot':'tap — strike · hold still, release — the charged attack';
   try{renderHero();}catch(e){}
 }
-document.querySelectorAll('#pause .arrow').forEach(el=>el.addEventListener('pointerdown',e=>{
+document.querySelectorAll('#pause .arrow:not(.fld)').forEach(el=>el.addEventListener('pointerdown',e=>{
   e.preventDefault();e.stopPropagation();cycleLoadout(el.dataset.k,+el.dataset.d);}));
+/* the field's testing controls: the hour and the weather changed under the
+   game, the effects and the music switched, and any seed's field reached
+   by its number */
+const HOUR_LIST=['sunrise','noon','dusk','night'],WX_LIST=['clear','rain','storm'];
+function cycleField(k,d){
+  if(k==='hour'){const i=(HOUR_LIST.indexOf(RUN.time)+d+4)%4;applyTime(HOUR_LIST[i]);}
+  else if(k==='weather'){const i=(WX_LIST.indexOf(RUN.weather)+d+3)%3;setWeather(WX_LIST[i]);}
+  else if(k==='sfx')AudioSys.setSfx(!AudioSys.sfxOn());
+  else if(k==='music')AudioSys.setMusicOn(!AudioSys.musicOn());
+  fillField();renderFrame();
+}
+function fillField(){
+  if(!$('selHour'))return;
+  $('selHour').textContent=RUN.time;
+  $('selWeather').textContent=RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear';
+  $('selSfx').textContent=AudioSys.sfxOn()?'on':'off';
+  $('selMusic').textContent=AudioSys.musicOn()?'on':'off';
+  $('psSeed').textContent=RUN.seed;
+}
+document.querySelectorAll('#pause .arrow.fld').forEach(el=>el.addEventListener('pointerdown',e=>{
+  e.preventDefault();e.stopPropagation();cycleField(el.dataset.k,+el.dataset.d);}));
+function gotoSeed(){
+  const v=($('seedIn').value||'').trim();if(!/^\d+$/.test(v))return;
+  const n=(parseInt(v,10)>>>0)||1;
+  const u=new URL(location.href);u.searchParams.set('seed',String(n));u.searchParams.delete('time');u.searchParams.delete('wx');location.href=u.toString();
+}
+if($('btnSeed')){$('btnSeed').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();gotoSeed();});
+  $('seedIn').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')gotoSeed();});
+  $('seedIn').addEventListener('keyup',e=>e.stopPropagation());$('seedIn').addEventListener('pointerdown',e=>e.stopPropagation());}
 function fillPause(){
   fillHero();
   $('psMarrow').textContent=player.marrow;
@@ -8312,7 +8441,8 @@ function fillPause(){
   $('psGhoul').textContent=slain('ghoul')?'slain':enemies.some(e=>e.kind==='ghoul'&&e.engaged)?'awake':'sleeping';
   $('psWarden').textContent=G.bossDead?'slain':G.bossActive?'awake':'waiting';
   $('psCath').textContent=G.bossDead?'yours':G.cathedralOpen?'open':'sealed';
-  if($('psRun'))$('psRun').textContent=RUN.time+', '+(RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear')+' · '+RUN.village+' · #'+RUN.seed.toString(36);
+  if($('psRun'))$('psRun').textContent=RUN.time+', '+(RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear')+' · '+RUN.village;
+  fillField();
 }
 function setPaused(on){
   if(G.mode!=='play'&&G.mode!=='dead')return;
@@ -8431,7 +8561,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,treeMarks,markTree,worldLights,texCache,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
