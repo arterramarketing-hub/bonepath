@@ -2631,11 +2631,14 @@ function buildWorld(){
     return null;};
   {const w=RUN.wedges[RUN.landmarkWedges[0]],p=roadside(w);
     if(p){const[x,z]=p,gy=heightAt(x,z);                                   // THE WELL: a stone ring, two posts, a crossbar and a bucket
-      const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.15,.9,8,1,true),M.wall);ring.position.set(x,gy+.45,z);world.add(ring);   // the wall of the well, open at the top
-      const rim=new THREE.Mesh(new THREE.RingGeometry(.8,1.06,8),M.wall);rim.rotation.x=-Math.PI/2;rim.position.set(x,gy+.9,z);world.add(rim);   // its rim: a ring of stone with nothing in the middle
-      const shaftM=new THREE.MeshBasicMaterial({color:0x07090c,side:THREE.BackSide});
-      const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,2.6,8,1,true),shaftM);shaft.position.set(x,gy-.4,z);world.add(shaft);       // the shaft: dark stone going down
-      const bottom=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,.04,8),new THREE.MeshBasicMaterial({color:0x020304}));bottom.position.set(x,gy-1.68,z);world.add(bottom);   // and no water at the bottom of it
+      // EMPTY: an open ring of stone, and inside it a stone-lined shaft
+      // going down three metres to a dry black floor — look over the rim
+      // and you see the courses of the wall going into the dark, no water
+      const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.15,.9,8,1,true),M.wall);ring.position.set(x,gy+.45,z);world.add(ring);   // the outer wall, open at the top
+      const rim=new THREE.Mesh(new THREE.RingGeometry(.78,1.06,8),M.wall);rim.rotation.x=-Math.PI/2;rim.position.set(x,gy+.9,z);world.add(rim);   // the rim: stone with nothing in the middle
+      const innerM=M.wall.clone();innerM.side=THREE.BackSide;innerM.color=new THREE.Color(0x6a6660).convertSRGBToLinear();          // the inside of the shaft: the same stone, in shadow
+      const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.78,.74,3.9,8,3,true),innerM);shaft.position.set(x,gy-1.05,z);world.add(shaft);
+      const floor=new THREE.Mesh(new THREE.CircleGeometry(.74,8),new THREE.MeshBasicMaterial({color:0x030405}));floor.rotation.x=-Math.PI/2;floor.position.set(x,gy-2.98,z);world.add(floor);   // dry, and black
       const ry=rnd()*TAU,lx=Math.cos(ry),lz=-Math.sin(ry);
       for(const sd of[1,-1])world.add(cyl(.07,.09,2.2,5,M.bark,x+lx*sd*1.05,gy+1.1,z+lz*sd*1.05));
       world.add(box(2.4,.1,.1,M.bark,x,gy+2.15,z,ry));
@@ -2728,13 +2731,37 @@ function applyTime(name){
   worldLights.hemi.color.setHex(T.hemi[0]);worldLights.hemi.groundColor.setHex(T.hemi[1]);worldLights.hemiBase=T.hemi[2];
   worldLights.moon.color.setHex(T.sun[0]);worldLights.moonBase=T.sun[1];worldLights.moon.position.set(T.sun[2][0],T.sun[2][1],T.sun[2][2]);
   worldLights.expo=T.expo;
-  worldLights.dome.material.map=texCache[T.sky];worldLights.dome.material.needsUpdate=true;
-  if(worldLights.moonSprite)worldLights.moonSprite.visible=!!T.moon;
-  if(worldLights.sunSprite){const s=worldLights.sunSprite;s.visible=!!T.sunSprite;
+  // weather over the hour: rain draws a pale overcast across the sky and
+  // hides the sun; a storm is a dark, lumpen cloud-roof, the fog greyer,
+  // the light down — so the bolts have something to light
+  const storm=RUN.weather==='storm',rain=RUN.weather==='rain',overcast=storm||rain;
+  if(overcast&&!texCache.skyStorm)makeCloudSkies();
+  worldLights.dome.material.map=texCache[storm?'skyStorm':rain?'skyRain':T.sky];worldLights.dome.material.needsUpdate=true;
+  if(worldLights.moonSprite)worldLights.moonSprite.visible=!!T.moon&&!overcast;
+  if(worldLights.sunSprite){const s=worldLights.sunSprite;s.visible=!!T.sunSprite&&!overcast;
     if(T.sunSprite){s.material.color.setHex(T.sunSprite.col);s.scale.set(T.sunSprite.size,T.sunSprite.size,1);s.position.set(...T.sunSprite.pos);}}
+  if(storm){RUN.fog.lerp(new THREE.Color(0x3c424a),name==='night'?.35:.6);worldLights.hemiBase*=.72;worldLights.moonBase*=.5;worldLights.hemi.color.lerp(new THREE.Color(0x7d848e),.5);}
+  else if(rain){RUN.fog.lerp(new THREE.Color(0x6a7078),name==='night'?.2:.4);worldLights.hemiBase*=.88;worldLights.moonBase*=.7;}
   if(worldLights.dust)worldLights.dust.opacity=T.dust;
   for(const L of lanternLights)if(L.lamp0)L.base=L.lamp0*T.lamp;
   scene.background.copy(RUN.fog);
+}
+/* the overcast skies: a pale sheet of cloud for rain, a dark lumpen roof
+   for a storm — drawn once, as soft blots over a grey gradient, the
+   lower band lighter where the cloud thins toward the horizon */
+function makeCloudSkies(){
+  const draw=(dark)=>(ctx,S)=>{
+    const g=ctx.createLinearGradient(0,0,0,S);
+    if(dark){g.addColorStop(0,'#1e2228');g.addColorStop(.5,'#3a3f47');g.addColorStop(.85,'#565b62');g.addColorStop(1,'#3c424a');}
+    else{g.addColorStop(0,'#6e7580');g.addColorStop(.5,'#8d939c');g.addColorStop(.85,'#a7abb0');g.addColorStop(1,'#6a7078');}
+    ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+    let q=dark?77:78;const R=()=>{q=(Math.imul(q,1664525)+1013904223)>>>0;return q/4294967296;},RR=(a,b)=>a+R()*(b-a);   // its own little generator: the field's seed is left untouched
+    for(let i=0;i<90;i++){const cx=R()*S,cy=R()*S*.8,rx=S*RR(.08,.24),ry=rx*RR(.3,.6);
+      const l=dark?RR(-.08,.09):RR(-.05,.07);const c=Math.round((dark?70:150)*(1+l));
+      const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,rx);rg.addColorStop(0,`rgba(${c},${c+2},${c+6},${dark?.5:.35})`);rg.addColorStop(1,`rgba(${c},${c+2},${c+6},0)`);
+      ctx.fillStyle=rg;ctx.save();ctx.translate(cx,cy);ctx.scale(1,ry/rx);ctx.translate(-cx,-cy);ctx.beginPath();ctx.arc(cx,cy,rx,0,TAU);ctx.fill();ctx.restore();}
+  };
+  makeTex('skyStorm',256,draw(true));makeTex('skyRain',256,draw(false));
 }
 /* set the weather — clear, light rain, or a storm — dropping whatever fell before */
 function setWeather(name){
@@ -2743,6 +2770,7 @@ function setWeather(name){
   WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;RUN.weather=name;
   AudioSys.setRain(0);
   setupWeather();
+  applyTime(RUN.time);   // the sky, the fog and the light follow the weather
 }
 const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0};
 function setupWeather(){
@@ -5067,21 +5095,26 @@ function bladeMeetsStone(x,z,fx,fz,reach,arc){
   return best;
 }
 
-/* a swing into a TREE leaves its mark: a pale gash in the bark where the
-   edge bit, lying the way the blade travelled — flat for a sweep, upright
-   for an overhead, a short stab for a thrust — and a few chips of wood */
+/* a swing into a TREE leaves its mark: the bark changes colour where the
+   edge bit — a pale streak of the lighter wood painted flat onto the
+   trunk, no thickness at all, lying the way the blade travelled: flat
+   for a sweep, upright for an overhead, a short nick for a thrust — and a
+   few chips of wood fly. The streak is a decal pressed to the trunk's
+   face, drawn just ahead of the bark so it never fights it */
 const treeMarks=[];let treeMarkM=null;
 function markTree(o,hx,hz,tr,sd){
-  if(!treeMarkM)treeMarkM=new THREE.MeshLambertMaterial({color:new THREE.Color(0xb9a07c).convertSRGBToLinear()});   // the lighter wood under the bark
+  if(!treeMarkM)treeMarkM=new THREE.MeshLambertMaterial({color:new THREE.Color(0xc9ad84).convertSRGBToLinear(),
+    polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,side:THREE.DoubleSide});
   const dx=hx-o.x,dz=hz-o.z,d=Math.hypot(dx,dz)||1,nx=dx/d,nz=dz/d;
-  const gy=heightAt(o.x,o.z),y=gy+1.05+Math.random()*.16,r=o.tree.r+.015;
-  const len=tr==='thrust'?.14:.42,m=new THREE.Mesh(new THREE.BoxGeometry(len,.07,.035),treeMarkM);
+  const gy=heightAt(o.x,o.z),y=gy+1.05+Math.random()*.16,r=o.tree.r+.006;
+  const len=tr==='thrust'?.12:.4,m=new THREE.Mesh(new THREE.PlaneGeometry(len,.075),treeMarkM);
   m.position.set(o.x+nx*r,y,o.z+nz*r);
   m.rotation.y=Math.atan2(nx,nz);
   m.rotation.z=tr==='overhead'?Math.PI/2+(Math.random()-.5)*.3:tr==='thrust'?Math.random()*Math.PI:(Math.random()-.5)*.35-(sd||1)*.18;
+  m.renderOrder=1;
   world.add(m);treeMarks.push(m);
   if(treeMarks.length>48){const old=treeMarks.shift();world.remove(old);old.geometry.dispose();}
-  boneBurst(o.x+nx*(r+.05),y,o.z+nz*(r+.05),0xb9a07c,4,1.6);
+  boneBurst(o.x+nx*(r+.05),y,o.z+nz*(r+.05),0xc9ad84,4,1.6);
 }
 
 /* thrown bone: dodge it, block it, or wear it */
@@ -5717,6 +5750,7 @@ const player={
       mvz=-Math.sin(cy)*IN.mx+Math.cos(cy)*IN.mz;
       const l=Math.hypot(mvx,mvz)||1;mvx/=l;mvz/=l;
     }else mAmt=0;
+    if(G.holdMove){const h=G.holdMove;if(mAmt>.12&&Math.hypot(IN.mx-h.sx,IN.mz-h.sz)<.35){mvx=h.wx;mvz=h.wz;}else G.holdMove=null;}   // (the heading held through the camera's swing after the eye lets go)
     this.mvx=mvx;this.mvz=mvz;this.mvAmt=mAmt;
     // a swipe's screen vector, mapped the same way the stick is
     const swipeWorld=s=>{
@@ -6829,12 +6863,13 @@ class Enemy{
 
     if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:0x000000); // frost-bitten glow
-    // the tell: nothing on the body glows before a blow. The EYES flare —
-    // a quarter second before the arm comes down, which is the moment to
+    // the tell: nothing on the body glows before a blow. The EYES flare
+    // RED (white was lost against the bone) and swell — a quarter second
+    // before the arm comes down, which is the moment to
     // roll: a roll begun on the flare is still untouchable when it lands
     const cue=this.state==='windup'&&this.hp>0&&this.t>=this.windDur()-EYE_CUE;
     if(r.eyes&&cue!==!!this.eyeCue){
-      if(cue){this._eyeSaved=r.eyes.map(e=>[e.material.color.getHex(),e.scale.x]);for(const e of r.eyes){e.material.color.setHex(0xfff2b8);e.scale.setScalar(2.2);}}
+      if(cue){this._eyeSaved=r.eyes.map(e=>[e.material.color.getHex(),e.scale.x]);for(const e of r.eyes){e.material.color.setHex(0xff2412);e.scale.setScalar(2.4);}}
       else if(this._eyeSaved)r.eyes.forEach((e,i)=>{if(this._eyeSaved[i]){e.material.color.setHex(this._eyeSaved[i][0]);e.scale.setScalar(this._eyeSaved[i][1]);}});
       this.eyeCue=cue;
     }
@@ -8189,7 +8224,11 @@ function updateLock(){
   {const P=player,dt=G.frameDt||.016;
     const away=(e)=>{const dx=e.x-P.x,dz=e.z-P.z,d=Math.hypot(dx,dz)||1;return (dx*P.mvx+dz*P.mvz)/d;};   // +1 toward it, -1 straight away
     if(t&&!t.objective&&t.hp>0&&P.mvAmt>.4&&away(t)<-.2)G.lockAwayT=(G.lockAwayT||0)+dt;else G.lockAwayT=0;
-    if(G.lockAwayT>LOCK_LEAVE){G.lockOff=true;G.lockAwayT=0;}
+    if(G.lockAwayT>LOCK_LEAVE){G.lockOff=true;G.lockAwayT=0;
+      // the camera is about to come round behind you: until the stick is
+      // moved, the hero keeps running the WORLD way it was running, so the
+      // swing of the camera doesn't turn a held "back" into a charge
+      G.holdMove={sx:IN.mx,sz:IN.mz,wx:P.mvx,wz:P.mvz};}
     if(G.lockOff){
       const back=SWING_STATES.has(P.state)||P.state==='thrust'||P.state==='charge'||P.hurtGrace>0||P.mvAmt<.2||(cands.length&&P.mvAmt>.4&&away(cands[0])>.2);
       if(back)G.lockOff=false;else{G.lockTarget=null;G.lockRivalT=0;lockMarker.visible=false;return;}

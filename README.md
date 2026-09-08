@@ -213,7 +213,10 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     a second and a half straight and the eye releases it, so the camera
     comes round to where you are running; it comes back the moment you
     strike, stop, turn toward the host, or take a blow — so running past
-    a pack costs you nothing, and turning to fight costs no button.
+    a pack costs you nothing, and turning to fight costs no button. As
+    the camera comes round behind you after the release, the hero keeps
+    running the way it was running until the stick is moved, so a held
+    "back" never turns into a charge.
   - **the stick's turn** — the knight turns toward the stick at a rate
     that follows the push: a nudge steers, a shove wheels; and a nudge
     within fifteen degrees of the heading only eases it round, never
@@ -227,9 +230,10 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     on the far side is touched — but a horror standing BETWEEN the blade
     and the stone is cut on the way, the swing only stops at the wall. A lantern post only checks the
     blade in sparks and the swing carries on; a **tree** takes the
-    edge: a pale gash of the lighter wood under the bark is left on the
-    trunk at blade height, lying the way the blade travelled — flat for
-    a sweep, upright for an overhead, a short stab for a thrust — with a
+    edge: the bark changes colour where it bit — a pale streak of the
+    lighter wood painted flat onto the trunk at blade height, no
+    thickness to it, lying the way the blade travelled: flat for a
+    sweep, upright for an overhead, a short nick for a thrust — with a
     few chips of wood, and the marks stay (the last forty-eight of
     them); pews, gravestones and the town sign break
   - **the finishing cut** — break a small or medium horror's poise and
@@ -282,7 +286,8 @@ the far southern edge: one long corpse-run to win it back. There is no rest and 
 what the fallen shed. Nothing on a horror's body glows before it
 strikes any more — the tell is in **the eyes**: every hollow has them
 now (dark in their sockets on the small ones), and a quarter second
-before the arm comes down they flare white-hot and swell. That quarter
+before the arm comes down they flare **red** and swell (white was lost
+against the bone). That quarter
 second is the moment to roll: a roll begun on the flare — even a beat
 late — is still untouchable when the blow lands, which is what the
 timing is meant to teach. Bone-throwers with green eyes lob shots you can
@@ -315,7 +320,10 @@ them the seed decides:
   sky dome, the fog and both sky lights leap for a few frames in a
   double flash, and the thunder comes after — a near bolt cracks first
   and rolls hard, a far one only rolls, long and low, a second or two
-  behind.
+  behind. Both weathers cloud the sky: light rain draws a pale sheet of
+  overcast across it and hides the sun or moon; a storm is a dark,
+  lumpen cloud-roof, the fog greyer and the light down by a quarter,
+  so the bolts have something to light.
 - **the six wedges** — the field is cut into six wedges round the
   cathedral, and each takes one authored chunk, no kind more than twice
   a run: the **grave rows** (ranks of stones in arcs, every one facing
@@ -334,9 +342,10 @@ them the seed decides:
   through some woods — and one more dry stream bed cut across a wedge
   on top of it all. Everything that stands on the ground reads the same
   height, so it all follows.
-- **the landmarks** — a **well** (an open ring of stone with a dark
-  shaft going down inside it and nothing at the bottom; two posts, a
-  crossbar, a bucket on its rope) and a small **town sign** (a post
+- **the landmarks** — a **well** (an open ring of stone, and inside it
+  a stone-lined shaft going down three metres to a dry black floor —
+  look over the rim and you see the courses of the wall going into the
+  dark, no water; two posts, a crossbar, a bucket on its rope) and a small **town sign** (a post
   under two metres and a board a metre wide with the village's name,
   readable from the road: Ashmere, Gallowmoor, Hollowfen, Wrenhallow,
   Carrowdene, Blackwold, Sallow Cross or Marrowgate), each beside a road
