@@ -1530,6 +1530,10 @@ const AudioSys=(()=>{
   }
   return {
     bossMusic,musicStart,setMusic,layersStart,setThreat,setHeart,
+    // Thor's bolt: a crack, the low thump of the air closing, and a short roll
+    thorCrack(){if(!ac)return;const t=now();
+      noise(t,{peak:.62,att:.002,dec:.22,f0:3400,f1:220});tone(t,{f:130,f2:34,type:'sawtooth',peak:.26,att:.004,dec:.5});
+      noise(t+.05,{peak:.36,att:.05,dec:1.1,f0:320,f1:60});tone(t+.02,{f:2600,f2:900,type:'square',peak:.05,att:.002,dec:.12});},
     // the two switches (testing): the effects, and the music
     setSfx(on){sfxOn=!!on;try{localStorage.setItem('bp_sfx',on?'1':'0');}catch(e){}if(sfxBus)sfxBus.gain.setTargetAtTime(on?1:0,ac.currentTime,.05);},
     setMusicOn(on){musicWanted=!!on;try{localStorage.setItem('bp_music',on?'1':'0');}catch(e){}if(musicMaster)musicMaster.gain.setTargetAtTime(on?1:0,ac.currentTime,.1);},
@@ -2349,6 +2353,16 @@ function buildWorld(){
     geo.computeVertexNormals();
     const gm=matNS('dirt');
     M.dirt.map.repeat.set(30,30);
+    // the paint layer: a second sheet over the whole field that marks are
+    // PAINTED into (torn earth, scorch) — sampled by world position in the
+    // ground's own shader, so a mark is a change of the ground's colour,
+    // follows every rise and hollow, and is never a thing laid on top
+    GP.cv=document.createElement('canvas');GP.cv.width=GP.cv.height=GP.S;GP.ctx=GP.cv.getContext('2d');
+    GP.tex=new THREE.CanvasTexture(GP.cv);GP.tex.magFilter=THREE.NearestFilter;GP.tex.minFilter=THREE.LinearFilter;GP.tex.generateMipmaps=false;GP.tex.encoding=THREE.sRGBEncoding;GP.tex.flipY=false;
+    gm.onBeforeCompile=s=>{s.uniforms.uPaint={value:GP.tex};
+      s.vertexShader='varying vec3 vWP;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.)).xyz;');
+      s.fragmentShader='uniform sampler2D uPaint;varying vec3 vWP;\n'+s.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\n{vec4 pc=texture2D(uPaint,vWP.xz/'+GP.EXT.toFixed(1)+'+0.5);pc=sRGBToLinear(pc);diffuseColor.rgb=mix(diffuseColor.rgb,pc.rgb,pc.a);}');};
     world.add(new THREE.Mesh(geo,gm));
   }
   /* the roads: a ring around the cathedral, and one straight way out
@@ -2789,7 +2803,7 @@ function setupWeather(){
   AudioSys.setRain(WX.level);
 }
 function updateWeather(dt){
-  if(!WX.rain)return;
+  if(!WX.rain){WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;return;}
   const cx=camera.position.x,cz=camera.position.z,cy=camera.position.y,P=WX.pts,S=WX.speeds,n=S.length;
   const wind=Math.sin(G.time*.4)*1.2;
   for(let i=0;i<n;i++){const o=i*3;
@@ -2802,9 +2816,27 @@ function updateWeather(dt){
     if(WX.nextBolt<=0){WX.nextBolt=rr3(5,14);WX.flash=1;WX.pop=.13;const near=Math.random()<.4;
       setTimeout(()=>AudioSys.thunder(near),near?250:rr3(900,2200));}
     if(WX.pop>0){WX.pop-=dt;if(WX.pop<=0)WX.flash=Math.max(WX.flash,.7);}   // the second pop of a double flash
-    WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;
   }
+  WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;                   // (whatever the weather: Thor's bolt lights a clear night too)
 }
+
+/* the ground's paint: marks are painted here as ROUGH shapes — a torn
+   ellipse along the direction given, its edge jagged, a lighter lip round
+   a dark core — and the sheet is sent to the GPU once a frame, not once a
+   stroke. Scorch is the same shape, darker */
+const GP={cv:null,ctx:null,tex:null,S:1024,EXT:150,dirty:false,strokes:0};
+function paintScar(x,z,facing,w,l,dark){
+  if(!GP.ctx)return;
+  const ctx=GP.ctx,k=GP.S/GP.EXT,cx=(x/GP.EXT+.5)*GP.S,cy=(z/GP.EXT+.5)*GP.S;
+  const fx=Math.sin(facing),fz=Math.cos(facing),rx=Math.cos(facing),rz=-Math.sin(facing);
+  const blob=(scale,fill)=>{ctx.beginPath();const N=9;
+    for(let i=0;i<N;i++){const a=i/N*TAU,j=.65+Math.random()*.7,ax=Math.cos(a)*l/2*j*scale,az=Math.sin(a)*w/2*j*scale;   // an ellipse along the line, its edge torn
+      const px=cx+(fx*ax+rx*az)*k,py=cy+(fz*ax+rz*az)*k;if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py);}
+    ctx.closePath();ctx.fillStyle=fill;ctx.fill();};
+  blob(1.3,dark?'rgba(40,30,22,.5)':'rgba(104,82,56,.55)');blob(.85,dark?'rgba(20,15,11,.85)':'rgba(64,46,30,.9)');
+  GP.dirty=true;GP.strokes++;
+}
+function flushPaint(){if(GP.dirty&&GP.tex){GP.tex.needsUpdate=true;GP.dirty=false;}}
 
 const lanternLights=[];
 function makeLantern(x,z){
@@ -2850,7 +2882,7 @@ function addWisp(x,y,z,color,size){
 }
 
 function updateAmbient(t,dt){
-  updateWeather(dt);
+  updateWeather(dt);flushPaint();
   for(const L of lanternLights){
     const b=L.base||.72;
     L.l.intensity=b+(Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06)*(b/.72);
@@ -4755,11 +4787,12 @@ try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
 const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana']],
-  katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl']],
+  katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl'],['thor',"thor's lightning"]],
   armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight']],
-  charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade']],
-  bowCharge:[['knock','knockback shot'],['pierce','piercing shot'],['bomb','bomb arrow']]};
-const HERO_NOTES={double:'two fast cuts, forward and back, then a third made on the air alone — an X of crossed cuts — that flies on ahead; a full charge\'s second cut staggers all but the Warden',
+  charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade'],['thor',"thor's lightning"]],
+  bowCharge:[['knock','knockback shot'],['pierce','piercing shot'],['bomb','bomb arrow'],['thor',"thor's lightning"]]};
+const HERO_NOTES={double:'two fast cuts, forward and back, and nothing after; a full charge\'s second cut staggers all but the Warden',
+  thor:'the weapon raised to the sky, and the sky answers: a bolt comes down on the marked horror — or the nearest, a crow in the air as readily as anything on the ground — and holds it where it stands, stunned; two more near it catch the leap. Any weapon',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
   quake:'the blade hauled overhead while the ground groans and the screen shakes, then driven into the flags: every small and medium horror near is blasted five body-lengths away, some of them bursting into bones on the way',
   knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
@@ -5261,10 +5294,48 @@ function boltArc(x1,y1,z1,x2,y2,z2){
     return true;
   }});
 }
+/* THOR'S LIGHTNING: the sky answers the raised weapon. A bolt comes down
+   from fourteen metres on the marked horror — or the nearest live one in
+   reach, a crow in the air as readily as anything on the ground — with a
+   crack, a flash that lights the whole field, sparks and a scorch. What it
+   hits is held where it stands, stunned (a crow knocked out of the air);
+   and the charge leaps on to two more within a few strides for half. */
+function thorStrike(P,foe,full){
+  const R=14;let t=foe&&foe.hp>0&&Math.hypot(foe.x-P.x,foe.z-P.z)<R?foe:null;
+  if(!t){let bd=R;for(const e of enemies){if(e.hp<=0||e.state==='dormant'||e.state==='rise'||e.untouchable||e.state==='scatter')continue;const d=Math.hypot(e.x-P.x,e.z-P.z);if(d<bd){bd=d;t=e;}}}
+  const fx=Math.sin(P.facing),fz=Math.cos(P.facing);
+  const tx=t?t.x:P.x+fx*3,tz=t?t.z:P.z+fz*3,ty=t?(t.crow?t.y:heightAt(tx,tz)+(t.boss?2.8:t.big?1.9:1.4)):heightAt(tx,tz)+.1;
+  skyBolt(tx,ty,tz);
+  AudioSys.thorCrack();G.camShake=Math.max(G.camShake,.55);G.hitstop=Math.max(G.hitstop,.12);G.vibr([50,30,80]);G.glowFlash=1;WX.flash=Math.max(WX.flash,.7);
+  elemBurst('lightning',tx,ty,tz);sparkBurst(tx,ty,tz,16);paintScar(tx,tz,Math.random()*TAU,.9,1.1,true);
+  if(!t)return;
+  const dmg=full?52:40;
+  const hold=(e,d)=>{e.takeHit(d,e.boss?4:99,e.x,e.z-.01,0,{dx:0,dz:0,up:0});
+    if(e.hp>0){if(e.crow)e.scatter();else if(!e.boss){e.state='stagger';e.t=0;e.poise=0;e.attack=null;e.vx=0;e.vz=0;}}};
+  hold(t,dmg);
+  const near=enemies.filter(e=>e!==t&&e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&!e.untouchable&&e.state!=='scatter'&&Math.hypot(e.x-tx,e.z-tz)<4.5)
+    .sort((a,b)=>Math.hypot(a.x-tx,a.z-tz)-Math.hypot(b.x-tx,b.z-tz)).slice(0,2);
+  for(const e of near){const ey=e.crow?e.y:heightAt(e.x,e.z)+1.3;boltArc(tx,ty,tz,e.x,ey,e.z);elemBurst('lightning',e.x,ey,e.z);hold(e,Math.round(dmg/2));}
+}
+function skyBolt(x,y,z){
+  // the main thread from fourteen metres up, kinked all the way down, drawn
+  // thrice a hair apart for weight, with two forks off it
+  const top={x:x+rr3(-2.5,2.5),y:y+14,z:z+rr3(-2.5,2.5)},N=11,base=[];
+  for(let i=0;i<=N;i++){const k=i/N,mid=i>0&&i<N;base.push([top.x+(x-top.x)*k+(mid?rr3(-.8,.8):0),top.y+(y-top.y)*k,top.z+(z-top.z)*k+(mid?rr3(-.8,.8):0)]);}
+  for(let c=0;c<3;c++){const pts=base.map(p=>new THREE.Vector3(p[0]+(c?rr3(-.06,.06):0),p[1],p[2]+(c?rr3(-.06,.06):0)));boltLine(pts,.22);}
+  for(const i of[3,6]){const s=base[i];boltArc(s[0],s[1],s[2],s[0]+rr3(-2.5,2.5),s[1]-rr3(1,3),s[2]+rr3(-2.5,2.5));}
+}
+function boltLine(pts,life){
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  const m=new THREE.LineBasicMaterial({color:0xf4f8ff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false});
+  const line=new THREE.Line(g,m);scene.add(line);
+  let t=0;effects.push({update(dt){t+=dt;m.opacity=Math.max(0,1-t/life)*(t<.05?1:.7+.3*Math.sin(t*90));
+    if(t>life){scene.remove(line);g.dispose();m.dispose();return false;}return true;}});
+}
 /* a crit blasts a skeleton into REAL bones: pieces fly, bounce, lie on
    the path for the scatter, then drag themselves back into the body */
-function scatterBones(x,z,ddx,ddz,dsp){
-  const bm=mat('bone');
+function scatterBones(x,z,ddx,ddz,dsp,red){
+  const bm=mat('bone');if(red){bm.color=new THREE.Color(0xd23c3c);}   // a red-boned horror's bones are red on the ground too
   const n=8+((Math.random()*3)|0);
   for(let i=0;i<n;i++){
     const skull=i===0;
@@ -5926,6 +5997,14 @@ const player={
       G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
       boneBurst(this.x,.15,this.z,0x4a463a,4,1.4);   // the rear foot tears the ground
     };
+    // THOR'S LIGHTNING: the weapon raised to the sky, and a bolt called down
+    const startThor=()=>{
+      if(this.draw)this.draw();
+      this.state='thor';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.queued=false;this.qDir=null;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      G.glowFlash=1;
+    };
     // the dash cut: a wide low sweep flung straight out of a full sprint
     const startSprintAtk=()=>{
       this.draw();
@@ -6066,8 +6145,9 @@ const player={
       }
       const released=IN.chargeRelease||!IN.chargeHeld;
       if(released||this.chargeT>1.8){
-        if(this.weapon()==='bow')startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);
+        if(this.weapon()==='bow'){if(this.chargeT>=.3&&LOADOUT.bowCharge==='thor')startThor();else startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);}
         else if(this.chargeT<(this.weapon()==='katana'&&katSheathes()?.5:.3))startAttack(null);   // barely held: it's just a strike (a draw needs its blade home first)
+        else if(LOADOUT[chargeKey()]==='thor')startThor();
         else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else if(LOADOUT.katanaCharge==='fowl')startFowl();else startIai();}
         else if(LOADOUT.charge==='spin')startSpin();
         else if(LOADOUT.charge==='quake')startQuake();
@@ -6077,7 +6157,7 @@ const player={
       }
     }
     else if(this.state==='dslash'){
-      const DUR=.8*this.swing(),p=this.t/DUR;
+      const DUR=.62*this.swing(),p=this.t/DUR;                    // quick: two cuts inside two-thirds of a swing's time
       // a long driving lunge under each cut: the coil comes out as ground covered
       if(p<.16||(p>.42&&p<.6)){
         const sp=p<.16?10:9;
@@ -6090,17 +6170,13 @@ const player={
       const dmg=this.chargeFull?22:16;
       // TWO cuts and no more: the first sweeps right to left; the second
       // comes straight back (a full coil's second cut breaks anything that
-      // isn't the Warden), and the air carries the second cut on as the X
+      // isn't the Warden) — and that's the whole of it
       if(this.hitDone<1&&p>=.16){this.hitDone=1;
         const hit=this.meleeHit(dmg,2.7,1.2,2,.45,{trail:'sweep',dir:1});
         if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.25);}}
       if(this.hitDone<2&&p>=.57){this.hitDone=2;
         const hit=this.meleeHit(dmg,2.7,1.2,3,.7,{trail:'sweep',dir:-1,staggerAll:this.chargeFull});
         if(hit){AudioSys.hit();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);}}
-      // ...and once the second cut is through, its swiftness leaves the blade as the X
-      if(this.hitDone<3&&p>=.7){this.hitDone=3;
-        AudioSys.airSlash();G.camShake=Math.max(G.camShake,.2);G.glowFlash=Math.max(G.glowFlash||0,.6);
-        airSlash(this.x,this.z,this.facing,this.chargeFull?30:22,this.chargeFull);}
       if(IN.swipe&&IN.swipe.kind==='atk'&&p>.8){
         this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
       }
@@ -6233,6 +6309,13 @@ const player={
           }
         }
       }
+      if(p>=1)this.state='free';
+    }
+    else if(this.state==='thor'){
+      const DUR=1.15,p=this.t/DUR;
+      if(foe&&p<.25)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
+      if(!this.sfxDone&&p>=.1){this.sfxDone=true;AudioSys.chargeReady();}
+      if(!this.hitDone&&p>=.32){this.hitDone=true;thorStrike(this,foe,this.chargeFull);}
       if(p>=1)this.state='free';
     }
     else if(this.state==='tiger'){
@@ -6472,7 +6555,7 @@ const player={
       else poseIdle(r,t);
       if(bow)poseBowCarry(r);
     }
-    else if(this.state==='charge'){if(bow)poseBowDraw(r,this.chargeT/.6,t);
+    else if(this.state==='charge'){if(LOADOUT[chargeKey()]==='thor')poseTigerCharge(r,this.chargeT/.6,t);else if(bow)poseBowDraw(r,this.chargeT/.6,t);
       else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else poseIaiCharge(r,this.chargeT/.6,t);}   // (the draw and the waterfowl both wind in the saya)
       else if(LOADOUT.charge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);
       else if(LOADOUT.charge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);
@@ -6480,6 +6563,7 @@ const player={
     else if(this.state==='iai')poseIai(r,Math.min(1,this.t/.85));
     else if(this.state==='kthrust')poseKThrust(r,.28+Math.min(1,this.t/.5)*.72);   // it starts already chambered: the charge held it there
     else if(this.state==='tiger')poseTiger(r,Math.min(1,this.t/.8));
+    else if(this.state==='thor'){const p=Math.min(1,this.t/1.15);poseTigerCharge(r,p<.28?p/.28:p<.62?1:Math.max(0,1-(p-.62)/.38),t);}   // the weapon thrust at the sky, held for the bolt, and brought down
     else if(this.state==='fowl')poseFowl(r,Math.min(1,this.t/1.05),t);
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
@@ -6488,7 +6572,7 @@ const player={
     else if(this.state==='recoil')poseRecoil(r,Math.min(1,this.t/.42));
     else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
       if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
-    else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/(.64*this.swing())));
+    else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/(.5*this.swing())));
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/(.5*this.swing())));
     else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseUppercut(r,Math.min(1,this.t/(.62*this.swing())));}
     else if(this.state==='roll'){
@@ -6619,8 +6703,8 @@ class Enemy{
     this.vx=0;this.vz=0;
     this.rig.root.visible=false;
     AudioSys.bodyfall();
-    scatterBones(this.x,this.z,dx,dz,sp);
-    boneBurst(this.x,.5,this.z,0xb8ad8f,8,1.8); // dust of the blast
+    scatterBones(this.x,this.z,dx,dz,sp,this.red);
+    boneBurst(this.x,.5,this.z,this.red?0xc26a5a:0xb8ad8f,8,1.8); // dust of the blast
     goreDecal(this,this.x,this.z,.4);
   }
   takeHit(dmg,poise,fx,fz,kb,hv){
@@ -7721,7 +7805,7 @@ function bombBurst(x,y,z,dx,dz){
   let t=0;effects.push({update(dt){t+=dt;const p=t/.22;f.material.opacity=1-p;f.scale.setScalar(1.6+p*3.2);
     if(p>=1){scene.remove(f);f.material.dispose();return false;}return true;}});
   sparkBurst(x,y,z,22);boneBurst(x,y,z,0xff7a30,14,3.4);boneBurst(x,y,z,0x3a3430,10,2.6);smokePuff(x,y+.2,z,8);
-  for(let i=0;i<4;i++)groundScar(x+rr3(-.5,.5),z+rr3(-.5,.5),Math.random()*TAU);          // the ground is scorched, not bled on
+  for(let i=0;i<3;i++)paintScar(x+rr3(-.4,.4),z+rr3(-.4,.4),Math.random()*TAU,.5,.8,true);   // the ground is scorched, not bled on
   const R=2.3;
   for(const e of enemies){
     if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter')continue;
@@ -7783,29 +7867,7 @@ function airSlash(x,z,facing,dmg,full){
   }});
 }
 // the oldest scar or slab gives way
-function scarDrop(){const old=scars.shift();scene.remove(old);old.traverse(o=>{if(o.isMesh){(Array.isArray(o.material)?o.material:[o.material]).forEach(mm=>mm.dispose());}});}
-/* a scar in the ground: a dark torn strip left where a shock wave went,
-   fading out after ten seconds; the oldest give way past sixty */
-const SCAR_MAX=60,scars=[];let scarGeo=null;
-function groundScar(x,z,facing,tint){
-  if(!scarGeo)scarGeo=new THREE.PlaneGeometry(.5,1.05);
-  // the dirt under the ground, laid bare: dark earth down the middle, a lighter earth at the lip
-  const m=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:new THREE.Color(0x4a3826).convertSRGBToLinear(),transparent:true,opacity:.92,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
-  const rim=new THREE.Mesh(scarGeo,new THREE.MeshLambertMaterial({color:new THREE.Color(0x6b5238).convertSRGBToLinear(),transparent:true,opacity:.7,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
-  rim.scale.set(1.5,1.15,1);m.add(rim);
-  m.rotation.order='YXZ';m.rotation.set(-Math.PI/2,facing+rr3(-.15,.15),0);
-  m.position.set(x+rr3(-.12,.12),heightAt(x,z)+.02,z+rr3(-.12,.12));scene.add(m);
-  scars.push(m);
-  if(scars.length>SCAR_MAX)scarDrop();
-  let t=0;effects.push({update(dt){t+=dt;
-    if(scars.indexOf(m)<0)return false;
-    if(t>9){const k=Math.max(0,1-(t-9)/2);m.material.opacity=.9*k;rim.material.opacity=.6*k;
-      if(k<=0){scene.remove(m);scars.splice(scars.indexOf(m),1);m.material.dispose();rim.material.dispose();return false;}}
-    return true;}});
-}
-/* the colour of the ground under a point — the flags of the plinth, or the
-   soil — averaged once off its own texture, so anything that pretends to
-   be that ground matches it */
+const scars=[];   // (the old plane scars are gone: marks are painted into the ground now — see paintScar)
 const groundTint={};
 function groundTintAt(x,z){
   const key=(Math.abs(x)<PW&&Math.abs(z)<PL)?'flag':'dirt';
@@ -7816,9 +7878,6 @@ function groundTintAt(x,z){
   }
   return groundTint[key];
 }
-/* a shock wave through the ground: a low crescent of torn earth that races
-   up the line, kicking dust and stone as it goes, and throws whatever it
-   crosses into the air — it dies on a wall, or six metres out */
 /* THE GROUND WAVE (the tiger's charge): a FRONT of earth heaving UP —
    a standing arc of the ground's own colour, dark earth at its foot
    dissolving to dust at its crest, that rises where the blade struck and
@@ -7861,15 +7920,15 @@ function groundWave(x,z,facing,dmg,delay){
     if(!mesh){build();AudioSys.rumble();}
     const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;scarD+=st;clodD+=st;
     const gy=heightAt(px,pz);
-    while(scarD>=.5){scarD-=.5;groundScar(px-fx*scarD,pz-fz*scarD,facing,tint);}   // the ground stays torn where it passed
+    while(scarD>=.28){scarD-=.28;paintScar(px-fx*scarD+rr3(-.1,.1),pz-fz*scarD+rr3(-.1,.1),facing+rr3(-.25,.25),rr3(.55,.9),rr3(.7,1.1),false);}   // the ground stays torn where it passed: PAINTED into it, a rough strip along the line
     while(clodD>=.42){clodD-=.42;                                    // the turf comes apart as the front goes over: clods flung UP and out
       const n=Math.random()<.45?2:1;
       for(let k=0;k<n;k++){const o=rr3(-.55,.55),cx=px-fx*.15+rx*o,cz=pz-fz*.15+rz*o;
         const w=rr3(.14,.34),d=rr3(.14,.3),h=rr3(.06,.12);
         const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),[earthM,earthM,topM,earthM,earthM,earthM]);
         m.position.set(cx,gy+.08,cz);m.rotation.y=facing+rr3(-.3,.3);scene.add(m);
-        const side=Math.sign(o||1)*rr3(.4,2.4),along=rr3(.6,2.2);         // outward from the front's line, a little forward with it
-        loosePiece(m,h/2,fx*along+rx*side,fz*along+rz*side,rr3(3.4,6.8),true);}}   // and mostly UP: a real throw, under gravity
+        const side=Math.sign(o||1)*rr3(.3,1.5),along=rr3(.4,1.4);         // outward from the front's line, a little forward with it
+        loosePiece(m,h/2,fx*along+rx*side,fz*along+rz*side,rr3(2.0,3.8),true);}}   // and up — a toss, not a blast — under gravity
     // the front stands up in the first tenth, runs, and sinks as it spends itself
     const k=Math.max(0,1-life/LIFE),rise=Math.min(1,life/.09);
     mesh.scale.y=.2+.8*rise*(.55+.45*k);mesh.position.set(px,gy-.03+H/2*mesh.scale.y,pz);
@@ -8680,7 +8739,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},worldLights,texCache,wrapA,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},worldLights,texCache,wrapA,GP,paintScar,thorStrike,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

@@ -68,9 +68,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     run's momentum carrying it deep — narrow, but it reaches
   - **hold still, then release** — the **charged attack** chosen on the
     pause screen. With the sword, the **double slash** — two fast
-    cuts, forward and back, and no more; once the second is through,
-    its swiftness leaves the blade as an X of two crossed cut lines that
-    races six metres ahead and cuts whatever it crosses — or the **whirlwind** — the blade held out level while the whole body turns
+    cuts, forward and back, inside two-thirds of a swing's time, and
+    nothing after: the cuts are the whole of it — or the **whirlwind** — the blade held out level while the whole body turns
     twice, four cuts all round, the last of a full charge staggering all
     but the Warden. With the bow, either the **knockback shot** — a heavy
     shaft that throws them back off their feet and staggers all but the
@@ -151,9 +150,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     dissolving to dust at its crest, that rises where the blade struck,
     runs, and sinks as it spends itself, a plume of grit off the top;
     and the ground it goes over comes apart behind it — clods of turf,
-    grass on top and earth beneath, are flung up and outward off the
-    front with real weight, tumble, land, bounce once and lie where they
-    fall; the ground stays scarred brown where they passed,
+    grass on top and earth beneath, tossed up and outward off the front
+    with real weight, tumble, land, bounce once and lie where they fall;
+    and the ground stays torn where the fronts passed — not a thing laid
+    on it but PAINT: the field carries a paint sheet its own shader
+    samples by world position, and each front paints a rough strip of
+    torn earth into it along its line, a dark core under a lighter lip
+    with a jagged edge, following every rise and hollow,
     the dirt showing through (the scars fade in ten seconds). Each throws whatever it crosses into the air for
     24 (30 at a full hold), and more often than not takes a leg out
     from under a small or medium horror. The greatsword can take the
@@ -283,6 +286,15 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Rolling attack** — tap during a roll (or right as it ends) and
   the knight rises out of the tuck with a fast upward cut that flows
   into the normal chain
+- **Thor's lightning** — a charge for ANY weapon (it is in every
+  charge list): the weapon is raised to the sky and the sky answers. A
+  bolt comes down from fourteen metres on the marked horror — or the
+  nearest live one within fourteen, a crow in the air as readily as
+  anything on the ground — with a crack, a flash that lights the whole
+  field, sparks and a scorch painted into the ground. What it hits is
+  held where it stands, stunned (40, 52 at a full hold); a crow is
+  knocked out of the air to the dirt; and the charge leaps to two more
+  within a few strides for half. Made for the birds.
 - **Right thumb, hold & drag** — turn the camera
 - **The eye never closes** — lock-on is automatic and buttonless: the
   closest live horror is always marked (skeletons still clawing out of
@@ -301,7 +313,9 @@ No flask. No stamina. Only nerve.
 ## Marrow
 
 Some of the host burns hotter: **red-boned** hollows, throwers and
-brutes, one in seven or so, with three times the life and worth double.
+brutes, one in seven or so, with three times the life and worth double
+— and a red one blasted apart by a telling blow scatters RED bones on
+the path, and crawls back together out of them.
 
 Everything you fell pays marrow — the toll that opens the cathedral.
 Die and you drop every shard where you fell — your helm lies there on
