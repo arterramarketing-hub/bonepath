@@ -238,7 +238,7 @@
       <div class="sel"><span>hour</span><div class="pick"><div class="arrow fld" data-k="hour" data-d="-1">&lsaquo;</div><b id="selHour">night</b><div class="arrow fld" data-k="hour" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>weather</span><div class="pick"><div class="arrow fld" data-k="weather" data-d="-1">&lsaquo;</div><b id="selWeather">clear</b><div class="arrow fld" data-k="weather" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>effects</span><div class="pick"><div class="arrow fld" data-k="sfx" data-d="1">&lsaquo;</div><b id="selSfx">on</b><div class="arrow fld" data-k="sfx" data-d="1">&rsaquo;</div></div></div>
-      <div class="sel"><span>music</span><div class="pick"><div class="arrow fld" data-k="music" data-d="1">&lsaquo;</div><b id="selMusic">on</b><div class="arrow fld" data-k="music" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>music &amp; ambience</span><div class="pick"><div class="arrow fld" data-k="music" data-d="1">&lsaquo;</div><b id="selMusic">on</b><div class="arrow fld" data-k="music" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>go to seed</span><div class="pick"><input id="seedIn" inputmode="numeric" pattern="[0-9]*" placeholder="number"><div class="btn2 sm" id="btnSeed">Enter</div></div></div>
     </div>
     <div class="col">
@@ -1162,8 +1162,10 @@ function matNS(name,extra){
 const AudioSys=(()=>{
   let ac=null,master=null,noiseBuf=null,started=false;
   let rainG=null,rainLevel=0;
-  // two buses under the master: every effect and the wind on one, every
-  // strand of music on the other — so either can be switched off (testing)
+  // two buses under the master: the EFFECTS on one — every blow, step,
+  // swing and voice — and the BACKGROUND on the other: the music, and all
+  // that is ambient with it (the wind, the drone, the far-off creaks and
+  // crows, the rain, the thunder) — so either can be switched off (testing)
   let sfxBus=null,musicMaster=null,sfxOn=true,musicWanted=true;
   try{sfxOn=localStorage.getItem('bp_sfx')!=='0';musicWanted=localStorage.getItem('bp_music')!=='0';}catch(e){}                                     // the rain bed's gain, and the level asked for before the graph exists
   let verbSend=null,verbWet=null,space=0;
@@ -1221,7 +1223,7 @@ const AudioSys=(()=>{
     const src=ac.createBufferSource();src.buffer=noiseBuf;src.loop=true;
     const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=320;f.Q.value=.8;
     const g=ac.createGain();g.gain.value=.022;                    // faint: a breath at the edge of hearing
-    src.connect(f).connect(g).connect(sfxBus);src.start();
+    src.connect(f).connect(g).connect(musicMaster);src.start();
     const lfo=ac.createOscillator();lfo.frequency.value=.07;
     const lg=ac.createGain();lg.gain.value=190;
     lfo.connect(lg).connect(f.frequency);lfo.start();
@@ -1232,7 +1234,7 @@ const AudioSys=(()=>{
     const src2=ac.createBufferSource();src2.buffer=noiseBuf;src2.loop=true;src2.playbackRate.value=1.9;
     const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1400;f2.Q.value=.7;
     const g2=ac.createGain();g2.gain.value=.006;
-    src2.connect(f2).connect(g2).connect(sfxBus);src2.start();
+    src2.connect(f2).connect(g2).connect(musicMaster);src2.start();
     const lfo3=ac.createOscillator();lfo3.frequency.value=.11;
     const lg3=ac.createGain();lg3.gain.value=.004;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
     // the rain, when the run has it: a hiss of noise through a bandpass, and a
@@ -1242,14 +1244,15 @@ const AudioSys=(()=>{
       const rs2=ac.createBufferSource();rs2.buffer=noiseBuf;rs2.loop=true;rs2.playbackRate.value=.6;
       const rf2=ac.createBiquadFilter();rf2.type='lowpass';rf2.frequency.value=700;
       rainG=ac.createGain();rainG.gain.value=rainLevel*.085;
-      rs.connect(rf).connect(rainG);rs2.connect(rf2).connect(rainG);rainG.connect(sfxBus);rs.start();rs2.start();
+      rs.connect(rf).connect(rainG);rs2.connect(rf2).connect(rainG);rainG.connect(musicMaster);rs.start();rs2.start();
       const rl=ac.createOscillator();rl.frequency.value=.13;const rlg=ac.createGain();rlg.gain.value=.012;rl.connect(rlg).connect(rainG.gain);rl.start();}
     // the field is never silent: far-off creaks, a crow, a chain — sparse and random
     const farOff=()=>{
       if(!ac)return;const t=now(),r=Math.random();
-      if(r<.4)tone(t,{f:rr2(70,110),f2:rr2(40,60),type:'sawtooth',peak:.03,att:.5,dec:1.6}); // timber creak
-      else if(r<.7){for(let i=0;i<3;i++)noise(t+i*.13,{peak:.03,att:.01,dec:.09,f0:rr2(1100,1600),f1:600,type:'bandpass',Q:5});} // a crow, far
-      else{for(let i=0;i<4;i++)tone(t+i*.06+Math.random()*.03,{f:rr2(2400,3600),f2:2000,type:'triangle',peak:.012,dec:.08});} // chain
+      const bg=musicMaster;
+      if(r<.4)tone(t,{f:rr2(70,110),f2:rr2(40,60),type:'sawtooth',peak:.03,att:.5,dec:1.6,bus:bg}); // timber creak
+      else if(r<.7){for(let i=0;i<3;i++)noise(t+i*.13,{peak:.03,att:.01,dec:.09,f0:rr2(1100,1600),f1:600,type:'bandpass',Q:5,bus:bg});} // a crow, far
+      else{for(let i=0;i<4;i++)tone(t+i*.06+Math.random()*.03,{f:rr2(2400,3600),f2:2000,type:'triangle',peak:.012,dec:.08,bus:bg});} // chain
       setTimeout(farOff,6000+Math.random()*10000);
     };
     setTimeout(farOff,4000);
@@ -1257,7 +1260,7 @@ const AudioSys=(()=>{
     [[55,.03],[55.7,.027],[110,.012]].forEach(([hz,v])=>{
       const o=ac.createOscillator();o.frequency.value=hz;
       const og=ac.createGain();og.gain.value=v;
-      o.connect(og).connect(sfxBus);o.start();
+      o.connect(og).connect(musicMaster);o.start();
     });
   }
   function env(g,t0,a,peak,dec){
@@ -1265,7 +1268,7 @@ const AudioSys=(()=>{
     g.gain.linearRampToValueAtTime(peak,t0+a);
     g.gain.exponentialRampToValueAtTime(.0001,t0+a+dec);
   }
-  function noise(t0,{peak=.3,att=.005,dec=.15,f0=1200,f1=300,type='lowpass',Q=1}={}){
+  function noise(t0,{peak=.3,att=.005,dec=.15,f0=1200,f1=300,type='lowpass',Q=1,bus=null}={}){
     if(!ac)return;
     const s=ac.createBufferSource();s.buffer=noiseBuf;
     s.playbackRate.value=rr2(.9,1.1);
@@ -1273,16 +1276,16 @@ const AudioSys=(()=>{
     fl.frequency.setValueAtTime(f0,t0);
     fl.frequency.exponentialRampToValueAtTime(Math.max(40,f1),t0+att+dec);
     const g=ac.createGain();env(g,t0,att,peak,dec);
-    s.connect(fl).connect(g).connect(sfxBus);
+    s.connect(fl).connect(g).connect(bus||sfxBus);
     s.start(t0);s.stop(t0+att+dec+.05);
   }
-  function tone(t0,{f=220,f2=null,type='sine',peak=.2,att=.005,dec=.2}={}){
+  function tone(t0,{f=220,f2=null,type='sine',peak=.2,att=.005,dec=.2,bus=null}={}){
     if(!ac)return;
     const o=ac.createOscillator();o.type=type;
     o.frequency.setValueAtTime(f,t0);
     if(f2)o.frequency.exponentialRampToValueAtTime(Math.max(20,f2),t0+att+dec);
     const g=ac.createGain();env(g,t0,att,peak,dec);
-    o.connect(g).connect(sfxBus);
+    o.connect(g).connect(bus||sfxBus);
     o.start(t0);o.stop(t0+att+dec+.05);
   }
   const rr2=(a,b)=>a+Math.random()*(b-a);
@@ -1536,10 +1539,10 @@ const AudioSys=(()=>{
     // the rain's level: 0, a light rain, or a storm
     setRain(level){rainLevel=level;if(rainG&&ac)rainG.gain.setTargetAtTime(level*.085,ac.currentTime,2);},
     // thunder: a near bolt cracks first and rolls hard; a far one only rolls, long and low
-    thunder(near){if(!ac)return;const t=now();
-      if(near){noise(t,{peak:.55,att:.003,dec:.3,f0:2400,f1:160});tone(t,{f:90,f2:40,type:'sawtooth',peak:.22,att:.005,dec:.4});}
-      noise(t+(near?.06:0),{peak:near?.5:.3,att:near?.08:.5,dec:near?2.4:3.4,f0:170,f1:45});
-      noise(t+.5,{peak:near?.28:.2,att:.3,dec:2.6,f0:120,f1:40});
+    thunder(near){if(!ac)return;const t=now(),bus=musicMaster;   // (weather: background)
+      if(near){noise(t,{peak:.55,att:.003,dec:.3,f0:2400,f1:160,bus});tone(t,{f:90,f2:40,type:'sawtooth',peak:.22,att:.005,dec:.4,bus});}
+      noise(t+(near?.06:0),{peak:near?.5:.3,att:near?.08:.5,dec:near?2.4:3.4,f0:170,f1:45,bus});
+      noise(t+.5,{peak:near?.28:.2,att:.3,dec:2.6,f0:120,f1:40,bus});
       tone(t,{f:44,f2:26,type:'sine',peak:near?.4:.25,att:.12,dec:2.6});},
     start,setSpace,
     // a colossal blade tearing the air: deep displaced-air layers under
@@ -2268,7 +2271,7 @@ function planetPiece(geo,m,x,y,z,rest,speed){
 function loosePiece(piece,rest,vx,vz,vy,fade){
   let life=0;
   let rx=(Math.random()-.5)*14,rz=(Math.random()-.5)*14,landed=0;
-  const mats=[];piece.traverse(o=>{if(o.isMesh){o.material.transparent=true;mats.push(o.material);}});
+  const mats=[];piece.traverse(o=>{if(o.isMesh)for(const m of(Array.isArray(o.material)?o.material:[o.material])){m.transparent=true;if(!mats.includes(m))mats.push(m);}});
   const snap=q=>Math.round(q/(Math.PI/2))*(Math.PI/2);
   effects.push({update(dt){
     life+=dt;
@@ -4897,15 +4900,18 @@ function shockRing(x,z,color,maxR,dur){
    is drawn from the oldest sample up to a LIVE head at the blade itself —
    so the widest, brightest part of the trail is always at the sword, even
    as it slows, and the ribbon tapers to NOTHING at the oldest point of the
-   swing. Its brightness is a coverage ramp, four fifths at the blade to
-   nothing at the tail, by place along the ribbon and by age, and is cut
-   as a 4x4 ordered screen-door dither in the ribbon's own fragment shader
-   (the PS1 blended additively but had no per-pixel alpha) over the
-   additive blend — so the tail thins out to scattered dots, not a dimmer
-   sheet. Its vertices go through the same snap as the world; its colour is
-   the blade's own, the tip edge pushed toward white as the hot core; a
-   hit warms it gold. Samples are only kept while the tip is whipping
-   fast relative to the knight, and only in a swinging state. */
+   swing. Its brightness is a ramp, four fifths at the blade to nothing
+   at the tail, by place along the ribbon and by age — and it is applied
+   the way the PS1 did a fade: not as alpha, and not as a screen-door of
+   dots (which reads as a halftone, a comic's tone), but as the COLOUR
+   ITSELF dimmed under an additive blend, the colour held to the console's
+   five bits a channel with its own faint ordered dither on the
+   quantisation — so the ribbon fades as a solid band into stepped,
+   slightly grainy shades, the way a PS1 sword-glow did. Its vertices go
+   through the same snap as the world; its colour is the blade's own, the
+   tip edge pushed toward white as the hot core; a hit warms it gold.
+   Samples are only kept while the tip is whipping fast relative to the
+   knight, and only in a swinging state. */
 const TRAIL_N=12,TRAIL_LIFE=.1,TRAIL_SPEED=15,TRAIL_SUB=4;
 const EYE_CUE=.25;      // how long before the blow the eyes flare: a roll (untouchable from .03 to .38 s in) begun on the flare, even a beat late, carries through it
 const SWING_STATES=new Set(['attack','dslash','spin','rollatk','sprintatk','execute','backstab','iai','kthrust','tiger','fowl','quake']);
@@ -4922,9 +4928,10 @@ const bladeTrail=(()=>{
         p.xy=floor(p.xy/p.w*uSnap+0.5)/uSnap*p.w;gl_Position=p;}`,                       // the world's vertex snap
     fragmentShader:`varying vec3 vCol;varying float vA;
       float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}
-      void main(){vec2 px=floor(gl_FragCoord.xy);float th=bayer2(px*.5)*.25+bayer2(px);   // the 4x4 ordered pattern, 16 levels
-        if(vA<=th)discard;                                                                  // coverage, not alpha: the dots thin out
-        gl_FragColor=vec4(vCol,1.);
+      void main(){vec2 px=floor(gl_FragCoord.xy);float b=bayer2(px*.5)*.25+bayer2(px);   // the 4x4 ordered pattern, 16 levels
+        vec3 c=vCol*vA;                                                                  // the fade is in the colour: additive, dimmer is fainter
+        c=floor(c*31.+(b-.5)*.9)/31.;                                                    // five bits a channel, the console's own faint dither on the step
+        gl_FragColor=vec4(max(c,0.),1.);
         #include <encodings_fragment>
       }`});
   const mesh=new THREE.Mesh(geo,mat);mesh.frustumCulled=false;mesh.visible=false;scene.add(mesh);
@@ -4950,6 +4957,7 @@ const bladeTrail=(()=>{
   }
   return {
     hit(){flash=1;},
+    get mesh(){return mesh;},
     update(dt){
       const r=player.rig;
       if(dt<=0)return;
@@ -7776,24 +7784,6 @@ function airSlash(x,z,facing,dmg,full){
 }
 // the oldest scar or slab gives way
 function scarDrop(){const old=scars.shift();scene.remove(old);old.traverse(o=>{if(o.isMesh){(Array.isArray(o.material)?o.material:[o.material]).forEach(mm=>mm.dispose());}});}
-/* a slab of the ground torn up as a shock wave passes: hinged at its leading
-   edge, it rips up to sixty-odd degrees in a fifth of a second showing the
-   earth under it, hangs, then settles back cracked and stays a while */
-function tearSlab(x,z,facing,tint){
-  const w=rr3(.35,.55),d=rr3(.4,.6),h=.08;
-  const top=new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(1.05)}),earth=new THREE.MeshLambertMaterial({color:new THREE.Color(0x5a4632).convertSRGBToLinear()});
-  const g=new THREE.Group();g.rotation.order='YXZ';g.rotation.y=facing;
-  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),[earth,earth,top,earth,earth,earth]);
-  m.position.set(0,h/2,-d/2);g.add(m);                                   // the slab lies behind the hinge
-  g.position.set(x,heightAt(x,z)+.01,z);scene.add(g);
-  scars.push(g);if(scars.length>SCAR_MAX)scarDrop();
-  let t=0;effects.push({update(dt){t+=dt;
-    if(scars.indexOf(g)<0)return false;
-    g.rotation.x=t<.18?1.15*easeOut(t/.18):t<.45?1.15:t<.95?1.15-(1.15-.22)*easeInOut((t-.45)/.5):.22;
-    if(t>8){const k=Math.max(0,1-(t-8)/2);top.transparent=earth.transparent=true;top.opacity=earth.opacity=k;
-      if(k<=0){scene.remove(g);scars.splice(scars.indexOf(g),1);top.dispose();earth.dispose();return false;}}
-    return true;}});
-}
 /* a scar in the ground: a dark torn strip left where a shock wave went,
    fading out after ten seconds; the oldest give way past sixty */
 const SCAR_MAX=60,scars=[];let scarGeo=null;
@@ -7829,31 +7819,63 @@ function groundTintAt(x,z){
 /* a shock wave through the ground: a low crescent of torn earth that races
    up the line, kicking dust and stone as it goes, and throws whatever it
    crosses into the air — it dies on a wall, or six metres out */
+/* THE GROUND WAVE (the tiger's charge): a FRONT of earth heaving UP —
+   a standing arc of the ground's own colour, dark earth at its foot
+   dissolving to dust at its crest, that rises where the blade struck and
+   runs five metres at fourteen a second before it's spent — and behind
+   it the ground it went over comes apart: clods of turf are flung up and
+   outward off the front with real weight, tumble, land, bounce once and
+   lie where they fall; the torn strip stays. It hits what it runs over. */
+let waveMat=null;
 function groundWave(x,z,facing,dmg,delay){
   const fx=Math.sin(facing),fz=Math.cos(facing),LIFE=.38;              // five metres, then it's spent
-  let px=x,pz=z,life=-delay,dustT=0,scarD=0,slabD=0,mesh=null,mat=null,tint=null;const hitSet=new Set();
+  const rx=Math.cos(facing),rz=-Math.sin(facing);                       // the front's right-hand
+  let px=x,pz=z,life=-delay,dustT=0,scarD=0,clodD=0,mesh=null,mat=null,tint=null,topM=null,earthM=null;const hitSet=new Set();
+  const H=1.0,R=1.05;
   const build=()=>{
     tint=groundTintAt(px,pz);
-    const g=new THREE.RingGeometry(.55,1.15,14,1,-Math.PI*.36,Math.PI*.72);   // a flat crescent, open forward
-    const pos=g.attributes.position,col=[];
-    for(let i=0;i<pos.count;i++){const r=Math.hypot(pos.getX(i),pos.getY(i));const k=.35+.65*(1-(r-.55)/.6);col.push(k,k,k);}
-    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-    mat=new THREE.MeshBasicMaterial({color:0xd8c8a8,vertexColors:true,transparent:true,opacity:.25,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
-    mesh=new THREE.Mesh(g,mat);mesh.rotation.set(-Math.PI/2,0,-facing+Math.PI/2);scene.add(mesh);   // (only a faint mark of the front now)
+    // the standing front: an open arc, seventy degrees wide, leaning in at the crest
+    const g=new THREE.CylinderGeometry(R*.82,R,H,10,3,true,-.62,1.24);
+    const pos=g.attributes.position,col=[],alp=[];
+    // earth at the foot, the turf's own colour up the face, a browner dust at
+    // the crest — all held down to the hour's light, since the front is unlit
+    const lit=.35+.65*Math.min(1,(worldLights.hemiBase||.5)/.9);
+    const earth=new THREE.Color(0x4e3a2a).convertSRGBToLinear().multiplyScalar(lit),turf=tint.clone().multiplyScalar(lit),dust=tint.clone().lerp(new THREE.Color(0x8a7458).convertSRGBToLinear(),.4).multiplyScalar(lit);
+    for(let i=0;i<pos.count;i++){const y=(pos.getY(i)+H/2)/H;
+      const c=earth.clone().lerp(turf,Math.min(1,y*1.7)).lerp(dust,Math.max(0,(y-.45)*1.8));col.push(c.r,c.g,c.b);
+      alp.push(y<.35?.92:.92*(1-(y-.35)/.65));}                                 // solid at the foot, gone at the crest
+    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setAttribute('alpha',new THREE.Float32BufferAttribute(alp,1));
+    if(!waveMat)waveMat=new THREE.ShaderMaterial({uniforms:{uSnap:snapUniform,uFade:{value:1}},vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,
+      vertexShader:`uniform vec2 uSnap;attribute float alpha;varying vec3 vCol;varying float vA;
+        void main(){vCol=color;vA=alpha;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);p.xy=floor(p.xy/p.w*uSnap+0.5)/uSnap*p.w;gl_Position=p;}`,
+      fragmentShader:`uniform float uFade;varying vec3 vCol;varying float vA;void main(){gl_FragColor=vec4(vCol,vA*uFade);
+        #include <encodings_fragment>
+      }`});
+    mat=waveMat.clone();mat.uniforms.uSnap=snapUniform;
+    mesh=new THREE.Mesh(g,mat);mesh.rotation.y=facing;mesh.scale.y=.2;scene.add(mesh);
+    // the clods' faces: turf on top, earth beneath (shared by every clod of this wave)
+    topM=new THREE.MeshLambertMaterial({color:tint.clone().multiplyScalar(1.05)});earthM=new THREE.MeshLambertMaterial({color:new THREE.Color(0x5a4632).convertSRGBToLinear()});
   };
   effects.push({update(dt){
     life+=dt;if(life<0)return true;
     if(!mesh){build();AudioSys.rumble();}
-    const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;scarD+=st;slabD+=st;
+    const st=dt*14;px+=fx*st;pz+=fz*st;dustT+=dt;scarD+=st;clodD+=st;
     const gy=heightAt(px,pz);
     while(scarD>=.5){scarD-=.5;groundScar(px-fx*scarD,pz-fz*scarD,facing,tint);}   // the ground stays torn where it passed
-    while(slabD>=.3){slabD-=.3;                                      // and it TEARS UP as the front goes over: slabs rip up behind it
-      const rx=Math.cos(facing),rz=-Math.sin(facing);
-      for(const sd of[1,-1]){const o=sd*rr3(.12,.42);tearSlab(px-fx*slabD+rx*o,pz-fz*slabD+rz*o,facing,tint);}}
-    mesh.position.set(px,gy+.06,pz);
-    const k=Math.max(0,1-life/LIFE);mat.opacity=.25*k;
-    while(dustT>0){dustT-=.04;                                       // clods of earth thrown up and out as it goes
-      boneBurst(px+(Math.random()-.5)*1.3,gy+.15,pz+(Math.random()-.5)*.4,0x5a4632,3,2.6);}
+    while(clodD>=.42){clodD-=.42;                                    // the turf comes apart as the front goes over: clods flung UP and out
+      const n=Math.random()<.45?2:1;
+      for(let k=0;k<n;k++){const o=rr3(-.55,.55),cx=px-fx*.15+rx*o,cz=pz-fz*.15+rz*o;
+        const w=rr3(.14,.34),d=rr3(.14,.3),h=rr3(.06,.12);
+        const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),[earthM,earthM,topM,earthM,earthM,earthM]);
+        m.position.set(cx,gy+.08,cz);m.rotation.y=facing+rr3(-.3,.3);scene.add(m);
+        const side=Math.sign(o||1)*rr3(.4,2.4),along=rr3(.6,2.2);         // outward from the front's line, a little forward with it
+        loosePiece(m,h/2,fx*along+rx*side,fz*along+rz*side,rr3(3.4,6.8),true);}}   // and mostly UP: a real throw, under gravity
+    // the front stands up in the first tenth, runs, and sinks as it spends itself
+    const k=Math.max(0,1-life/LIFE),rise=Math.min(1,life/.09);
+    mesh.scale.y=.2+.8*rise*(.55+.45*k);mesh.position.set(px,gy-.03+H/2*mesh.scale.y,pz);
+    mat.uniforms.uFade.value=Math.min(1,k*1.6);
+    while(dustT>0){dustT-=.05;                                       // a plume of dust and grit thrown up off the crest
+      boneBurst(px+rx*(Math.random()-.5)*1.4,gy+.4+Math.random()*.5,pz+rz*(Math.random()-.5)*1.4,0x6b5640,3,1.4);}
     G.camShake=Math.max(G.camShake,.08);
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||e.crow||hitSet.has(e))continue;

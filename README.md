@@ -146,10 +146,14 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     blade high over the head in jodan, and the release drives it into
     the ground a stride ahead — three shock waves heave out of it in a
     fan, one straight and one to either side, five metres or to the
-    first wall: as each front passes, slabs of the ground tear up
-    behind it — flipped on their leading edge, the turf on top, brown
-    earth underneath — stand a moment, then settle back cracked, and
-    the clods fly; the ground stays scarred brown where they passed,
+    first wall. Each front is the ground HEAVING UP: a standing arc of
+    the turf's own colour a metre tall, dark earth at its foot
+    dissolving to dust at its crest, that rises where the blade struck,
+    runs, and sinks as it spends itself, a plume of grit off the top;
+    and the ground it goes over comes apart behind it — clods of turf,
+    grass on top and earth beneath, are flung up and outward off the
+    front with real weight, tumble, land, bounce once and lie where they
+    fall; the ground stays scarred brown where they passed,
     the dirt showing through (the scars fade in ten seconds). Each throws whatever it crosses into the air for
     24 (30 at a full hold), and more often than not takes a leg out
     from under a small or medium horror. The greatsword can take the
@@ -177,11 +181,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     drawn from the oldest sample up to a live head at the blade itself,
     so the widest, brightest part is always at the sword, even as it
     slows, and the ribbon narrows to nothing at the oldest point of the
-    swing. Its fade is a coverage ramp, four fifths at the blade to
-    nothing at the tail, by place and by age, cut as a 4x4 ordered
-    screen-door dither in its own shader over the additive blend (the
-    PS1 blended, but had no per-pixel alpha) — so the tail thins out to
-    scattered dots rather than dimming; its vertices take the world's
+    swing. Its fade is a ramp, four fifths at the blade to nothing at
+    the tail, by place and by age — applied the way the PS1 faded a
+    glow: not as alpha and not as a screen-door of dots (that reads as a
+    halftone, a comic's tone), but as the colour itself dimmed under the
+    additive blend, held to the console's five bits a channel with its
+    own faint ordered dither on the steps — so the ribbon fades as a
+    solid band into stepped, slightly grainy shades; its vertices take the world's
     snap so it wobbles like the sword; its colour is the blade's own,
     the tip edge pushed toward white as a hot core, warmed gold by a hit.
     It only appears while the tip is whipping fast relative to the
@@ -374,8 +380,11 @@ them the seed decides:
   screen: the **hour** and the **weather** can be stepped through live
   (the sky's lights, the dome, the sun or moon, the fog, the exposure,
   the dust, the lanterns and the rain — with its hiss and the storm's
-  bolts — all re-set under the running game), **effects** and **music**
-  each have a switch (remembered between loads), and the seed row
+  bolts — all re-set under the running game), **effects** and **music
+  & ambience** each have a switch (remembered between loads) — the
+  first is every blow, step, swing and voice; the second is the whole
+  background: the theme, the wind, the drone, the far-off creaks and
+  crows, the rain and the thunder — and the seed row
   above. `?time=noon&wx=storm` on the address does the same from the
   start, the rest of the field still the seed's.
 - **the lanterns** — always at the ring's four junctions and the head
