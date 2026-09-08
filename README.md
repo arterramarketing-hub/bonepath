@@ -174,16 +174,30 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   - **the blade's trail** — every swing leaves a ribbon along the path
     the blade REALLY took, done the PSX way: each frame the hilt and the
     tip are sampled off the posed rig and a TAPERED spline ribbon is
-    drawn through the last tenth of a second of them — blade-wide at the
-    sword, a sliver at the tail. Its fade is a coverage ramp, four fifths
-    at the blade to nothing at the tail, cut as a 4x4 ordered screen-door
-    dither in its own shader over the additive blend (the PS1 blended,
-    but had no per-pixel alpha); its vertices take the world's snap so it
-    wobbles like the sword; its colour is the blade's own, the tip edge
-    pushed toward white as a hot core, warmed gold by a hit. It only
-    appears while the tip is whipping fast relative to the knight, so
-    wind-ups, walking and sprinting leave nothing; a thrust adds a streak
-    along the point's line.
+    drawn from the oldest sample up to a live head at the blade itself,
+    so the widest, brightest part is always at the sword, even as it
+    slows, and the ribbon narrows to nothing at the oldest point of the
+    swing. Its fade is a coverage ramp, four fifths at the blade to
+    nothing at the tail, by place and by age, cut as a 4x4 ordered
+    screen-door dither in its own shader over the additive blend (the
+    PS1 blended, but had no per-pixel alpha) — so the tail thins out to
+    scattered dots rather than dimming; its vertices take the world's
+    snap so it wobbles like the sword; its colour is the blade's own,
+    the tip edge pushed toward white as a hot core, warmed gold by a hit.
+    It only appears while the tip is whipping fast relative to the
+    knight, past the wind-up, so walking and sprinting leave nothing; a
+    thrust adds a streak along the point's line.
+  - **the blow lands** — a connecting hit is sold four ways at once: a
+    hard warm flash at the point of contact with a wider bloom a beat
+    behind it and a spray of sparks; the frame holds for a tenth of a
+    second (longer for a heavy blow or a telling one); the camera jolts;
+    and the horror FLINCHES the way the blow sent it — trunk and head
+    thrown back off a thrust, sideways off a sweep, hardest at the
+    instant and easing off over a quarter second. Each kind of horror
+    has its own smack: dry bone and clatter for the small skeletons, a
+    deeper crunch for the big, a wet thud for the Unburied, a knock of
+    stone with a ringing chip for the Warden, a snap of feathers for a
+    crow, a crack with a chime under it for the Fallen One.
   - **steel on steel** — catch a horror's weapon as it swings (late in
     its wind-up, or mid-strike) and the blades **clash**: a burst of
     white sparks, a clang, and its attack is broken — it reels, open to

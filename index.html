@@ -1517,7 +1517,39 @@ const AudioSys=(()=>{
       noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});},
     // steel into old bone: low body, mid crunch, dry crack
+    // the sound of a blow landing on THIS horror: dry bone for the small
+    // skeletons, a deeper crunch for the big, a wet thud for the Unburied,
+    // a knock of stone for the Warden, a snap of feathers for a crow, a
+    // crack with a chime under it for the Fallen One
+    smack(e){const t=now();this._smackAt=t;
+      const kind=!e?'bone':e.crow?'crow':e.kind==='ghoul'?'flesh':e.kind==='angel'?'angel':e.boss?'stone':e.big?'bigbone':'bone';
+      if(kind==='bone'){
+        noise(t,{peak:.38,att:.001,dec:.06,f0:4200,f1:900});
+        tone(t,{f:rr2(900,1200),f2:300,type:'square',peak:.09,dec:.05});
+        for(let i=0;i<4;i++)noise(t+.02+i*.022,{peak:.07,att:.001,dec:.025,f0:rr2(1600,3200),f1:800,type:'bandpass',Q:5});   // the clatter
+      }else if(kind==='bigbone'){
+        tone(t,{f:rr2(105,125),f2:38,type:'sine',peak:.42,dec:.22});
+        noise(t,{peak:.36,att:.001,dec:.12,f0:2600,f1:400});
+        for(let i=0;i<3;i++)noise(t+.03+i*.035,{peak:.09,att:.001,dec:.04,f0:rr2(900,1800),f1:500,type:'bandpass',Q:4});
+      }else if(kind==='flesh'){
+        tone(t,{f:rr2(85,100),f2:42,type:'sine',peak:.42,dec:.2});
+        noise(t,{peak:.3,att:.002,dec:.12,f0:900,f1:180});
+        noise(t+.01,{peak:.16,att:.002,dec:.09,f0:520,f1:260,type:'bandpass',Q:2});                     // the squelch
+      }else if(kind==='stone'){
+        tone(t,{f:rr2(65,78),f2:28,type:'triangle',peak:.46,dec:.3});
+        noise(t,{peak:.3,att:.001,dec:.09,f0:1500,f1:300});
+        tone(t+.005,{f:rr2(400,460),f2:380,type:'triangle',peak:.08,dec:.35});                            // a chip of stone rings
+      }else if(kind==='crow'){
+        noise(t,{peak:.26,att:.001,dec:.045,f0:5000,f1:1500});
+        tone(t,{f:rr2(1300,1500),f2:600,type:'square',peak:.06,dec:.045});
+        noise(t+.015,{peak:.12,att:.004,dec:.12,f0:800,f1:500,type:'bandpass',Q:1.5});                    // feathers
+      }else{                                                                                                // angel
+        noise(t,{peak:.3,att:.001,dec:.08,f0:3500,f1:800});
+        [660,990].forEach((f,i)=>tone(t+.005,{f:f*rr2(.99,1.01),f2:f*.97,type:'triangle',peak:.08/(i+1),dec:.42}));
+      }
+    },
     hit(){const t=now();
+      if(this._smackAt!==undefined&&t-this._smackAt<.05)return;                                        // (a smack already said it)
       tone(t,{f:rr2(130,160),f2:42,type:'sine',peak:.36,dec:.18});
       noise(t,{peak:.34,att:.001,dec:.1,f0:3000,f1:600});
       noise(t+.015,{peak:.2,att:.002,dec:.16,f0:800,f1:200});
@@ -4617,21 +4649,23 @@ function shockRing(x,z,color,maxR,dur){
    blending is the same as fading — and is gone in a tenth of a second */
 /* the blade's OWN trail, the PSX way: every frame of a swing the hilt and
    the tip are sampled where the rig really put them, and a TAPERED ribbon
-   is drawn through the last tenth of a second of them — blade-wide at the
-   sword, a sliver at the tail, its inner edge drawn in toward the tip's
-   path as the samples age. The fade is a coverage ramp, four fifths at
-   the blade to nothing at the tail, realised as an ordered 4x4 screen-door
-   dither in the ribbon's own fragment shader (the PS1 blended additively
-   but had no per-pixel alpha), over the additive blend. Its vertices go
-   through the same snap as the world, so it wobbles like the sword does.
-   Its colour is the blade's own, the tip edge pushed toward white as the
-   hot core; a hit warms it gold. It only draws while the tip is whipping
+   is drawn from the oldest sample up to a LIVE head at the blade itself —
+   so the widest, brightest part of the trail is always at the sword, even
+   as it slows, and the ribbon tapers to NOTHING at the oldest point of the
+   swing. Its brightness is a coverage ramp, four fifths at the blade to
+   nothing at the tail, by place along the ribbon and by age, and is cut
+   as a 4x4 ordered screen-door dither in the ribbon's own fragment shader
+   (the PS1 blended additively but had no per-pixel alpha) over the
+   additive blend — so the tail thins out to scattered dots, not a dimmer
+   sheet. Its vertices go through the same snap as the world; its colour is
+   the blade's own, the tip edge pushed toward white as the hot core; a
+   hit warms it gold. Samples are only kept while the tip is whipping
    fast relative to the knight, and only in a swinging state. */
-const TRAIL_N=12,TRAIL_LIFE=.1,TRAIL_SPEED=12,TRAIL_SUB=4,TRAIL_MINW=.15;
+const TRAIL_N=12,TRAIL_LIFE=.1,TRAIL_SPEED=15,TRAIL_SUB=4;
 const SWING_STATES=new Set(['attack','dslash','spin','rollatk','sprintatk','execute','backstab','iai','kthrust','tiger','fowl','quake']);
 const bladeTrail=(()=>{
   const geo=new THREE.BufferGeometry();
-  const NV=TRAIL_N*TRAIL_SUB+1,pos=new Float32Array(NV*2*3),col=new Float32Array(NV*2*3),alp=new Float32Array(NV*2);
+  const NV=(TRAIL_N+1)*TRAIL_SUB+1,pos=new Float32Array(NV*2*3),col=new Float32Array(NV*2*3),alp=new Float32Array(NV*2);
   geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.setAttribute('alpha',new THREE.BufferAttribute(alp,1));
   const idx=[];for(let i=0;i<NV-1;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}
   geo.setIndex(idx);
@@ -4643,7 +4677,7 @@ const bladeTrail=(()=>{
     fragmentShader:`varying vec3 vCol;varying float vA;
       float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}
       void main(){vec2 px=floor(gl_FragCoord.xy);float th=bayer2(px*.5)*.25+bayer2(px);   // the 4x4 ordered pattern, 16 levels
-        if(vA<=th)discard;                                                                  // coverage, not alpha
+        if(vA<=th)discard;                                                                  // coverage, not alpha: the dots thin out
         gl_FragColor=vec4(vCol,1.);
         #include <encodings_fragment>
       }`});
@@ -4682,27 +4716,29 @@ const bladeTrail=(()=>{
       prevT.copy(T);prevPX=player.x;prevPZ=player.z;havePrev=true;
       for(const s of samples)s.age+=dt;
       while(samples.length&&samples[0].age>TRAIL_LIFE)samples.shift();
-      const swinging=SWING_STATES.has(player.state);
+      const swinging=SWING_STATES.has(player.state)&&!(player.state==='attack'&&player.t/(player.atkDur||.68)<.36);   // (a light attack's wind-up hauls the blade fast too: no ribbon until the whip)
       if(swinging&&fast){samples.push({b:B.clone(),t:T.clone(),age:0});if(samples.length>TRAIL_N)samples.shift();}
       else if(!swinging)samples.length=0;
       flash=Math.max(0,flash-dt*7);
-      const n=samples.length;
-      if(n<2){mesh.visible=false;return;}
+      if(samples.length<2){mesh.visible=false;return;}                   // (one fast frame is a twitch, not a swing)
+      // the ribbon's points: the kept samples, then the LIVE head at the blade
+      const pts=samples.map(s=>({b:s.b,t:s.t,age:s.age}));pts.push({b:B.clone(),t:T.clone(),age:samples[samples.length-1].age});
+      const n=pts.length;
       const tint=r._trailTint;
       cTip.copy(tint).lerp(white,.55).lerp(gold,flash*.7);              // the hot core along the edge
       cIn.copy(tint).multiplyScalar(.9).lerp(gold,flash*.7);
-      // the taper: each sample's inner point drawn in toward its tip with age
-      const inner=samples.map(s=>{const k=s.age/TRAIL_LIFE,w=1-(1-TRAIL_MINW)*k;return s.t.clone().lerp(s.b,w);});
+      // the taper: by place along the ribbon — full blade at the head, nothing at the oldest point
+      const inner=pts.map((s,i)=>{const w=n>1?i/(n-1):1;return s.t.clone().lerp(s.b,w);});
       const m=(n-1)*TRAIL_SUB+1;
-      const tc=new THREE.CatmullRomCurve3(samples.map(s=>s.t)),bc=new THREE.CatmullRomCurve3(inner);
-      const tp=tc.getPoints(m-1),bp=bc.getPoints(m-1);
-      for(let i=0;i<m;i++){const u=i/(m-1)*(n-1),j=Math.min(n-2,Math.floor(u)),f=u-j;
-        const age=samples[j].age+(samples[j+1].age-samples[j].age)*f,a=.8*Math.max(0,1-age/TRAIL_LIFE),o=i*6,b=bp[i],t=tp[i];
+      const tp=n>1?new THREE.CatmullRomCurve3(pts.map(s=>s.t)).getPoints(m-1):[pts[0].t],bp=n>1?new THREE.CatmullRomCurve3(inner).getPoints(m-1):[inner[0]];
+      for(let i=0;i<m;i++){const u=m>1?i/(m-1):1,j=Math.min(n-2,Math.floor(u*(n-1))),f=u*(n-1)-j;
+        const age=n>1?pts[j].age+(pts[j+1].age-pts[j].age)*f:pts[0].age;
+        const a=.8*Math.pow(u,1.3)*Math.max(0,1-age/TRAIL_LIFE),o=i*6,b=bp[i],t=tp[i];   // by place AND by age
         pos[o]=b.x;pos[o+1]=b.y;pos[o+2]=b.z;pos[o+3]=t.x;pos[o+4]=t.y;pos[o+5]=t.z;
         col[o]=cIn.r;col[o+1]=cIn.g;col[o+2]=cIn.b;col[o+3]=cTip.r;col[o+4]=cTip.g;col[o+5]=cTip.b;
-        alp[i*2]=a*.85;alp[i*2+1]=a;}                                      // (the inner edge a shade thinner than the core)
+        alp[i*2]=a*.8;alp[i*2+1]=a;}                                       // (the inner edge a shade thinner than the core)
       geo.attributes.position.needsUpdate=true;geo.attributes.color.needsUpdate=true;geo.attributes.alpha.needsUpdate=true;
-      geo.setDrawRange(0,(m-1)*6);mesh.visible=true;
+      geo.setDrawRange(0,Math.max(0,(m-1))*6);mesh.visible=m>1;
     },
     samples,mesh,
   };
@@ -4773,6 +4809,19 @@ function slashArc(parentX,parentZ,y,facing,color,kind,dir){
   return arc;
 }
 /* steel on steel, or steel on stone: a hard white burst with a flash */
+/* the blow LANDS: a hard warm flash at the point of contact, a second
+   wider one a beat behind it, and a spray of sparks — so a connecting hit
+   reads as a connecting hit */
+function impactBurst(x,y,z,n,heavy){
+  sparkBurst(x,y,z,n);
+  const mk=(sc,col,life,delay)=>{const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:col,
+      transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending}));
+    f.scale.set(sc,sc*.8,1);f.position.set(x,y,z);f.visible=delay<=0;scene.add(f);
+    let t=-delay;effects.push({update(dt){t+=dt;if(t<0)return true;f.visible=true;const p=t/life;f.material.opacity=1-p;f.scale.set(sc*(1+p*.8),sc*.8*(1+p*.8),1);
+      if(p>=1){scene.remove(f);f.material.dispose();return false;}return true;}});};
+  mk(heavy?1.1:.8,0xfff1cf,.07,0);                                          // the flash
+  mk(heavy?1.5:1.1,0xffb864,.1,.03);                                        // and the warm bloom behind it
+}
 function clashSparks(x,y,z,n){
   sparkBurst(x,y,z,n);
   const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xfff6dc,
@@ -5355,7 +5404,8 @@ const player={
       // — whether the cut leaves them standing or is the one that kills
       if(this.weapon()==='katana'&&!opts.noSlice&&(e.hp>0||preHp>0)&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&!e.sliced)
         katanaSlice(e,this.facing,opts.cut);
-      sparkBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?16:dmg>20?11:7);
+      impactBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?18:dmg>20?13:9,crit||dmg>20||this.ultra());
+      AudioSys.smack(e);                                              // the sound of THIS horror being hit
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
         // if life remains in it, the bones will crawl back together
@@ -5383,8 +5433,9 @@ const player={
       hitAny=true;
     }
     if(hitAny){
-      G.hitstop=Math.max(G.hitstop,crit?.17:dmg>20?.13:.08);
-      G.camShake=Math.max(G.camShake,crit?.5:dmg>20?.35:.18);
+      // the blow lands: the frame holds a beat, the camera jolts
+      G.hitstop=Math.max(G.hitstop,crit?.2:dmg>20?.16:.11);
+      G.camShake=Math.max(G.camShake,crit?.6:dmg>20?.42:.26);
       G.vibr(crit?70:dmg>20?50:25);
       if(crit)AudioSys.crit();
     }
@@ -6253,7 +6304,8 @@ class Enemy{
     if(this.hp<=0||this.state==='scatter')return; // a bone heap can't be cut
     this.hp-=dmg;this.flash();
     {const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
-      this.lastHit=hv?{dx:hv.dx,dz:hv.dz,kb:kb||1,up:hv.up}:{dx:dx/l,dz:dz/l,kb:kb||1};}
+      this.lastHit=hv?{dx:hv.dx,dz:hv.dz,kb:kb||1,up:hv.up}:{dx:dx/l,dz:dz/l,kb:kb||1};
+      this.flinchT=.24;this.flinchDx=this.lastHit.dx;this.flinchDz=this.lastHit.dz;}   // and it flinches the way the blow sent it
     boneBurst(this.x,1.1*(this.boss?1.8:1),this.z,0xcfc4a3,5,2);
     if(this.state==='dormant')this.wake();
     if(this.boss){$('bossfill').style.width=clamp(this.hp/this.maxHp*100,0,100)+'%';}
@@ -6552,6 +6604,16 @@ class Enemy{
     if(r.jaw)r.jaw.rotation.x=
       this.state==='windup'?(.45+Math.sin(G.time*20)*.12):
       this.state==='strike'?.65:.08;
+    // the flinch: for a quarter second after a blow the trunk and head are
+    // thrown the way it sent them — back if it drove them back, sideways
+    // if it swept them — hardest at the instant, easing off
+    if(this.flinchT>0&&r.torso&&this.hp>0){
+      const k=this.flinchT/.24,q=k*k,sf=Math.sin(this.facing),cf=Math.cos(this.facing);
+      const fwd=this.flinchDx*sf+this.flinchDz*cf,lat=this.flinchDx*cf-this.flinchDz*sf;   // in the horror's own frame
+      r.torso.rotation.x+=fwd*.55*q;r.torso.rotation.z-=lat*.5*q;
+      if(r.head){r.head.rotation.x+=fwd*.45*q;r.head.rotation.z-=lat*.3*q;}
+      this.flinchT-=dt;
+    }
     updateRigExtras(r,dt);
   }
   begin(atk){
