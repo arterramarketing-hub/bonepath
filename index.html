@@ -63,7 +63,7 @@
   #pause .arrow:active{opacity:1;}
   #pause .sel b{font-weight:normal;color:#e6c97a;min-width:104px;text-align:center;font-size:12px;}
   #pause .note{font-size:11px;opacity:.7;line-height:1.4;margin-top:6px;min-height:2.8em;}
-  #pause .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
+  #pause .btn2,#fpsNote .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
   #pause .btn2:active{background:rgba(200,190,160,.15);}
   #pause .btn2.sm{padding:4px 10px;font-size:10px;margin-left:8px;}
   #pause #seedIn{width:112px;background:rgba(0,0,0,.35);border:1px solid rgba(200,190,160,.35);color:#e6c97a;font:inherit;font-size:12px;padding:3px 6px;text-align:center;}
@@ -170,6 +170,14 @@
     text-transform:uppercase;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:rgba(6,7,8,.5);}
   #modes .mode.on{border-color:var(--ember-hi);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.25);}
   #modes .mode:active{background:rgba(200,190,160,.15);}
+  #modes .mode.soon{opacity:.55;border-style:dashed;}
+  #fpsNote{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;background:rgba(4,5,6,.86);color:var(--bone);font-family:Georgia,'Times New Roman',serif;}
+  #fpsNote.on{display:flex;}
+  #fpsNote .panel{width:min(92vw,640px);max-height:88vh;overflow:auto;padding:20px 26px;border:1px solid rgba(200,190,160,.28);background:rgba(8,9,10,.8);font-size:13px;line-height:1.6;}
+  #fpsNote h2{margin:0 0 6px;font-weight:normal;letter-spacing:.42em;text-transform:uppercase;font-size:clamp(16px,3.4vw,24px);text-align:center;}
+  #fpsNote .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
+  #fpsNote p{margin:8px 0;}
+  #fpsNote .btns{display:flex;justify-content:center;margin-top:14px;}
   #begin{margin-top:4px;font-size:14px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;
     color:var(--ember-hi);animation:breathe 2.6s ease-in-out infinite;}
   @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
@@ -282,7 +290,7 @@
   <h1>Bonepath</h1>
   <div class="sub">the marrow remembers</div>
   <div class="rule"></div>
-  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div></div>
+  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div><div class="mode soon" id="modeFps">fps mode</div></div>
   <div id="begin">touch a way to begin</div>
   <div class="hint" id="titleHint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
@@ -292,6 +300,14 @@
     no flask, no stamina, only nerve &middot; best in landscape
   </div>
 </div>
+
+<div id="fpsNote"><div class="panel">
+  <h2>FPS Mode</h2><div class="sub">not yet walked &middot; a note for what it will be</div>
+  <p>A first-person way through the same field and the same path: the view from behind the pilgrim's own eyes, as in a first-person shooter, and in the pilgrim's hand not a blade but a <b>revolver</b> &mdash; six rounds, a reload, and nothing else.</p>
+  <p>The controls stay what they are: the left thumb moves, the right thumb drags to look, a tap fires, a hold aims down the sights, a flick still rolls. The horrors, the eye's tell, the marrow, the hours and the weather, the hexes of the path &mdash; all of it stays; only the eye moves into the helm and the weapon changes.</p>
+  <p>It is a placeholder for now. The plan for building it is kept in the repository at <b>docs/FPS_MODE_PLAN.md</b>.</p>
+  <div class="btns"><div class="btn2" id="fpsClose">Close</div></div>
+</div></div>
 
 <div id="victory">
   <h2>The Warden Falls</h2>
@@ -8724,6 +8740,10 @@ function gotoMode(m){const u=new URL(location.href);if(m)u.searchParams.set('mod
 $('modeField').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(PATH.on)gotoMode('');else begin();});
 $('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on)gotoMode('path');else begin();});
 $('title').addEventListener('pointerdown',begin);   // (a touch anywhere else begins the way the page is set to)
+// FPS mode: a placeholder — the button opens a note on what it will be, and starts nothing
+$('modeFps').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();$('fpsNote').classList.add('on');});
+$('fpsClose').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();$('fpsNote').classList.remove('on');});
+$('fpsNote').addEventListener('pointerdown',e=>{e.stopPropagation();});
 
 buildTextures();
 buildWorld();

@@ -425,8 +425,12 @@ them the seed decides:
 
 ## The path — survival
 
-The title screen offers two ways. **The field** is the game above.
-**The path** is survival: instead of the one hexagon, a chain of hex
+The title screen offers two ways, and a third that is only a note.
+**The field** is the game above. **FPS mode** is a placeholder: the
+button opens a description of a first-person revolver mode that is not
+built; its plan is in `docs/FPS_MODE_PLAN.md`, and a brief for an
+importable hero model made outside the game is in
+`docs/HERO_MODEL_BRIEF.md`. **The path** is survival: instead of the one hexagon, a chain of hex
 tiles laid end to end northward, without end — each an authored chunk
 (the grave rows, the wood, the ruins, a hollow, a causeway, a chapel)
 on its own seeded ground shape, with a road through, a lantern or two,
