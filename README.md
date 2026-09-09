@@ -275,7 +275,12 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     blade height on the side the blade came from, lying the way the
     blade travelled: flat for a sweep, upright for an overhead, a nick
     for a thrust — with a few chips of wood; the marks stay for the
-    run; pews, gravestones and the town sign break
+    run. A **wall** takes it the other way: a swing into the ruins'
+    walls or fallen blocks, or the cathedral's own, scores a DARK
+    gouge into that wall's stone (its texture, painted — the first
+    blow gives the wall a stone of its own) at blade height on the
+    face the blade came at, a chip or two along it; pews, gravestones
+    and the town sign break
   - **the finishing cut** — break a small or medium horror's poise and
     a bright blade-mark hangs over it while it reels. Tap with it in
     reach and the knight steps in, drops low with the greatsword drawn
@@ -660,14 +665,27 @@ Everything is generated at boot inside the one file:
   breakings drawn by lot and pitched fresh each time — a clean SNAP
   with a smaller one behind it, a CRUSH that crumples over a tenth of a
   second in a run of small cracks with a grind under them, or a
-  SHATTER that comes apart into a clatter of chips — and the last chips
-  settling after. The Unburied is wet through: a slap into meat, the
+  SHATTER that comes apart into a long clatter of chips — the body
+  settling after, and the last chips slow behind it. The Fallen One
+  breaks the same way (a skeleton too), with feathers off the wings
+  and a chime under; a crow hit squawks, two harsh syllables, the
+  second cut short. The Unburied is wet through: a slap into meat, the
   squelch in wet pulses, the suck as the steel comes free, drips after;
   its heave bubbles and slops. An element on the blade is heard in
-  every swing: fire roars through the arc and crackles after it,
-  lightning is static — a spray of sharp ticks with a buzz under them
-  and a thin whine climbing off the edge — and ice is the cold itself,
-  a breath of chilled air with crystal in it. And while the Warden
+  every swing: fire is a great brand swung, the flames torn through
+  the air in a fluttering roar with crackles all through it; lightning
+  is static and dangerous — a spray of sharp ticks, arcs that buzz and
+  break, a low charge under it, nothing that sings; ice is the cold
+  itself, a breath of chilled air through the arc. Steel into stone is
+  one of three: the bright ring, a heavier clank with the thump of the
+  blow in it, or the edge skidding along the stone before it bites.
+  Steel catching steel mid-swing (the parry) is a short scrape, no
+  bell. A pew takes a knock of old oak, and when it breaks every plank
+  clatters on the flags as it lands, as hard as it fell. The thrown
+  katana coming home makes no hum — a whoosh each half-turn as it
+  whirls back, the air drawn after it. The Fallen One no longer cries:
+  it LAUGHS, a run of glass-edged "ha"s that quicken and climb, each
+  with a breath under it, breaking into the shriek. And while the Warden
   stands there is a CHANT over his drone: a choir of the dead, voices
   sung rather than played (a sawtooth through three formant filters
   shaped to an "oh", two tenors a hair apart with a singer's late
