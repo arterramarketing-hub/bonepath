@@ -1520,6 +1520,78 @@ const AudioSys=(()=>{
   function setHeart(on){if(layers)layers.heart=!!on;}
   function naveLevel(){if(!layers)return;layers.naveG.gain.setTargetAtTime(bossN?0:.055*space,ac.currentTime,1.5);}
   // boss fight layer: tremolo drone that quickens with the Warden's rage
+  /* the element on the blade, heard in the swing: fire ROARS through the
+     arc and crackles after; lightning is static — a spray of sharp ticks
+     and a buzz under them, a thin whine on top; ice is the cold itself, a
+     breath of chilled air with crystal in it */
+  function elemSwing(el,t,w){
+    if(!el)return;
+    if(el==='fire'){
+      noise(t,{peak:.2*w,att:.05,dec:.34,f0:400,f1:1900,type:'bandpass',Q:.7});                    // the flame torn through the air
+      noise(t+.02,{peak:.12*w,att:.08,dec:.3,f0:1600,f1:700,type:'bandpass',Q:1.1});               // its roar
+      tone(t,{f:rr2(60,75),f2:48,type:'sine',peak:.09*w,att:.05,dec:.35});                          // the low breath of it
+      for(let i=0;i<7;i++)noise(t+rr2(.03,.38),{peak:rr2(.05,.1)*w,att:.0005,dec:rr2(.008,.02),f0:rr2(2200,4200),f1:1500,type:'bandpass',Q:6});   // it crackles
+    }else if(el==='lightning'){
+      for(let i=0;i<12;i++)noise(t+rr2(0,.3),{peak:rr2(.08,.16)*w,att:.0003,dec:rr2(.006,.014),f0:rr2(3000,7000),f1:2500,type:'bandpass',Q:7});    // the static: a spray of ticks
+      tone(t,{f:rr2(110,125),f2:95,type:'square',peak:.045*w,att:.01,dec:.26});                      // the buzz under it
+      tone(t+.02,{f:rr2(2300,2700),f2:3400,type:'sine',peak:.02*w,att:.03,dec:.22});                 // a thin whine climbing off the edge
+      noise(t+.01,{peak:.1*w,att:.02,dec:.2,f0:2400,f1:5000,type:'bandpass',Q:1.6});                 // the fizz
+    }else if(el==='ice'){
+      noise(t,{peak:.13*w,att:.08,dec:.36,f0:5200,f1:8500,type:'bandpass',Q:1.8});                   // the breath of cold
+      noise(t+.03,{peak:.09*w,att:.05,dec:.28,f0:900,f1:420,type:'bandpass',Q:1.3});                 // the chilled air moved
+      [rr2(3000,3400),rr2(4200,4700),rr2(5300,5900)].forEach((f,i)=>tone(t+.05+i*rr2(.04,.09),{f,f2:f*.96,type:'sine',peak:.03*w,att:.003,dec:.14}));   // crystal in it
+      tone(t+.01,{f:rr2(1500,1700),f2:1100,type:'triangle',peak:.02*w,att:.04,dec:.2});
+    }
+  }
+  /* THE CHANT: a choir of the dead in the nave while the Warden stands.
+     Voices are sung, not played — a sawtooth through three formant
+     filters shapes an "oh", two tenors a hair apart with a singer's late
+     vibrato and a bass an octave under, in unison, as plainchant is; a
+     long-breathed line in D Phrygian, phrase and rest and phrase, that
+     never resolves. When the marrow stirs the line quickens and a fourth
+     voice climbs a fifth above it: organum, and wrong */
+  let chant=null;
+  const CHANT=[[50,2],[51,1],[53,1],[55,2.5],[53,1],[51,1],[50,3],[0,1.5],
+               [48,2],[50,1],[51,2],[50,1],[48,1.5],[46,3.5],[0,1.5],
+               [50,1],[53,1],[55,2],[57,1.5],[55,1],[53,2],[51,1],[50,3.5],[0,2],
+               [53,1],[51,1],[50,2],[48,1],[46,2],[48,1],[50,4],[0,2.5]];
+  function chantVoice(t0,midi,dur,det,oct,vel){
+    const f=440*Math.pow(2,(midi-69)/12)*oct;
+    const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=det;
+    const vib=ac.createOscillator();vib.frequency.value=rr2(4.6,5.4);const vg=ac.createGain();vg.gain.value=0;vib.connect(vg).connect(o.detune);
+    vg.gain.setValueAtTime(0,t0+.2);vg.gain.linearRampToValueAtTime(8,t0+Math.max(.4,dur*.6));      // the vibrato comes late, as a singer's does
+    const mix=ac.createGain();mix.gain.value=0;
+    for(const [ff,q,g] of [[430,7,1],[820,9,.55],[2500,11,.14]]){const bf=ac.createBiquadFilter();bf.type='bandpass';bf.frequency.value=ff*(oct<1?.92:1);bf.Q.value=q;const bg=ac.createGain();bg.gain.value=g;o.connect(bf).connect(bg).connect(mix);}
+    mix.connect(chant.g);
+    const a=Math.min(.16,dur*.3),r=Math.min(.22,dur*.3);
+    mix.gain.setValueAtTime(0,t0);mix.gain.linearRampToValueAtTime(vel,t0+a);mix.gain.setValueAtTime(vel,t0+dur-r);mix.gain.linearRampToValueAtTime(0,t0+dur+.04);
+    o.start(t0);vib.start(t0);o.stop(t0+dur+.1);vib.stop(t0+dur+.1);
+  }
+  function chantTick(){
+    if(!chant||!ac)return;const now=ac.currentTime;
+    while(chant.nextT<now+.9){
+      const [m,b]=CHANT[chant.idx%CHANT.length],dur=b*chant.beat,t0=chant.nextT;
+      if(m){chantVoice(t0,m,dur,-6,1,.5);chantVoice(t0,m,dur,7,1,.5);chantVoice(t0,m,dur,0,.5,.42);
+        if(chant.organum)chantVoice(t0,m+7,dur,3,1,.3);}
+      chant.nextT+=dur;chant.idx++;
+    }
+  }
+  function chantStart(level){
+    if(!ac)return;
+    if(!chant){
+      const g=ac.createGain();g.gain.value=0;
+      const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3200;
+      g.connect(lp);lp.connect(musicMaster);
+      chant={g,lp,beat:60/64,idx:0,nextT:ac.currentTime+1.2,organum:false,iv:setInterval(chantTick,250)};
+    }
+    chant.beat=level===2?60/84:60/64;chant.organum=level===2;
+    chant.g.gain.linearRampToValueAtTime(level===2?.3:.22,ac.currentTime+(level===2?.8:3));
+  }
+  function chantStop(){
+    if(!chant)return;const c=chant;chant=null;clearInterval(c.iv);
+    c.g.gain.cancelScheduledValues(ac.currentTime);c.g.gain.setValueAtTime(c.g.gain.value,ac.currentTime);c.g.gain.linearRampToValueAtTime(0,ac.currentTime+1.6);
+    setTimeout(()=>{try{c.lp.disconnect();}catch(e){}},2200);
+  }
   let bossN=null;
   function bossMusic(level){
     if(!ac)return;
@@ -1529,9 +1601,10 @@ const AudioSys=(()=>{
         n.g.gain.setValueAtTime(n.g.gain.value,ac.currentTime);
         n.g.gain.linearRampToValueAtTime(0,ac.currentTime+1.2);
         setTimeout(()=>{n.stop.forEach(o=>{try{o.stop();}catch(e){}});},1400);}
-      naveLevel();
+      chantStop();naveLevel();
       return;
     }
+    chantStart(level);
     if(!bossN){
       const g=ac.createGain();g.gain.value=0;g.connect(musicMaster);
       const trem=ac.createGain();trem.gain.value=.5;trem.connect(g);
@@ -1567,6 +1640,8 @@ const AudioSys=(()=>{
     sfxOn(){return sfxOn;},musicOn(){return musicWanted;},
     // the world holds still: the whole graph sleeps
     pause(on){if(!ac)return;if(on)ac.suspend();else ac.resume();},
+    tap(){if(!ac)return null;const a=ac.createAnalyser();a.fftSize=2048;master.connect(a);return a;},   // (probes: the mix at the master)
+    chanting(){return !!chant;},
     // the rain's level: 0, a light rain, or a storm
     setRain(level){rainLevel=level;if(rainG&&ac)rainG.gain.setTargetAtTime(level*.085,ac.currentTime,2);},
     // thunder: a near bolt cracks first and rolls hard; a far one only rolls, long and low
@@ -1578,16 +1653,18 @@ const AudioSys=(()=>{
     start,setSpace,
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
-    swing(){const t=now();
+    swing(el){const t=now();
       noise(t,{peak:.26,att:.06,dec:.22,f0:180,f1:1500,type:'bandpass',Q:1.4});
       noise(t+.03,{peak:.14,att:.04,dec:.16,f0:2200,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:80,f2:40,type:'sine',peak:.16,att:.04,dec:.24});
       tone(t+.01,{f:60,f2:35,type:'sawtooth',peak:.03,att:.05,dec:.18});     // the haft groans
-      tone(t+.04,{f:rr2(560,660),f2:1300,type:'sine',peak:.015,dec:.1});},
-    heavySwing(){const t=now();
+      tone(t+.04,{f:rr2(560,660),f2:1300,type:'sine',peak:.015,dec:.1});
+      elemSwing(el,t,1);},
+    heavySwing(el){const t=now();
       noise(t,{peak:.24,att:.09,dec:.24,f0:280,f1:1500,type:'bandpass',Q:1.6});
       noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
-      tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});},
+      tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});
+      elemSwing(el,t,1.3);},
     // steel into old bone: low body, mid crunch, dry crack
     // the sound of a blow landing on THIS horror: dry bone for the small
     // skeletons, a deeper crunch for the big, a wet thud for the Unburied,
@@ -1595,18 +1672,37 @@ const AudioSys=(()=>{
     // crack with a chime under it for the Fallen One
     smack(e){const t=now();this._smackAt=t;
       const kind=!e?'bone':e.crow?'crow':e.kind==='ghoul'?'flesh':e.kind==='angel'?'angel':e.boss?'stone':e.big?'bigbone':'bone';
-      if(kind==='bone'){
-        noise(t,{peak:.38,att:.001,dec:.06,f0:4200,f1:900});
-        tone(t,{f:rr2(900,1200),f2:300,type:'square',peak:.09,dec:.05});
-        for(let i=0;i<4;i++)noise(t+.02+i*.022,{peak:.07,att:.001,dec:.025,f0:rr2(1600,3200),f1:800,type:'bandpass',Q:5});   // the clatter
-      }else if(kind==='bigbone'){
-        tone(t,{f:rr2(105,125),f2:38,type:'sine',peak:.42,dec:.22});
-        noise(t,{peak:.36,att:.001,dec:.12,f0:2600,f1:400});
-        for(let i=0;i<3;i++)noise(t+.03+i*.035,{peak:.09,att:.001,dec:.04,f0:rr2(900,1800),f1:500,type:'bandpass',Q:4});
+      if(kind==='bone'||kind==='bigbone'){
+        // BONE under steel: never hollow — a crunch with body, cracks that
+        // snap, and a rattle of chips after. Three ways of breaking, drawn by
+        // lot, every one of them pitched a little differently
+        const big=kind==='bigbone',way=Math.random(),w=big?1.25:1;
+        tone(t,{f:rr2(big?95:130,big?115:165),f2:big?36:48,type:'sine',peak:(big?.42:.3)*w,att:.002,dec:big?.2:.13});     // the mass of the blow
+        noise(t,{peak:.34*w,att:.002,dec:big?.13:.09,f0:rr2(1400,2000),f1:rr2(160,260)});                                  // the crunch: bone giving, mid and low
+        noise(t+.004,{peak:.26*w,att:.001,dec:.05,f0:rr2(3000,4200),f1:900});                                             // the dry bite
+        if(way<.36){ // THE SNAP: one clean crack, loud, and a second smaller behind it
+          noise(t+.006,{peak:.42*w,att:.0005,dec:.014,f0:rr2(3200,4800),f1:2000,type:'bandpass',Q:7});
+          tone(t+.006,{f:rr2(1500,2200),f2:500,type:'square',peak:.07,att:.0005,dec:.022});
+          noise(t+rr2(.04,.07),{peak:.22*w,att:.0005,dec:.012,f0:rr2(2600,4000),f1:1800,type:'bandpass',Q:7});
+        }else if(way<.7){ // THE CRUSH: the bone crumples over a tenth of a second in a run of small cracks
+          for(let i=0;i<6;i++)noise(t+.01+i*rr2(.012,.022),{peak:(.2-i*.02)*w,att:.0005,dec:.012,f0:rr2(1800,3600),f1:1200,type:'bandpass',Q:6});
+          noise(t+.02,{peak:.16*w,att:.01,dec:.12,f0:rr2(500,800),f1:150,type:'bandpass',Q:1.2});                         // the grind under them
+          tone(t+.02,{f:rr2(600,800),f2:180,type:'square',peak:.04,att:.005,dec:.08});
+        }else{ // THE SHATTER: it comes apart — cracks, then a clatter of pieces
+          noise(t+.005,{peak:.3*w,att:.0005,dec:.016,f0:rr2(3400,5000),f1:2200,type:'bandpass',Q:6});
+          for(let i=0;i<7;i++)noise(t+.03+i*rr2(.02,.04),{peak:rr2(.05,.11)*w,att:.001,dec:rr2(.012,.03),f0:rr2(1600,3400),f1:900,type:'bandpass',Q:5});   // the chips
+          if(Math.random()<.6)tone(t+.05,{f:rr2(1200,1700),f2:900,type:'triangle',peak:.03,att:.002,dec:.05});                                       // one rings
+        }
+        for(let i=0;i<3;i++)noise(t+.08+i*rr2(.03,.05),{peak:.045*w,att:.001,dec:.02,f0:rr2(1200,2400),f1:700,type:'bandpass',Q:4});   // the last chips settle
       }else if(kind==='flesh'){
-        tone(t,{f:rr2(85,100),f2:42,type:'sine',peak:.42,dec:.2});
-        noise(t,{peak:.3,att:.002,dec:.12,f0:900,f1:180});
-        noise(t+.01,{peak:.16,att:.002,dec:.09,f0:520,f1:260,type:'bandpass',Q:2});                     // the squelch
+        // THE UNBURIED: wet through. A slap into meat, the squelch as it
+        // gives, a suck as the blade comes free, and drips after
+        tone(t,{f:rr2(80,96),f2:38,type:'sine',peak:.44,att:.003,dec:.24});
+        noise(t,{peak:.3,att:.003,dec:.14,f0:rr2(700,900),f1:140});                                     // the slap
+        for(let i=0;i<4;i++)noise(t+.008+i*rr2(.018,.03),{peak:.22-i*.03,att:.004,dec:.05,f0:rr2(350,650),f1:rr2(120,220),type:'bandpass',Q:2.2});   // the squelch, in wet pulses
+        noise(t+.05,{peak:.16,att:.03,dec:.16,f0:220,f1:900,type:'bandpass',Q:1.4});                     // the suck as the steel pulls back
+        tone(t+.06,{f:rr2(190,240),f2:70,type:'triangle',peak:.05,att:.03,dec:.22});                     // something inside lets go
+        for(let i=0;i<4;i++)noise(t+.16+i*rr2(.05,.09),{peak:rr2(.03,.06),att:.002,dec:.03,f0:rr2(900,1600),f1:500,type:'bandpass',Q:3});   // it drips
       }else if(kind==='stone'){
         tone(t,{f:rr2(65,78),f2:28,type:'triangle',peak:.46,dec:.3});
         noise(t,{peak:.3,att:.001,dec:.09,f0:1500,f1:300});
@@ -1648,7 +1744,19 @@ const AudioSys=(()=>{
       for(let i=0;i<3;i++)noise(t+.12+i*.05,{peak:.04,att:.001,dec:.03,f0:rr2(2200,3400),f1:1400,type:'bandpass',Q:5}); // mail and plates
     },
     // armored footfall: boot on dirt, ground thump, and a whisper of mail
-    step(v){v=v===undefined?1:v;const t=now();
+    step(v,surf){v=v===undefined?1:v;const t=now();
+      if(surf!=='stone'){
+        // GRASS: a knight's boot into turf — the heel's thump swallowed by the
+        // ground, a brush of grass under the sole, the soil giving, and the
+        // plate settling low and dull. No chip, no ping: nothing to squeak
+        tone(t,{f:rr2(52,66),f2:30,type:'sine',peak:.22*v,att:.004,dec:.1});
+        noise(t,{peak:.16*v,att:.008,dec:.11,f0:rr2(380,520),f1:110});                              // the turf takes it
+        noise(t+.006,{peak:.13*v,att:.012,dec:.09,f0:rr2(1100,1500),f1:rr2(500,700),type:'bandpass',Q:.9});   // the grass brushed aside
+        noise(t+.03,{peak:.05*v,att:.02,dec:.08,f0:rr2(700,900),f1:400,type:'bandpass',Q:1.2});    // ...and springing back
+        noise(t+.018,{peak:.03*v,att:.002,dec:.04,f0:rr2(1500,1900),f1:1000,type:'bandpass',Q:1.6}); // mail, low and muffled
+        if(v>.9)noise(t+.045,{peak:.04*v,att:.01,dec:.07,f0:300,f1:90});                              // at a run the whole leg lands
+        return;}
+      // STONE (the cathedral): the flags ring a little under the heel
       // heel: a low ground thump you feel more than hear
       tone(t,{f:rr2(64,80),f2:34,type:'sine',peak:.26*v,dec:.11});
       // the boot itself: gravel and packed dirt giving under armour
@@ -1823,9 +1931,12 @@ const AudioSys=(()=>{
       noise(t,{peak:.12,att:.03,dec:.8,f0:3000,f1:900,type:'bandpass',Q:3});},
     // the unburied: a wet, gurgling heave
     retch(){const t=now();
-      for(let i=0;i<5;i++)noise(t+i*.07,{peak:.14,att:.01,dec:.09,f0:rr2(300,700),f1:120,type:'bandpass',Q:1.5});
+      for(let i=0;i<6;i++)noise(t+i*.065,{peak:.15,att:.01,dec:.08,f0:rr2(300,700),f1:120,type:'bandpass',Q:1.5});   // the heave
+      for(let i=0;i<9;i++)noise(t+rr2(0,.5),{peak:rr2(.05,.1),att:.003,dec:.035,f0:rr2(250,600),f1:rr2(120,200),type:'bandpass',Q:3});   // it bubbles
       tone(t,{f:140,f2:60,type:'sawtooth',peak:.12,att:.05,dec:.6});
-      noise(t+.3,{peak:.1,att:.1,dec:.5,f0:1400,f1:300});},
+      tone(t+.08,{f:rr2(90,110),f2:45,type:'triangle',peak:.08,att:.06,dec:.5});                          // the gurgle under it
+      noise(t+.3,{peak:.12,att:.1,dec:.5,f0:1400,f1:300});
+      noise(t+.35,{peak:.14,att:.04,dec:.3,f0:500,f1:120});},                                             // the slop
     poisoned(){const t=now();
       tone(t,{f:520,f2:380,type:'sine',peak:.06,att:.02,dec:.35});
       noise(t,{peak:.05,att:.05,dec:.3,f0:900,f1:400,type:'bandpass',Q:2});},
@@ -5451,7 +5562,7 @@ function throwBone(x,z,tx,tz,dmg){
   m.position.set(x+dx/l*.5,heightAt(x,z)+1.35,z+dz/l*.5);
   m.rotation.y=Math.atan2(vx,vz);
   scene.add(m);
-  AudioSys.swing();
+  AudioSys.swing(player.element);
   let life=0;
   effects.push({update(dt){
     life+=dt;
@@ -5615,7 +5726,7 @@ function throwKatana(P,foe,full){
   scene.add(m);r.weapon.visible=false;
   P.katThrown={state:'fly',mesh:m,dir,sp:24,dist:0,range:16,tipLen,hit:new Set(),target:null,full:!!full,spin:0};
   katOrient(P.katThrown);
-  AudioSys.heavySwing();G.glowFlash=.4;G.vibr(15);
+  AudioSys.heavySwing(P.element);G.glowFlash=.4;G.vibr(15);
 }
 function katOrient(K){
   const m=K.mesh;
@@ -6444,7 +6555,7 @@ const player={
       const heel=this.rig._heel||0;
       if(heel>.45&&!this._heelOn){
         this._heelOn=true;
-        AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)));
+        AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)),cathDist(this.x,this.z)<4.5?'stone':'grass');   // (the flags and the stair ring; the field is turf)
         if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
       }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
@@ -6541,8 +6652,8 @@ const player={
         this.x+=Math.sin(this.facing)*sp*dt;this.z+=Math.cos(this.facing)*sp*dt;
       }
       if(foe&&p<.08)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
-      if(this.sfxDone<1&&p>=.05){this.sfxDone=1;AudioSys.swing();}
-      if(this.sfxDone<2&&p>=.45){this.sfxDone=2;AudioSys.swing();}
+      if(this.sfxDone<1&&p>=.05){this.sfxDone=1;AudioSys.swing(this.element);}
+      if(this.sfxDone<2&&p>=.45){this.sfxDone=2;AudioSys.swing(this.element);}
       this.ultraThud(p,.38);this.ultraThud(p,.85,2);
       const dmg=this.chargeFull?22:16;
       // TWO cuts and no more: the first sweeps right to left; the second
@@ -6588,7 +6699,7 @@ const player={
             a.position.set(e.x-ex*.2,heightAt(e.x,e.z)+1.15,e.z-ez*.2);
             a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(ex,0,ez));
             (e.rig.torso||e.rig.root).attach(a);e.arrows=e.arrows||[];e.arrows.push(a);}
-          else AudioSys.heavySwing();
+          else AudioSys.heavySwing(this.element);
           AudioSys.hit();AudioSys.sever();
           G.camShake=.7;G.hitstop=.14;G.vibr([60,30,90]);
           const gy=heightAt(e.x,e.z);
@@ -6624,7 +6735,7 @@ const player={
           }
         }
         this.x=nx;this.z=nz;G.slowMo=.45;
-        if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.2);}
+        if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing(this.element);G.camShake=Math.max(G.camShake,.2);}
       }else G.slowMo=1;
       if(!this.hitDone&&p>=.62){ // the blade clicks home — and only now do they fall
         this.hitDone=true;AudioSys.sheath();
@@ -6647,7 +6758,7 @@ const player={
         const pr={x:this.x+Math.sin(this.facing)*22*dt,z:this.z+Math.cos(this.facing)*22*dt};
         pushOut(pr,.32);this.x=pr.x;this.z=pr.z;
       }
-      if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.glowFlash=.5;}
+      if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing(this.element);G.glowFlash=.5;}
       if(!this.hitDone&&p>=.2){ // the point goes in: a narrow line, driven hard
         this.hitDone=true;
         const wm=this.weapon()==='sword'?1.3:1;                    // the greatsword's point hits harder
@@ -6659,7 +6770,7 @@ const player={
     else if(this.state==='fowl'){
       const DUR=1.05,p=this.t/DUR;
       const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
-      if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.2);}
+      if(!this.sfxDone){this.sfxDone=true;AudioSys.heavySwing(this.element);G.camShake=Math.max(G.camShake,.2);}
       if(!this.hitDone&&p>=.08){ // the draw: one rising diagonal, edge-first out of the saya
         this.hitDone=true;
         this.meleeHit(this.chargeFull?44:34,3.0,1.3,6,1.2,{trail:'sweep',dir:-1,cut:'gyaku',staggerAll:true});
@@ -6699,7 +6810,7 @@ const player={
     else if(this.state==='kthrow'){
       const DUR=.55,p=this.t/DUR;
       if(foe&&p<.25)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),16*dt);
-      if(!this.sfxDone&&p>=.2){this.sfxDone=true;AudioSys.heavySwing();}
+      if(!this.sfxDone&&p>=.2){this.sfxDone=true;AudioSys.heavySwing(this.element);}
       if(!this.hitDone&&p>=.3){this.hitDone=true;throwKatana(this,foe,this.chargeFull);}   // the arm comes over and the blade leaves it
       if(p>=1)this.state='free';
     }
@@ -6709,7 +6820,7 @@ const player={
     else if(this.state==='tiger'){
       const DUR=.8,p=this.t/DUR;
       if(foe&&p<.15)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
-      if(!this.sfxDone&&p>=.1){this.sfxDone=true;AudioSys.heavySwing();}
+      if(!this.sfxDone&&p>=.1){this.sfxDone=true;AudioSys.heavySwing(this.element);}
       if(!this.hitDone&&p>=.3){ // the blade meets the ground, and the ground leaves
         this.hitDone=true;
         const fx=Math.sin(this.facing),fz=Math.cos(this.facing),gx=this.x+fx*1.2,gz=this.z+fz*1.2,gy=heightAt(gx,gz);
@@ -6723,7 +6834,7 @@ const player={
     else if(this.state==='quake'){
       const DUR=1.0,p=this.t/DUR;
       if(p<.6)G.camShake=Math.max(G.camShake,.3);
-      if(!this.sfxDone&&p>=.5){this.sfxDone=true;AudioSys.heavySwing();}
+      if(!this.sfxDone&&p>=.5){this.sfxDone=true;AudioSys.heavySwing(this.element);}
       if(!this.hitDone&&p>=.72){ // the slam
         this.hitDone=true;
         AudioSys.quake();G.camShake=1.8;G.hitstop=.2;G.vibr([140,40,220]);
@@ -6779,7 +6890,7 @@ const player={
         this.x+=Math.sin(this.facing)*1.6*dt;this.z+=Math.cos(this.facing)*1.6*dt;
         const n=Math.floor((this.t-.08*DUR)/.18)+1;
         if(n>this.hitDone&&n<=4){
-          this.hitDone=n;AudioSys.swing();G.camShake=Math.max(G.camShake,.08);
+          this.hitDone=n;AudioSys.swing(this.element);G.camShake=Math.max(G.camShake,.08);
           const hit=this.meleeHit(this.chargeFull?19:15,2.5,TAU,n===4?3:2,.6,
             {trail:'sweep',dir:-1,quietMiss:true,staggerAll:this.chargeFull&&n===4});   // clockwise: the blade comes round left to right
           if(hit){AudioSys.hit();G.hitstop=Math.max(G.hitstop,.05);}
@@ -6799,7 +6910,7 @@ const player={
     }
     else if(this.state==='sprintatk'){
       const DUR=.5*this.swing(),p=this.t/DUR;
-      if(!this.sfxDone&&p>=.12){this.sfxDone=true;AudioSys.swing();G.camShake=Math.max(G.camShake,.1);}
+      if(!this.sfxDone&&p>=.12){this.sfxDone=true;AudioSys.swing(this.element);G.camShake=Math.max(G.camShake,.1);}
       this.ultraThud(p,.8);
       if(p<.5){ // the run's momentum drives the point home
         const sp=10*(1-p*.8);
@@ -6838,7 +6949,7 @@ const player={
     }
     else if(this.state==='rollatk'){
       const DUR=.44*this.swing(),p=this.t/DUR;
-      if(!this.sfxDone&&p>=.15){this.sfxDone=true;AudioSys.swing();}
+      if(!this.sfxDone&&p>=.15){this.sfxDone=true;AudioSys.swing(this.element);}
       this.ultraThud(p,.8);
       if(p>.1&&p<.5){ // the momentum of the roll carries into the cut
         this.x+=Math.sin(this.facing)*7.5*dt;this.z+=Math.cos(this.facing)*7.5*dt;
@@ -6874,7 +6985,7 @@ const player={
       }
       // the whoosh rides the whip, and the camera flinches at the mass
       // of the blade even when it finds nothing
-      if(!this.sfxDone&&p>=.36){this.sfxDone=true;if(this.ultra())AudioSys.heavySwing();else AudioSys.swing();
+      if(!this.sfxDone&&p>=.36){this.sfxDone=true;if(this.ultra())AudioSys.heavySwing(this.element);else AudioSys.swing(this.element);
         G.camShake=Math.max(G.camShake,this.ultra()?.16:.09);}
       this.ultraThud(p,.78);
       // lunge through the cut — the blade goes and finds them,

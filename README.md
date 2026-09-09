@@ -651,7 +651,30 @@ Everything is generated at boot inside the one file:
   that deepens inside the nave): two bands of
   graveyard wind, a sub drone, far-off creaks and crows, heavy armoured
   footfalls, whooshes, bone-splintering hits, the death gong, the
-  Warden's roar, the Fallen One's shriek, the Unburied's retch. There
+  Warden's roar, the Fallen One's shriek, the Unburied's retch.
+  Footfalls know the ground: on the field a boot lands in turf — the
+  heel's thump swallowed, a brush of grass under the sole, the soil
+  giving, the plate settling low and dull, nothing that could squeak —
+  and on the cathedral's flags and stair the old ringing step. Bone
+  under steel is never hollow: a crunch with mass, then one of three
+  breakings drawn by lot and pitched fresh each time — a clean SNAP
+  with a smaller one behind it, a CRUSH that crumples over a tenth of a
+  second in a run of small cracks with a grind under them, or a
+  SHATTER that comes apart into a clatter of chips — and the last chips
+  settling after. The Unburied is wet through: a slap into meat, the
+  squelch in wet pulses, the suck as the steel comes free, drips after;
+  its heave bubbles and slops. An element on the blade is heard in
+  every swing: fire roars through the arc and crackles after it,
+  lightning is static — a spray of sharp ticks with a buzz under them
+  and a thin whine climbing off the edge — and ice is the cold itself,
+  a breath of chilled air with crystal in it. And while the Warden
+  stands there is a CHANT over his drone: a choir of the dead, voices
+  sung rather than played (a sawtooth through three formant filters
+  shaped to an "oh", two tenors a hair apart with a singer's late
+  vibrato and a bass an octave under, in unison as plainchant is),
+  singing a long-breathed line in D Phrygian — phrase, rest, phrase —
+  that never resolves; when the marrow stirs the line quickens and a
+  fourth voice climbs a fifth above it, organum, and wrong. There
   is no theme, nothing you could hum — three layers instead. **Unease**:
   a sub drone that swells slowly, always there. **Threat**: a low bowed
   string with a slow vibrato that rises while something hunts you, a
