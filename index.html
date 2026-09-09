@@ -165,6 +165,11 @@
     text-transform:uppercase;color:var(--bone-dim);}
   #title .rule{width:min(46vw,260px);height:1px;margin:26px auto;
     background:linear-gradient(90deg,transparent,var(--bone-faint),transparent);}
+  #modes{display:flex;gap:18px;justify-content:center;margin:2px 0 14px;}
+  #modes .mode{padding:12px 26px;border:1px solid rgba(200,190,160,.35);color:var(--bone);font-size:13px;letter-spacing:.32em;text-indent:.32em;
+    text-transform:uppercase;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:rgba(6,7,8,.5);}
+  #modes .mode.on{border-color:var(--ember-hi);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.25);}
+  #modes .mode:active{background:rgba(200,190,160,.15);}
   #begin{margin-top:4px;font-size:14px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;
     color:var(--ember-hi);animation:breathe 2.6s ease-in-out infinite;}
   @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
@@ -277,8 +282,9 @@
   <h1>Bonepath</h1>
   <div class="sub">the marrow remembers</div>
   <div class="rule"></div>
-  <div id="begin">touch to begin</div>
-  <div class="hint">
+  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div></div>
+  <div id="begin">touch a way to begin</div>
+  <div class="hint" id="titleHint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
     tap &mdash; strike &middot; keep tapping &mdash; the combo climbs &middot; flick any way &mdash; roll that way<br>
     survive the bonefield &middot; harvest 1000 marrow to open the cathedral<br>
@@ -2001,6 +2007,15 @@ const START=[0,50];
    lanterns are, and — over in the game — what the host is and where it
    sleeps. The cathedral, its plinth and the roads never move. */
 const RUN={seed:0,time:'night',weather:'clear',wedges:[],terrain:[],landmarkWedges:[],rare:null,rareWedge:-1,village:'',lamp:1};
+/* THE PATH (survival): instead of the one field, a chain of hex tiles laid
+   end to end northward, each an authored chunk on its own ground, built
+   two ahead of the pilgrim and torn down two behind, without end — and
+   every sixth tile the cathedral, with a back door mirrored from the
+   front, its host waiting inside. Ten thousand marrow wins; death ends
+   it. Every tile is built in the ORIGIN'S frame (the same chunk code the
+   field uses, as the north wedge) and then shifted into place. */
+const PATH={on:false,tiles:[],terrain:[],goal:10000,TILE:30,cathEvery:6,far:0,M:null,chunks:null,buildCath:null,helpers:null};
+const BUILD={offZ:0,tile:-1};   // while a tile is built in the origin's frame: the shift it will get, and its number
 const WEDGE_N=6;
 function wedgeAngle(i){return Math.PI/6+i*Math.PI/3;}          // 30, 90 (south: the start), 150, 210, 270 (north), 330 degrees
 function seedRun(){
@@ -2016,6 +2031,7 @@ function seedRun(){
   try{const q=new URLSearchParams(location.search),ht=q.get('time'),wq=q.get('wx');     // (testing: ?time=noon&wx=storm names them outright, the rest of the field still the seed's)
     if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm'].includes(wq))RUN.weather=wq;}catch(e){}
   RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
+  try{if(new URLSearchParams(location.search).get('mode')==='path')PATH.on=true;}catch(e){}
   RUN.village=pick(['Ashmere','Gallowmoor','Hollowfen','Wrenhallow','Carrowdene','Blackwold','Sallow Cross','Marrowgate']);
   // the six wedges: a chunk each, no kind more than twice; the south
   // wedge (the pilgrim's walk in) is never walled off by ruins or a chapel
@@ -2068,8 +2084,29 @@ function rectSD(x,z,hw,hl){
   const dx=Math.abs(x)-hw,dz=Math.abs(z)-hl;
   return Math.hypot(Math.max(dx,0),Math.max(dz,0))+Math.min(Math.max(dx,dz),0);
 }
-const cathDist=(x,z)=>rectSD(x,z,HW+WALLT,HL+WALLT);   // from the outer wall face
-const inStairs=(x,z)=>Math.abs(x)<STAIR_W&&z>PL-.5&&z<PL+STAIR_L+.5;
+// which cathedral is at this z on the path (the tile that holds one), and its centre
+function pathCath(z){for(const t of PATH.tiles)if(t&&!t.dead&&t.cath&&z<t.z0+2&&z>t.z1-2)return t;return null;}
+function cathZ(z){if(!PATH.on)return 0;const t=pathCath(z);return t?t.czc:1e9;}   // (1e9: no cathedral anywhere near)
+const cathDist=(x,z)=>rectSD(x,z-cathZ(z),HW+WALLT,HL+WALLT);   // from the outer wall face
+const inStairsL=(x,zl)=>{const az=PATH.on?Math.abs(zl):zl;return Math.abs(x)<STAIR_W&&az>PL-.5&&az<PL+STAIR_L+.5;};   // (on the path the stair is at both ends)
+const inStairs=(x,z)=>inStairsL(x,z-cathZ(z));
+function pushOutOfCath(p,m){const cz=cathZ(p.z);if(cz>1e8)return;p.z-=cz;pushOutOf(p,HW+WALLT,HL+WALLT,m);p.z+=cz;}
+/* the path's ground: the same rolling swells as the field's, run on
+   without the field's rim, flat against any cathedral's plinth, with the
+   tiles' own shapes on top */
+function pathGround(x,z){
+  const sw=(Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6+Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1;
+  const c=pathCath(z);let inFade=1;
+  if(c){const pd=Math.max(0,rectSD(x,z-c.czc,PW,PL));inFade=Math.min(1,pd/6);}
+  return inFade*(sw+terrainAt(x,z));
+}
+function pathHeightAt(x,z){
+  const c=pathCath(z);
+  if(c){const zl=z-c.czc,az=Math.abs(zl);
+    if(Math.abs(x)<STAIR_W&&az>=PL&&az<PL+STAIR_L+.5){const t=clamp((az-PL)/STAIR_L,0,1);return PH*(1-t)+pathGround(x,z)*t;}
+    if(rectSD(x,zl,PW,PL)<=0)return PH;}
+  return pathGround(x,z);
+}
 // a point on the building's outline, `off` beyond the walls, in direction a
 function ringPoint(a,off){
   const c=Math.cos(a),s=Math.sin(a);
@@ -2087,6 +2124,7 @@ const keepInside=(p,hw,hl,m)=>{p.x=clamp(p.x,-(hw-m),hw-m);p.z=clamp(p.z,-(hl-m)
 /* broad, gentle elevations: flat at the heart and the rim,
    long rolling swells in the field between */
 function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyond
+  if(PATH.on)return pathGround(x,z+BUILD.offZ);
   const pd=Math.max(0,rectSD(x,z,PW,PL));
   const inFade=Math.min(1,pd/6);
   const d=Math.hypot(x,z);
@@ -2098,6 +2136,7 @@ function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyo
 }
 // what anything standing at (x,z) stands ON: the plinth, the stair, or the soil
 function heightAt(x,z){
+  if(PATH.on)return pathHeightAt(x,z+BUILD.offZ);   // (a tile under construction asks in the origin's frame: answered in the world's)
   if(inStairs(x,z)&&z>=PL){
     const t=clamp((z-PL)/STAIR_L,0,1);
     return PH*(1-t)+groundAt(x,z)*t;
@@ -2110,22 +2149,31 @@ function heightAt(x,z){
    (then only the door corridor lets you through) */
 function constrain(p,arenaOnly){
   if(arenaOnly){keepInside(p,HW,HL,.5);return;}          // the boss fight holds you in the nave
+  if(PATH.on){
+    p.x=clamp(p.x,-25,25);if(p.z>57)p.z=57;             // the path's shorn sides, and its beginning
+    const cz=cathZ(p.z);if(cz>1e8)return;
+    p.z-=cz;constrainCath(p);p.z+=cz;return;              // the cathedral's rim and walls, in that cathedral's own frame
+  }
   for(let i=0;i<6;i++){
     const a=Math.PI/6+i*Math.PI/3;
     const nx=Math.cos(a),nz=Math.sin(a);
     const dd=p.x*nx+p.z*nz,ap=HEX_AP-.9;
     if(dd>ap){p.x-=(dd-ap)*nx;p.z-=(dd-ap)*nz;}
   }
+  constrainCath(p);
+}
+function constrainCath(p){
   // the plinth's rim: a step no one climbs except by the stair
-  if(!inStairs(p.x,p.z)){
+  if(!inStairsL(p.x,p.z)){
     const sd=rectSD(p.x,p.z,PW,PL);
     if(sd>=0&&sd<.45)pushOutOf(p,PW,PL,.45);
     else if(sd<0&&sd>-.45)keepInside(p,PW,PL,.45);
   }
   // the hall's walls
-  const sdo=cathDist(p.x,p.z);                            // outside the outer face
+  const sdo=rectSD(p.x,p.z,HW+WALLT,HL+WALLT);            // outside the outer face
   const sdi=rectSD(p.x,p.z,HW,HL);                        // inside the inner face (negative)
-  const inDoor=Math.abs(p.x)<1.7&&p.z>HL-1.6&&p.z<HL+WALLT+1.2;
+  const azd=PATH.on?Math.abs(p.z):p.z;                    // (on the path there is a door at both ends)
+  const inDoor=Math.abs(p.x)<1.7&&azd>HL-1.6&&azd<HL+WALLT+1.2;
   if(!G.cathedralOpen){
     if(sdo<.45)pushOutOf(p,HW+WALLT,HL+WALLT,.45);        // sealed: the walls refuse you
   }else if(!inDoor&&sdo<.45&&sdi>-.45){
@@ -2139,9 +2187,9 @@ function constrain(p,arenaOnly){
 }
 // solid obstacles push actors out
 const obstacles=[];
-function addObstacle(x,z,r,stone){obstacles.push({x,z,r,stone:!!stone});}
+function addObstacle(x,z,r,stone){obstacles.push({x,z,r,stone:!!stone,tile:BUILD.tile});}
 // a wall is a thick line: actors are held off the segment by r
-function addWall(ax,az,bx,bz,r,stone){obstacles.push({seg:true,ax,az,bx,bz,r,stone:!!stone});}
+function addWall(ax,az,bx,bz,r,stone){obstacles.push({seg:true,ax,az,bx,bz,r,stone:!!stone,tile:BUILD.tile});}
 function pushOut(p,selfR){
   for(const o of obstacles){
     let ox=o.x,oz=o.z;
@@ -2183,10 +2231,12 @@ function nearRoad(x,z){
 // is a point clear of the cathedral, spawn, fires, roads, other props?
 function clearSpot(x,z,pad){
   const d=Math.hypot(x,z);
-  if(rectSD(x,z,PW,PL)<3||d>HEX_AP-2.4)return false;
+  if(BUILD.tile>=0||!PATH.on){if(rectSD(x,z,PW,PL)<3||d>HEX_AP-2.4)return false;}   // (a tile is built in the origin's frame, as the field's north wedge)
+  else if(Math.abs(x)>24)return false;
   if(Math.hypot(x-START[0],z-START[1])<4.5)return false;
   if(nearRoad(x,z))return false;
   for(const o of obstacles){
+    if(BUILD.tile>=0&&o.tile!==BUILD.tile)continue;     // (only the tile's own things are in its frame)
     if(o.seg){ // walls: keep clear of the whole span
       const sx=o.bx-o.ax,sz=o.bz-o.az;
       const t=clamp(((x-o.ax)*sx+(z-o.az)*sz)/(sx*sx+sz*sz||1),0,1);
@@ -2328,8 +2378,10 @@ function trampleBreakables(x,z,r,kind){
     if((!kind||b.kind===kind)&&Math.abs(x-b.x)<b.hw+r&&Math.abs(z-b.z)<b.hd+r)breakPew(b);
 }
 
+let groundMat=null;
 function buildWorld(){
   seedRun();
+  if(PATH.on){RUN.terrain=PATH.terrain;G.cathedralOpen=true;G.marrowGoal=PATH.goal;}
   const M={
     flag:mat('flag'),dirt:mat('dirt'),wall:mat('wall'),oss:mat('ossuary'),
     grave:mat('grave'),bone:mat('bone'),bark:mat('bark'),iron:mat('iron'),
@@ -2364,11 +2416,12 @@ function buildWorld(){
     // follows every rise and hollow, and is never a thing laid on top
     GP.cv=document.createElement('canvas');GP.cv.width=GP.cv.height=GP.S;GP.ctx=GP.cv.getContext('2d');
     GP.tex=new THREE.CanvasTexture(GP.cv);GP.tex.magFilter=THREE.NearestFilter;GP.tex.minFilter=THREE.LinearFilter;GP.tex.generateMipmaps=false;GP.tex.encoding=THREE.sRGBEncoding;GP.tex.flipY=false;
-    gm.onBeforeCompile=s=>{s.uniforms.uPaint={value:GP.tex};
+    gm.onBeforeCompile=s=>{s.uniforms.uPaint={value:GP.tex};s.uniforms.uPaintZ={value:GP.oz};gm.userData.shader=s;
       s.vertexShader='varying vec3 vWP;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.)).xyz;');
-      s.fragmentShader='uniform sampler2D uPaint;varying vec3 vWP;\n'+s.fragmentShader.replace('#include <map_fragment>',
-        '#include <map_fragment>\n{vec4 pc=texture2D(uPaint,vWP.xz/'+GP.EXT.toFixed(1)+'+0.5);pc=sRGBToLinear(pc);diffuseColor.rgb=mix(diffuseColor.rgb,pc.rgb,pc.a);}');};
-    world.add(new THREE.Mesh(geo,gm));
+      s.fragmentShader='uniform sampler2D uPaint;uniform float uPaintZ;varying vec3 vWP;\n'+s.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\n{vec4 pc=texture2D(uPaint,(vWP.xz-vec2(0.,uPaintZ))/'+GP.EXT.toFixed(1)+'+0.5);pc=sRGBToLinear(pc);diffuseColor.rgb=mix(diffuseColor.rgb,pc.rgb,pc.a);}');};
+    groundMat=gm;
+    if(!PATH.on)world.add(new THREE.Mesh(geo,gm));
   }
   /* the roads: a ring around the cathedral, and one straight way out
      to each quarter. Angle convention: (cos a, sin a) -> (x, z), so
@@ -2379,7 +2432,7 @@ function buildWorld(){
       const p0=ringPoint((i/SEG)*TAU,RING_OFF),p1=ringPoint(((i+1)/SEG)*TAU,RING_OFF);
       layRoad(p0[0],p0[1],p1[0],p1[1],1.3);
     }
-    const QUARTERS=[Math.PI/2,0,Math.PI,-Math.PI/2]; // S, E, W, N
+    const QUARTERS=PATH.on?[Math.PI/2,-Math.PI/2]:[Math.PI/2,0,Math.PI,-Math.PI/2]; // S, E, W, N (the path: only in and out)
     for(const a of QUARTERS){
       const p0=ringPoint(a,RING_OFF);
       layRoad(p0[0],p0[1],Math.cos(a)*(HEX_AP-6),Math.sin(a)*(HEX_AP-6),1.5);
@@ -2395,7 +2448,7 @@ function buildWorld(){
      nave of pews between colonnades runs north to the altar under the
      rose window — where the Warden waits. Everything here is built
      relative to the plinth's top. */
-  {
+  const buildCathedral=(back)=>{   // (back: a second door and stair at the north end, mirrored from the south, and no altar in the way — the path's cathedrals)
     const cathM=mat('cathedral');
     cathM.map.repeat.set(1.4,2.2);
     M.oss.map.repeat.set(1.6,.9);
@@ -2411,17 +2464,19 @@ function buildWorld(){
       top.rotation.x=-Math.PI/2;top.position.set(0,PH+.02,0);world.add(top);
       const rimM=cathM;
       world.add(box(.6,PH+.1,PL*2+.6,rimM,-PW,PH/2,0));world.add(box(.6,PH+.1,PL*2+.6,rimM,PW,PH/2,0));
-      world.add(box(PW*2+.6,PH+.1,.6,rimM,0,PH/2,-PL));
-      const sw=PW-STAIR_W;                                              // south rim, either side of the stair
-      world.add(box(sw,PH+.1,.6,rimM,-(STAIR_W+sw/2),PH/2,PL));world.add(box(sw,PH+.1,.6,rimM,STAIR_W+sw/2,PH/2,PL));
-      const N=8,tr=STAIR_L/N;
-      for(let k=0;k<N;k++){                                             // the steps
-        const h=PH*(1-k/N);
-        world.add(box(STAIR_W*2,h,tr,M.flag,0,h/2,PL+(k+.5)*tr));
-      }
-      for(const side of[1,-1]){                                          // balustrades flanking the stair
-        world.add(box(.4,PH*.55,STAIR_L,rimM,side*(STAIR_W+.2),PH*.55/2+.3,PL+STAIR_L/2));
-        world.add(cyl(.22,.26,PH+1.1,6,rimM,side*(STAIR_W+.2),(PH+1.1)/2,PL+STAIR_L+.1)); // newel posts
+      if(!back)world.add(box(PW*2+.6,PH+.1,.6,rimM,0,PH/2,-PL));
+      const sw=PW-STAIR_W;                                              // the rim either side of a stair
+      for(const end of(back?[1,-1]:[1])){                                // the south face — and, on the path, the north
+        world.add(box(sw,PH+.1,.6,rimM,-(STAIR_W+sw/2),PH/2,end*PL));world.add(box(sw,PH+.1,.6,rimM,STAIR_W+sw/2,PH/2,end*PL));
+        const N=8,tr=STAIR_L/N;
+        for(let k=0;k<N;k++){                                           // the steps
+          const h=PH*(1-k/N);
+          world.add(box(STAIR_W*2,h,tr,M.flag,0,h/2,end*(PL+(k+.5)*tr)));
+        }
+        for(const side of[1,-1]){                                        // balustrades flanking the stair
+          world.add(box(.4,PH*.55,STAIR_L,rimM,side*(STAIR_W+.2),PH*.55/2+.3,end*(PL+STAIR_L/2)));
+          world.add(cyl(.22,.26,PH+1.1,6,rimM,side*(STAIR_W+.2),(PH+1.1)/2,end*(PL+STAIR_L+.1))); // newel posts
+        }
       }
     }
     // ---- floor
@@ -2447,20 +2502,22 @@ function buildWorld(){
         }
       }
     }
-    cbox(HW*2+WALLT*2,WH,WALLT,cathM,0,WH/2,-WZ);                          // north wall
-    const rose=new THREE.Mesh(new THREE.CircleGeometry(2.6,16),new THREE.MeshBasicMaterial({map:texCache.rose}));
-    rose.material.polygonOffset=true;rose.material.polygonOffsetFactor=-2;rose.material.polygonOffsetUnits=-2;
-    rose.position.set(0,7.2,-(HL-.14));cath.add(rose);                    // rose window over the altar
-    const roseO=new THREE.Mesh(rose.geometry,rose.material);roseO.position.set(0,7.2,-(HL+WALLT+.14));roseO.rotation.y=Math.PI;cath.add(roseO);
-    addHaze(0,PH+7.2,-(HL-.9),0x9cb2d8,7,.22);addHaze(0,PH+7.2,-(HL+WALLT+.9),0x9cb2d8,7,.22);   // the rose glows, both ways
+    if(!back){
+      cbox(HW*2+WALLT*2,WH,WALLT,cathM,0,WH/2,-WZ);                        // north wall
+      const rose=new THREE.Mesh(new THREE.CircleGeometry(2.6,16),new THREE.MeshBasicMaterial({map:texCache.rose}));
+      rose.material.polygonOffset=true;rose.material.polygonOffsetFactor=-2;rose.material.polygonOffsetUnits=-2;
+      rose.position.set(0,7.2,-(HL-.14));cath.add(rose);                  // rose window over the altar
+      const roseO=new THREE.Mesh(rose.geometry,rose.material);roseO.position.set(0,7.2,-(HL+WALLT+.14));roseO.rotation.y=Math.PI;cath.add(roseO);
+      addHaze(0,PH+7.2,-(HL-.9),0x9cb2d8,7,.22);addHaze(0,PH+7.2,-(HL+WALLT+.9),0x9cb2d8,7,.22);   // the rose glows, both ways
+    }
     const DW=1.9;                                                          // half the door's width
     const segW=HW+WALLT-DW;
-    for(const side of[1,-1]){
-      cbox(segW,WH,WALLT,cathM,side*(DW+segW/2),WH/2,WZ);                   // south wall, either side of the portal
-      cbox(1,7.4,1.2,cathM,side*(DW+.3),3.7,WZ+.3);                        // portal jamb
-      const lint=cbox(2.6,.7,1.2,cathM,side*1.1,8.0,WZ+.3);lint.rotation.z=.5*side; // pointed arch
+    for(const end of(back?[1,-1]:[1]))for(const side of[1,-1]){            // the south wall parted by the portal — and the north, on the path
+      cbox(segW,WH,WALLT,cathM,side*(DW+segW/2),WH/2,end*WZ);
+      cbox(1,7.4,1.2,cathM,side*(DW+.3),3.7,end*(WZ+.3));                  // portal jamb
+      const lint=cbox(2.6,.7,1.2,cathM,side*1.1,8.0,end*(WZ+.3));lint.rotation.z=.5*side; // pointed arch
     }
-    cbox(DW*2+1.2,WH-7.4,WALLT,cathM,0,7.4+(WH-7.4)/2,WZ);                 // over the door
+    for(const end of(back?[1,-1]:[1]))cbox(DW*2+1.2,WH-7.4,WALLT,cathM,0,7.4+(WH-7.4)/2,end*WZ);   // over the door
     // ---- the roof: tie beams across the nave under a ridge, and a pitched
     //      roof of stone slates on either slope — with slates missing, so the
     //      moon gets in — and two fallen beams lying on the floor below
@@ -2484,12 +2541,14 @@ function buildWorld(){
     // ---- the pews: seven rows either side of the aisle, and they break
     for(let z=14.5;z>=-8.5;z-=2.5)for(const side of[1,-1])makePew(side*3.9,z,cath,woodM);
     // ---- the altar on its dais, under the rose window
-    cbox(8,.3,3.6,cathM,0,.15,-19.1);cbox(6,.3,2.6,cathM,0,.45,-19.3);     // two steps of the dais
-    cbox(3,1.1,1.2,cathM,0,1.15,-19.5);                                     // the altar stone
-    cbox(2.6,.06,1.3,M.rag,0,1.73,-19.5);                                    // its cloth
-    for(const x of[-.9,0,.9]){cath.add(cyl(.04,.05,.3,5,M.bone,x,1.9,-19.7));
-      addWisp(x,PH+2.1,-19.7,0xd0762b,.2);}                                  // candles
-    addWall(-1.5,-19.5,1.5,-19.5,.75,true);
+    if(!back){
+      cbox(8,.3,3.6,cathM,0,.15,-19.1);cbox(6,.3,2.6,cathM,0,.45,-19.3);   // two steps of the dais
+      cbox(3,1.1,1.2,cathM,0,1.15,-19.5);                                   // the altar stone
+      cbox(2.6,.06,1.3,M.rag,0,1.73,-19.5);                                  // its cloth
+      for(const x of[-.9,0,.9]){cath.add(cyl(.04,.05,.3,5,M.bone,x,1.9,-19.7));
+        addWisp(x,PH+2.1,-19.7,0xd0762b,.2);}                                // candles
+      addWall(-1.5,-19.5,1.5,-19.5,.75,true);
+    }
     // ---- candle stands down both aisles: tall iron stands, a ring of
     //      candles on each, and real warm light that breathes like the
     //      lanterns outside
@@ -2521,7 +2580,8 @@ function buildWorld(){
         side:THREE.DoubleSide}));
     beam.position.set(0,26,-15);
     scene.add(beam);
-  }
+  };
+  buildCathedral(PATH.on);
 
   /* THE WEDGES — six of them round the cathedral, each an authored chunk
      the seed chose: the grave rows, the hollow wood, the ruins, a sunken
@@ -2630,11 +2690,11 @@ function buildWorld(){
       RUN.chapelLantern=[cx-nx*3.4+lx*2.2,cz-nz*3.4+lz*2.2];
     },
   };
-  for(const w of RUN.wedges){srand(w.seed);CHUNKS[w.kind](w);}
+  if(!PATH.on)for(const w of RUN.wedges){srand(w.seed);CHUNKS[w.kind](w);}
 
   // bone piles across the field, thickest in the grave rows and the hollows; and a few lone sentinel trees
   srand(RUN.seed^0xb0e5);
-  {let piles=0;const gw=RUN.wedges.filter(w=>w.kind==='graves'||w.kind==='hollow');
+  if(!PATH.on){let piles=0;const gw=RUN.wedges.filter(w=>w.kind==='graves'||w.kind==='hollow');
     for(let i=0;i<80&&piles<10;i++){const w=gw.length&&rnd()<.6?gw[(rnd()*gw.length)|0]:null;
       const a=w?w.a+rr(-.5,.5):rnd()*TAU,d=23+rnd()*(HEX_AP-25),px=Math.cos(a)*d,pz=Math.sin(a)*d;
       if(!clearSpot(px,pz,.4))continue;piles++;bonePile(px,pz);}
@@ -2651,7 +2711,7 @@ function buildWorld(){
       const x=Math.cos(ra)*d-Math.sin(ra)*side*off,z=Math.sin(ra)*d+Math.cos(ra)*side*off;
       if(clearSpot(x,z,1.6))return [x,z,ra];}
     return null;};
-  {const w=RUN.wedges[RUN.landmarkWedges[0]],p=roadside(w);
+  if(!PATH.on){const w=RUN.wedges[RUN.landmarkWedges[0]],p=roadside(w);
     if(p){const[x,z]=p,gy=heightAt(x,z);                                   // THE WELL: a stone ring, two posts, a crossbar and a bucket
       // EMPTY: an open ring of stone, and inside it a stone-lined shaft
       // going down three metres to a dry black floor — look over the rim
@@ -2667,7 +2727,7 @@ function buildWorld(){
       world.add(cyl(.03,.03,.9,3,M.iron,x,gy+1.7,z));world.add(cyl(.14,.11,.22,6,M.iron,x,gy+1.2,z));   // the rope and the bucket
       addObstacle(x,z,1.3,true);RUN.landmarkSpots.push([x,z]);}
   }
-  {const w=RUN.wedges[RUN.landmarkWedges[1]],p=roadside(w);
+  if(!PATH.on){const w=RUN.wedges[RUN.landmarkWedges[1]],p=roadside(w);
     if(p){const[x,z,ra]=p,gy=heightAt(x,z);                                // THE TOWN SIGN: a post and a board with the village's name, readable from the road
       makeTex('sign',256,(ctx,S)=>{ctx.fillStyle='#4a3826';ctx.fillRect(0,0,S,S);
         for(let i=0;i<S;i+=6){ctx.fillStyle=`rgba(0,0,0,${.05+(i%18===0?.15:0)})`;ctx.fillRect(0,i,S,2);}
@@ -2724,18 +2784,106 @@ function buildWorld(){
   srand(RUN.seed^0x1a47);
   {
     const spots=[];
-    for(const a of [Math.PI/2,0,Math.PI,-Math.PI/2]){
+    for(const a of (PATH.on?[Math.PI/2]:[Math.PI/2,0,Math.PI,-Math.PI/2])){
       const p=ringPoint(a,RING_OFF+1.6);spots.push([p[0]-Math.sin(a)*2.4,p[1]+Math.cos(a)*2.4]);
       const n=a===Math.PI/2?2:1+(rnd()<.5?1:0);
       for(let k=0;k<n;k++){const d=a===Math.PI/2&&k===1?47:rr(30,50),side=rnd()<.5?1:-1;spots.push([Math.cos(a)*d-Math.sin(a)*side*2.1,Math.sin(a)*d+Math.cos(a)*side*2.1]);}
     }
     for(const s of RUN.landmarkSpots)spots.push([s[0]+rr(-1,1)+2.2,s[1]+rr(-1,1)]);
     if(RUN.chapelLantern)spots.push(RUN.chapelLantern);
-    for(let k=0;k<2;k++){const w=RUN.wedges[(rnd()*WEDGE_N)|0],p=inWedge(w,26,50,.4,1.2);if(p)spots.push(p);}
+    if(!PATH.on)for(let k=0;k<2;k++){const w=RUN.wedges[(rnd()*WEDGE_N)|0],p=inWedge(w,26,50,.4,1.2);if(p)spots.push(p);}
     for(const s of spots)makeLantern(s[0],s[1]);
     for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),PL-.9);
+    if(PATH.on)for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),-(PL-.9));   // and at the back door
   }
   setupWeather();
+  if(PATH.on){PATH.M=M;PATH.chunks=CHUNKS;PATH.buildCath=buildCathedral;PATH.helpers={bonePile,tree,inWedge,shared:[graveGeo,crossV,crossH,slabGeo]};initPath();}
+}
+
+/* ---------------- THE PATH: tiles built ahead, torn down behind ---------------- */
+function tileTerrain(zc){   // one shape per tile, in the world's frame
+  const f=[],r=rnd();
+  if(r<.3)f.push({t:'bowl',cx:rr(-8,8),cz:zc+rr(-7,7),r:rr(9,13),d:rr(1.2,2.4)});
+  else if(r<.55)f.push({t:'terrace',cx:rr(-8,8),cz:zc+rr(-7,7),r:rr(8,12),h:rr(1,2)});
+  else if(r<.8){const a=rr(-.5,.5);f.push({t:'ridge',cx:rr(-6,6),cz:zc+rr(-5,5),dx:Math.cos(a),dz:Math.sin(a),len:rr(18,30),w:rr(3,5),h:rr(1.2,2.2)});}
+  else{const a=rr(-.5,.5);f.push({t:'stream',cx:rr(-6,6),cz:zc+rr(-5,5),dx:Math.cos(a),dz:Math.sin(a),len:rr(24,34),w:rr(2.5,4),d:rr(1,1.8)});}
+  return f;
+}
+/* a tile's ground: a plate the tile long, its sides the hex's slanted
+   edges — widest mid-tile, narrowest at the joins, and shorn away past
+   them into the dark, as the field's rim is */
+function tileGround(t){
+  const W=64,L=t.len+1.2,sx=32,sz=Math.max(4,Math.ceil(L/1.6));
+  const geo=new THREE.PlaneGeometry(W,L,sx,sz);geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position,half=t.len/2;
+  for(let i=0;i<pos.count;i++){const x=pos.getX(i),zl=pos.getZ(i),z=zl+t.zc;
+    const edge=21+5*(1-Math.min(1,Math.abs(zl)/half));
+    let ex=Math.abs(x)-edge;if(t.k===0&&zl>half-1)ex=Math.max(ex,zl-(half-1));
+    const h=pathHeightAt(x,z);
+    pos.setY(i,ex>0?Math.min(h,0)-(ex*1.1+ex*ex*.5):h);}
+  geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,groundMat);m.position.z=t.zc;world.add(m);t.ground=m;
+}
+function tileBudget(k){return k%PATH.cathEvery===0?Math.min(420,220+16*k):Math.min(300,110+9*k);}
+function buildTile(k){
+  const prev=PATH.tiles[k-1],cath=k%PATH.cathEvery===0,len=cath?2*(PL+STAIR_L)+8:PATH.TILE;
+  const z0=prev.z1,z1=z0-len,zc=(z0+z1)/2;
+  const t={k,cath,z0,z1,zc,czc:zc,len,kind:cath?'cathedral':null,objsW:[],objsS:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false};
+  PATH.tiles[k]=t;PATH.far=k;
+  srand((RUN.seed^Math.imul(k+1,0x9e3779b1))>>>0);for(let i=0;i<4;i++)rnd();
+  if(!cath){t.kind=['graves','wood','ruins','hollow','causeway','chapel'][(rnd()*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);}
+  // built in the origin's frame — as the field's north wedge — then shifted into place
+  const W0=world.children.length,S0=scene.children.length,O0=obstacles.length,B0=breakables.length,L0=lanternLights.length,WS0=wispSystems.length,E0=enemies.length;
+  BUILD.tile=k;BUILD.offZ=cath?zc:zc+37;
+  const w={i:k,a:-Math.PI/2,cx:0,cz:-37,d:37,seed:k,kind:t.kind};
+  if(cath)PATH.buildCath(true);
+  else{PATH.chunks[t.kind](w);
+    let piles=0;for(let i=0;i<30&&piles<3;i++){const a=w.a+rr(-.4,.4),d=24+rnd()*26,px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;PATH.helpers.bonePile(px,pz);}
+    if(rnd()<.5){const p=PATH.helpers.inWedge(w,26,48,.4,2.4);if(p)PATH.helpers.tree(p[0],p[1],true);}}
+  pathHost(w,tileBudget(k),cath);
+  const offZ=BUILD.offZ;BUILD.offZ=0;BUILD.tile=-1;
+  for(let i=W0;i<world.children.length;i++){const o=world.children[i];o.position.z+=offZ;t.objsW.push(o);}
+  for(let i=S0;i<scene.children.length;i++){const o=scene.children[i];o.position.z+=offZ;t.objsS.push(o);}
+  for(let i=O0;i<obstacles.length;i++){const o=obstacles[i];if(o.seg){o.az+=offZ;o.bz+=offZ;}else o.z+=offZ;t.obs.push(o);}
+  for(let i=B0;i<breakables.length;i++){const b=breakables[i];b.z+=offZ;t.brk.push(b);}
+  for(let i=L0;i<lanternLights.length;i++)t.lamps.push(lanternLights[i]);
+  for(let i=WS0;i<wispSystems.length;i++)t.wisps.push(wispSystems[i]);
+  for(let i=E0;i<enemies.length;i++){const e=enemies[i];e.z+=offZ;e.homeZ+=offZ;if(e.rig&&e.rig.root)e.rig.root.position.z=e.z;t.foes.push(e);}
+  // and in the world's own frame: the ground, the road through, a lantern or two
+  const W1=world.children.length,S1=scene.children.length,L1=lanternLights.length;
+  tileGround(t);
+  if(cath){layRoad(0,z0+.5,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1-.5,1.5);
+    for(const end of[1,-1])for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),zc+end*(PL-.9));}
+  else{layRoad(0,z0+.5,0,z1-.5,1.5);const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++)makeLantern((rnd()<.5?1:-1)*2.3,z0-rr(5,len-5));}
+  for(let i=W1;i<world.children.length;i++)t.objsW.push(world.children[i]);
+  for(let i=S1;i<scene.children.length;i++)t.objsS.push(scene.children[i]);
+  for(let i=L1;i<lanternLights.length;i++)t.lamps.push(lanternLights[i]);
+  return t;
+}
+function teardownTile(t){
+  const shared=new Set(PATH.helpers.shared);
+  for(const o of t.objsW){world.remove(o);o.traverse(c=>{if(c.isMesh&&c.geometry&&!shared.has(c.geometry))c.geometry.dispose();});}
+  for(const o of t.objsS)scene.remove(o);
+  const drop=(arr,set)=>{for(let i=arr.length-1;i>=0;i--)if(set.has(arr[i]))arr.splice(i,1);};
+  drop(obstacles,new Set(t.obs));drop(breakables,new Set(t.brk));drop(lanternLights,new Set(t.lamps));drop(wispSystems,new Set(t.wisps));drop(PATH.terrain,new Set(t.terrain));
+  for(const e of t.foes){const i=enemies.indexOf(e);if(i<0)continue;
+    if(e.hp>0&&Math.hypot(e.x-player.x,e.z-player.z)<40)continue;                // (one still on your heels comes along)
+    if(e.rig&&e.rig.root)scene.remove(e.rig.root);enemies.splice(i,1);}
+  if(t.ground){world.remove(t.ground);t.ground.geometry.dispose();t.ground=null;}
+  t.dead=true;
+}
+function initPath(){
+  const z1=-(PL+STAIR_L+4);
+  PATH.tiles=[{k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false}];PATH.far=0;
+  tileGround(PATH.tiles[0]);
+  buildTile(1);buildTile(2);
+}
+function updatePath(dt){
+  const pz=player.z;
+  while(PATH.tiles[PATH.far].z1>pz-75)buildTile(PATH.far+1);                    // two or three tiles always stand ahead
+  for(const t of PATH.tiles)if(t&&!t.dead&&t.k>0&&t.z1>pz+50)teardownTile(t);   // what is fifty metres behind is gone
+  if(Math.abs(pz-GP.oz)>48)movePaint(Math.round(pz/30)*30);                     // the paint sheet keeps up
+  if(G.mode==='play'&&player.marrow>=PATH.goal)endGame(true);
 }
 function wrapAngle(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
 
@@ -2829,10 +2977,11 @@ function updateWeather(dt){
    ellipse along the direction given, its edge jagged, a lighter lip round
    a dark core — and the sheet is sent to the GPU once a frame, not once a
    stroke. Scorch is the same shape, darker */
-const GP={cv:null,ctx:null,tex:null,S:1024,EXT:150,dirty:false,strokes:0};
+const GP={cv:null,ctx:null,tex:null,S:1024,EXT:150,dirty:false,strokes:0,oz:0};
+function movePaint(z){GP.oz=z;if(GP.ctx)GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;if(groundMat&&groundMat.userData.shader)groundMat.userData.shader.uniforms.uPaintZ.value=z;}
 function paintScar(x,z,facing,w,l,dark){
   if(!GP.ctx)return;
-  const ctx=GP.ctx,k=GP.S/GP.EXT,cx=(x/GP.EXT+.5)*GP.S,cy=(z/GP.EXT+.5)*GP.S;
+  const ctx=GP.ctx,k=GP.S/GP.EXT,cx=(x/GP.EXT+.5)*GP.S,cy=((z-GP.oz)/GP.EXT+.5)*GP.S;
   const fx=Math.sin(facing),fz=Math.cos(facing),rx=Math.cos(facing),rz=-Math.sin(facing);
   const blob=(scale,fill)=>{ctx.beginPath();const N=9;
     for(let i=0;i<N;i++){const a=i/N*TAU,j=.65+Math.random()*.7,ax=Math.cos(a)*l/2*j*scale,az=Math.sin(a)*w/2*j*scale;   // an ellipse along the line, its edge torn
@@ -2888,6 +3037,7 @@ function addWisp(x,y,z,color,size){
 
 function updateAmbient(t,dt){
   updateWeather(dt);flushPaint();
+  if(PATH.on)for(const w of wispSystems)if(w.dust)w.pts.position.z=player.z;
   for(const L of lanternLights){
     const b=L.base||.72;
     L.l.intensity=b+(Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06)*(b/.72);
@@ -5679,6 +5829,7 @@ const player={
       $('fade').style.opacity=1;
       setTimeout(()=>{
         died.style.opacity=0;died.style.background='rgba(4,5,5,0)';
+        if(PATH.on){endGame(false);return;}                 // the path ends where you fall
         respawnWorld();
         this.respawn();
         G.mode='play';
@@ -7204,7 +7355,7 @@ class Crow{
     }
     if(this.state!=='dead'){
       constrain(this,false);
-      if(cathDist(this.x,this.z)<1)pushOutOf(this,HW+WALLT,HL+WALLT,1);   // never over the nave
+      if(cathDist(this.x,this.z)<1)pushOutOfCath(this,1);   // never over the nave
     }
     // pose: body banks and the wings row the air
     const r=this.rig;
@@ -7474,7 +7625,7 @@ function summonAngel(){
   const a=Math.random()*TAU;
   const p={x:player.x+Math.cos(a)*8,z:player.z+Math.sin(a)*8};
   constrain(p,false);
-  if(cathDist(p.x,p.z)<4)pushOutOf(p,HW+WALLT,HL+WALLT,4);
+  if(cathDist(p.x,p.z)<4)pushOutOfCath(p,4);
   const e=new FallenAngel(p.x,p.z);enemies.push(e);
   bannerShow('SOMETHING DESCENDS','its halo is cracked');
   AudioSys.screech();G.camShake=Math.max(G.camShake,.2);
@@ -8166,12 +8317,10 @@ function spawnFoe(kind,x,z){
   enemies.push(e);
   return e;
 }
-function spawnEnemies(){
-  boss=new Enemy('boss',0,-16.8,{});
-  enemies.push(boss);
-  // A fixed host, sown across the quarters, asleep under the soil —
-  // just enough marrow among them (1170) to call the cathedral open.
-  // They only stir when the pilgrim comes near.
+/* the host's kit: how horrors are sown, where a wedge has room for them,
+   the encounter templates and each chunk's taste in them — used by the
+   field's host and by every tile of the path */
+function hostKit(){
   const sow=(kind,x,z,o)=>{const e=new Enemy(kind,x,z,o||{});enemies.push(e);return e;};
   const roost=(x,z)=>{const c=new Crow(x,z);c.state='roost';
     c.y=heightAt(x,z)+.25;enemies.push(c);return c;};
@@ -8183,10 +8332,9 @@ function spawnEnemies(){
      (enough to open the cathedral), laid differently. A red-boned horror
      costs its wedge no more than a plain one: its double marrow is the
      pilgrim's bonus, not the field's spend. */
-  srand(RUN.seed^0x5eed);
   const spot=(w,minD,maxD,spread,pad)=>{for(let k=0;k<30;k++){const a=w.a+rr(-spread,spread),d=Math.min(HEX_AP-9,rr(minD,maxD)),x=Math.cos(a)*d,z=Math.sin(a)*d;if(clearSpot(x,z,pad||.6))return [x,z];}return null;};
   const high=(w)=>{let best=null,bh=-1e9;for(let k=0;k<14;k++){const p=spot(w,24,HEX_AP-12,.4);if(!p)continue;const h=groundAt(p[0],p[1]);if(h>bh){bh=h;best=p;}}return best;};
-  let crows=0;const red=(w)=>RUN.rare==='redhost'&&RUN.rareWedge===w.i?true:undefined;
+  let crows=0;const red=(w)=>PATH.on?(rnd()<.14||undefined):(RUN.rare==='redhost'&&RUN.rareWedge===w.i?true:undefined);
   const T={
     pair:  {cost:70, place(w){const p=spot(w,24,50,.4);if(!p)return;sow('hollow',p[0],p[1],{red:red(w)});const q=spot(w,24,50,.4)||p;sow('hollow',q[0]+1.5,q[1],{red:red(w)});}},
     patrol:{cost:105,place(w){const base=rr(26,40),sd=rnd()<.5?1:-1;for(let k=0;k<3;k++){const d=base+k*3.2,off=rr(2.4,3.6)*sd;sow('hollow',Math.cos(w.a)*d-Math.sin(w.a)*off,Math.sin(w.a)*d+Math.cos(w.a)*off,{red:red(w)});}}},
@@ -8199,6 +8347,29 @@ function spawnEnemies(){
   const WEIGHTS={graves:{pair:3,patrol:2,ambush:3,guard:1,brute:1,nest:1,roost:2},wood:{pair:3,patrol:1,ambush:3,guard:1,brute:1,nest:1,roost:3},
     ruins:{pair:2,patrol:1,ambush:1,guard:3,brute:1,nest:2,roost:1},hollow:{pair:2,patrol:1,ambush:2,guard:1,brute:3,nest:1,roost:1},
     causeway:{pair:2,patrol:3,ambush:1,guard:3,brute:1,nest:1,roost:1},chapel:{pair:2,patrol:1,ambush:2,guard:3,brute:1,nest:2,roost:1}};
+  return {sow,roost,spot,high,T,WEIGHTS};
+}
+/* a tile's host on the path: the templates, as the field's, to the tile's
+   budget — or, in a cathedral, sown inside the walls, in the nave */
+function pathHost(w,budget,cath){
+  const K=hostKit();
+  if(cath){let n=0;while(budget>=60&&n<12){const kind=rnd()<.2?'big':rnd()<.25?'caster':'hollow',cost=kind==='big'?140:kind==='caster'?80:60;
+      K.sow(kind,rr(-8.5,8.5),rr(-15,15),{red:rnd()<.14||undefined});budget-=cost;n++;}return;}
+  const W=K.WEIGHTS[w.kind]||K.WEIGHTS.graves;
+  for(let guard=0;guard<10&&budget>=70;guard++){
+    const opts=Object.keys(K.T).filter(k=>K.T[k].cost<=budget);
+    let tw=0;for(const k of opts)tw+=W[k]||1;let r=rnd()*tw,pick=opts[0];for(const k of opts){r-=W[k]||1;if(r<=0){pick=k;break;}}
+    K.T[pick].place(w);budget-=K.T[pick].cost;}
+}
+function spawnEnemies(){
+  if(PATH.on)return;                                       // (the path sows its host tile by tile)
+  boss=new Enemy('boss',0,-16.8,{});
+  enemies.push(boss);
+  // A fixed host, sown across the quarters, asleep under the soil —
+  // just enough marrow among them (1170) to call the cathedral open.
+  // They only stir when the pilgrim comes near.
+  const {sow,roost,spot,high,T,WEIGHTS}=hostKit();
+  srand(RUN.seed^0x5eed);
   const TOTAL=1000,SOUTH=105;                                             // (costs are coarse: the field ends up a little over, as the old fixed host did)
   const shares=RUN.wedges.map(w=>w.i===1?0:rr(.7,1.3)),sum=shares.reduce((a,b)=>a+b,0);
   let spent=0;
@@ -8358,11 +8529,11 @@ let lockMarker=null;
 // the player to this horror — never through a wall: a thing pacing outside
 // the nave while you stand in it (or the other way round) is not a target,
 // unless one of you is in the portal, which looks both ways
-function inNave(x,z){return Math.abs(x)<HW+WALLT&&Math.abs(z)<HL+WALLT;}
+function inNave(x,z){return cathDist(x,z)<0;}
 function lockReach(e){
   const pi=inNave(player.x,player.z),ei=inNave(e.x,e.z);
   if(pi===ei)return true;
-  const door=(q)=>Math.abs(q.x)<2.4&&q.z>HL-1.5&&q.z<HL+WALLT+3;
+  const door=(q)=>{const zl=q.z-cathZ(q.z),az=PATH.on?Math.abs(zl):zl;return Math.abs(q.x)<2.4&&az>HL-1.5&&az<HL+WALLT+3;};
   return door(e)||door(player);
 }
 function lockCands(){
@@ -8476,7 +8647,7 @@ function updateInteract(){
     // the one thing left to touch: the altar, once the Warden falls
     if(G.bossDead&&altarGlow){
       if(Math.hypot(player.x-ALTAR[0],player.z-ALTAR[1])<2.4){
-        promptAction={type:'altar'};
+        if(!PATH.on)promptAction={type:'altar'};
         pr.textContent='claim the bonefield';
       }
     }
@@ -8485,15 +8656,19 @@ function updateInteract(){
   if(promptAction&&IN.interactPressed)doInteract();
 }
 function doInteract(){
-  if(promptAction&&promptAction.type==='altar')endGame();
+  if(promptAction&&promptAction.type==='altar')endGame(true);
 }
-function endGame(){
+function endGame(won){
   G.mode='victory';
   const secs=Math.floor((performance.now()-G.runStart)/1000);
   const mm=String(Math.floor(secs/60)).padStart(2,'0'),ss=String(secs%60).padStart(2,'0');
+  const h2=$('victory').querySelector('h2');
+  if(PATH.on){h2.textContent=won?'The Path Walked':'The Path Ends';
+    $('stats').innerHTML=(won?'ten thousand marrow, in ':'the path took you at ')+mm+':'+ss+'<br>'+(PATH.far-2)+' hexes walked &middot; '+(G.kills||0)+' horrors felled &middot; '+player.marrow+' marrow';}
+  else{h2.textContent='The Warden Falls';
   $('stats').innerHTML=
     'the path walked in '+mm+':'+ss+'<br>'+
-    G.deaths+(G.deaths===1?' death':' deaths')+' &middot; '+player.marrow+' marrow kept';
+    G.deaths+(G.deaths===1?' death':' deaths')+' &middot; '+player.marrow+' marrow kept';}
   $('victory').style.display='flex';
   $('controls').style.display='none';$('hud').style.display='none';
   $('prompt').style.display='none';$('banner').style.opacity=0;$('toast').style.opacity=0;
@@ -8544,11 +8719,17 @@ function begin(){
   if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
   bannerShow('THE BONE PATH','walk it to its end');
 }
-$('title').addEventListener('pointerdown',begin);
+// the two ways: the field, or the path — a mode is a page (the world is built for one at load), so choosing the other reloads into it
+function gotoMode(m){const u=new URL(location.href);if(m)u.searchParams.set('mode',m);else u.searchParams.delete('mode');location.href=u.toString();}
+$('modeField').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(PATH.on)gotoMode('');else begin();});
+$('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on)gotoMode('path');else begin();});
+$('title').addEventListener('pointerdown',begin);   // (a touch anywhere else begins the way the page is set to)
 
 buildTextures();
 buildWorld();
-makeFogGate();
+$(PATH.on?'modePath':'modeField').classList.add('on');   // (the mode is known once the world is built)
+if(PATH.on){$('titleHint').innerHTML='the path runs north, hex after hex, without end &middot; every sixth hex the cathedral, its host within, a door at either end<br>ten thousand marrow to win &middot; death ends the path &middot; no rest, no fires, only nerve &middot; best in landscape';}
+if(!PATH.on)makeFogGate();
 player.init();
 spawnEnemies();
 makeGrain();
@@ -8663,7 +8844,7 @@ function fillPause(){
   $('psGhoul').textContent=slain('ghoul')?'slain':enemies.some(e=>e.kind==='ghoul'&&e.engaged)?'awake':'sleeping';
   $('psWarden').textContent=G.bossDead?'slain':G.bossActive?'awake':'waiting';
   $('psCath').textContent=G.bossDead?'yours':G.cathedralOpen?'open':'sealed';
-  if($('psRun'))$('psRun').textContent=RUN.time+', '+(RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear')+' · '+RUN.village;
+  if($('psRun'))$('psRun').textContent=RUN.time+', '+(RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear')+' · '+(PATH.on?'the path · hex '+Math.max(0,PATH.far-2):RUN.village);
   fillField();
 }
 function setPaused(on){
@@ -8701,11 +8882,12 @@ function frame(now){
       // at the eight-hundredth marrow, something with a cracked halo comes down
       if(!G.angelCame&&player.marrow>=800&&!G.bossActive){G.angelCame=true;summonAngel();}
       // stepping into the nave wakes the Warden
-      if(G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
+      if(!PATH.on&&G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
          Math.abs(player.x)<HW&&player.z<HL-2.5&&player.z>-HL)startBossFight();
       // the Warden shoulders through the pews as it comes
       if(G.bossActive&&boss.hp>0)trampleBreakables(boss.x,boss.z,boss.radius+.3);
       pruneFallen();
+      if(PATH.on)updatePath(wdt);
     }else{
       player.t+=wdt;
       resetPose(player.rig);poseDead(player.rig,player.t);
@@ -8783,7 +8965,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},worldLights,texCache,wrapA,GP,paintScar,thorStrike,thorCall,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},worldLights,texCache,wrapA,GP,paintScar,thorStrike,thorCall,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

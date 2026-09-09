@@ -287,11 +287,15 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   the knight rises out of the tuck with a fast upward cut that flows
   into the normal chain
 - **Thor's lightning** — a charge for ANY weapon (it is in every
-  charge list): the weapon is raised to the sky and the sky answers. A
-  bolt comes down from fourteen metres on the marked horror — or the
-  nearest live one within fourteen, a crow in the air as readily as
+  charge list): the weapon is thrust at the sky in ONE hand, the other
+  arm dropped, the face turned up after it — and the sky answers in two
+  beats. First the CALL: the charge climbs off the blade's tip to a
+  point in the sky above you with a fizzing electric crackle. Then the
+  ANSWER: the bolt comes down from that point on the marked horror — or
+  the nearest live one within fourteen, a crow in the air as readily as
   anything on the ground — with a crack, a flash that lights the whole
-  field, sparks and a scorch painted into the ground. What it hits is
+  field, sparks and a scorch painted into the ground, the arm sweeping
+  down to point the weapon at the mark as it lands. What it hits is
   held where it stands, stunned (40, 52 at a full hold); a crow is
   knocked out of the air to the dirt; and the charge leaps to two more
   within a few strides for half. Made for the birds.
@@ -347,8 +351,9 @@ The cathedral, its plinth, the stair and the roads never move; around
 them the seed decides:
 
 - **the hour** — sunrise, noon, dusk or night (night twice as likely).
-  Night is the moon and the stars; sunrise and dusk a low sun on its
-  side of the sky, a coloured gradient sky, warm fog; noon a high white
+  Night is the moon and the stars; sunrise a GREEN dawn — cold teal
+  overhead, pale green-gold at the horizon, a pale sun — so it never
+  reads as dusk; dusk a low orange sun, a purple sky and warm fog; noon a high white
   sun, a pale haze and a blue sky, the lanterns barely showing. The
   sky's two lights, the fog colour, the sky dome, the sun or moon
   sprite, the grade's exposure and the lanterns' strength all follow.
@@ -418,6 +423,31 @@ them the seed decides:
   marrow is the pilgrim's bonus, not the field's spend. One run in ten,
   one wedge's whole host burns red.
 
+## The path — survival
+
+The title screen offers two ways. **The field** is the game above.
+**The path** is survival: instead of the one hexagon, a chain of hex
+tiles laid end to end northward, without end — each an authored chunk
+(the grave rows, the wood, the ruins, a hollow, a causeway, a chapel)
+on its own seeded ground shape, with a road through, a lantern or two,
+and a host sown to a budget that grows with every hex. Two or three
+tiles always stand ahead of you, built as you come; what is fifty
+metres behind is torn down. Every sixth hex is the cathedral, with a
+back door and stair mirrored from the front so you walk the nave
+straight through — and its host waits INSIDE the walls. Ten thousand
+marrow wins (the marrow counter reads to it); death ends the path
+where you fall, with the hexes walked and the horrors felled on the
+stone. There is no Warden on the path.
+
+Under the hood every tile is built with the same chunk code the field
+uses, in the origin's frame as the field's north wedge, and then
+shifted into place — objects, colliders, breakables, lanterns and the
+host alike — so the field and the path share one set of pieces; the
+cathedral's collision, stairs and doors are resolved against whichever
+cathedral the pilgrim is nearest. `?mode=path` on the address loads
+the path directly; a mode is a page, so choosing the other way on the
+title reloads into it.
+
 ## Elements
 
 Fallen horrors sometimes shed a mote of the power that moved them —
@@ -432,7 +462,7 @@ glowing and shedding sparks: fire sets whatever it bites **burning** —
 a chip of life every half-second for four seconds, shedding embers,
 the way the Unburied's poison works on you — lightning arcs from your victim
 to the next horror in reach — and quickens your arm while it rides
-the blade — and frost slows whatever it bites for six long seconds.
+the blade — and frost FREEZES whatever it bites where it stands for twelve long seconds: no step, no swing, its state clock stopped, a rest pose with a shiver and a rime of mist coming off it.
 The element gutters out after a time — or is lost with your life.
 
 A landed cut can also take something with it: a sweep or a thrust
