@@ -1783,6 +1783,10 @@ const AudioSys=(()=>{
       noise(t+.05,{peak:.12,att:.05,dec:.4,f0:1800,f1:600,type:'bandpass',Q:2});
       tone(t,{f:1300,f2:380,type:'sine',peak:.06,att:.01,dec:.28});},
     // the katana: a slide of steel on wood, and the click of the guard home
+    // the call: the blade pulled back to the hand — a low swelling hum, and a rising rush
+    force(){const t=now();
+      tone(t,{f:70,f2:150,type:'sawtooth',peak:.09,att:.12,dec:.45});tone(t,{f:210,f2:440,type:'sine',peak:.07,att:.1,dec:.4});
+      noise(t+.1,{peak:.14,att:.15,dec:.35,f0:600,f1:2600,type:'bandpass',Q:3});},
     sheath(){const t=now();
       noise(t,{peak:.12,att:.02,dec:.18,f0:3000,f1:1200,type:'bandpass',Q:2});
       tone(t+.17,{f:1800,f2:900,type:'triangle',peak:.08,att:.001,dec:.05});
@@ -2030,7 +2034,7 @@ const RUN={seed:0,time:'night',weather:'clear',wedges:[],terrain:[],landmarkWedg
    front, its host waiting inside. Ten thousand marrow wins; death ends
    it. Every tile is built in the ORIGIN'S frame (the same chunk code the
    field uses, as the north wedge) and then shifted into place. */
-const PATH={on:false,tiles:[],terrain:[],goal:10000,TILE:30,cathEvery:6,far:0,M:null,chunks:null,buildCath:null,helpers:null};
+const PATH={on:false,tiles:[],terrain:[],goal:6000,TILE:30,cathEvery:6,far:0,M:null,chunks:null,buildCath:null,helpers:null,job:null,spawnQ:[]};
 const BUILD={offZ:0,tile:-1};   // while a tile is built in the origin's frame: the shift it will get, and its number
 const WEDGE_N=6;
 function wedgeAngle(i){return Math.PI/6+i*Math.PI/3;}          // 30, 90 (south: the start), 150, 210, 270 (north), 330 degrees
@@ -2577,7 +2581,7 @@ function buildWorld(){
       for(let k=0;k<5;k++){const a=k/5*TAU;
         cath.add(cyl(.03,.035,.18,5,M.bone,px2+Math.cos(a)*.22,2.4,pz2+Math.sin(a)*.22));}
       addWisp(px2,PH+2.55,pz2,0xf0a648,.42);
-      const l=new THREE.PointLight(0xe8a050,1.5,13,2);l.position.set(px2,PH+2.6,pz2);scene.add(l);
+      const l=new THREE.PointLight(0xe8a050,1.5,13,2);l.position.set(px2,PH+2.6,pz2);addLight(l);
       const hz=addHaze(px2,PH+2.55,pz2,0xffd9a0,4.5,.22);
       lanternLights.push({l,ph:Math.random()*TAU,hz,base:1.5});
       addObstacle(px2,pz2,.24);
@@ -2586,8 +2590,8 @@ function buildWorld(){
     // the rose window onto the altar's end of the floor
     const nave=new THREE.PointLight(0xb8c8dc,1.7,22,2);
     nave.position.set(0,PH+3,-14);
-    addHaze(0,PH+3.2,-14,0xb8c8dc,8,.14);
-    scene.add(nave);
+    const naveHz=addHaze(0,PH+3.2,-14,0xb8c8dc,8,.14);
+    addLight(nave);lanternLights.push({l:nave,ph:0,hz:naveHz,base:1.7,steady:true});   // (steady: no flame to flicker)
     // a pillar of moonlight stands over the altar — the one landmark
     // the dark can never swallow
     const beam=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3.6,52,12,1,true),
@@ -2670,7 +2674,8 @@ function buildWorld(){
     ruins(w){                                                               // two roofless houses on the terrace, and maybe the fallen tower
       for(const[da,d]of[[-.28,30],[.3,42]]){let a=w.a+da;if(nearRoad(Math.cos(a)*d,Math.sin(a)*d))a+=.22;
         ruinHouse(Math.cos(a)*d,Math.sin(a)*d,a+rr(-.7,.7),rr(7,9),rr(5.5,7));}
-      if(rnd()<.75){const tx=Math.cos(w.a)*52,tz=Math.sin(w.a)*52,th=5.5;
+      if(rnd()<.75){const side=PATH.on?(rnd()<.5?1:-1)*7.5:0,dd=PATH.on?46:52;      // (on the path the wedge's axis IS the road, and its rim the join: the tower stands beside it there)
+        const tx=Math.cos(w.a)*dd-Math.sin(w.a)*side,tz=Math.sin(w.a)*dd+Math.cos(w.a)*side,th=5.5;
         world.add(cyl(1.4,1.7,th,7,M.wall,tx,heightAt(tx,tz)+th/2,tz));
         const stub=cyl(1.2,1.4,4,7,M.wall,tx+3.4,heightAt(tx+3.4,tz+1)+.7,tz+1);stub.rotation.z=1.35;world.add(stub);
         addObstacle(tx,tz,1.8,true);addObstacle(tx+3.4,tz+1,1.4,true);
@@ -2700,7 +2705,7 @@ function buildWorld(){
       const px=cx-lx*1.6,pz=cz-lz*1.6,gy=heightAt(px,pz);                     // a candle stand inside, still burning
       world.add(cyl(.05,.09,1.6,5,M.iron,px,gy+.8,pz));world.add(cyl(.3,.34,.05,7,M.iron,px,gy+1.6,pz));
       for(let k=0;k<5;k++){const a=k/5*TAU;world.add(cyl(.03,.035,.18,5,M.bone,px+Math.cos(a)*.22,gy+1.7,pz+Math.sin(a)*.22));}
-      addWisp(px,gy+1.85,pz,0xf0a648,.4);const l=new THREE.PointLight(0xe8a050,1.2*RUN.lamp,11,2);l.position.set(px,gy+1.9,pz);scene.add(l);
+      addWisp(px,gy+1.85,pz,0xf0a648,.4);const l=new THREE.PointLight(0xe8a050,1.2*RUN.lamp,11,2);l.position.set(px,gy+1.9,pz);addLight(l);
       lanternLights.push({l,ph:Math.random()*TAU,hz:addHaze(px,gy+1.85,pz,0xffd9a0,4,.2),base:1.2*RUN.lamp,lamp0:1.2});addObstacle(px,pz,.24);
       for(let i=0;i<4;i++){const gx=cx-nx*rr(5,8)+lx*rr(-3,3),gz=cz-nz*rr(5,8)+lz*rr(-3,3);if(clearSpot(gx,gz,.9))stone(gx,gz,rnd());}
       RUN.chapelLantern=[cx-nx*3.4+lx*2.2,cz-nz*3.4+lz*2.2];
@@ -2841,45 +2846,80 @@ function tileGround(t){
   const m=new THREE.Mesh(geo,groundMat);m.position.z=t.zc;world.add(m);t.ground=m;
 }
 function tileBudget(k){return k%PATH.cathEvery===0?Math.min(420,220+16*k):Math.min(300,110+9*k);}
-function buildTile(k){
+/* A TILE IS BUILT OVER FRAMES, not in one: the hitch the pilgrim felt at
+   every new hex was all of it — the chunk's ruin or wood, the ground, the
+   road, the lanterns and a dozen horrors' rigs — landing in a single
+   frame. Now it is a job: one step a frame (the chunk; then the ground,
+   road and lamps with the host sown into a queue), and the horrors
+   themselves are raised two a frame after that, seventy metres out in the
+   dark where no one sees them arrive. Every step seeds the run's RNG
+   afresh, so what a hex holds is still the seed's alone. */
+function tileSeed(k,step){srand((RUN.seed^Math.imul(k+1,0x9e3779b1)^(step?Math.imul(step,0x85ebca6b):0))>>>0);for(let i=0;i<4;i++)rnd();}
+function startTile(k){
   const prev=PATH.tiles[k-1],cath=k%PATH.cathEvery===0,len=cath?2*(PL+STAIR_L)+8:PATH.TILE;
   const z0=prev.z1,z1=z0-len,zc=(z0+z1)/2;
-  const t={k,cath,z0,z1,zc,czc:zc,len,kind:cath?'cathedral':null,objsW:[],objsS:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false};
+  const t={k,cath,z0,z1,zc,czc:zc,len,kind:cath?'cathedral':null,objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false,step:0};
   PATH.tiles[k]=t;PATH.far=k;
-  srand((RUN.seed^Math.imul(k+1,0x9e3779b1))>>>0);for(let i=0;i<4;i++)rnd();
+  tileSeed(k,0);
   if(!cath){t.kind=['graves','wood','ruins','hollow','causeway','chapel'][(rnd()*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);}
-  // built in the origin's frame — as the field's north wedge — then shifted into place
-  const W0=world.children.length,S0=scene.children.length,O0=obstacles.length,B0=breakables.length,L0=lanternLights.length,WS0=wispSystems.length,E0=enemies.length;
-  BUILD.tile=k;BUILD.offZ=cath?zc:zc+37;
-  const w={i:k,a:-Math.PI/2,cx:0,cz:-37,d:37,seed:k,kind:t.kind};
-  if(cath)PATH.buildCath(true);
-  else{PATH.chunks[t.kind](w);
-    let piles=0;for(let i=0;i<30&&piles<3;i++){const a=w.a+rr(-.4,.4),d=24+rnd()*26,px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;PATH.helpers.bonePile(px,pz);}
-    if(rnd()<.5){const p=PATH.helpers.inWedge(w,26,48,.4,2.4);if(p)PATH.helpers.tree(p[0],p[1],true);}}
-  pathHost(w,tileBudget(k),cath);
-  const offZ=BUILD.offZ;BUILD.offZ=0;BUILD.tile=-1;
-  for(let i=W0;i<world.children.length;i++){const o=world.children[i];o.position.z+=offZ;t.objsW.push(o);}
-  for(let i=S0;i<scene.children.length;i++){const o=scene.children[i];o.position.z+=offZ;t.objsS.push(o);}
-  for(let i=O0;i<obstacles.length;i++){const o=obstacles[i];if(o.seg){o.az+=offZ;o.bz+=offZ;}else o.z+=offZ;t.obs.push(o);}
-  for(let i=B0;i<breakables.length;i++){const b=breakables[i];b.z+=offZ;t.brk.push(b);}
-  for(let i=L0;i<lanternLights.length;i++)t.lamps.push(lanternLights[i]);
-  for(let i=WS0;i<wispSystems.length;i++)t.wisps.push(wispSystems[i]);
-  for(let i=E0;i<enemies.length;i++){const e=enemies[i];e.z+=offZ;e.homeZ+=offZ;if(e.rig&&e.rig.root)e.rig.root.position.z=e.z;t.foes.push(e);}
-  // and in the world's own frame: the ground, the road through, a lantern or two
-  const W1=world.children.length,S1=scene.children.length,L1=lanternLights.length;
-  tileGround(t);
-  if(cath){layRoad(0,z0+.5,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1-.5,1.5);
-    for(const end of[1,-1])for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),zc+end*(PL-.9));}
-  else{layRoad(0,z0+.5,0,z1-.5,1.5);const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++)makeLantern((rnd()<.5?1:-1)*2.3,z0-rr(5,len-5));}
-  for(let i=W1;i<world.children.length;i++)t.objsW.push(world.children[i]);
-  for(let i=S1;i<scene.children.length;i++)t.objsS.push(scene.children[i]);
-  for(let i=L1;i<lanternLights.length;i++)t.lamps.push(lanternLights[i]);
-  return t;
+  PATH.job=t;return t;
 }
+// what a step adds — to the world, the scene, the haze, the lists — is
+// caught in a window, and the window is shifted north into the tile's place
+const hazeSep=()=>hazeScene!==scene;
+function tileCapture(){return {W:world.children.length,S:scene.children.length,H:hazeSep()?hazeScene.children.length:0,O:obstacles.length,B:breakables.length,L:lanternLights.length,WS:wispSystems.length};}
+function tileCommit(t,c,offZ){
+  for(let i=c.W;i<world.children.length;i++){const o=world.children[i];o.position.z+=offZ;t.objsW.push(o);}
+  for(let i=c.S;i<scene.children.length;i++){const o=scene.children[i];o.position.z+=offZ;t.objsS.push(o);}
+  if(hazeSep())for(let i=c.H;i<hazeScene.children.length;i++){const o=hazeScene.children[i];o.position.z+=offZ;t.hazes.push(o);}
+  for(let i=c.O;i<obstacles.length;i++){const o=obstacles[i];if(o.seg){o.az+=offZ;o.bz+=offZ;}else o.z+=offZ;t.obs.push(o);}
+  for(let i=c.B;i<breakables.length;i++){const b=breakables[i];b.z+=offZ;t.brk.push(b);}
+  for(let i=c.L;i<lanternLights.length;i++){const L=lanternLights[i];if(!L.l.parent)L.l.position.z+=offZ;t.lamps.push(L);}   // (a pooled light is no scene child: shifted by hand)
+  for(let i=c.WS;i<wispSystems.length;i++)t.wisps.push(wispSystems[i]);
+}
+function stepTile(){
+  const t=PATH.job;if(!t)return;
+  const k=t.k,cath=t.cath,w={i:k,a:-Math.PI/2,cx:0,cz:-37,d:37,seed:k,kind:t.kind},offZ=cath?t.zc:t.zc+37;
+  tileSeed(k,t.step+1);BUILD.tile=k;
+  if(t.step===0){
+    // the chunk — or the cathedral — built in the origin's frame, as the field's north wedge, then shifted into place
+    BUILD.offZ=offZ;const c=tileCapture();
+    if(cath)PATH.buildCath(true);
+    else{PATH.chunks[t.kind](w);
+      let piles=0;for(let i=0;i<30&&piles<3;i++){const a=w.a+rr(-.4,.4),d=24+rnd()*26,px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;PATH.helpers.bonePile(px,pz);}
+      if(rnd()<.5){const p=PATH.helpers.inWedge(w,26,48,.4,2.4);if(p)PATH.helpers.tree(p[0],p[1],true);}}
+    BUILD.offZ=0;tileCommit(t,c,offZ);
+  }else{
+    // the host, sown into the queue (still in the origin's frame)...
+    BUILD.offZ=offZ;{const c=tileCapture();pathHost(w,tileBudget(k),cath);BUILD.offZ=0;tileCommit(t,c,offZ);}
+    // ...and in the world's own frame: the ground, the road through, a lantern or two
+    const c=tileCapture(),{z0,z1,zc,len}=t;
+    tileGround(t);
+    if(cath){layRoad(0,z0+.5,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1-.5,1.5);
+      for(const end of[1,-1])for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),zc+end*(PL-.9));}
+    else{layRoad(0,z0+.5,0,z1-.5,1.5);const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++)makeLantern((rnd()<.5?1:-1)*2.3,z0-rr(5,len-5));}
+    tileCommit(t,c,0);
+    PATH.job=null;
+  }
+  BUILD.tile=-1;t.step++;
+}
+// the queued host, raised a few a frame — standing on the road already,
+// no grave to climb from — in the world's frame
+function drainSpawns(n){
+  while(n-->0&&PATH.spawnQ.length){
+    const q=PATH.spawnQ.shift(),t=PATH.tiles[q.tile];if(!t||t.dead)continue;
+    let e;
+    if(q.kind==='crow'){e=new Crow(q.x,q.z);e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
+    else{e=new Enemy(q.kind,q.x,q.z,q.o);e.patrol();}
+    enemies.push(e);t.foes.push(e);
+  }
+}
+function buildTile(k){startTile(k);while(PATH.job)stepTile();drainSpawns(1e9);return PATH.tiles[k];}   // (all at once: before the first frame, or for a probe)
 function teardownTile(t){
   const shared=new Set(PATH.helpers.shared);
   for(const o of t.objsW){world.remove(o);o.traverse(c=>{if(c.isMesh&&c.geometry&&!shared.has(c.geometry))c.geometry.dispose();});}
   for(const o of t.objsS)scene.remove(o);
+  for(const o of t.hazes)hazeScene.remove(o);
   const drop=(arr,set)=>{for(let i=arr.length-1;i>=0;i--)if(set.has(arr[i]))arr.splice(i,1);};
   drop(obstacles,new Set(t.obs));drop(breakables,new Set(t.brk));drop(lanternLights,new Set(t.lamps));drop(wispSystems,new Set(t.wisps));drop(PATH.terrain,new Set(t.terrain));
   for(const e of t.foes){const i=enemies.indexOf(e);if(i<0)continue;
@@ -2896,8 +2936,10 @@ function initPath(){
 }
 function updatePath(dt){
   const pz=player.z;
-  while(PATH.tiles[PATH.far].z1>pz-75)buildTile(PATH.far+1);                    // two or three tiles always stand ahead
-  for(const t of PATH.tiles)if(t&&!t.dead&&t.k>0&&t.z1>pz+50)teardownTile(t);   // what is fifty metres behind is gone
+  if(PATH.job)stepTile();                                                       // a tile under way: one step of it a frame
+  else if(PATH.tiles[PATH.far].z1>pz-75)startTile(PATH.far+1);                   // two or three tiles always stand ahead
+  drainSpawns(2);
+  for(const t of PATH.tiles)if(t&&!t.dead&&t.k>0&&t.z1>pz+50&&t!==PATH.job)teardownTile(t);   // what is fifty metres behind is gone
   if(Math.abs(pz-GP.oz)>48)movePaint(Math.round(pz/30)*30);                     // the paint sheet keeps up
   if(G.mode==='play'&&player.marrow>=PATH.goal)endGame(true);
 }
@@ -3009,6 +3051,29 @@ function paintScar(x,z,facing,w,l,dark){
 function flushPaint(){if(GP.dirty&&GP.tex){GP.tex.needsUpdate=true;GP.dirty=false;}}
 
 const lanternLights=[];
+/* THE LIGHT POOL (the path): three.js recompiles every lit shader the
+   moment the scene's count of lights changes — on a phone that is the
+   hitch, a black flash and a dropped half-second, every time a tile with
+   a lantern or a candle-lit nave is built or torn down ahead. So on the
+   path no lantern, candle or nave light is ever put in the scene: a
+   fixed dozen point lights are, from the first frame, and each frame
+   the twelve nearest the pilgrim are copied into them (position, colour,
+   flicker). The count never changes, so nothing ever recompiles. */
+const LPOOL={lights:[],N:12};
+function addLight(l){
+  if(!PATH.on){scene.add(l);return l;}
+  if(!LPOOL.lights.length)for(let i=0;i<LPOOL.N;i++){const p=new THREE.PointLight(0xffffff,0,8,2);p.position.set(0,-50,0);scene.add(p);LPOOL.lights.push(p);}
+  l.pooled=true;return l;
+}
+function syncLightPool(){
+  if(!PATH.on||!LPOOL.lights.length)return;
+  const px=player.x,pz=player.z,live=[];
+  for(const L of lanternLights)if(L.l.pooled)live.push([Math.hypot(L.l.position.x-px,L.l.position.z-pz),L.l]);
+  live.sort((a,b)=>a[0]-b[0]);
+  for(let i=0;i<LPOOL.N;i++){const p=LPOOL.lights[i],s=live[i];
+    if(!s){if(p.intensity){p.intensity=0;p.position.y=-50;}continue;}
+    const l=s[1];p.position.copy(l.position);p.color.copy(l.color);p.intensity=l.intensity;p.distance=l.distance;p.decay=l.decay;}
+}
 function makeLantern(x,z){
   const gy=heightAt(x,z);
   const ironM=mat('iron');
@@ -3029,7 +3094,7 @@ function makeLantern(x,z){
   addWisp(wx,gy+2.4,wz,0xf0a648,.4);
   const l=new THREE.PointLight(0xe8913c,.8*RUN.lamp,8,2);                      // (by day a lantern barely shows)
   l.position.set(wx,gy+2.45,wz);
-  scene.add(l);
+  addLight(l);
   const hz=addHaze(wx,gy+2.4,wz,0xffd9a0,4.4,.2*RUN.lamp);
   lanternLights.push({l,ph:Math.random()*TAU,hz,base:.8*RUN.lamp,lamp0:.8});
 }
@@ -3056,9 +3121,11 @@ function updateAmbient(t,dt){
   if(PATH.on)for(const w of wispSystems)if(w.dust)w.pts.position.z=player.z;
   for(const L of lanternLights){
     const b=L.base||.72;
+    if(L.steady){L.l.intensity=b;continue;}
     L.l.intensity=b+(Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06)*(b/.72);
     L.hz.material.opacity=(.16+(L.l.intensity-b)*.5)*(RUN.lamp<1?RUN.lamp:1);   // the haze breathes with the flame
   }
+  syncLightPool();
   for(const w of wispSystems){
     if(w.dust){
       const attr=w.pts.geometry.attributes.position;
@@ -4974,12 +5041,13 @@ try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
 const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana']],
-  katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl'],['thor',"thor's lightning"]],
+  katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl'],['throw','magic throw'],['thor',"thor's lightning"]],
   armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade'],['thor',"thor's lightning"]],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot'],['bomb','bomb arrow'],['thor',"thor's lightning"]]};
 const HERO_NOTES={double:'two fast cuts, forward and back, and nothing after; a full charge\'s second cut staggers all but the Warden',
-  thor:'the weapon raised to the sky, and the sky answers: a bolt comes down on the marked horror — or the nearest, a crow in the air as readily as anything on the ground — and holds it where it stands, stunned; two more near it catch the leap. Any weapon',
+  thor:'the weapon raised to the sky and swept down to point at the marked horror — or the nearest, a crow in the air as readily as anything on the ground — and the bolt goes in the one motion: off the tip, up over the hero and down on them, holding them where they stand, stunned; two more near it catch the leap. Any weapon',
+  throw:'the blade raised overhead, then THROWN, point first: it drives into the chest of whatever it meets for twice a cut and stands there while they reel round it. One near its end it goes clean through — they burst apart — and the blade turns in the air and comes home to the hand. While it stands in a horror, a charge (or a tap) calls it back like a thing pulled on a string, cutting whatever lies between',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
   quake:'the blade hauled overhead while the ground groans and the screen shakes, then driven into the flags: every small and medium horror near is blasted five body-lengths away, some of them bursting into bones on the way',
   knock:'a heavy shaft that throws them back off their feet and staggers all but the Warden',
@@ -5488,23 +5556,23 @@ function boltArc(x1,y1,z1,x2,y2,z2){
    crack, a flash that lights the whole field, sparks and a scorch. What it
    hits is held where it stands, stunned (a crow knocked out of the air);
    and the charge leaps on to two more within a few strides for half. */
-function thorCall(P){
-  // the charge leaves the blade's tip and climbs to a point in the sky above
-  // the hero, fizzing all the way — that point is where the answer comes from
-  const tip=bladeTrail.tip();
-  const sky={x:tip.x+rr3(-1.5,1.5),y:tip.y+13,z:tip.z+rr3(-1.5,1.5)};
-  for(let c=0;c<3;c++){const N=9,pts=[];for(let i=0;i<=N;i++){const k=i/N,mid=i>0&&i<N;pts.push(new THREE.Vector3(tip.x+(sky.x-tip.x)*k+(mid?rr3(-.5,.5):0)+(c?rr3(-.05,.05):0),tip.y+(sky.y-tip.y)*k,tip.z+(sky.z-tip.z)*k+(mid?rr3(-.5,.5):0)+(c?rr3(-.05,.05):0)));}boltLine(pts,.3);}
-  for(let i=0;i<10;i++)elemFleck('lightning',tip.x+rr3(-.2,.2),tip.y+rr3(-.1,.3),tip.z+rr3(-.2,.2));
-  AudioSys.thorZap();G.glowFlash=.6;G.camShake=Math.max(G.camShake,.12);G.vibr(20);
-  return sky;
-}
-function thorStrike(P,foe,full,sky){
+function thorStrike(P,foe,full){
+  // ONE motion: the charge leaves the blade's tip as the arm comes level,
+  // climbs nine metres over the hero and comes down on the mark — a single
+  // kinked thread, tip to sky to horror, drawn thrice a hair apart for
+  // weight with forks off it — the zap of its leaving and the crack of its
+  // landing in the same instant
   const R=14;let t=foe&&foe.hp>0&&Math.hypot(foe.x-P.x,foe.z-P.z)<R?foe:null;
   if(!t){let bd=R;for(const e of enemies){if(e.hp<=0||e.state==='dormant'||e.state==='rise'||e.untouchable||e.state==='scatter')continue;const d=Math.hypot(e.x-P.x,e.z-P.z);if(d<bd){bd=d;t=e;}}}
-  const fx=Math.sin(P.facing),fz=Math.cos(P.facing);
+  const fx=Math.sin(P.facing),fz=Math.cos(P.facing),tip=bladeTrail.tip();
   const tx=t?t.x:P.x+fx*3,tz=t?t.z:P.z+fz*3,ty=t?(t.crow?t.y:heightAt(tx,tz)+(t.boss?2.8:t.big?1.9:1.4)):heightAt(tx,tz)+.1;
-  skyBolt(tx,ty,tz,sky);
-  AudioSys.thorCrack();G.camShake=Math.max(G.camShake,.55);G.hitstop=Math.max(G.hitstop,.12);G.vibr([50,30,80]);G.glowFlash=1;WX.flash=Math.max(WX.flash,.7);
+  const apex={x:tip.x+(tx-tip.x)*.4+rr3(-1,1),y:Math.max(tip.y,ty)+9,z:tip.z+(tz-tip.z)*.4+rr3(-1,1)},base=[];
+  const seg=(a,b,n,j)=>{for(let i=0;i<n;i++){const k=i/n,mid=i>0;base.push([a.x+(b.x-a.x)*k+(mid?rr3(-j,j):0),a.y+(b.y-a.y)*k+(mid?rr3(-j*.4,j*.4):0),a.z+(b.z-a.z)*k+(mid?rr3(-j,j):0)]);}};
+  seg(tip,apex,6,.5);seg(apex,{x:tx,y:ty,z:tz},8,.8);base.push([tx,ty,tz]);
+  for(let c=0;c<3;c++){const pts=base.map(p=>new THREE.Vector3(p[0]+(c?rr3(-.06,.06):0),p[1],p[2]+(c?rr3(-.06,.06):0)));boltLine(pts,.26);}
+  for(const i of[3,8,11]){const q=base[i];boltArc(q[0],q[1],q[2],q[0]+rr3(-2.5,2.5),q[1]-rr3(1,3),q[2]+rr3(-2.5,2.5));}
+  for(let i=0;i<10;i++)elemFleck('lightning',tip.x+rr3(-.2,.2),tip.y+rr3(-.1,.3),tip.z+rr3(-.2,.2));
+  AudioSys.thorZap();AudioSys.thorCrack();G.camShake=Math.max(G.camShake,.55);G.hitstop=Math.max(G.hitstop,.12);G.vibr([50,30,80]);G.glowFlash=1;WX.flash=Math.max(WX.flash,.7);
   elemBurst('lightning',tx,ty,tz);sparkBurst(tx,ty,tz,16);paintScar(tx,tz,Math.random()*TAU,.9,1.1,true);
   if(!t)return;
   const dmg=full?52:40;
@@ -5515,21 +5583,114 @@ function thorStrike(P,foe,full,sky){
     .sort((a,b)=>Math.hypot(a.x-tx,a.z-tz)-Math.hypot(b.x-tx,b.z-tz)).slice(0,2);
   for(const e of near){const ey=e.crow?e.y:heightAt(e.x,e.z)+1.3;boltArc(tx,ty,tz,e.x,ey,e.z);elemBurst('lightning',e.x,ey,e.z);hold(e,Math.round(dmg/2));}
 }
-function skyBolt(x,y,z,from){
-  // the main thread from the point in the sky the call climbed to (or from
-  // fourteen metres up), kinked all the way down, drawn thrice a hair
-  // apart for weight, with two forks off it
-  const top=from||{x:x+rr3(-2.5,2.5),y:y+14,z:z+rr3(-2.5,2.5)},N=11,base=[];
-  for(let i=0;i<=N;i++){const k=i/N,mid=i>0&&i<N;base.push([top.x+(x-top.x)*k+(mid?rr3(-.8,.8):0),top.y+(y-top.y)*k,top.z+(z-top.z)*k+(mid?rr3(-.8,.8):0)]);}
-  for(let c=0;c<3;c++){const pts=base.map(p=>new THREE.Vector3(p[0]+(c?rr3(-.06,.06):0),p[1],p[2]+(c?rr3(-.06,.06):0)));boltLine(pts,.22);}
-  for(const i of[3,6]){const s=base[i];boltArc(s[0],s[1],s[2],s[0]+rr3(-2.5,2.5),s[1]-rr3(1,3),s[2]+rr3(-2.5,2.5));}
-}
 function boltLine(pts,life){
   const g=new THREE.BufferGeometry().setFromPoints(pts);
   const m=new THREE.LineBasicMaterial({color:0xf4f8ff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false});
   const line=new THREE.Line(g,m);scene.add(line);
   let t=0;effects.push({update(dt){t+=dt;m.opacity=Math.max(0,1-t/life)*(t<.05?1:.7+.3*Math.sin(t*90));
     if(t>life){scene.remove(line);g.dispose();m.dispose();return false;}return true;}});
+}
+/* THE MAGIC THROW (the katana): the blade leaves the hand point first.
+   What it meets it drives into, a hand's width into the chest, for twice
+   a cut — and stands there while they reel round it. One near its end it
+   goes clean through: they burst apart behind it, and it turns in the
+   air and comes home. While it stands in a horror (or in the ground
+   where it fell), a charge or a tap calls it back like a thing pulled on
+   a string — it tears out, whirls flat through the air to the hand, and
+   cuts for half whatever lies between. */
+function throwKatana(P,foe,full){
+  const r=P.rig;if(!r||!r.katana||P.katThrown)return;
+  const m=r.weapon.clone();const drop=[];m.traverse(o=>{if(o.isLight)drop.push(o);});for(const o of drop)o.parent.remove(o);   // (no light leaves with it: a light added is a shader recompile)
+  m.traverse(o=>{o.layers.set(0);});                                            // it flies in the world, snapped and dithered like everything else
+  const tipLen=1.69*r.s,tip=bladeTrail.tip();
+  const R=15;let t=foe&&foe.hp>0&&Math.hypot(foe.x-P.x,foe.z-P.z)<R?foe:null;
+  if(!t){let bd=R;const fx=Math.sin(P.facing),fz=Math.cos(P.facing);           // unmarked: the nearest live thing in the thirty degrees ahead
+    for(const e of enemies){if(e.hp<=0||e.state==='dormant'||e.state==='rise'||e.untouchable||e.state==='scatter')continue;const dx=e.x-P.x,dz=e.z-P.z,d=Math.hypot(dx,dz);if(d<bd&&d>.5&&(dx*fx+dz*fz)/d>.86){bd=d;t=e;}}}
+  // it leaves from the shoulder, level (the raised tip would send it diving), at the chest of the mark
+  const gy=heightAt(P.x,P.z),from=new THREE.Vector3(P.x+Math.sin(P.facing)*.5,gy+1.45,P.z+Math.cos(P.facing)*.5);
+  const to=t?new THREE.Vector3(t.x,t.crow?t.y:heightAt(t.x,t.z)+(t.boss?1.9:t.big?1.3:1.05),t.z)
+            :new THREE.Vector3(P.x+Math.sin(P.facing)*14,gy+1.2,P.z+Math.cos(P.facing)*14);
+  const dir=to.sub(from).normalize();
+  m.position.copy(from).addScaledVector(dir,-tipLen*.4);   // the grip a little behind the shoulder, the blade already out past it
+  scene.add(m);r.weapon.visible=false;
+  P.katThrown={state:'fly',mesh:m,dir,sp:24,dist:0,range:16,tipLen,hit:new Set(),target:null,full:!!full,spin:0};
+  katOrient(P.katThrown);
+  AudioSys.heavySwing();G.glowFlash=.4;G.vibr(15);
+}
+function katOrient(K){
+  const m=K.mesh;
+  if(K.state==='return'){ // whirling flat, like a thrown thing coming round
+    const flat=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(1,0,0));
+    m.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),K.spin).multiply(flat);
+  }else m.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),K.dir);
+}
+function katanaMeets(P,K,e,tip,ey){
+  K.hit.add(e);
+  const d=K.dir,dmg=K.full?48:36;                                              // twice a cut
+  AudioSys.hit();AudioSys.gore();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);G.vibr([30,20,50]);
+  gore(e,tip.x,ey,tip.z,12,1.3);sparkBurst(tip.x,ey,tip.z,6);
+  if(e.crow){e.takeHit(dmg,99,P.x,P.z,1.5);if(e.hp>0)e.scatter();return;}     // a crow is swatted through: the blade flies on
+  const low=e.hp-dmg<=e.maxHp*.35;
+  if(low&&!e.boss){
+    // clean through: it bursts apart behind the blade, and the blade turns for home
+    e.noRag=true;e.takeHit(Math.max(dmg,e.hp+1),99,P.x,P.z,2,{dx:d.x,dz:d.z,up:1});
+    if(e.hp<=0){e.crumbled=true;e.rig.root.visible=false;
+      boneBurst(e.x,ey,e.z,e.red?0xc26a5a:0xcfc4a3,26,3.6);gore(e,e.x,ey,e.z,24,1.9);goreDecal(e,e.x,e.z,.8);smokePuff(e.x,ey,e.z,3);
+      AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.55);}
+    K.dir.y=Math.max(K.dir.y,.04);K.dir.normalize();K.range=Math.min(K.range,K.dist+3);K.through=true;return;   // (on a few strides, level, then home — no ground catches it)
+  }
+  // it drives in and stays: the point a hand's width inside, the grip out the front
+  e.takeHit(dmg,e.boss?4:99,P.x,P.z,1.2,{dx:d.x,dz:d.z,up:.6});
+  const m=K.mesh;m.position.set(e.x,ey,e.z).addScaledVector(d,.25-K.tipLen);   // the point a hand's width past the chest's centre
+  (e.rig.torso||e.rig.root).attach(m);K.state='stuck';K.target=e;
+  if(!e.boss&&e.hp>0&&e.state!=='down'&&!e.rag){e.state='stagger';e.t=0;e.poise=0;e.attack=null;e.vx=d.x*2;e.vz=d.z*2;}
+}
+function recallKatana(P){
+  const K=P.katThrown;if(!K||K.state==='return')return;
+  const m=K.mesh;
+  if(K.state==='stuck'){const wp=m.getWorldPosition(new THREE.Vector3());scene.attach(m);const e=K.target;
+    if(e&&e.hp>0){gore(e,wp.x,wp.y,wp.z,8,1.1);e.takeHit(6,99,P.x,P.z,.6);}   // it tears out
+    K.target=null;}
+  const r=P.rig;r.root.updateMatrixWorld(true);const h=r.weapon.getWorldPosition(new THREE.Vector3());
+  K.dir=h.sub(m.position).normalize();K.sp=7;K.spin=0;K.hit=new Set();K.state='return';
+  AudioSys.force();G.vibr(20);G.glowFlash=.35;
+  for(let i=0;i<6;i++)elemFleck('lightning',m.position.x+rr3(-.3,.3),m.position.y+rr3(-.2,.3),m.position.z+rr3(-.3,.3));
+}
+function updateKatThrow(P,dt){
+  const K=P.katThrown;if(!K)return;const m=K.mesh,r=P.rig;
+  const tipOf=()=>m.position.clone().addScaledVector(K.dir,K.tipLen);
+  if(K.state==='fly'){
+    // the flight is swept in half-metre steps: at a low frame rate a whole stride a frame would skip clean past a horror
+    const st=K.sp*dt,n=Math.max(1,Math.ceil(st/.5));let tip=tipOf();
+    for(let i=0;i<n;i++){m.position.addScaledVector(K.dir,st/n);K.dist+=st/n;tip=tipOf();
+      for(const e of enemies){
+        if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||K.hit.has(e))continue;
+        const ey=e.crow?e.y:heightAt(e.x,e.z)+(e.boss?1.9:e.big?1.3:1.05);
+        if(Math.hypot(e.x-tip.x,e.z-tip.z)<e.radius+.4&&Math.abs(ey-tip.y)<(e.boss?1.6:e.big?1.2:.9)){katanaMeets(P,K,e,tip,ey);if(K.state!=='fly')return;}
+      }}
+    const gy=heightAt(tip.x,tip.z);
+    if(K.dist>K.range)recallKatana(P);
+    else if(tip.y<gy+.04&&!K.through){ // into the earth: it stands there, point in the ground, till it is called
+      m.position.y+=gy+.04-tip.y;K.state='ground';boneBurst(tip.x,gy+.05,tip.z,0x4a463a,5,1.2);AudioSys.step(.8);}
+  }else if(K.state==='stuck'){
+    const e=K.target;
+    if(!e||e.hp<=0||e.crumbled||enemies.indexOf(e)<0){ // its horror is down: the blade drops out of it and lies where it fell
+      const wp=m.getWorldPosition(new THREE.Vector3());scene.attach(m);
+      m.position.set(wp.x,heightAt(wp.x,wp.z)+.05,wp.z);K.dir.set(Math.sin(P.facing+1.3),0,Math.cos(P.facing+1.3));K.state='ground';katOrient(K);K.target=null;}
+  }else if(K.state==='return'){
+    r.root.updateMatrixWorld(true);const h=r.weapon.getWorldPosition(new THREE.Vector3()),to=h.clone().sub(m.position),d=to.length();
+    if(d<1.0){ // home: back in the hand
+      scene.remove(m);r.weapon.visible=true;P.katThrown=null;AudioSys.sheath();G.vibr(15);return;}
+    to.divideScalar(d);K.dir.lerp(to,Math.min(1,9*dt)).normalize();
+    K.sp=Math.min(30,K.sp+60*dt);m.position.addScaledVector(K.dir,K.sp*dt);K.spin+=dt*22;
+    for(const e of enemies){ // cutting for half whatever lies between
+      if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||K.hit.has(e))continue;
+      const ey=e.crow?e.y:heightAt(e.x,e.z)+(e.boss?1.9:e.big?1.3:1.05);
+      if(Math.hypot(e.x-m.position.x,e.z-m.position.z)<e.radius+.9&&Math.abs(ey-m.position.y)<1.2){K.hit.add(e);
+        AudioSys.hit();gore(e,e.x,ey,e.z,6,1.1);e.takeHit(K.full?24:18,e.boss?2:6,m.position.x,m.position.z,.8,{dx:K.dir.x,dz:K.dir.z,up:.4});}
+    }
+  }
+  if(K.state==='fly'||K.state==='return')katOrient(K);
 }
 /* a crit blasts a skeleton into REAL bones: pieces fly, bounce, lie on
    the path for the scatter, then drag themselves back into the body */
@@ -5737,7 +5898,9 @@ const player={
   ultraThud(p,at,n){n=n||1;if(this.ultra()&&(this.thudDone|0)<n&&p>=at){this.thudDone=n;G.camShake=Math.max(G.camShake,.3);AudioSys.bodyfall();G.vibr(25);}},                                   // the ultra's swings take half again as long
   atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.ultra()?1.05:.68;},
   // the pilgrim's body is remade from the loadout: same place, same facing
+  dropThrown(){if(this.katThrown){const m=this.katThrown.mesh;if(m.parent)m.parent.remove(m);this.katThrown=null;if(this.rig&&this.rig.weapon)this.rig.weapon.visible=true;}},
   rebuild(){
+    this.dropThrown();
     if(this.rig)scene.remove(this.rig.root);
     this.rig=makeKnightRig(LOADOUT);
     this.rig.smoothPose=true;
@@ -5811,7 +5974,7 @@ const player={
     return 'hit';
   },
   die(){
-    this.hp=0;this.state='dead';this.t=0;
+    this.hp=0;this.state='dead';this.t=0;this.dropThrown();
     G.mode='dead';G.deaths++;
     AudioSys.deathGong();G.vibr([80,60,120]);
     // the path keeps what it takes
@@ -6067,6 +6230,7 @@ const player={
     };
     // the Souls rolling attack: a rising cut straight out of the roll
     const startRollAtk=(d)=>{
+      if(this.katThrown){startKPull();return;}
       if(this.weapon()==='bow'){startShoot(null);return;}
       this.draw();
       this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
@@ -6197,6 +6361,17 @@ const player={
       G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
       boneBurst(this.x,.15,this.z,0x4a463a,4,1.4);   // the rear foot tears the ground
     };
+    // THE MAGIC THROW: the raised blade flung point first
+    const startKThrow=()=>{
+      this.state='kthrow';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.queued=false;this.qDir=null;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+    };
+    // ...and the CALL: the hand out, and the blade comes back to it
+    const startKPull=()=>{
+      this.state='kpull';this.t=0;this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
+      recallKatana(this);
+    };
     // THOR'S LIGHTNING: the weapon raised to the sky, and a bolt called down
     const startThor=()=>{
       if(this.draw)this.draw();
@@ -6240,7 +6415,7 @@ const player={
       // the speed: a short ramp (never a jump at the sprint line — but
       // short: a tenth of a second to three-quarters), a quicker stop, and
       // back or sideways a little slower than straight ahead
-      const wantSp=mAmt>0?(run?7.2:4.3*Math.min(1,mAmt*1.35))*(.85+.15*Math.max(0,relF)):0;
+      const wantSp=(mAmt>0?(run?7.2:4.3*Math.min(1,mAmt*1.35))*(.85+.15*Math.max(0,relF)):0)*(PATH.on?1.5:1);   // (the path: half again as fast, walk and sprint — it is a run, not a pilgrimage)
       this.spd=lerp(this.spd||0,wantSp,Math.min(1,(wantSp>(this.spd||0)?14:22)*dt));
       if(mAmt>0){this.x+=mvx*this.spd*dt;this.z+=mvz*this.spd*dt;}
       else if(this.spd>.05){this.x+=(this.moveX||0)*this.spd*dt;this.z+=(this.moveZ||0)*this.spd*dt;}   // the last stride's carry as it stops
@@ -6280,7 +6455,8 @@ const player={
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(IN.swipe){
-        if(IN.swipe.kind==='atk'){
+        if(IN.swipe.kind==='atk'&&this.katThrown)startKPull();   // the blade is away: a tap calls it home
+        else if(IN.swipe.kind==='atk'){
           const ex=this.execTarget(),bs=ex?null:this.backstabTarget();
           if(ex)startExecute(ex);                // a stunned foe in reach: finish it
           else if(bs)startBackstab(bs);          // one with its back turned: through the spine
@@ -6345,10 +6521,11 @@ const player={
       }
       const released=IN.chargeRelease||!IN.chargeHeld;
       if(released||this.chargeT>1.8){
-        if(this.weapon()==='bow'){if(this.chargeT>=.3&&LOADOUT.bowCharge==='thor')startThor();else startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);}
+        if(this.katThrown)startKPull();                                                    // the blade is away: the charge is the call
+        else if(this.weapon()==='bow'){if(this.chargeT>=.3&&LOADOUT.bowCharge==='thor')startThor();else startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);}
         else if(this.chargeT<(this.weapon()==='katana'&&katSheathes()?.5:.3))startAttack(null);   // barely held: it's just a strike (a draw needs its blade home first)
         else if(LOADOUT[chargeKey()]==='thor')startThor();
-        else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else if(LOADOUT.katanaCharge==='fowl')startFowl();else startIai();}
+        else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else if(LOADOUT.katanaCharge==='fowl')startFowl();else if(LOADOUT.katanaCharge==='throw')startKThrow();else startIai();}
         else if(LOADOUT.charge==='spin')startSpin();
         else if(LOADOUT.charge==='quake')startQuake();
         else if(LOADOUT.charge==='thrust')startKThrust();
@@ -6512,13 +6689,22 @@ const player={
       if(p>=1)this.state='free';
     }
     else if(this.state==='thor'){
-      const DUR=1.25,p=this.t/DUR;
+      const DUR=1.0,p=this.t/DUR;
       if(foe&&p<.3)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
-      // first the CALL: the charge climbs off the blade's tip to the sky, fizzing —
-      if(this.hitDone<1&&p>=.14){this.hitDone=1;this.thorSky=thorCall(this);}
-      // — then the ANSWER, a beat later: the sky's bolt comes down on the mark
-      if(this.hitDone<2&&p>=.36){this.hitDone=2;thorStrike(this,foe,this.chargeFull,this.thorSky);}
+      // the arm sweeps down from the sky to point the weapon at the mark, and as
+      // it comes level the bolt goes — off the tip, up and over, and down on them, in the one motion
+      if(!this.hitDone&&p>=.3){this.hitDone=true;thorStrike(this,foe,this.chargeFull);}
       if(p>=1)this.state='free';
+    }
+    else if(this.state==='kthrow'){
+      const DUR=.55,p=this.t/DUR;
+      if(foe&&p<.25)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),16*dt);
+      if(!this.sfxDone&&p>=.2){this.sfxDone=true;AudioSys.heavySwing();}
+      if(!this.hitDone&&p>=.3){this.hitDone=true;throwKatana(this,foe,this.chargeFull);}   // the arm comes over and the blade leaves it
+      if(p>=1)this.state='free';
+    }
+    else if(this.state==='kpull'){
+      if(this.t>=.4)this.state='free';
     }
     else if(this.state==='tiger'){
       const DUR=.8,p=this.t/DUR;
@@ -6747,26 +6933,30 @@ const player={
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
     const bow=this.weapon()==='bow',kat=this.weapon()==='katana';
-    const thorPose=this.state==='thor'||(this.state==='charge'&&LOADOUT[chargeKey()]==='thor');   // (one hand to the sky: the other stays off the grip)
-    r.ikLeftArm=!bow&&!thorPose&&!(kat&&((this.state==='charge'&&katSheathes())||this.state==='iai'))&&
+    const thorPose=this.state==='thor'||this.state==='kthrow'||this.state==='kpull'||(this.state==='charge'&&(LOADOUT[chargeKey()]==='thor'||(kat&&LOADOUT.katanaCharge==='throw')));   // (one hand to the sky: the other stays off the grip)
+    if(this.katThrown)r.armed=false;                                                          // (the blade away: the hands are empty)
+    r.ikLeftArm=!bow&&!thorPose&&!this.katThrown&&!(kat&&((this.state==='charge'&&katSheathes())||this.state==='iai'))&&
       ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab','kthrust','tiger','fowl'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
-      if(this.sprinting&&this.moveAmt>.5)poseRun(r,t,this.relF,this.relL);
+      if(this.sprinting&&this.moveAmt>.5)poseRun(r,t*(PATH.on?1.4:1),this.relF,this.relL);
       else if(this.moveAmt>.05)poseWalk(r,this.strideT||t,Math.min(1,this.moveAmt/.78),false,this.relF,this.relL);
       else poseIdle(r,t);
       if(bow)poseBowCarry(r);
     }
-    else if(this.state==='charge'){if(LOADOUT[chargeKey()]==='thor')poseSkyPoint(r,this.chargeT/.6,t,0);else if(bow)poseBowDraw(r,this.chargeT/.6,t);
-      else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else poseIaiCharge(r,this.chargeT/.6,t);}   // (the draw and the waterfowl both wind in the saya)
+    else if(this.state==='charge'){if(this.katThrown)poseSkyPoint(r,Math.min(1,this.chargeT/.3),t,1);   // (the blade away: the hand held out for it)
+      else if(LOADOUT[chargeKey()]==='thor')poseSkyPoint(r,this.chargeT/.6,t,0);else if(bow)poseBowDraw(r,this.chargeT/.6,t);
+      else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='throw')poseSkyPoint(r,this.chargeT/.6,t,0);else poseIaiCharge(r,this.chargeT/.6,t);}   // (the draw and the waterfowl both wind in the saya)
       else if(LOADOUT.charge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);
       else if(LOADOUT.charge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);
       else poseCharge(r,this.chargeT/.6,t);}
     else if(this.state==='iai')poseIai(r,Math.min(1,this.t/.85));
     else if(this.state==='kthrust')poseKThrust(r,.28+Math.min(1,this.t/.5)*.72);   // it starts already chambered: the charge held it there
     else if(this.state==='tiger')poseTiger(r,Math.min(1,this.t/.8));
-    else if(this.state==='thor'){const p=Math.min(1,this.t/1.25);poseSkyPoint(r,p<.72?1:Math.max(0,1-(p-.72)/.28),t,p<.3?0:p<.5?(p-.3)/.2:1);}   // held at the sky for the call; on the answer the arm sweeps down to point the weapon at the mark, then the carry
+    else if(this.state==='thor'){const p=Math.min(1,this.t/1.0);poseSkyPoint(r,p<.7?1:Math.max(0,1-(p-.7)/.3),t,p<.08?0:p<.3?(p-.08)/.22:1);}   // from the sky the arm sweeps down to point the weapon at the mark — the bolt goes as it comes level — then the carry
+    else if(this.state==='kthrow'){const p=Math.min(1,this.t/.55);poseSkyPoint(r,p<.6?1:Math.max(0,1-(p-.6)/.4),t,p<.06?0:p<.3?(p-.06)/.24:1);}   // the same sweep, faster: the blade leaves the hand as it comes level
+    else if(this.state==='kpull'){const p=Math.min(1,this.t/.4);poseSkyPoint(r,p<.7?1:1-(p-.7)/.3,t,1);}
     else if(this.state==='fowl')poseFowl(r,Math.min(1,this.t/1.05),t);
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
@@ -6977,6 +7167,10 @@ class Enemy{
       startRagdoll(this,h.dx,h.dz,3+h.kb*3.5,h.up!==undefined?1.3+h.up:2.6);
     }
   }
+  patrol(){ // path-born: no grave to climb from — it stands on the road already, pacing a few strides back and forth
+    this.state='patrol';this.t=rr3(0,6);this.patA=rr3(0,TAU);this.patR=rr3(1.6,3.4);this.patW=rr3(.5,.8);this.patMv=0;
+    this.rig.root.position.y=heightAt(this.x,this.z);
+  }
   wake(){
     if(this.state!=='dormant')return;
     this.state='rise';this.t=0;
@@ -7010,6 +7204,14 @@ class Enemy{
         // poseRise drives the climb out of the soil
         if(this.t>=1.1){this.rig.root.position.y=0;this.state='chase';}
         break;
+      case 'patrol':{
+        // a short beat back and forth about its post, a pause at each end; the prey in reach and it comes
+        if(dist<this.aggroR&&G.mode==='play'){this.state='chase';this.t=0;break;}
+        const sw=Math.sin(this.t*this.patW)*this.patR,tx=this.homeX+Math.cos(this.patA)*sw,tz=this.homeZ+Math.sin(this.patA)*sw;
+        const ex=tx-this.x,ez=tz-this.z,el=Math.hypot(ex,ez);
+        this.patMv=lerp(this.patMv,Math.min(1,el/.5),Math.min(1,5*dt));
+        if(el>.12){this.facing=angLerp(this.facing,Math.atan2(ex,ez),4*dt);const st=Math.min(el,this.speed*.5*dt);this.x+=ex/el*st;this.z+=ez/el*st;}
+        break;}
       case 'chase':{
         faceP(6);
         if(this.caster){
@@ -7169,6 +7371,8 @@ class Enemy{
         break;
       case 'chase':case 'return':
         poseWalk(r,t+this.homeX,1,sham);break;
+      case 'patrol':
+        poseWalk(r,t*.62+this.homeX,.4+.4*this.patMv,sham);break;
       case 'windup':case 'strike':{
         const wd=this.windDur();
         const p=this.state==='windup'?(this.t/wd)*.8:.8+(this.t/(this.attack==='lunge'?.4:.18))*.2;
@@ -8337,8 +8541,9 @@ function spawnFoe(kind,x,z){
    the encounter templates and each chunk's taste in them — used by the
    field's host and by every tile of the path */
 function hostKit(){
-  const sow=(kind,x,z,o)=>{const e=new Enemy(kind,x,z,o||{});enemies.push(e);return e;};
-  const roost=(x,z)=>{const c=new Crow(x,z);c.state='roost';
+  const queue=(kind,x,z,o)=>{PATH.spawnQ.push({kind,x,z:z+BUILD.offZ,o:o||{},tile:BUILD.tile});return null;};   // (a tile's host waits its turn, in the world's frame)
+  const sow=(kind,x,z,o)=>{if(PATH.on&&BUILD.tile>=0)return queue(kind,x,z,o);const e=new Enemy(kind,x,z,o||{});enemies.push(e);return e;};
+  const roost=(x,z)=>{if(PATH.on&&BUILD.tile>=0)return queue('crow',x,z);const c=new Crow(x,z);c.state='roost';
     c.y=heightAt(x,z)+.25;enemies.push(c);return c;};
   /* THE HOST is sown from the run's seed: every wedge is given a marrow
      budget and spends it on encounter templates drawn to suit its chunk —
@@ -8680,7 +8885,7 @@ function endGame(won){
   const mm=String(Math.floor(secs/60)).padStart(2,'0'),ss=String(secs%60).padStart(2,'0');
   const h2=$('victory').querySelector('h2');
   if(PATH.on){h2.textContent=won?'The Path Walked':'The Path Ends';
-    $('stats').innerHTML=(won?'ten thousand marrow, in ':'the path took you at ')+mm+':'+ss+'<br>'+(PATH.far-2)+' hexes walked &middot; '+(G.kills||0)+' horrors felled &middot; '+player.marrow+' marrow';}
+    $('stats').innerHTML=(won?'six thousand marrow, in ':'the path took you at ')+mm+':'+ss+'<br>'+(PATH.far-2)+' hexes walked &middot; '+(G.kills||0)+' horrors felled &middot; '+player.marrow+' marrow';}
   else{h2.textContent='The Warden Falls';
   $('stats').innerHTML=
     'the path walked in '+mm+':'+ss+'<br>'+
@@ -8748,7 +8953,7 @@ $('fpsNote').addEventListener('pointerdown',e=>{e.stopPropagation();});
 buildTextures();
 buildWorld();
 $(PATH.on?'modePath':'modeField').classList.add('on');   // (the mode is known once the world is built)
-if(PATH.on){$('titleHint').innerHTML='the path runs north, hex after hex, without end &middot; every sixth hex the cathedral, its host within, a door at either end<br>ten thousand marrow to win &middot; death ends the path &middot; no rest, no fires, only nerve &middot; best in landscape';}
+if(PATH.on){$('titleHint').innerHTML='the path runs north, hex after hex, without end &middot; every sixth hex the cathedral, its host within, a door at either end<br>six thousand marrow to win &middot; death ends the path &middot; no rest, no fires, only nerve &middot; best in landscape';}
 if(!PATH.on)makeFogGate();
 player.init();
 spawnEnemies();
@@ -8906,6 +9111,7 @@ function frame(now){
          Math.abs(player.x)<HW&&player.z<HL-2.5&&player.z>-HL)startBossFight();
       // the Warden shoulders through the pews as it comes
       if(G.bossActive&&boss.hp>0)trampleBreakables(boss.x,boss.z,boss.radius+.3);
+      if(player.katThrown)updateKatThrow(player,wdt);
       pruneFallen();
       if(PATH.on)updatePath(wdt);
     }else{
@@ -8985,7 +9191,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},worldLights,texCache,wrapA,GP,paintScar,thorStrike,thorCall,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},worldLights,texCache,wrapA,GP,paintScar,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

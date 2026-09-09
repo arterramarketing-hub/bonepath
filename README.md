@@ -166,7 +166,19 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     it — while the air keeps cutting: a storm of pale slashes wheels
     round the body for most of a second, striking everything within
     three metres again and again for 8 (10 at a full hold), the body
-    untouchable inside it. The blade itself is one piece — a
+    untouchable inside it. Or the **magic throw**: the blade raised
+    overhead in one hand, then THROWN point first at the marked horror
+    (or the nearest in the thirty degrees ahead). It drives a hand's
+    width into the chest for twice a cut — 36, 48 at a full hold — and
+    STAYS there, grip out the front, while they reel round it; a horror
+    the blow leaves under a third of its life it goes clean through,
+    and they burst apart behind it, and the blade turns in the air and
+    whirls home to the hand on its own. While it stands in a horror (or
+    in the earth where it fell short, or on the ground where its horror
+    died round it) the hands are empty: a charge, a tap, or a tap out
+    of a roll CALLS it — it tears free with a low hum and a rush and
+    comes back to the hand like a thing pulled on a string, cutting
+    whatever lies between for half. The blade itself is one piece — a
     long thin box bent along its length into the curve, ground thin on
     the edge side and drawn to a point — so the curve reads unbroken,
     and its saya lies back along the left hip with the mouth forward
@@ -288,14 +300,15 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   into the normal chain
 - **Thor's lightning** — a charge for ANY weapon (it is in every
   charge list): the weapon is thrust at the sky in ONE hand, the other
-  arm dropped, the face turned up after it — and the sky answers in two
-  beats. First the CALL: the charge climbs off the blade's tip to a
-  point in the sky above you with a fizzing electric crackle. Then the
-  ANSWER: the bolt comes down from that point on the marked horror — or
-  the nearest live one within fourteen, a crow in the air as readily as
-  anything on the ground — with a crack, a flash that lights the whole
-  field, sparks and a scorch painted into the ground, the arm sweeping
-  down to point the weapon at the mark as it lands. What it hits is
+  arm dropped, the face turned up after it — then the arm sweeps down
+  to point the weapon at the mark, and as it comes level the bolt goes,
+  in ONE motion: off the weapon's tip, nine metres up over you, and
+  down on the marked horror — or the nearest live one within fourteen,
+  a crow in the air as readily as anything on the ground — a single
+  kinked thread drawn thrice for weight with forks off it, the fizzing
+  zap of its leaving and the crack of its landing in the same instant,
+  a flash that lights the whole field, sparks and a scorch painted into
+  the ground. What it hits is
   held where it stands, stunned (40, 52 at a full hold); a crow is
   knocked out of the air to the dirt; and the charge leaps to two more
   within a few strides for half. Made for the birds.
@@ -438,10 +451,30 @@ and a host sown to a budget that grows with every hex. Two or three
 tiles always stand ahead of you, built as you come; what is fifty
 metres behind is torn down. Every sixth hex is the cathedral, with a
 back door and stair mirrored from the front so you walk the nave
-straight through — and its host waits INSIDE the walls. Ten thousand
+straight through — and its host waits INSIDE the walls. Six thousand
 marrow wins (the marrow counter reads to it); death ends the path
 where you fall, with the hexes walked and the horrors felled on the
-stone. There is no Warden on the path.
+stone. There is no Warden on the path. The path is a RUN: walk and
+sprint are half again as fast as in the field, and its host does not
+climb out of any grave — every horror stands on its hex already,
+pacing a few strides back and forth about its post (a pause at each
+end), and comes the moment you are in reach.
+
+The hitch that used to land at every new hex is gone, three ways.
+Lights: three.js recompiles every lit shader the moment the scene's
+count of lights changes, and every tile with a lantern (every
+cathedral with its dozen candles and moonbeam) used to change it on
+build and again on teardown — so on the path no lantern, candle or
+nave light is ever put in the scene; a fixed dozen point lights are,
+from the first frame, and each frame the twelve nearest you are
+copied into them, flicker and all. The count never changes, so
+nothing ever recompiles. Building: a tile is a job spread over
+frames — the chunk one frame, then the ground, road and lamps with the
+host sown into a queue — and the horrors themselves are raised two a
+frame after that, seventy metres out in the dark where nobody sees
+them arrive (before the first frame the first two tiles are still
+built whole). Every step re-seeds the run's RNG, so a hex is still the
+seed's alone.
 
 Under the hood every tile is built with the same chunk code the field
 uses, in the origin's frame as the field's north wedge, and then
