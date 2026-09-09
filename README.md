@@ -668,24 +668,36 @@ Everything is generated at boot inside the one file:
   SHATTER that comes apart into a long clatter of chips — the body
   settling after, and the last chips slow behind it. The Fallen One
   breaks the same way (a skeleton too), with feathers off the wings
-  and a chime under; a crow hit squawks, two harsh syllables, the
-  second cut short. The Unburied is wet through: a slap into meat, the
-  squelch in wet pulses, the suck as the steel comes free, drips after;
+  and a chime under; a crow hit is all feathers and a squawk, two
+  harsh syllables, the second cut short — no bone in a bird. The
+  Unburied is slush: a slap into something more water than meat, the
+  wet giving in pulses, a slosh rising and falling as it moves,
+  bubbles through it, the suck as the steel comes free, drips after;
   its heave bubbles and slops. An element on the blade is heard in
-  every swing: fire is a great brand swung, the flames torn through
-  the air in a fluttering roar with crackles all through it; lightning
-  is static and dangerous — a spray of sharp ticks, arcs that buzz and
-  break, a low charge under it, nothing that sings; ice is the cold
-  itself, a breath of chilled air through the arc. Steel into stone is
-  one of three: the bright ring, a heavier clank with the thump of the
-  blow in it, or the edge skidding along the stone before it bites.
+  every swing: fire is a great brand swung, five slow swells a tenth
+  of a second apart the way flames lean and recover in a wind, with
+  crackles all through; lightning is a HUM that swells and climbs with
+  the arc — the charge singing in the steel — a rush of air drawn
+  after it, a few ticks off the edge and the fizz; ice is the cold
+  itself, a breath of chilled air through the arc. Steel into the
+  world sounds like what it met: METAL (a lantern's post, a candle
+  stand) rings bright; a WALL takes a heavy clank with the thump of
+  the blow in it, or the edge skidding along the stone before it
+  bites; STONE (a gravestone) knocks, dull and short, and sheds grit.
   Steel catching steel mid-swing (the parry) is a short scrape, no
-  bell. A pew takes a knock of old oak, and when it breaks every plank
+  bell. VOICES are sung, not chipped: a sawtooth through three formant
+  filters shaped to a vowel, on a pitch line, with breath under it —
+  the same throat the chant uses. When the hero takes a wound a man
+  cries out, one of four drawn by lot — "ah", "oof" with the wind
+  knocked out, "ugh", "agh" with a catch in it — over the thud of the
+  blow in the body. A pew takes a knock of old oak, and when it breaks every plank
   clatters on the flags as it lands, as hard as it fell. The thrown
   katana coming home makes no hum — a whoosh each half-turn as it
-  whirls back, the air drawn after it. The Fallen One no longer cries:
-  it LAUGHS, a run of glass-edged "ha"s that quicken and climb, each
-  with a breath under it, breaking into the shriek. And while the Warden
+  whirls back, the air drawn after it. The Fallen One
+  LAUGHS in that same high, wrong throat — a run of "ha"s that quicken
+  and climb, breath under each, breaking into a wavering shriek — and
+  CRIES when it is hurt: three sobbing catches, a wail that wavers and
+  falls, a whimper after (and long, when it dies). And while the Warden
   stands there is a CHANT over his drone: a choir of the dead, voices
   sung rather than played (a sawtooth through three formant filters
   shaped to an "oh", two tenors a hair apart with a singer's late

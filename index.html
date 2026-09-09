@@ -1311,6 +1311,20 @@ const AudioSys=(()=>{
     o.start(t0);o.stop(t0+att+dec+.05);
   }
   const rr2=(a,b)=>a+Math.random()*(b-a);
+  /* a VOICE: a sawtooth (the cords) through three formant filters (the
+     throat and mouth, shaped to a vowel), on a pitch line, with a breath
+     of noise under it and a vibrato if wanted — the nearest a synth gets
+     to a human throat, and the same throat the chant sings with */
+  const VOWELS={ah:[[700,7,1],[1200,8,.5],[2600,10,.18]],oh:[[450,7,1],[800,8,.55],[2500,10,.14]],oo:[[320,7,1],[750,8,.35],[2400,10,.08]],eh:[[550,7,1],[1800,8,.45],[2500,10,.2]]};
+  function voice(t0,{f=200,f2=null,dur=.3,att=.03,rel=.1,vowel='ah',peak=.3,vib=0,breath=.1,type='sawtooth',bus=null}={}){
+    if(!ac)return;
+    const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(Math.max(30,f2),t0+dur);
+    if(vib){const vo=ac.createOscillator();vo.frequency.value=rr2(5,6.5);const vg=ac.createGain();vg.gain.value=vib;vo.connect(vg).connect(o.detune);vo.start(t0);vo.stop(t0+dur+.1);}
+    const mix=ac.createGain();mix.gain.setValueAtTime(0,t0);mix.gain.linearRampToValueAtTime(peak*3,t0+att);mix.gain.setValueAtTime(peak*3,t0+Math.max(att,dur-rel));mix.gain.linearRampToValueAtTime(0,t0+dur+.02);
+    for(const [ff,q,g] of VOWELS[vowel]||VOWELS.ah){const bf=ac.createBiquadFilter();bf.type='bandpass';bf.frequency.value=ff;bf.Q.value=q;const bg=ac.createGain();bg.gain.value=g;o.connect(bf).connect(bg).connect(mix);}
+    mix.connect(bus||sfxBus);o.start(t0);o.stop(t0+dur+.05);
+    if(breath)noise(t0,{peak:breath*peak,att,dec:dur,f0:1400,f1:600,type:'bandpass',Q:1.2,bus});
+  }
   const now=()=>ac?ac.currentTime:0;
   /* ---- the theme: a sad, decrepit piano ----
      D minor, 58 bpm, sparse. The piano is built from detuned partials
@@ -1527,22 +1541,24 @@ const AudioSys=(()=>{
   function elemSwing(el,t,w){
     if(!el)return;
     if(el==='fire'){
-      // a great brand swung: the flames torn through the air in a fluttering
-      // roar — a run of overlapping swells, each a different breath of it —
+      // a great brand swung: the flames torn through the air in a slow
+      // fluttering roar — five swells a tenth of a second apart, each a
+      // different breath of it, the way flames lean and recover in a wind —
       // the low push of the heat, and crackles all through
-      for(let i=0;i<7;i++)noise(t+i*.045,{peak:rr2(.1,.19)*w,att:.03,dec:.24,f0:rr2(280,520),f1:rr2(1200,2200),type:'bandpass',Q:.8});
-      noise(t+.02,{peak:.14*w,att:.08,dec:.36,f0:1500,f1:600,type:'bandpass',Q:1});                  // the roar's body
-      noise(t+.05,{peak:.1*w,att:.05,dec:.3,f0:900,f1:300});                                          // the heat pushed ahead of it
-      tone(t,{f:rr2(56,70),f2:44,type:'sine',peak:.1*w,att:.05,dec:.4});                              // the low breath of it
-      for(let i=0;i<10;i++)noise(t+rr2(.02,.44),{peak:rr2(.05,.11)*w,att:.0005,dec:rr2(.008,.022),f0:rr2(2000,4200),f1:1400,type:'bandpass',Q:6});   // it crackles
+      for(let i=0;i<5;i++)noise(t+i*.11,{peak:rr2(.11,.2)*w,att:.06,dec:.32,f0:rr2(250,450),f1:rr2(900,1600),type:'bandpass',Q:.8});
+      noise(t+.02,{peak:.14*w,att:.12,dec:.45,f0:1400,f1:600,type:'bandpass',Q:1});                  // the roar's body
+      noise(t+.05,{peak:.1*w,att:.08,dec:.4,f0:900,f1:300});                                          // the heat pushed ahead of it
+      tone(t,{f:rr2(56,70),f2:44,type:'sine',peak:.1*w,att:.06,dec:.5});                              // the low breath of it
+      for(let i=0;i<8;i++)noise(t+rr2(.03,.58),{peak:rr2(.05,.11)*w,att:.0005,dec:rr2(.008,.022),f0:rr2(2000,4200),f1:1400,type:'bandpass',Q:6});   // it crackles
     }else if(el==='lightning'){
-      // static, and dangerous: a spray of sharp ticks, arcs that buzz and
-      // break, a low charge under it — nothing that sings
-      for(let i=0;i<16;i++)noise(t+rr2(0,.34),{peak:rr2(.09,.18)*w,att:.0003,dec:rr2(.006,.016),f0:rr2(1600,7000),f1:2000,type:'bandpass',Q:7});
-      for(let i=0;i<5;i++)tone(t+.01+i*rr2(.04,.07),{f:rr2(85,140),f2:rr2(60,110),type:'square',peak:rr2(.04,.07)*w,att:.003,dec:rr2(.03,.06)});   // the arcs buzz and break
-      tone(t,{f:rr2(48,58),f2:40,type:'sawtooth',peak:.06*w,att:.02,dec:.3});                          // the charge under it
-      noise(t+.01,{peak:.12*w,att:.02,dec:.22,f0:2400,f1:5200,type:'bandpass',Q:1.4});                  // the fizz
-      noise(t+.05,{peak:.08*w,att:.01,dec:.18,f0:700,f1:1600,type:'bandpass',Q:1.2});
+      // electric: the swing is a HUM that swells and climbs with the arc —
+      // the charge singing in the steel — a rush of air drawn after it, a
+      // few sharp ticks off the edge, and the fizz
+      tone(t,{f:70,f2:150,type:'sawtooth',peak:.11*w,att:.1,dec:.42});
+      tone(t,{f:210,f2:440,type:'sine',peak:.08*w,att:.08,dec:.38});
+      noise(t+.08,{peak:.14*w,att:.14,dec:.32,f0:600,f1:2600,type:'bandpass',Q:3});
+      for(let i=0;i<6;i++)noise(t+rr2(.05,.4),{peak:rr2(.07,.13)*w,att:.0003,dec:rr2(.006,.014),f0:rr2(2500,6500),f1:2000,type:'bandpass',Q:7});
+      noise(t+.02,{peak:.09*w,att:.03,dec:.3,f0:2400,f1:5200,type:'bandpass',Q:1.4});
     }else if(el==='ice'){
       // the cold itself: a breath of chilled air through the arc, and the air moved
       noise(t,{peak:.15*w,att:.08,dec:.4,f0:5200,f1:8500,type:'bandpass',Q:1.8});
@@ -1707,22 +1723,25 @@ const AudioSys=(()=>{
       };
       if(kind==='bone'||kind==='bigbone'){boneHit(t,kind==='bigbone');
       }else if(kind==='flesh'){
-        // THE UNBURIED: wet through. A slap into meat, the squelch as it
-        // gives, a suck as the blade comes free, and drips after
-        tone(t,{f:rr2(80,96),f2:38,type:'sine',peak:.44,att:.003,dec:.24});
-        noise(t,{peak:.3,att:.003,dec:.14,f0:rr2(700,900),f1:140});                                     // the slap
-        for(let i=0;i<4;i++)noise(t+.008+i*rr2(.018,.03),{peak:.22-i*.03,att:.004,dec:.05,f0:rr2(350,650),f1:rr2(120,220),type:'bandpass',Q:2.2});   // the squelch, in wet pulses
-        noise(t+.05,{peak:.16,att:.03,dec:.16,f0:220,f1:900,type:'bandpass',Q:1.4});                     // the suck as the steel pulls back
-        tone(t+.06,{f:rr2(190,240),f2:70,type:'triangle',peak:.05,att:.03,dec:.22});                     // something inside lets go
-        for(let i=0;i<4;i++)noise(t+.16+i*rr2(.05,.09),{peak:rr2(.03,.06),att:.002,dec:.03,f0:rr2(900,1600),f1:500,type:'bandpass',Q:3});   // it drips
+        // THE UNBURIED: slush. The blow lands in something that is more
+        // water than meat — a slap, then the wet gives in pulses, a slosh
+        // rising and falling as it moves, bubbles through it, the suck
+        // as the steel comes free, and drips after
+        tone(t,{f:rr2(80,96),f2:38,type:'sine',peak:.36,att:.003,dec:.22});
+        noise(t,{peak:.26,att:.004,dec:.1,f0:rr2(600,800),f1:140});                                     // the slap
+        for(let i=0;i<7;i++)noise(t+.01+i*rr2(.028,.046),{peak:.22-i*.02,att:.01,dec:.07,f0:rr2(240,520),f1:rr2(110,220),type:'bandpass',Q:3.5});   // the wet giving, in pulses
+        noise(t+.03,{peak:.18,att:.07,dec:.14,f0:170,f1:750,type:'bandpass',Q:2});                       // the slosh, rising...
+        noise(t+.2,{peak:.16,att:.05,dec:.2,f0:700,f1:180,type:'bandpass',Q:2});                         // ...and falling back
+        for(let i=0;i<6;i++)noise(t+rr2(.08,.42),{peak:rr2(.05,.1),att:.004,dec:.03,f0:rr2(320,640),f1:rr2(200,400),type:'bandpass',Q:6});   // bubbles through it
+        noise(t+.3,{peak:.14,att:.04,dec:.16,f0:220,f1:1000,type:'bandpass',Q:1.6});                     // the suck as the steel pulls back
+        tone(t+.08,{f:rr2(150,190),f2:60,type:'triangle',peak:.05,att:.04,dec:.26});                     // something inside lets go
+        for(let i=0;i<4;i++)noise(t+.34+i*rr2(.06,.1),{peak:rr2(.03,.06),att:.003,dec:.035,f0:rr2(700,1300),f1:400,type:'bandpass',Q:3});   // it drips
       }else if(kind==='stone'){
         tone(t,{f:rr2(65,78),f2:28,type:'triangle',peak:.46,dec:.3});
         noise(t,{peak:.3,att:.001,dec:.09,f0:1500,f1:300});
         tone(t+.005,{f:rr2(400,460),f2:380,type:'triangle',peak:.08,dec:.35});                            // a chip of stone rings
       }else if(kind==='crow'){
-        noise(t,{peak:.26,att:.001,dec:.045,f0:5000,f1:1500});
-        tone(t,{f:rr2(1300,1500),f2:600,type:'square',peak:.06,dec:.045});
-        feathers(t);
+        feathers(t);noise(t,{peak:.1,att:.003,dec:.06,f0:1200,f1:500,type:'bandpass',Q:1.4});           // (no bone in a bird: the blow is all feathers)
         // ...and it SQUAWKS: two harsh syllables, the second cut short
         tone(t+.02,{f:rr2(1000,1200),f2:rr2(600,750),type:'sawtooth',peak:.13,att:.008,dec:.13});
         tone(t+.02,{f:rr2(1900,2300),f2:1200,type:'square',peak:.05,att:.008,dec:.1});
@@ -1743,11 +1762,19 @@ const AudioSys=(()=>{
       for(let i=0;i<3;i++)noise(t+.03+i*.025,{peak:.06,att:.001,dec:.03,f0:rr2(1400,2600),f1:700,type:'bandpass',Q:4}); // bone splinters
     },
     // ringing steel: inharmonic partials, slow decay, bright tick on top
-    clang(){const t=now(),way=Math.random();
-      if(way<.34){ // the ring: bright partials that hang
+    // steel into the world, by what it met: METAL (a lantern's post, a candle
+    // stand) rings; a WALL takes a heavy clank or the edge skidding before it
+    // bites; STONE (a gravestone) knocks, dull, and sheds grit
+    clang(kind){const t=now();kind=kind||'wall';
+      if(kind==='metal'){ // the ring: bright partials that hang
         [538,1310,2140,2860].forEach((f,i)=>tone(t,{f:f*rr2(.985,1.015),f2:f*.96,type:'triangle',peak:.09/(i+1),dec:.4+i*.1}));
         noise(t,{peak:.22,att:.001,dec:.05,f0:6000,f1:1800});
-      }else if(way<.67){ // the clank: heavier, duller, the thump of the blow in it, the ring short
+      }else if(kind==='stone'){ // the knock: rock, dull and short, a crack in it, grit after
+        tone(t,{f:rr2(85,100),f2:44,type:'sine',peak:.34,att:.002,dec:.13});
+        noise(t,{peak:.34,att:.001,dec:.09,f0:2200,f1:300});
+        noise(t+.004,{peak:.2,att:.0005,dec:.02,f0:rr2(1800,2600),f1:1200,type:'bandpass',Q:4});
+        for(let i=0;i<4;i++)noise(t+.03+i*rr2(.02,.04),{peak:.06,att:.001,dec:.03,f0:rr2(900,1600),f1:500,type:'bandpass',Q:3});
+      }else if(Math.random()<.55){ // the clank: heavy, dull, the thump of the blow in it, the ring short
         tone(t,{f:rr2(60,75),f2:34,type:'sine',peak:.42,att:.002,dec:.14});
         noise(t,{peak:.42,att:.001,dec:.07,f0:3600,f1:700});
         [380,920,1520].forEach((f,i)=>tone(t+.003,{f:f*rr2(.98,1.02),f2:f*.95,type:'triangle',peak:.15/(i+1),att:.001,dec:.16+i*.04}));
@@ -1782,6 +1809,16 @@ const AudioSys=(()=>{
       noise(t+.01,{peak:.06*v,att:.02,dec:.07,f0:1800,f1:700,type:'bandpass',Q:1.4});
       tone(t,{f:rr2(260,320),f2:520,type:'sine',peak:.02*v,att:.02,dec:.08});},
     // taking a wound: formant grunt over a dull body thud
+    // the HERO takes a wound: a man's voice — "ah", "oof", "ugh", "agh" —
+    // drawn by lot, over the dull thud of the blow in the body
+    heroHurt(){const t=now(),w=(Math.random()*4)|0;
+      tone(t+.02,{f:76,f2:36,type:'sine',peak:.26,dec:.2});noise(t,{peak:.16,att:.003,dec:.12,f0:600,f1:120});
+      if(w===0)voice(t+.01,{f:rr2(180,205),f2:rr2(135,150),dur:.34,att:.02,rel:.14,vowel:'ah',peak:.26,vib:14,breath:.18});                       // "ah!"
+      else if(w===1){voice(t+.005,{f:rr2(140,160),f2:rr2(100,115),dur:.2,att:.008,rel:.09,vowel:'oo',peak:.28,breath:.4});                          // "oof" — the wind knocked out
+        noise(t+.05,{peak:.1,att:.02,dec:.16,f0:900,f1:400,type:'bandpass',Q:1.4});}
+      else if(w===2)voice(t+.01,{f:rr2(125,140),f2:rr2(88,98),dur:.3,att:.015,rel:.12,vowel:'oh',peak:.26,vib:8,breath:.28});                       // "ugh"
+      else{voice(t+.01,{f:rr2(200,225),f2:rr2(165,180),dur:.24,att:.015,rel:.06,vowel:'ah',peak:.27,vib:18,breath:.2});                             // "agh" — with a catch in it
+        voice(t+.24,{f:rr2(170,185),f2:rr2(120,135),dur:.18,att:.01,rel:.1,vowel:'eh',peak:.2,vib:22,breath:.25});}},
     hurt(){const t=now();
       tone(t,{f:150,f2:55,type:'sawtooth',peak:.24,att:.01,dec:.26});
       tone(t,{f:300,f2:95,type:'square',peak:.08,att:.01,dec:.15});
@@ -1976,20 +2013,24 @@ const AudioSys=(()=>{
       for(let i=0;i<3;i++)noise(t+.08+i*.05,{peak:.07,att:.001,dec:.03,f0:rr2(1400,2600),f1:700,type:'bandpass',Q:4});
     },
     // the fallen one's voice: a glass-edged shriek bending down into a choir of wrong notes
-    // the fallen one LAUGHS: a run of glass-edged "ha"s that quicken and
-    // climb, each with a breath under it, breaking into a shriek at the end
-    // and falling away into a choir of wrong notes
-    screech(){const t=now();let tt=t;const n=6+((Math.random()*3)|0);
-      for(let i=0;i<n;i++){const f=rr2(620,720)*Math.pow(1.06,i),gap=Math.max(.075,.15-i*.011);
-        tone(tt,{f:f*1.25,f2:f,type:'sawtooth',peak:.2,att:.012,dec:gap*.75});
-        tone(tt,{f:f*2.5,f2:f*2,type:'square',peak:.06,att:.012,dec:gap*.6});
-        noise(tt,{peak:.14,att:.008,dec:gap*.7,f0:rr2(1400,2200),f1:700,type:'bandpass',Q:2.5});   // the breath of each
+    // the fallen one LAUGHS: a run of "ha"s in a high, wrong voice — a
+    // throat, not a chip — quickening and climbing, breath under each,
+    // breaking into a shriek and falling away into a choir of wrong notes
+    screech(){const t=now();let tt=t;const n=6+((Math.random()*3)|0),base=rr2(300,340);
+      for(let i=0;i<n;i++){const f=base*Math.pow(1.05,i),gap=Math.max(.085,.16-i*.011);
+        voice(tt,{f:f*1.12,f2:f*.94,dur:gap*.72,att:.012,rel:.05,vowel:i%3===2?'eh':'ah',peak:.3,vib:i>3?10:0,breath:.35});
         tt+=gap;}
-      tone(tt,{f:1900,f2:620,type:'sawtooth',peak:.17,att:.02,dec:.7});                              // and the shriek
-      tone(tt+.04,{f:2400,f2:700,type:'square',peak:.05,att:.02,dec:.55});
-      tone(tt+.08,{f:311,f2:296,type:'triangle',peak:.07,att:.2,dec:1.3});
-      tone(tt+.08,{f:466,f2:440,type:'triangle',peak:.05,att:.2,dec:1.3});
-      noise(tt,{peak:.1,att:.03,dec:.7,f0:3000,f1:900,type:'bandpass',Q:3});},
+      voice(tt,{f:base*2.4,f2:base*1.3,dur:.6,att:.03,rel:.25,vowel:'eh',peak:.3,vib:35,breath:.3});     // and the shriek, wavering
+      voice(tt+.05,{f:base*3.6,f2:base*2,dur:.45,att:.03,rel:.2,vowel:'ah',peak:.12,vib:40,breath:.2});
+      tone(tt+.1,{f:311,f2:296,type:'triangle',peak:.05,att:.25,dec:1.3});
+      tone(tt+.1,{f:466,f2:440,type:'triangle',peak:.04,att:.25,dec:1.3});},
+    // ...and CRIES when it is hurt: three sobbing catches, then a wail that
+    // wavers and falls, and a whimper after (long: its dying)
+    sob(long){const t=now();
+      for(let i=0;i<3;i++)voice(t+i*.13,{f:rr2(380,430),f2:rr2(330,360),dur:.09,att:.012,rel:.03,vowel:'ah',peak:.24,breath:.5});
+      voice(t+.4,{f:rr2(400,440),f2:rr2(270,300),dur:long?1.1:.55,att:.05,rel:.25,vowel:'oh',peak:.28,vib:28,breath:.35});
+      voice(t+(long?1.5:.95),{f:rr2(300,330),f2:rr2(200,225),dur:long?.6:.35,att:.04,rel:.15,vowel:'oo',peak:.18,vib:20,breath:.45});
+      if(long)for(let i=0;i<3;i++)voice(t+2.1+i*.16,{f:rr2(340,380),f2:rr2(280,310),dur:.1,att:.012,rel:.04,vowel:'ah',peak:.14-i*.03,breath:.5});},
     // the unburied: a wet, gurgling heave
     retch(){const t=now();
       for(let i=0;i<6;i++)noise(t+i*.065,{peak:.15,att:.01,dec:.08,f0:rr2(300,700),f1:120,type:'bandpass',Q:1.5});   // the heave
@@ -2485,7 +2526,7 @@ function breakPew(b){
     boneBurst(b.x,gy+.6,b.z,0x8a8f86,10,2.6);boneBurst(b.x,gy+.4,b.z,0x3a3d38,6,1.8);
     for(let i=0;i<5;i++)planetPiece(new THREE.BoxGeometry(rr3(.18,.4),rr3(.12,.3),.16),b.mat,
       b.x+rr3(-.2,.2),gy+.5+i*.15,b.z+rr3(-.1,.1),.12,2.2);
-    AudioSys.clang();AudioSys.arrowStone();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.14);G.vibr(20);
+    AudioSys.clang('stone');AudioSys.arrowStone();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.14);G.vibr(20);
     return;
   }
   if(b.kind==='sign'){
@@ -2562,7 +2603,7 @@ function strikeBreakables(x,z,fx,fz,reach,arc){
     if(ang>arc)continue;
     b.hp--;hitAny=true;
     boneBurst(cx,PH+.7,cz,0x5a4326,6,2);
-    if(b.hp<=0)breakPew(b);else{AudioSys[b.kind==='grave'?'clang':'woodKnock']();}
+    if(b.hp<=0)breakPew(b);else{if(b.kind==='grave')AudioSys.clang('stone');else AudioSys.woodKnock();}
   }
   return hitAny;
 }
@@ -6183,7 +6224,7 @@ const player={
     this.hp-=dmg;
     this.hurtGrace=.7;
     G.hitstop=Math.max(G.hitstop,.06);G.camShake=Math.max(G.camShake,.25);
-    G.vibr(60);AudioSys.hurt();
+    G.vibr(60);AudioSys.heroHurt();
     $('hurt').style.opacity=1;setTimeout(()=>$('hurt').style.opacity=0,120);
     this.flash(true);setTimeout(()=>this.flash(false),130);
     bloodSpray(this.x,1.25,this.z,dmg>20?13:8,dmg>20?1.3:1);
@@ -6298,7 +6339,7 @@ const player={
       if(stone.o&&stone.o.tree){markTree(stone.o,stone.x,stone.z,opts.trail||'sweep',opts.dir);AudioSys.hit();}   // a trunk: the edge bites and leaves a gash
       else{clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,stone.stone?14:8);
         if(stone.stone)markStone(stone.x,stone.z,opts.trail||'sweep',opts.dir);}                                // a wall: the edge scores the stone
-      if(!(stone.o&&stone.o.tree))AudioSys.clang();G.camShake=Math.max(G.camShake,stone.stone?.3:.14);G.hitstop=Math.max(G.hitstop,stone.stone?.08:.04);G.vibr(stone.stone?[30,20,40]:20);
+      if(!(stone.o&&stone.o.tree)&&!(stone.o&&breakables.some(b=>b.obs===stone.o)))AudioSys.clang(!stone.o||stone.o.seg||stone.o.r>1?'wall':stone.o.stone?'stone':'metal');   // (a breakable already spoke for itself: stone for a grave, oak for a pew)G.camShake=Math.max(G.camShake,stone.stone?.3:.14);G.hitstop=Math.max(G.hitstop,stone.stone?.08:.04);G.vibr(stone.stone?[30,20,40]:20);
       // ...but whatever stands BETWEEN the blade and the stone is cut on the
       // way: the swing only stops at the wall, it doesn't pass through a
       // horror to get there. The bounce comes after the reckoning below.
@@ -7919,13 +7960,13 @@ class FallenAngel{
     if(this.poise>=this.poiseMax&&this.state!=='plunge'){
       this.poise=0;this.state='stagger';this.t=0;
       const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
-      this.vx=dx/l*kb*3;this.vz=dz/l*kb*3;AudioSys.screech();
+      this.vx=dx/l*kb*3;this.vz=dz/l*kb*3;AudioSys.sob();
     }
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
     player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
-    AudioSys.screech();G.hitstop=.3;G.camShake=.4;
+    AudioSys.sob(true);G.hitstop=.3;G.camShake=.4;
     setTimeout(()=>bannerShow('THE FALLEN ONE IS STILL','its halo lies in the dirt'),600);
     spawnElemDrop(this.x,this.z,'health');
     boneBurst(this.x,1.2,this.z,0x3a2a44,16,3);
