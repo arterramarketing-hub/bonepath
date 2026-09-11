@@ -2,7 +2,9 @@ name: Deploy Bonepath to Pages
 
 on:
   push:
-    branches: [claude/dark-souls-mobile-poc-xnquc4]
+    # both names, so the deploy survives the branch being renamed to main
+    # and keeps working the moment it is
+    branches: [main, claude/dark-souls-mobile-poc-xnquc4]
   workflow_dispatch:
 
 permissions:
