@@ -1126,6 +1126,12 @@ const gradeMat=new THREE.ShaderMaterial({
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
 function renderFrame(){
   renderer.info.reset();
+  // the sky rides on the camera's shoulder. It is a sphere of radius 210
+  // and the camera sees to 220, so once the hero walked a few paces off
+  // the origin the far side of the dome fell past the far plane and was
+  // cut away — leaving a hard-edged disc of sky hanging over the horizon
+  // with the fog colour around it. Moved with the eye, it never clips.
+  if(worldLights.dome)worldLights.dome.position.copy(camera.position);
   renderer.setRenderTarget(rt);
   renderer.render(scene,camera);
   if(HERO_HI){
