@@ -1864,6 +1864,23 @@ const AudioSys=(()=>{
      arc and crackles after; lightning is static — a spray of sharp ticks
      and a buzz under them, a thin whine on top; ice is the cold itself, a
      breath of chilled air with crystal in it */
+  /* THE KATANA THROUGH AIR. Not the greatsword quieter — a different
+     sound entirely. A narrow band of noise swept UP hard and cut off
+     short, which is the edge arriving; a second, thinner pass a hair
+     behind it, which is the air closing again; one keen overtone off the
+     spine of the blade; and no low end to speak of — a katana has no mass
+     to shoulder the air aside, so there is nothing under the whistle.
+     Short. The whole thing is gone inside a fifth of a second. */
+  let BLADE='sword';
+  function katanaCut(t,w){
+    w=w||1;
+    noise(t,{peak:.20*w,att:.012,dec:.13,f0:900,f1:6200,type:'bandpass',Q:3.4});     // the edge going through
+    noise(t+.012,{peak:.15*w,att:.008,dec:.09,f0:2600,f1:9000,type:'bandpass',Q:5});  // the hiss at the tip
+    noise(t+.05,{peak:.09*w,att:.02,dec:.16,f0:5200,f1:1400,type:'bandpass',Q:2.2});  // and the air falling back in behind it
+    tone(t+.02,{f:rr2(2400,3100),f2:rr2(5200,6400),type:'sine',peak:.022*w,att:.01,dec:.1});   // the spine sings
+    tone(t+.03,{f:rr2(1500,1800),f2:2600,type:'triangle',peak:.012*w,att:.012,dec:.08});
+    noise(t+.005,{peak:.05*w,att:.03,dec:.1,f0:420,f1:260,type:'bandpass',Q:1.1});    // only the faintest body to it
+  }
   function elemSwing(el,t,w){
     if(!el)return;
     if(el==='fire'){
@@ -2032,9 +2049,18 @@ const AudioSys=(()=>{
       noise(t+1.1,{peak:.07,att:.8,dec:3.4,f0:90,f1:30,bus});
       tone(t,{f:38,f2:22,type:'sine',peak:.1,att:.5,dec:3.6,bus});},
     start,setSpace,
+    /* WHICH BLADE IS IN THE HAND. A greatsword and a katana do not make
+       the same noise going through air and never did: the slab DISPLACES
+       air — a low push you feel before you hear — and the katana CUTS it,
+       which is a thin, fast, rising whistle with almost no body at all.
+       One flag, set when the pilgrim is rebuilt, so every swing in the
+       game — the combo, the charges, the draw, the waterfowl — speaks in
+       the right voice without a single call site having to know. */
+    setBlade(k){BLADE=k||'sword';},
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
     swing(el){const t=now();
+      if(BLADE==='katana'){katanaCut(t,1);elemSwing(el,t,.8);return;}
       noise(t,{peak:.26,att:.06,dec:.22,f0:180,f1:1500,type:'bandpass',Q:1.4});
       noise(t+.03,{peak:.14,att:.04,dec:.16,f0:2200,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:80,f2:40,type:'sine',peak:.16,att:.04,dec:.24});
@@ -2042,6 +2068,7 @@ const AudioSys=(()=>{
       tone(t+.04,{f:rr2(560,660),f2:1300,type:'sine',peak:.015,dec:.1});
       elemSwing(el,t,1);},
     heavySwing(el){const t=now();
+      if(BLADE==='katana'){katanaCut(t,1.25);elemSwing(el,t,1);return;}
       noise(t,{peak:.24,att:.09,dec:.24,f0:280,f1:1500,type:'bandpass',Q:1.6});
       noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});
@@ -2081,19 +2108,38 @@ const AudioSys=(()=>{
       };
       if(kind==='bone'||kind==='bigbone'){boneHit(t,kind==='bigbone');
       }else if(kind==='flesh'){
-        // THE UNBURIED: slush. The blow lands in something that is more
-        // water than meat — a slap, then the wet gives in pulses, a slosh
-        // rising and falling as it moves, bubbles through it, the suck
-        // as the steel comes free, and drips after
-        tone(t,{f:rr2(80,96),f2:38,type:'sine',peak:.36,att:.003,dec:.22});
-        noise(t,{peak:.26,att:.004,dec:.1,f0:rr2(600,800),f1:140});                                     // the slap
-        for(let i=0;i<7;i++)noise(t+.01+i*rr2(.028,.046),{peak:.22-i*.02,att:.01,dec:.07,f0:rr2(240,520),f1:rr2(110,220),type:'bandpass',Q:3.5});   // the wet giving, in pulses
-        noise(t+.03,{peak:.18,att:.07,dec:.14,f0:170,f1:750,type:'bandpass',Q:2});                       // the slosh, rising...
-        noise(t+.2,{peak:.16,att:.05,dec:.2,f0:700,f1:180,type:'bandpass',Q:2});                         // ...and falling back
-        for(let i=0;i<6;i++)noise(t+rr2(.08,.42),{peak:rr2(.05,.1),att:.004,dec:.03,f0:rr2(320,640),f1:rr2(200,400),type:'bandpass',Q:6});   // bubbles through it
-        noise(t+.3,{peak:.14,att:.04,dec:.16,f0:220,f1:1000,type:'bandpass',Q:1.6});                     // the suck as the steel pulls back
-        tone(t+.08,{f:rr2(150,190),f2:60,type:'triangle',peak:.05,att:.04,dec:.26});                     // something inside lets go
-        for(let i=0;i<4;i++)noise(t+.34+i*rr2(.06,.1),{peak:rr2(.03,.06),att:.003,dec:.035,f0:rr2(700,1300),f1:400,type:'bandpass',Q:3});   // it drips
+        /* THE UNBURIED: not a wet thud — a BURST. The thing is a skin of
+           grave-rot holding several gallons of water, and the blade does
+           not so much strike it as open it. So the sound is in four parts
+           and the last of them is the longest: the slap of the edge going
+           in; the SPLIT, a low tearing of something sodden; the SPILL,
+           which is a broad wash of noise falling away downward over most
+           of a second while the inside of it goes out onto the ground; and
+           then the patter, running on after everything else has stopped,
+           of what is still coming off it. Gurgle, bubble and suck all
+           through. */
+        tone(t,{f:rr2(72,88),f2:30,type:'sine',peak:.4,att:.004,dec:.3});                                   // the mass of it
+        noise(t,{peak:.34,att:.003,dec:.09,f0:rr2(700,950),f1:120});                                        // the slap of the edge going in
+        noise(t+.005,{peak:.26,att:.006,dec:.16,f0:rr2(260,380),f1:90,type:'bandpass',Q:1.1});              // ...and sinking
+        // THE SPLIT: something sodden tearing, low and broad, over a fifth of a second
+        noise(t+.02,{peak:.3,att:.03,dec:.26,f0:rr2(160,240),f1:rr2(620,900),type:'bandpass',Q:1.3});
+        tone(t+.02,{f:rr2(120,150),f2:52,type:'sawtooth',peak:.08,att:.02,dec:.24});
+        for(let i=0;i<9;i++)noise(t+.02+i*rr2(.018,.032),{peak:.2-i*.017,att:.006,dec:.06,f0:rr2(220,560),f1:rr2(100,200),type:'bandpass',Q:4});  // the wet giving, in pulses
+        // THE SPILL: a broad wash going DOWN and out, nearly a second of it
+        noise(t+.05,{peak:.3,att:.05,dec:.62,f0:rr2(1500,2100),f1:180,type:'bandpass',Q:.7});
+        noise(t+.09,{peak:.22,att:.08,dec:.5,f0:900,f1:130,type:'bandpass',Q:.9});
+        noise(t+.16,{peak:.17,att:.1,dec:.44,f0:520,f1:110,type:'bandpass',Q:1.1});
+        tone(t+.07,{f:rr2(200,260),f2:44,type:'sine',peak:.07,att:.06,dec:.5});                             // the weight of what is leaving it
+        // GURGLE: the throat of it, a run of pitched bubbles wandering down
+        for(let i=0;i<10;i++){const f=rr2(300,720)*(1-i*.045);
+          tone(t+.04+i*rr2(.03,.055),{f,f2:f*rr2(.45,.7),type:'sine',peak:rr2(.035,.075),att:.004,dec:rr2(.05,.1)});}
+        for(let i=0;i<12;i++)noise(t+rr2(.05,.7),{peak:rr2(.04,.09),att:.003,dec:.028,f0:rr2(300,700),f1:rr2(180,380),type:'bandpass',Q:7});   // bubbles through it
+        noise(t+.34,{peak:.16,att:.05,dec:.2,f0:200,f1:1100,type:'bandpass',Q:1.5});                        // the suck as the steel pulls back
+        // THE PATTER: it is still running off it long after the blow
+        for(let i=0;i<14;i++)noise(t+.38+i*rr2(.035,.075),{peak:rr2(.025,.07),att:.002,dec:rr2(.02,.045),f0:rr2(500,1500),f1:rr2(250,500),type:'bandpass',Q:3.5});
+        for(let i=0;i<5;i++){const f=rr2(700,1400);
+          tone(t+.45+i*rr2(.06,.13),{f,f2:f*.55,type:'sine',peak:rr2(.02,.04),att:.002,dec:.05});}           // fat drops, pitched, hitting the soil
+        noise(t+.5,{peak:.08,att:.12,dec:.5,f0:340,f1:120,type:'bandpass',Q:1.4});                          // and a pool spreading under it
       }else if(kind==='stone'){
         tone(t,{f:rr2(65,78),f2:28,type:'triangle',peak:.46,dec:.3});
         noise(t,{peak:.3,att:.001,dec:.09,f0:1500,f1:300});
@@ -2764,6 +2810,50 @@ function heightAt(x,z){
   return groundAt(x,z);
 }
 
+/* THE BRINK.
+   The field is a hexagon and the world genuinely falls away past its
+   edge — the ground mesh drops off into nothing out there, it was never
+   a painted backdrop. Until now an invisible wall stood a metre inside
+   that drop and you simply could not reach it, which made the most
+   dramatic feature of the whole field a place where you bumped into air.
+   So the wall is a CLIFF. Anything that crosses the lip — the last stride
+   before the old wall stood — goes over it, and the hexagon is now
+   something you have to respect while you fight near it.
+   The lip sits inside the clamp on purpose: `constrain` still pulls
+   everything back to HEX_AP-.9, so a thing that has crossed the lip is
+   pinned right at the edge, which is exactly where you want it standing
+   at the moment the ground stops being under it.
+   The path is NOT a cliff: its sides are shorn at a width that varies
+   down every tile, and an instant death on a boundary you cannot read
+   while running is a different game. */
+const BRINK=1.15;
+function overBrink(p){
+  if(PATH.on||G.bossActive)return -9;
+  let e=-1e9;
+  for(let i=0;i<6;i++){
+    const a=Math.PI/6+i*Math.PI/3;
+    const d=p.x*Math.cos(a)+p.z*Math.sin(a)-(HEX_AP-BRINK);
+    if(d>e)e=d;
+  }
+  return e;
+}
+// which way is OUT from here: the normal of the nearest hex face
+function brinkOut(p){
+  let best=0,bd=-9;
+  for(let i=0;i<6;i++){
+    const a=Math.PI/6+i*Math.PI/3;
+    const d=p.x*Math.cos(a)+p.z*Math.sin(a);
+    if(d>bd){bd=d;best=a;}
+  }
+  return {x:Math.cos(best),z:Math.sin(best)};
+}
+// let a ragdoll off the world: nothing under it, and no walls to hold it
+function ragFree(rag){
+  if(!rag)return;
+  rag.noWall=true;
+  rag.noFloor=new Set();for(let i=0;i<rag.P.length;i++)rag.noFloor.add(i);
+}
+
 /* clamp into the hexagon; the cathedral ring blocks until it opens
    (then only the door corridor lets you through) */
 function constrain(p,arenaOnly){
@@ -2990,7 +3080,7 @@ function loosePiece(piece,rest,vx,vz,vy,fade,snd){   // (snd: the sound it makes
   }});
 }
 // a blow from (x,z) facing (fx,fz): does it reach a pew? break it a little
-function strikeBreakables(x,z,fx,fz,reach,arc){
+function strikeBreakables(x,z,fx,fz,reach,arc,oneShot){
   let hitAny=false;
   for(const b of breakables.slice()){
     const cx=clamp(x,b.x-b.hw,b.x+b.hw),cz=clamp(z,b.z-b.hd,b.z+b.hd);
@@ -2999,7 +3089,7 @@ function strikeBreakables(x,z,fx,fz,reach,arc){
     if(d>reach)continue;
     const ang=d<.05?0:Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
     if(ang>arc)continue;
-    b.hp--;hitAny=true;
+    b.hp-=oneShot?99:1;hitAny=true;                       // the ultra greatsword does not chip a gravestone, it ends it
     boneBurst(cx,PH+.7,cz,0x5a4326,6,2);
     if(b.hp<=0)breakPew(b);else{if(b.kind==='grave')AudioSys.clang('stone');else AudioSys.woodKnock();}
   }
@@ -4298,6 +4388,7 @@ const SNOW_EM=new THREE.Color(0x9fb4cc).convertSRGBToLinear();
 let _soilM=null;
 function soilMat(){return _soilM||(_soilM=lam({color:new THREE.Color(0x4a3f2e).convertSRGBToLinear(),flatShading:true}));}
 const POISON_POOL=['rgba(58,88,30,.4)','rgba(28,52,16,.68)'];         // what is left of you on the ground
+const QUAKE_PAL=['rgba(126,74,34,.55)','rgba(34,20,13,.9)'];          // burst soil round the earthshaker's point, burnt through the middle
 const MELT_COL=new THREE.Color(0x46681e).convertSRGBToLinear();
 /* WHAT IS LEFT OF HIM SHOWS. Three states, not a gradient — above two
    thirds of his hearts he is clean; below it there is blood on him; below a
@@ -5760,6 +5851,65 @@ function poseLight(r,p,combo){
   r.head.rotation.y=-ty*.62;
   r.body.position.y=r.baseY-seg4(p,W,H,0,-.02,.11,.04)*r.s;
 }
+/* THE EARTHSHAKER. It used to be the overhead slam with a bigger number
+   on it, which read as a chop that happened to move the ground. It is a
+   STAB now: the blade hauled up and turned point-down over the head in
+   both hands, held there a beat while the ground groans, and then driven
+   straight into the flags with the whole body dropping behind it. The
+   shock comes out of the buried point, so the hands finish at the soil
+   and stay there while it goes. */
+function poseQuakeStab(r,p){
+  const C=(r.carry||CARRY),UP=.5,HIT=.72;
+  /* THE GRIP. Found by looking, not by arithmetic: the shoulder swung
+     FORWARD and up (positive x is forward in this rig — negative takes the
+     arm back over the head, which is the overhead slam), the elbow barely
+     bent, and the weapon rolled the better part of a half-turn so the
+     point hangs at the soil instead of over the shoulder. At the strike
+     the arms only straighten; it is the BODY dropping that drives the
+     point in, which is the whole difference between a stab and a chop. */
+  const AW=2.00,FW=-.50,WW=-1.90,      // the high guard: blade vertical, point at the ground
+        AH=1.55,FH=-.15,WH=-1.75;      // and buried, with him crouched over it
+  if(p<UP){const q=easeInOut(p/UP);
+    // both hands haul it up and roll the point over to face the ground
+    r.armR.rotation.x=C.aRx+(AW-C.aRx)*q;
+    r.armL.rotation.x=C.aLx+(AW-C.aLx)*q;
+    r.armR.rotation.z=C.aRz+(-.30-C.aRz)*q;
+    r.armL.rotation.z=C.aLz+(.30-C.aLz)*q;
+    r.foreR.rotation.x=C.fRx+(FW-C.fRx)*q;         // elbows folded, hands above the head
+    r.foreL.rotation.x=C.fLx+(FW-C.fLx)*q;
+    r.weapon.rotation.x=C.wx+(WW-C.wx)*q;          // the point comes over and down
+    r.weapon.rotation.y=C.wy*(1-q);
+    r.weapon.rotation.z=C.wz*(1-q);
+    r.torso.rotation.x-=.24*q;
+    r.head.rotation.x-=.25*q;
+    r.body.position.y=r.baseY+.16*q*r.s;           // and he comes up onto the balls of his feet
+    r.legR.rotation.x=-.14*q;r.legL.rotation.x=-.14*q;
+    r.kneeR.rotation.x=.2*q;r.kneeL.rotation.x=.2*q;
+  }else if(p<HIT){const q=easeIn((p-UP)/(HIT-UP));
+    // ...and everything he has goes down with it
+    r.armR.rotation.x=AW+(AH-AW)*q;r.armL.rotation.x=AW+(AH-AW)*q;
+    r.armR.rotation.z=-.30+.30*q;  r.armL.rotation.z=.30-.30*q;
+    r.foreR.rotation.x=FW+(FH-FW)*q;r.foreL.rotation.x=FW+(FH-FW)*q;
+    r.weapon.rotation.x=WW+(WH-WW)*q;
+    r.torso.rotation.x=-.24+1.00*q;
+    r.head.rotation.x=-.25+.80*q;
+    r.body.position.y=r.baseY+(.16-.62*q)*r.s;     // dropped into a deep crouch over the point
+    r.legR.rotation.x=-.14-.55*q;r.legL.rotation.x=-.14-.25*q;
+    r.kneeR.rotation.x=.2+1.50*q;r.kneeL.rotation.x=.2+1.20*q;
+  }else{const q=(p-HIT)/(1-HIT),e=easeOut(q);
+    // held over the buried steel while the ground goes, then hauled free
+    r.armR.rotation.x=AH+(C.aRx-AH)*e;r.armL.rotation.x=AH+(C.aLx-AH)*e;
+    r.armR.rotation.z=C.aRz*e;r.armL.rotation.z=C.aLz*e;
+    r.foreR.rotation.x=FH+(C.fRx-FH)*e;r.foreL.rotation.x=FH+(C.fLx-FH)*e;
+    r.weapon.rotation.x=WH+(C.wx-WH)*e;
+    r.weapon.rotation.y=C.wy*e;r.weapon.rotation.z=C.wz*e;
+    r.torso.rotation.x=.76*(1-e);
+    r.head.rotation.x=.55*(1-e);
+    r.body.position.y=r.baseY-.46*(1-e)*r.s;
+    r.legR.rotation.x=-.69*(1-e);r.legL.rotation.x=-.39*(1-e);
+    r.kneeR.rotation.x=1.70*(1-e);r.kneeL.rotation.x=1.40*(1-e);
+  }
+}
 function poseHeavy(r,p){
   const wind=.52,hitT=.72,C=(r.carry||CARRY);
   if(p<wind){const q=easeInOut(p/wind);
@@ -6242,6 +6392,47 @@ const JOINT_K={body:1700,torso:1250,head:820,armR:700,armL:700,foreR:470,foreL:4
   legR:1100,legL:1100,kneeR:950,kneeL:950,weapon:330};
 const JOINT_D={body:74,torso:60,head:48,armR:42,armL:42,foreR:34,foreL:34,
   legR:58,legL:58,kneeR:54,kneeL:54,weapon:27};
+/* THE SEAM BETWEEN TWO SWINGS.
+   Entering the second cut a fifth of the way in got the TIMING right —
+   the blade no longer travels back to the shoulder before it comes down
+   again — but the POSE still jumped. Every swing is authored from the
+   carry: at its own p=0 the target is the carry pose, and a chain drops
+   the body onto a target several joints away from where it actually is.
+   The springs then chase that step, which is exactly the little hitch
+   between one swing and the next that you can feel in the hand.
+   So the seam is closed at the target, not at the output. At the instant
+   a swing chains, the body's CURRENT smoothed pose is taken down, and for
+   the first eighth of a second the new swing's target is blended back
+   toward it — full weight at the seam, gone shortly after. The target
+   curve therefore starts exactly where the body already is and has no
+   step in it at all, while the springs keep every bit of the velocity
+   they had, so the swing continues rather than restarting. Nothing about
+   any pose changed, and it works for every weapon, because it never asks
+   what the weapon is. */
+/* How long the seam stays open. Every swing's pose is authored to BEGIN
+   at the carry, and a chain drops it a fifth of the way in — which on the
+   greatsword's curve is already well over half the distance from the
+   carry to the top of the wind. That is a big step to close, so the blend
+   is given real time to close it, and a smoothstep rather than a square:
+   full weight at the seam, easing away with no corner at either end, and
+   gone long before the strike. Scaled by the swing, so the ultra's slower
+   arc gets proportionally more of it. */
+const SEAM_T=.2;
+function seamGrab(r){
+  if(!r||!r._sm)return;
+  const S={};
+  for(const k of SMOOTH_JOINTS){const q=r._sm[k];if(q)S[k]=[q[0],q[1],q[2]];}
+  r._seam=S;
+}
+function seamBlend(r,w){
+  const S=r&&r._seam;if(!S||!(w>0))return;
+  for(const k of SMOOTH_JOINTS){
+    const j=r[k],q=S[k];if(!j||!q)continue;
+    j.rotation.x+=wrapA(q[0]-j.rotation.x)*w;
+    j.rotation.y+=wrapA(q[1]-j.rotation.y)*w;
+    j.rotation.z+=wrapA(q[2]-j.rotation.z)*w;
+  }
+}
 function updateRigExtras(r,dt){
   if(r.mirrorArms){
     // poses are authored for a +x weapon arm; flip the arms' lateral
@@ -6271,7 +6462,14 @@ function updateRigExtras(r,dt){
       const j=r[k];if(!j)continue;
       let p=r._sm[k];
       if(!p){r._sm[k]=[j.rotation.x,j.rotation.y,j.rotation.z,0,0,0];continue;}
-      const K=JOINT_K[k]||600,D=JOINT_D[k]||30,dq=Math.exp(-D*h);
+      let K=JOINT_K[k]||600,D=JOINT_D[k]||30;
+      /* AND A SLAB OF IRON IS SLACKER STILL. The ultra greatsword carries
+         its own rates out at the far end of the chain — the weapon and the
+         forearms holding it — so it lags further behind the shoulder and
+         carries further past the pose. That lag IS the weight; there is no
+         other way to show mass in a rig with no mass in it. */
+      if(r.heavyBlade&&(k==='weapon'||k==='foreR'||k==='foreL')){K*=.62;D*=.78;}
+      const dq=Math.exp(-D*h);
       const tx=j.rotation.x,ty=j.rotation.y,tz=j.rotation.z;
       for(let i=0;i<steps;i++){
         // by the SHORTEST arc: a full turn and zero are the same pose, so a
@@ -7001,6 +7199,46 @@ function markTree(o,hx,hz,tr,sd){
   boneBurst(o.x+nx*(T.r+.06),heightAt(o.x,o.z)+y,o.z+nz*(T.r+.06),0xc9ad84,4,1.6);
 }
 
+/* THE ULTRA GREATSWORD FELLS. A trunk is a mark on the bark to every
+   other blade in the game; to the slab it is one cut. The tree is given a
+   pivot at its own foot — its own spin is already baked into the group's
+   y, so a plain rotation would topple it sideways — and swung over about
+   the axis across the blow, slowly at first and then all at once, the way
+   a tree actually goes. The obstacle is dropped the moment it starts to
+   fall, so you can walk through where it stood, and a stump is left in
+   its place. */
+const felled=[];
+function fellTree(o,dx,dz){
+  const T=o&&o.tree;if(!T||T.felled)return false;
+  T.felled=true;
+  const i=obstacles.indexOf(o);if(i>=0)obstacles.splice(i,1);
+  const g=T.grp,parent=g.parent||world;
+  const piv=new THREE.Group();piv.position.copy(g.position);parent.add(piv);
+  g.position.set(0,0,0);piv.add(g);
+  const l=Math.hypot(dx,dz)||1,ax=new THREE.Vector3(dz/l,0,-dx/l);   // the axis across the blow: it goes over AWAY from you
+  const gy=heightAt(o.x,o.z);
+  // the stump it leaves
+  const st=new THREE.Mesh(new THREE.CylinderGeometry(T.r*.9,T.r*1.15,.38,5),mat('bark'));
+  st.position.set(o.x,gy+.19,o.z);st.rotation.y=g.rotation.y;parent.add(st);   // (mat() has already given it the wobble)
+  AudioSys.woodKnock();AudioSys.sever();
+  boneBurst(o.x,gy+1.05,o.z,0xc9ad84,14,2.4);
+  G.camShake=Math.max(G.camShake,.3);G.hitstop=Math.max(G.hitstop,.07);G.vibr([30,20,60]);
+  let a=0,w=.7,done=false;
+  effects.push({update(dt){
+    if(done)return false;
+    w+=3.4*dt;a+=w*dt;                                   // it hesitates, then goes
+    if(a>=1.48){a=1.48;done=true;
+      AudioSys.bodyfall();AudioSys.quake();G.camShake=Math.max(G.camShake,.42);G.vibr([50,30,80]);
+      boneBurst(o.x+dx/l*(T.h*.55),gy+.25,o.z+dz/l*(T.h*.55),0x6a5a3a,18,2.6);
+      for(let k=0;k<4;k++)paintScar(o.x+dx/l*(1.4+k*1.3),o.z+dz/l*(1.4+k*1.3),Math.atan2(dx,dz)+Math.PI/2,.55,1.6,true);
+      felled.push(piv);while(felled.length>14){const old=felled.shift();if(old.parent)old.parent.remove(old);}
+    }
+    piv.quaternion.setFromAxisAngle(ax,a);
+    return !done;
+  }});
+  return true;
+}
+
 /* a swing into a WALL scores the stone the way it marks a tree: the wall's
    texture is painted — a dark gouge where the edge struck, at blade
    height, on the face the blade came at. Any wall that was registered
@@ -7616,6 +7854,7 @@ const player={
   poisonT:0,poisonTick:0,execT:null,
   element:null,elementT:0,elemTrailT:0,
   reaperT:0,mark:null,markIc:null,
+  seamT:0,seamDur:SEAM_T,
   snowCling:0,snowCoat:0,snowBoot:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
@@ -7631,7 +7870,12 @@ const player={
   ultra(){return LOADOUT.weapon==='ultra';},
   swing(){return this.ultra()?1.5:1;},
   // the slab's weight lands at the end of every arc: the camera jolts and the ground takes a thud
-  ultraThud(p,at,n){n=n||1;if(this.ultra()&&(this.thudDone|0)<n&&p>=at){this.thudDone=n;G.camShake=Math.max(G.camShake,.3);AudioSys.bodyfall();G.vibr(25);}},                                   // the ultra's swings take half again as long
+  ultraThud(p,at,n){n=n||1;if(this.ultra()&&(this.thudDone|0)<n&&p>=at){this.thudDone=n;
+    G.camShake=Math.max(G.camShake,.46);G.hitstop=Math.max(G.hitstop,.05);AudioSys.bodyfall();AudioSys.quake();G.vibr([40,20,50]);
+    // the edge drags through the soil at the bottom of the arc
+    const a=this.facing;
+    for(let i=0;i<2;i++)paintScar(this.x+Math.sin(a)*(1.4+i*.5)+rr3(-.3,.3),this.z+Math.cos(a)*(1.4+i*.5)+rr3(-.3,.3),a+Math.PI/2,rr3(.3,.55),rr3(1.4,2.2),true);
+    boneBurst(this.x+Math.sin(a)*1.5,heightAt(this.x,this.z)+.12,this.z+Math.cos(a)*1.5,0x5a4c38,7,1.8);}},                                   // the ultra's swings take half again as long
   atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.ultra()?1.05:.68;},
   /* A CHAINED SWING DOES NOT START FROM REST. Every pose in the game is
      four keys — carry, wind, strike, follow-through — and the wind takes
@@ -7647,7 +7891,8 @@ const player={
      sooner, which is what a combo is. The pose blender carries the last
      swing's follow-through into this one's wind across the seam, so there
      is no seam. */
-  chainIn(){this.atkDur=this.atkDurFor();this.t=this.atkDur*ATK_ENTRY;this.atkT0=this.t;},
+  chainIn(){this.atkDur=this.atkDurFor();this.t=this.atkDur*ATK_ENTRY;this.atkT0=this.t;
+    seamGrab(this.rig);this.seamDur=Math.min(.3,Math.max(.12,this.atkDur*.34));this.seamT=this.seamDur;},
   // the pilgrim's body is remade from the loadout: same place, same facing
   dropThrown(){if(this.katThrown){const m=this.katThrown.mesh;if(m.parent)m.parent.remove(m);this.katThrown=null;if(this.rig&&this.rig.weapon)this.rig.weapon.visible=true;}},
   rebuild(){
@@ -7660,6 +7905,8 @@ const player={
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
     dressSnow(this.rig);this.snowCling=this.snowCling||0;this.snowCoat=0;this.snowBoot=0;
+    AudioSys.setBlade(LOADOUT.weapon);      // the swing's voice follows the steel
+    this.rig.heavyBlade=this.ultra();       // ...and so does how far behind the arm it hangs
     buildWeaponGlow(this.rig,LOADOUT.weapon);
     this.rig.weapon.add(this.bladeLight);
     this.bladeLight.position.set(0,this.weapon()==='bow'?.2:-1.1,0);
@@ -7667,7 +7914,17 @@ const player={
     if(this.x!==undefined){this.rig.root.position.set(this.x,heightAt(this.x,this.z),this.z);this.rig.root.rotation.y=this.facing||0;}
     if(this.state!=='free'&&this.state!=='dead'){this.state='free';G.slowMo=1;}
   },
-  // an arrow leaves the bow
+  /* AN ARROW LEAVES THE BOW — and it is no longer a flat ruled line at
+     chest height. Every shaft falls: horizontal speed is held and gravity
+     works on it the whole way, so a loose at nothing drops off after
+     twenty-odd metres and buries itself in the soil. And the loose is
+     AIMED: with a horror on the eye, the launch angle is solved for where
+     that horror actually is — up on a rise, down in a hollow, five metres
+     in the air on the Fallen One's climb — by the time the arrow would
+     arrive. The elevation is CAPPED, deliberately. Past the cap the
+     solution is refused and the shaft is loosed as high as the bow will
+     throw it, which falls short. A bow has a range, and now you can feel
+     where it ends. */
   fireArrow(kind){
     const heavy=kind!=='light';
     AudioSys.loose(heavy);G.vibr(heavy?25:12);
@@ -7675,7 +7932,21 @@ const player={
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
     const spd=kind==='light'?19:kind==='knock'?24:kind==='bomb'?22:27;
     const dmg=kind==='light'?14:kind==='knock'?26:kind==='bomb'?12:22;
-    shootArrow(this.x+fx*.6,heightAt(this.x,this.z)+1.35,this.z+fz*.6,fx,fz,spd,dmg,kind);
+    const y0=heightAt(this.x,this.z)+1.35;
+    // flat out to about fourteen metres, and dropping from there: the lift
+    // that just cancels the fall over that distance. An unaimed shaft is
+    // therefore in the soil somewhere past twenty.
+    let vy=.5*ARROW_G*(14/spd);
+    const foe=G.lockTarget&&!G.lockTarget.objective&&G.lockTarget.hp>0?G.lockTarget:null;
+    if(foe){
+      const d=Math.hypot(foe.x-this.x,foe.z-this.z);
+      const ty=(foe.crow||foe.kind==='angel')&&foe.y!==undefined?foe.y+.4
+              :heightAt(foe.x,foe.z)+(foe.boss?2.0:foe.big?1.5:1.1);
+      const tof=d/spd;                                  // time of flight at this speed
+      vy=(ty-y0)/tof+.5*ARROW_G*tof;                    // the lift that lands it there
+    }
+    vy=clamp(vy,-spd*.55,spd*.62);                      // and the bow's limit: beyond it, the shaft falls short
+    shootArrow(this.x+fx*.6,y0,this.z+fz*.6,fx,fz,spd,dmg,kind,vy);
   },
   respawn(){
     if(this.rag)endRagdoll(this);
@@ -7784,6 +8055,13 @@ const player={
          down into a green pool and sink into the field.
      Everything but the poison is the hollows' own ragdoll, kicked
      differently. */
+  // over the edge of the world: no blow, no blood, just the ground ending
+  plunge(){
+    if(this.state==='dead'||G.mode!=='play')return;
+    const o=brinkOut(this);
+    AudioSys.heroHurt();
+    this.die(o.x,o.z,1,'fall');
+  },
   die(kx,kz,force,kind){
     this.hp=0;this.state='dead';this.t=0;this.dropThrown();
     G.mode='dead';G.deaths++;
@@ -7811,12 +8089,19 @@ const player={
       startRagdoll(this,ux,uz,7.4*(force||1),2.2+Math.random()*.8);   // taken off your feet
       G.camShake=Math.max(G.camShake,.45);
       boneBurst(this.x,1.3,this.z,0xcfc4a3,8,3);
+    }else if(kind==='fall'){
+      // OVER THE BRINK. The same ragdoll, thrown out past the lip — and
+      // then let off the world entirely: no ground under any part of it
+      // and no wall to catch it, so it turns over once and keeps going
+      // down into the dark the field sits on.
+      ragFree(startRagdoll(this,ux,uz,3.4,1.1));
+      G.camShake=Math.max(G.camShake,.3);
     }else{
       startRagdoll(this,ux,uz,1.5*(force||1),1.5+Math.random()*.5);   // opened up: you fold, you do not fly
     }
     AudioSys.deathGong();G.vibr([80,60,120]);
     // the path keeps what it takes
-    if(kind!=='poison'){
+    if(kind!=='poison'&&kind!=='fall'){
       bloodSpray(this.x,1.1,this.z,kind==='blade'?30:18,kind==='blade'?2.2:1.5);
       if(kind==='blade'){                                            // the sheet of it keeps coming for a moment
         let t=0;const px=this.x,pz=this.z;
@@ -7831,9 +8116,13 @@ const player={
     // drop the marrow where you fell
     if(G.marrowDrop){clearMarrowDrop();toast('the lost marrow fades');}
     if(this.marrow>0){
-      // the pilgrim's helm lies where they fell, the marrow burning inside
-      // it, under a shaft of pale light that stands over the spot — the
-      // one thing in the whole field that is yours
+      /* The pilgrim's helm lies where they fell, the marrow burning inside
+         it, under a shaft of pale light that stands over the spot — the one
+         thing in the whole field that is yours. If the fall was OVER THE
+         BRINK, it is set back a stride from the lip instead: a marrow drop
+         standing on ground that kills you for reaching it is a trap and
+         not a stake. */
+      if(kind==='fall'){const o=brinkOut(this);this.x-=o.x*2.2;this.z-=o.z*2.2;}
       const gy=heightAt(this.x,this.z),g=new THREE.Group();
       const helm=this.rig.head.clone(true);
       helm.position.set(.14,gy+.1,0);helm.rotation.set(1.3,rr3(-1,1),.6);
@@ -7913,7 +8202,7 @@ const player={
     if(crit)dmg=Math.round(dmg*1.8);
     let hitAny=false,clashed=false,bounce=null;
     // the pews of the nave splinter under the blade
-    if(strikeBreakables(this.x,this.z,fx,fz,reach,arc))clashed=true;
+    if(strikeBreakables(this.x,this.z,fx,fz,reach,arc,this.ultra()))clashed=true;
     // the blade meets STONE first: a swing into a wall, a gravestone, a
     // trunk or a post is checked there in a shower of sparks
     const stone=bladeMeetsStone(this.x,this.z,fx,fz,reach*.9,arc);
@@ -7922,7 +8211,11 @@ const player={
       // flung back with it, and nothing on the far side is touched
       // (only STONE throws the blade back: a trunk or a post is checked
       //  in sparks and the swing carries on)
-      if(stone.o&&stone.o.tree){markTree(stone.o,stone.x,stone.z,opts.trail||'sweep',opts.dir);AudioSys.hit();}   // a trunk: the edge bites and leaves a gash
+      if(stone.o&&stone.o.tree){
+        // the slab takes it down; every other blade only bites the bark
+        if(this.ultra()&&fellTree(stone.o,fx,fz)){clashed=true;}
+        else{markTree(stone.o,stone.x,stone.z,opts.trail||'sweep',opts.dir);AudioSys.hit();}
+      }
       else{clashSparks(stone.x,heightAt(stone.x,stone.z)+1.1,stone.z,stone.stone?14:8);
         if(stone.stone)markStone(stone.x,stone.z,opts.trail||'sweep',opts.dir);}                                // a wall: the edge scores the stone
       if(!(stone.o&&stone.o.tree)&&!(stone.o&&breakables.some(b=>b.obs===stone.o)))AudioSys.clang(!stone.o||stone.o.seg||stone.o.r>1?'wall':stone.o.stone?'stone':'metal');   // (a breakable already spoke for itself: stone for a grave, oak for a pew)G.camShake=Math.max(G.camShake,stone.stone?.3:.14);G.hitstop=Math.max(G.hitstop,stone.stone?.08:.04);G.vibr(stone.stone?[30,20,40]:20);
@@ -7969,7 +8262,7 @@ const player={
         else{reaperFinish(e,hv,this.facing);hitAny=true;continue;}
       }
       const preHp=e.hp;
-      if(this.ultra()){kb*=3.5;hv.up*=1.6;dmg=Math.round(dmg*1.4);}       // the ultra greatsword: they leave the ground
+      if(this.ultra()){kb*=3.5;hv.up*=1.6;dmg=Math.round(dmg*3);}         // the ultra greatsword: three times the blow, and they leave the ground
       e.takeHit(dmg,(opts.staggerAll||this.ultra())&&!e.boss?99:poise,this.x,this.z,kb,hv);
       if(this.ultra()){G.hitstop=Math.max(G.hitstop,.12);G.camShake=Math.max(G.camShake,.35);
         // whatever it meets and doesn't kill is flung bodily off its feet, a good many metres
@@ -8015,6 +8308,22 @@ const player={
       }
       hitAny=true;
     }
+    /* AND THE SLAB MARKS THE FIELD. Not on a landed blow — on EVERY
+       swing: a greatsword this size does not miss cleanly, it takes a
+       furrow of the ground with it. Three torn streaks laid along the
+       arc the edge travelled, painted into the ground's own sheet, which
+       is a change of the field's colour and costs nothing to draw. */
+    if(this.ultra()){
+      const tr=opts.trail||'sweep',sd=opts.dir||1;
+      for(let i=0;i<3;i++){
+        const off=tr==='thrust'?0:(i-1)*.5*sd;
+        const a=this.facing+off*(tr==='overhead'?.2:1.1);
+        const d=(tr==='thrust'?1.5:1.25)+i*.28;
+        paintScar(this.x+Math.sin(a)*d,this.z+Math.cos(a)*d,
+          a+(tr==='thrust'?0:Math.PI/2),rr3(.22,.4),rr3(1.1,2.0),true);
+      }
+      G.camShake=Math.max(G.camShake,.2);
+    }
     if(hitAny){
       // the blow lands: the frame holds a beat, the camera jolts
       G.hitstop=Math.max(G.hitstop,crit?.2:dmg>20?.16:.11);
@@ -8036,6 +8345,7 @@ const player={
     // that has just fallen, but the blade won't be
     const foe=G.lockTarget&&!G.lockTarget.objective&&G.lockTarget.hp>0?G.lockTarget:null;
     this.t+=dt;
+    this.seamT=Math.max(0,(this.seamT||0)-dt);
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
     this.postRollT+=dt;
     // poison ticks the life away, two at a time, and won't be rolled off
@@ -8625,22 +8935,41 @@ const player={
       const DUR=1.0,p=this.t/DUR;
       if(p<.6)G.camShake=Math.max(G.camShake,.3);
       if(!this.sfxDone&&p>=.5){this.sfxDone=true;AudioSys.heavySwing(this.element);}
-      if(!this.hitDone&&p>=.72){ // the slam
+      if(!this.hitDone&&p>=.72){ // the point goes in
         this.hitDone=true;
         AudioSys.quake();G.camShake=1.8;G.hitstop=.2;G.vibr([140,40,220]);
         const gy=heightAt(this.x,this.z),fx=Math.sin(this.facing),fz=Math.cos(this.facing);
-        const ix=this.x+fx*1.1,iz=this.z+fz*1.1;
+        const ix=this.x+fx*.75,iz=this.z+fz*.75;                  // where the steel actually enters the soil
         boneBurst(ix,gy+.2,iz,0x4a463a,30,4.5);boneBurst(ix,gy+.1,iz,0x2e2a22,16,3);
         sparkBurst(ix,gy+.3,iz,14);
-        strikeBreakables(this.x,this.z,fx,fz,3.2,TAU);
+        shockRing(ix,iz,0xd8a24a,5.6,.45);
+        /* AND THE GROUND KEEPS IT. The soil round the point is burst open
+           and burnt — a torn crater where the blade went in, then cracks
+           running out from it along their own radii, then a last scatter
+           of flung earth out where the wave died. Painted into the
+           ground's own paint sheet, so it is a change of the FIELD'S
+           colour and costs not one draw call. */
+        paintScar(ix,iz,this.facing,1.5,1.5,false,QUAKE_PAL);
+        paintScar(ix,iz,this.facing,.85,.85,true);
+        const rings=this.chargeFull?14:10,far=this.chargeFull?6.4:5.0;
+        for(let i=0;i<rings;i++){
+          const a=(i/rings)*TAU+rr3(-.18,.18),d=rr3(1.2,far*.62);
+          paintScar(ix+Math.sin(a)*d,iz+Math.cos(a)*d,a,rr3(.3,.6),rr3(1.5,2.8),false,QUAKE_PAL);
+        }
+        for(let i=0;i<7;i++){
+          const a=Math.random()*TAU,d=rr3(far*.6,far);
+          paintScar(ix+Math.sin(a)*d,iz+Math.cos(a)*d,a,rr3(.35,.8),rr3(.5,1.1),true);
+        }
+        strikeBreakables(this.x,this.z,fx,fz,3.2,TAU,true);        // and everything standing near it goes down
         const full=this.chargeFull;
         for(const e of enemies){
           if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||e.crow)continue;
           const dx=e.x-ix,dz=e.z-iz,d=Math.hypot(dx,dz)||.01;
           if(d>(full?7:5.5))continue;
           const ux=dx/d,uz=dz/d,near=1-d/(full?7:5.5);
-          if(e.boss||e.mini){e.takeHit(full?32:20,4,ix,iz,1,{dx:ux,dz:uz,up:.5});continue;}
-          e.takeHit(full?26:16,99,ix,iz,2,{dx:ux,dz:uz,up:2});
+          const U=this.ultra()?3:1;                                 // the slab drives it three times as deep
+          if(e.boss||e.mini){e.takeHit((full?32:20)*U,4,ix,iz,1,{dx:ux,dz:uz,up:.5});continue;}
+          e.takeHit((full?26:16)*U,99,ix,iz,2,{dx:ux,dz:uz,up:2});
           if(e.hp<=0)continue;
           if(!e.big&&Math.random()<.4){                              // bones burst away down the line
             e.scatter(ux,uz,9+8*near);
@@ -8853,6 +9182,8 @@ const player={
       if(this.t>=(this.hurtDur||.38))this.state='free';
     }
 
+    // the brink: one stride too far and there is nothing under him
+    if(this.state!=='dead'&&overBrink(this)>0)this.plunge();
     // spatial constraints
     if(this.state!=='dead'){
       constrain(this,G.bossActive);
@@ -8896,7 +9227,7 @@ const player={
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/(.95*this.swing())));
-    else if(this.state==='quake')poseHeavy(r,Math.min(1,this.t/1.0));
+    else if(this.state==='quake')poseQuakeStab(r,Math.min(1,this.t/1.0));
     else if(this.state==='recoil')poseRecoil(r,Math.min(1,this.t/.42));
     else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
       if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
@@ -9008,6 +9339,9 @@ const player={
         r.foreR.add(r.weapon);r.weapon.position.set(0,-.34*(r.AL||1)*r.s,0);r.weapon.rotation.set(0,0,0);if(r._sm)delete r._sm.weapon;
       }
     }
+    // and the seam, if one is still open: the new swing's target eased out
+    // of the last swing's body rather than dropped on top of it
+    if(this.seamT>0){const u=this.seamT/(this.seamDur||SEAM_T);seamBlend(r,u*u*(3-2*u));}
     updateRigExtras(r,dt);
     return this.post(dt);
   },
@@ -9128,6 +9462,19 @@ class Enemy{
       AudioSys.roar();AudioSys.bossMusic(2);G.camShake=.5;
       bannerShow('THE MARROW STIRS','the warden remembers its rage');
     }
+  }
+  // thrown off the edge of the field: it dies on the way down
+  plunge(){
+    if(this.hp<=0)return;
+    const o=brinkOut(this);
+    if(this.rag)endRagdoll(this);
+    this.noRag=true;                                  // (no fall of its own: the one below is the fall)
+    this.die();
+    this.noRag=false;
+    this.state='dead';this.t=0;
+    this.fellOff=true;
+    ragFree(startRagdoll(this,o.x,o.z,2.6,.8,true));
+    AudioSys.bodyfall();
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;
@@ -9334,6 +9681,15 @@ class Enemy{
       this.vx*=Math.pow(.01,dt);this.vz*=Math.pow(.01,dt);
     }
     if(this.state!=='dead'&&this.state!=='dormant'&&this.state!=='rise'){
+      /* KNOCKED OFF. A horror only goes over the brink when it is not
+         standing on its own feet — flung, floored, blasted apart, or still
+         carrying a blow's speed. One walking the rim of its own accord is
+         held back the way it always was; the ultra greatsword putting it
+         there is another matter entirely. */
+      if(!this.boss&&!this.mini&&!this.crow&&this.rig.humanoid&&this.hp>0&&
+         this.state!=='scatter'&&overBrink(this)>0&&
+         (this.rag||this.state==='down'||this.state==='stagger'||
+          Math.hypot(this.vx,this.vz)>2.6))this.plunge();
       constrain(this,this.boss);
       pushOut(this,this.radius);
       // don't stack on other enemies
@@ -9354,9 +9710,15 @@ class Enemy{
       for(const m of this.mats)m.emissive.setHex(0x000000);
       if(this.state==='down'){if(this.t>=1.3)endRagdoll(this);}   // then it drags itself up
       else if(this.state==='dead'){
-        if(!this.crumbled&&this.t>2.4){
+        if(this.fellOff&&this.rag){                         // nothing to collapse: it is still going down
+          const py=this.rag.P[this.rag.pelvis].p.y;
+          if(!this.crumbled&&(py<heightAt(this.x,this.z)-26||this.t>6)){
+            this.crumbled=true;r.root.visible=false;endRagdoll(this);}
+          return;
+        }
+        if(!this.crumbled&&this.t>(this.boss?5.2:2.4)){
           this.crumbled=true;r.root.visible=false;endRagdoll(this);
-          boneCollapse(this.x,this.z,this.big?1.25:.9);
+          boneCollapse(this.x,this.z,this.boss?1.9:this.big?1.25:.9);
         }
       }else endRagdoll(this);
       return;
@@ -9406,9 +9768,17 @@ class Enemy{
           if(this.rig.heart){this.rig.heartOn=this.t<1.6;if(this.t>1.6)this.rig.heart.material.color.setHex(0x2a0a06);}
           if(this.t<1.6&&Math.random()<dt*40){const hp=this.rig.heart.getWorldPosition(new THREE.Vector3());elemFleck('fire',hp.x+rr3(-.2,.2),hp.y+rr3(-.1,.2),hp.z+rr3(-.2,.2));}
           if(this.rig.eyes&&this.t>1.2)for(const e of this.rig.eyes){e.material.color.setHex(0x3a1008);e.children.forEach(c=>{if(c.isSprite)c.material.opacity=Math.max(0,1-(this.t-1.2)/.6);});}
-          if(!this.thudDone&&this.t>2.05){this.thudDone=true;AudioSys.bodyfall();AudioSys.quake();G.camShake=Math.max(G.camShake,1.0);G.vibr([80,40,120]);
-            const gy=heightAt(this.x,this.z),fx=Math.sin(this.facing),fz=Math.cos(this.facing);
-            boneBurst(this.x+fx*1.5,gy+.2,this.z+fz*1.5,0x4a463a,26,3.5);}
+          /* AND THEN IT GOES OVER. The authored end pitched the whole rig
+             about its own root, which sits at the feet — so the Warden
+             rotated straight down through the flags and the last thing you
+             saw of it was its shoulders going under the floor. It kneels
+             and lifts its head as it always did, and then the body is
+             handed to the ragdoll and falls where the physics puts it. */
+          if(!this.thudDone&&this.t>1.62){this.thudDone=true;
+            const fx=Math.sin(this.facing),fz=Math.cos(this.facing),gy=heightAt(this.x,this.z);
+            AudioSys.bodyfall();AudioSys.quake();G.camShake=Math.max(G.camShake,1.0);G.vibr([80,40,120]);
+            boneBurst(this.x+fx*1.5,gy+.2,this.z+fz*1.5,0x4a463a,26,3.5);
+            startRagdoll(this,fx,fz,3.2,.9,true);}
         }else poseDead(r,this.t);
         // the fallen come apart into the soil
         if(!this.crumbled&&this.t>(this.boss?4.4:1.05)){
@@ -10115,7 +10485,7 @@ function makeRagdoll(rig,rigid){
             q.o.x=q.p.x-(q.p.x-q.o.x)*.55;q.o.z=q.p.z-(q.p.z-q.o.z)*.55;} // and most of the slide
         }
       }
-      for(const i of walled){const q=P[i].p;constrain(q,G.bossActive);pushOut(q,.12);}
+      if(!rag.noWall)for(const i of walled){const q=P[i].p;constrain(q,G.bossActive);pushOut(q,.12);}
       rag.energy=en/(P.length*h*h);
     },
     step(dt){
@@ -10142,9 +10512,12 @@ function makeRagdoll(rig,rigid){
   };
   return rag;
 }
-// a horror goes limp: its rig hands itself to the ragdoll
-function startRagdoll(e,dx,dz,mag,up){
-  if(!e.rig.humanoid||e.boss||e.mini)return null;
+/* A horror goes limp: its rig hands itself to the ragdoll. The boss and
+   the mini-bosses are held out of this — a thing that big flopping at
+   every stagger would be a joke — EXCEPT when they are dying, which is
+   asked for outright with `force`. */
+function startRagdoll(e,dx,dz,mag,up,force){
+  if(!e.rig.humanoid||(!force&&(e.boss||e.mini)))return null;
   if(!e.rag){
     e.rag=makeRagdoll(e.rig);ragdolls.push(e.rag);
     while(ragdolls.length>RAG_MAX){const old=ragdolls.shift();old.asleep=true;}   // the oldest lie still
@@ -10169,12 +10542,17 @@ function endRagdoll(e){
    and keeps it — the arrow is planted in the body and rides with it
    through every pose and fall. Into the ground or the stone, it sticks. */
 let _arrowM=null;
+const ARROW_G=11;      // what an arrow weighs, in the only sense the game cares about
 function arrowMats(){if(!_arrowM)_arrowM=[mat('bone'),mat('blade'),mat('rag',{color:0xe8e0c8})];return _arrowM;}
-function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
+const AR_V=new THREE.Vector3(),AR_UP=new THREE.Vector3(0,-1,0);
+function shootArrow(x,y,z,dx,dz,spd,dmg,kind,vy0){
   const [shM,hdM,flM]=arrowMats();
   const a=makeArrow(1,shM,hdM,flM);
   a.position.set(x,y,z);
-  a.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(dx,0,dz).normalize());
+  let vy=vy0||0;
+  // the shaft lies along its own flight, and tips over as the flight does
+  const aim=()=>{AR_V.set(dx*spd,vy,dz*spd).normalize();a.quaternion.setFromUnitVectors(AR_UP,AR_V);};
+  aim();
   // a pale glow rides the shaft in flight so the eye can follow it through the dark
   const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:kind==='light'?0xfff0c0:kind==='bomb'?0xff6a30:0xffc890,
     transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending}));
@@ -10189,10 +10567,15 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
       t.scale.set(.32,.32,1);t.position.copy(a.position);scene.add(t);let tl=0;
       effects.push({update(d){tl+=d;t.material.opacity=.5*(1-tl/.22);if(tl>.22){scene.remove(t);t.material.dispose();return false;}return true;}});}
     const st=dt*spd,nx=a.position.x+dx*st,nz=a.position.z+dz*st;
+    const ny=a.position.y+vy*dt;
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||hitSet.has(e))continue;
-      const ey=e.crow?e.y:heightAt(e.x,e.z)+1.1;
-      if(Math.abs(ey-a.position.y)>1.3)continue;
+      // where its BODY is, which for a thing in the air is not the soil
+      const ey=(e.crow||e.kind==='angel')&&e.y!==undefined?e.y+(e.crow?0:.5):heightAt(e.x,e.z)+1.1;
+      const tol=e.boss?2.0:e.big?1.6:1.3;
+      // the shaft is falling: it counts as level with the body anywhere
+      // across this step, not only where the step began
+      if(Math.min(a.position.y,ny)-tol>ey||Math.max(a.position.y,ny)+tol<ey)continue;
       // closest approach of this step's segment to the horror
       const px=e.x-a.position.x,pz=e.z-a.position.z,tt=clamp((px*dx+pz*dz)/(st||1e-4),0,1);
       const cx=a.position.x+dx*st*tt,cz=a.position.z+dz*st*tt;
@@ -10203,9 +10586,10 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind){
       if(kind==='pierce'&&pierced<3&&!e.boss){pierced++;continue;}   // and on through
       return false;                                                  // it stays in them
     }
-    a.position.x=nx;a.position.z=nz;
+    a.position.x=nx;a.position.z=nz;a.position.y=ny;
+    vy-=ARROW_G*dt;aim();
     const gy=heightAt(nx,nz),probe={x:nx,z:nz};pushOut(probe,.05);constrain(probe,G.bossActive);
-    if(a.position.y<gy+.05||Math.hypot(probe.x-nx,probe.z-nz)>.01||life>1.8){
+    if(a.position.y<gy+.05||Math.hypot(probe.x-nx,probe.z-nz)>.01||life>3.2){
       if(kind==='bomb'){bombBurst(a.position.x,Math.max(a.position.y,gy+.3),a.position.z,dx,dz);scene.remove(a);return false;}
       AudioSys.arrowStone();if(a._glow)a._glow.visible=false;
       if(a.position.y<gy+.05)a.position.y=gy+.05;
@@ -10878,7 +11262,11 @@ function updateCamera(dt){
   let lx=player.x,ly=hP+1.35,lz=player.z;
   if(foe){
     lx=(player.x+foe.x)/2;lz=(player.z+foe.z)/2;
-    ly=hP+1.5;
+    // and it LOOKS UP at something in the air: halfway to whatever height
+    // the thing is actually at, so the Fallen One stays on screen through
+    // the rise before its pound instead of leaving the top of the frame
+    const fy=foeY(foe)+(foe.crow?0:1.2);
+    ly=hP+1.5+Math.max(0,fy-(hP+1.5))*.5;
   }
   // smoothed gaze so knockbacks and rolls don't jerk the horizon
   const lk=1-Math.pow(.0005,dt);
@@ -10902,11 +11290,29 @@ function lockReach(e){
   const door=(q)=>{const zl=q.z-cathZ(q.z),az=PATH.on?Math.abs(zl):zl;return Math.abs(q.x)<2.4&&az>HL-1.5&&az<HL+WALLT+3;};
   return door(e)||door(player);
 }
+/* HOW HIGH THE THING ACTUALLY IS. A crow and the Fallen One both leave
+   the ground — the Fallen One by five and a half metres, on the rise
+   before its ground-pound — and the eye used to go on drawing its mark at
+   the soil beneath, with the camera looking at the soil too. The lock was
+   never lost; it simply pointed at dirt while the thing that mattered was
+   over your head. Anything that flies carries its own y, and both the
+   mark and the gaze ask for it. */
+function foeY(e){return (e.crow||e.kind==='angel')&&e.y!==undefined?e.y:heightAt(e.x,e.z);}
+function markY(e){
+  if(e.state==='scatter')return heightAt(e.x,e.z)+.55;          // a heap of bones: low, where the heap is
+  if(e.crow)return e.y+.7;
+  if(e.kind==='angel')return e.y+1.5;
+  return heightAt(e.x,e.z)+(e.boss?3.6:e.big?2.3:1.9);
+}
 function lockCands(){
   // only horrors that are truly LIVE — still clawing out of the grave
-  // (dormant or rising) doesn't count — and only ones the eye can reach
+  // (dormant or rising) doesn't count — and only ones the eye can reach.
+  // A BLASTED ONE STILL COUNTS: a telling blow bursts a skeleton into a
+  // heap that will drag itself back together, and dropping the lock for
+  // those two seconds threw the eye onto whatever else was near and then
+  // back again. The heap is still the horror you are fighting.
   return enemies
-    .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&e.state!=='scatter'&&!e.untouchable
+    .filter(e=>e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&!e.untouchable
       &&Math.hypot(e.x-player.x,e.z-player.z)<15&&lockReach(e))
     .sort((a,b)=>lockScore(a)-lockScore(b));
 }
@@ -10930,7 +11336,7 @@ function updateLock(){
     if(G.time-G.lockDeadAt<.5){
       lockMarker.visible=G.mode==='play';
       const p=t.rig?t.rig.root.position:t;
-      lockMarker.position.set(p.x,heightAt(p.x,p.z)+(t.boss?3.6:t.big?1.6:1.3),p.z);
+      lockMarker.position.set(p.x,markY(t)-.6,p.z);
       lockMarker.material.rotation=G.time*2;
       lockMarker.material.opacity=1-(G.time-G.lockDeadAt)/.5;
       return;
@@ -10968,9 +11374,9 @@ function updateLock(){
   const c=foe;
   lockMarker.visible=G.mode==='play'&&!!c;
   if(c){
-    const mh=c.crow?c.y+.7:heightAt(c.x,c.z)+(c.boss?3.6:c.big?2.3:1.9);
-    lockMarker.position.set(c.x,mh,c.z);
+    lockMarker.position.set(c.x,markY(c),c.z);
     lockMarker.material.rotation=G.time*2;
+    lockMarker.material.opacity=c.state==='scatter'?.45:1;   // a heap of bones is held, but quietly
   }
 }
 
@@ -11439,12 +11845,20 @@ function frame(now){
       if(PATH.on)updatePath(wdt);
     }else{
       player.t+=wdt;
+      /* WHOEVER PUTS THE BODY DOWN, PUTS IT DOWN. This used to end by
+         forcing the root to y=0 whatever had just placed it — which threw
+         the melt's sinking away every frame, and buried or floated every
+         ragdoll by exactly the height of the ground under it. It only ever
+         looked right because the spot it was tested on happened to sit at
+         zero. The melt places itself; the ragdoll's own apply() has
+         already put the root where the hips are; and the posed fall is the
+         only one that still needs telling. */
       if(player.melt)meltHero(wdt);
       else if(player.rag){player.rag.step(wdt);player.rag.apply();
         player.x=player.rig.root.position.x;player.z=player.rig.root.position.z;
         for(const m of player.mats)m.emissive.setHex(0x000000);}
-      else{resetPose(player.rig);poseDead(player.rig,player.t);}
-      player.rig.root.position.set(player.x,0,player.z);
+      else{resetPose(player.rig);poseDead(player.rig,player.t);
+        player.rig.root.position.set(player.x,heightAt(player.x,player.z),player.z);}
     }
     for(const e of enemies){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
@@ -11515,7 +11929,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

@@ -252,6 +252,46 @@ Known state of play:
   `REAPER_T` is a `const` declared beside it, near `severLimb`, well below
   `player`: safe only because `takeMark()` is never called at boot.
 
+- **The pose targets are blended across a chain, not just smoothed.**
+  `seamGrab(rig)` takes down `rig._sm` (the springs' current state) at the
+  instant `chainIn()` fires, and `seamBlend(rig,w)` pulls the new swing's
+  target back toward it for `player.seamDur` seconds, weight
+  `u*u*(3-2u)`. It runs in the hero's pose section immediately BEFORE
+  `updateRigExtras`, because it edits the target the springs then chase. If
+  you add a joint to `SMOOTH_JOINTS` it is carried automatically; if you
+  measure the seam, measure the target step, not the rendered output — the
+  springs hide most of it either way.
+- **`overBrink(p)` is the hexagon's cliff, and the lip sits INSIDE the
+  clamp.** `constrain` still pulls everything back to `HEX_AP-.9`, so a
+  thing that has crossed the lip (`HEX_AP-BRINK`, BRINK 1.15) is pinned at
+  the edge — which is where you want it standing when the ground stops
+  being under it. It returns -9 for the path and the boss arena: neither is
+  a cliff. `ragFree(rag)` is what actually lets a body off the world (all
+  particles in `noFloor`, `noWall` so `rag.sub` skips `constrain`).
+- **Arrows are ballistic now** (`ARROW_G`), and `fireArrow` solves the
+  launch angle at the LOCKED target's real height, then clamps it. The
+  clamp is the bow's range: past it the shaft falls short, which is the
+  point. The collision test sweeps the step's y range, or a falling shaft
+  passes through a body between frames.
+- **`startRagdoll(e,dx,dz,mag,up,force)`** — `force` is the only way the
+  boss and the mini-bosses get one, and only their death asks for it. The
+  Warden hands over at t>1.62 of its death pose, after the kneel; the pose
+  switch stops running once `e.rag` exists, so whatever `root.rotation` was
+  at that instant is frozen and consistent with the `rootQ` the ragdoll
+  captured. Do not "tidy" the root rotation afterwards.
+- **The dead hero's root is placed by whoever posed him.** There used to be
+  an unconditional `root.position.set(x,0,z)` after the dead-frame branches,
+  which threw away the melt's sinking and buried every ragdoll by exactly
+  the ground height under it. It only ever looked right because the spot it
+  was tested on sits at y≈0.
+- **`AudioSys.setBlade(k)`** is set in `player.rebuild()` and is the only
+  thing that makes a katana swing sound like a katana. Never branch on
+  `LOADOUT` inside AudioSys — it is defined long before the loadout is.
+- **`fellTree(o,dx,dz)` wraps the tree in a pivot at its own foot.** The
+  group's y already carries its random spin, so rotating the group itself
+  topples it sideways; the pivot is rotated about the axis across the blow
+  instead. The obstacle is dropped the instant it starts to fall.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,

@@ -89,9 +89,19 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     where the knockdowns and telling blows begin. Held too briefly, it's
     just a strike. You are wide open while you wind it.
   - **the longbow** — a tap nocks, draws and looses in half a second,
-    and taps chain. Arrows fly flat and fast; the first horror across the
-    path takes the shaft **and keeps it** — it is planted in the body and
-    rides with it through every pose and fall. Into the ground or the
+    and taps chain. **Arrows fall.** A shaft carries its speed forward and
+    gravity works on it the whole way, so it flies flat for a dozen metres
+    and drops off from there; loosed at nothing it is in the soil somewhere
+    past twenty, which is where the bow's range now ends and it is visible
+    in the flight. With a horror on the eye the loose is **aimed**: the
+    launch angle is solved for where that horror actually is — up on a
+    rise, down in a hollow, five metres in the air on the Fallen One's
+    climb — by the time the arrow would arrive. The elevation is capped,
+    deliberately: past the cap the solution is refused and the shaft is
+    thrown as high as the bow will throw it, and falls short. The shaft
+    lies along its own flight and tips over as the flight does. The first
+    horror across the path takes it **and keeps it** — planted in the body
+    and riding with it through every pose and fall. Into the ground or the
     stone, it sticks. The finishing move with a bow in hand is a shaft
     through the skull at point-blank. At full draw the bow arm is aimed
     straight down the facing however far the chest turns side-on, the
@@ -110,8 +120,20 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     come round, and the screen jolts as the weight lands at the end of
     every arc whether it found anything or not; whatever it does land on
     is knocked back like nothing: all but the Warden are thrown off their
-    feet and sent flying, the blow lands with a heavier stop, and it
-    hits harder besides.
+    feet and sent flying, and it hits for **three times** what the
+    greatsword does — to everything, the Warden and the two that are not
+    hollows included, and through the earthshaker as well as the arc.
+    It hangs further behind the arm that throws it than any other weapon —
+    the slab and the forearms holding it run on their own slacker spring
+    rates, so it lags more going out and carries further past the pose
+    coming back, which is the only way to show mass in a rig that has
+    none. It does not chip things: **a gravestone or a pew goes in one
+    blow**, and a **tree comes down** — the trunk hesitates, then goes over
+    away from the swing and lands with a thud, leaving a stump where it
+    stood and nothing to walk around. And it **marks the field**: every
+    swing, landed or not, drags a furrow of torn earth along the arc the
+    edge travelled, with a second set gouged where the point drags through
+    the soil at the bottom.
   - **the katana** — overpowered on purpose. Carried in **chudan**, both
     hands on the grip before the navel and the point levelled at the
     throat, and it fights the way a katana does: **yoko-giri**, the level
@@ -185,12 +207,19 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the edge side and drawn to a point — so the curve reads unbroken,
     and its saya lies back along the left hip with the mouth forward
     and up, the way one is worn
-  - **the earthshaker** — the greatsword's third charge. Hold and the
-    blade is hauled overhead while the ground groans and the screen
-    shakes; release and it is driven into the flags. Every small and
-    medium horror nearby is blasted five body-lengths down the line, and
-    some of them burst into bones that fly the same way. The Warden and
-    the two that are not hollows only take the blow
+  - **the earthshaker** — the greatsword's third charge, and a **stab**,
+    not a chop. Hold and the blade is hauled up in both hands and turned
+    **point-down** while the ground groans and the screen shakes; release
+    and the whole body drops behind it and drives the point into the
+    flags, and he stays crouched over the buried steel while the shock
+    goes out of it. Every small and medium horror nearby is blasted five
+    body-lengths down the line, and some of them burst into bones that fly
+    the same way. The Warden and the two that are not hollows only take
+    the blow. **And the ground keeps it**: the soil round the point is
+    burst open and burnt through, with cracks running out from it along
+    their own radii and a last scatter of flung earth where the wave died
+    — painted into the field's own colour, so it costs nothing and stays
+    there for the rest of the run
   - **flick in ANY direction** — dodge roll with i-frames that way
   - **the blade's trail** — every swing leaves a ribbon along the path
     the blade REALLY took, done the PSX way: each frame the hilt and the
@@ -240,6 +269,18 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     the camera comes round behind you after the release, the hero keeps
     running the way it was running until the stick is moved, so a held
     "back" never turns into a charge.
+    Two things it used to drop and no longer does. **A horror in the air**:
+    the Fallen One climbs five and a half metres before its ground-pound,
+    and the mark and the gaze both used to stay on the soil beneath it — the
+    lock was never actually lost, it simply pointed at dirt while the thing
+    that mattered was over your head. Anything that flies carries its own
+    height, and the mark sits on it while the camera looks halfway up to it,
+    so the whole climb stays on screen. **And a skeleton blasted apart**: a
+    telling blow bursts one into a heap that drags itself back together, and
+    letting the eye go for those two seconds threw it onto whatever else was
+    near and then back again. The heap is still the horror you are fighting,
+    so it keeps the mark — lower, on the bones, and dimmed, so you can see
+    what it is.
   - **the stick's turn** — the knight turns toward the stick at a rate
     that follows the push: a nudge steers, a shove wheels; and a nudge
     within fifteen degrees of the heading only eases it round, never
@@ -665,6 +706,31 @@ them the seed decides:
   marrow is the pilgrim's bonus, not the field's spend. One run in ten,
   one wedge's whole host burns red.
 
+## The brink
+
+**The field is a hexagon and the world falls away past its edge.** That was
+always true — the ground mesh drops off into nothing out there, it is not a
+painted backdrop — but an invisible wall stood a metre inside the drop and
+you simply could not reach it, which made the most dramatic feature of the
+whole field a place where you bumped into air.
+
+The wall is a **cliff** now. Cross the lip — the last stride before the old
+wall stood — and you go over it: no blow, no blood, the same ragdoll every
+other death uses, thrown outward and then let off the world entirely, with
+no ground under any part of it and no wall to catch it. It turns over once
+and keeps going down into the dark the field sits on.
+
+**And so do the horrors** — but only when they are not standing on their own
+feet. One walking the rim of its own accord is held back the way it always
+was; one that is flung, floored, or still carrying the speed of a blow goes
+straight over the edge and dies on the way down. A greatsword by the rim is
+a different weapon, and the ultra greatsword by the rim is an execution.
+
+The Warden's nave and the path are **not** cliffs: the arena is the arena,
+and the path's sides are shorn at a width that changes down every tile —
+an instant death on a boundary you cannot read while running is a different
+game.
+
 ## The path — survival
 
 The title screen offers two ways, and a third that is only a note.
@@ -801,9 +867,27 @@ is already going does not stand still waiting for its own wind to finish
 before it moves again. And the rig's pose blender carries the last swing's
 follow-through into this one's wind across the join, so there is no join.
 
+**And the seam itself is closed.** Getting the *timing* right was only half
+of it. Every swing's pose is authored to begin at the carry, so entering one
+a fifth of the way in drops the body onto a target that is already well over
+half the distance from the carry to the top of the wind — a step, taken in a
+single frame, which the joints then chase. That step is precisely the little
+hitch you could feel between one cut and the next.
+So at the instant a swing chains, the body's **current** pose is taken down,
+and for the first fifth of a second the new swing's target is blended back
+toward it: full weight at the join, easing away with no corner at either
+end, and gone long before the strike lands. The target curve therefore
+*starts exactly where the body already is* and has no step in it at all,
+while the springs keep every bit of the speed they had — so the swing
+continues rather than restarting. Measured across the join, the greatsword
+moves **40% less** in the frames after a chain than it used to, the ultra
+**70% less**. The seam is scaled to the swing, so the slab gets three
+tenths of a second of it and the katana under two.
+
 It applies to every weapon and every way in — the ordinary chain, the one
 that flows out of a charged cut into the overhead, and the one that comes
-out of a rolling attack — because they all go through the same door.
+out of a rolling attack — because they all go through the same door, and
+because none of it asks what the weapon is.
 
 ## The roll
 
@@ -1021,6 +1105,22 @@ more.
 In the last three seconds the skull begins to gutter, the way an imbued
 blade does. Death lets it go, with everything else.
 
+## How the Warden ends
+
+It kneels — the legs fold, the claws drag at the flags, the head lifts once
+with the ember in its chest guttering out — and that much was always right.
+What came after was not. The authored fall pitched the **whole rig about its
+own root**, and the root sits at the feet, so the Warden rotated straight
+down through the floor and the last thing you saw of the fight was its
+shoulders going under the flagstones.
+
+So the kneel plays as it always did, and then the body is **handed to the
+ragdoll**. It goes over the way a thing that size goes over, lands where the
+physics puts it, and lies there long enough to be looked at before it comes
+apart into bone. The ragdoll was refused to the boss and the two that are
+not hollows on purpose — something that big flopping at every stagger is a
+joke — so the dying asks for it outright, and nothing else can.
+
 ## The two that are not hollows
 
 Two things in the field are worse than the host, and each borrows the
@@ -1222,6 +1322,24 @@ Everything is generated at boot inside the one file:
   stand) rings bright; a WALL takes a heavy clank with the thump of
   the blow in it, or the edge skidding along the stone before it
   bites; STONE (a gravestone) knocks, dull and short, and sheds grit.
+  **And the blade in the hand decides the swing.** A greatsword does not
+  make the same noise going through air as a katana and never did: a slab
+  DISPLACES air — a low push you feel before you hear it — and a katana
+  CUTS it, which is a thin, fast, rising whistle with almost no body
+  under it at all, a second thinner pass a hair behind for the air closing
+  again, one keen overtone off the spine, and gone inside a fifth of a
+  second. One flag, set when the pilgrim is rebuilt, so every swing in the
+  game speaks in the right voice — the combo, the charges, the draw, the
+  waterfowl — without a single one of them having to know.
+  **The Unburied is not a wet thud.** The thing is a skin of grave-rot
+  holding several gallons of water and the blade does not so much strike
+  it as open it, so the blow is in four parts and the last is the longest:
+  the slap of the edge going in; the SPLIT, something sodden tearing low
+  and broad; the SPILL, a wash of noise falling away downward for most of
+  a second while the inside of it goes out onto the ground; and then the
+  patter, still running off it long after everything else has stopped.
+  Gurgle, bubble and suck all the way through, and fat pitched drops
+  hitting the soil at the end.
   Steel catching steel mid-swing (the parry) is a short scrape, no
   bell. VOICES are sung, not chipped: a sawtooth through three formant
   filters shaped to a vowel, on a pitch line, with breath under it —
