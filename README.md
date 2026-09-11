@@ -877,10 +877,14 @@ change wearing an animation's clothes.
 
 ## Life, in hearts
 
-Life is **seven hearts**, drawn as a nine-by-eight pixel heart made at boot
-like everything else in the game — whole, half, and the empty socket left
-when it is gone — nearest-filtered and blown up, with no bar and no gradient
-anywhere in it. The row is only rebuilt when the count of halves actually
+Life is **seven hearts**, drawn at boot like everything else in the game —
+whole, half, and the empty socket left when it is gone — nearest-filtered
+and blown up, with no bar and no gradient anywhere in it. The shape is
+**heraldic and not the fat round one off a playing card**: narrow lobes, a
+deep cleft between them, shoulders that pull in almost at once, and a long
+tapered tail down to a point. Ten pixels across by thirteen down — ten
+because an even width is the only one with a true centre line, and a half
+heart has to split on it. The row is only rebuilt when the count of halves actually
 changes, so watching it costs nothing.
 
 **Every blow in the field is a whole number of halves.** A hollow's swing
@@ -922,9 +926,14 @@ in four. A **second hit**, while the first is still on them, is the one that
 does it: dry bone that has been alight twice does not go out. *They go up.*
 Ablaze is its own thing and not a bigger number — it burns three times as
 long, takes twice as much twice as often, and the fire is **on** them:
-riding the trunk, the skull and every limb they still have, guttering and
-leaning with everything they do, throwing a glow of its own across the
-ground. They carry it until it kills them, which it very often does. (The
+riding the trunk, the skull and every limb they still have, throwing a glow
+of its own across the ground. They are **tongues and not blobs**: four of
+them in a two-by-two sheet, each drawn in layers from the outside in — a
+dark red edge, an orange body, a yellow heart, a white core — every layer
+shorter and narrower than the last, which is what makes a flame read as hot
+in the middle rather than as an orange smear. Each sprite carries its own
+copy of the sheet and runs the cycle on its own count, so the fire on a body
+*flickers* instead of pulsing in lockstep. They carry it until it kills them, which it very often does. (The
 glow is a haze sprite and not a light: three.js recompiles every lit shader
 in the scene the moment the count of lights changes, and a host of six going
 up one after another would recompile the world six times.)

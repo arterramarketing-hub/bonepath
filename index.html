@@ -82,7 +82,7 @@
     display:flex;flex-wrap:wrap;gap:3px;max-width:min(52vw,280px);}
   /* the hearts: one sprite drawn at boot like everything else, three faces
      of it, nearest-filtered and blown up — no bar, no gradient, no easing */
-  .hrt{width:20px;height:18px;background-size:100% 100%;image-rendering:pixelated;
+  .hrt{width:18px;height:22px;background-size:100% 100%;image-rendering:pixelated;
     filter:drop-shadow(0 1px 0 rgba(0,0,0,.7));}
   #marrow{position:absolute;right:calc(16px + env(safe-area-inset-right));
     bottom:calc(14px + env(safe-area-inset-bottom));text-align:right;
@@ -1031,9 +1031,15 @@ function buildTextures(){
        middle, so every half heart sat slightly wrong and there was no
        arrangement of pixels that could fix it. An even width has a true
        centre line, and half of it is exactly half of it. */
+    /* GOTHIC. Not the fat round one off a playing card — the heraldic
+       shape: narrow lobes, a deep cleft between them, shoulders that pull
+       in almost at once, and a long tapered tail running down to a point.
+       Still ten across, because an even width is the only one with a true
+       half. */
     const HRT=['.11....11.','1111..1111','1111111111','1111111111','1111111111',
-               '.11111111.','..111111..','...1111...','....11....'];
-    const W=10,H=9;
+               '1111111111','.11111111.','.11111111.','..111111..','..111111..',
+               '...1111...','....11....','....11....'];
+    const W=10,H=13;
     const face=(mode)=>{
       const c=document.createElement('canvas');c.width=W+2;c.height=H+2;
       const x=c.getContext('2d');
@@ -1047,13 +1053,49 @@ function buildTextures(){
         if(HRT[j][i]!=='1')continue;
         const full=mode===2||(mode===1&&i<W/2);       // five of ten: the true half
         // a lit top-left, a body, a darker underside — and a hollow socket
+        // a glint on the upper-left lobe, the body, and the tail in shadow
         const lit=j<3&&i>1&&i<4;
-        put(i+1,j+1,full?(lit?'#e4705c':j>5?'#7c1717':'#c23a2a'):(j>5?'#1a1f1c':'#2b322d'));
+        put(i+1,j+1,full?(lit?'#e4705c':j>9?'#6a1212':j>5?'#8f1f1b':'#c23a2a')
+                        :(j>9?'#141816':j>5?'#1a1f1c':'#2b322d'));
       }
       return c.toDataURL();
     };
     texCache.heartImg=[face(0),face(1),face(2)];
   }
+
+  /* -- FLAME. Four tongues in a two-by-two sheet, cycled per sprite so no
+        two on a body are on the same frame. Each is drawn in layers from
+        the outside in — a dark red edge, an orange body, a yellow heart and
+        a white core — every layer shorter and narrower than the last, which
+        is what makes a flame read as hot in the middle rather than as an
+        orange blob. They lean and neck differently frame to frame, so the
+        cycle flickers rather than pulses. -- */
+  makeTex('flame',128,(ctx,S)=>{
+    ctx.clearRect(0,0,S,S);
+    const C=64;                                        // one cell
+    const tongue=(ox,oy,lean,neck,layers)=>{
+      for(const [w,h,col] of layers){
+        const bx=ox+C/2,by=oy+C-3;                     // the foot of it
+        ctx.beginPath();
+        ctx.moveTo(bx-w,by);
+        ctx.quadraticCurveTo(bx-w*neck,by-h*.5,bx+lean*h*.34,by-h);   // up the left, leaning
+        ctx.quadraticCurveTo(bx+w*neck,by-h*.5,bx+w,by);              // and back down the right
+        ctx.quadraticCurveTo(bx,by+2,bx-w,by);                        // a rounded foot
+        ctx.fillStyle=col;ctx.fill();
+      }
+    };
+    const F=[[-.22,.62],[.06,.5],[.26,.66],[-.05,.44]];
+    for(let i=0;i<4;i++){
+      const ox=(i%2)*C,oy=((i/2)|0)*C,[lean,neck]=F[i];
+      tongue(ox,oy,lean,neck,[
+        [17,54,'rgba(150,32,8,.5)'],                   // the dark edge of it
+        [13,47,'rgba(232,86,14,.8)'],                  // the body
+        [8.5,35,'rgba(255,168,40,.92)'],               // the heart
+        [4.5,21,'rgba(255,240,190,.98)'],              // and the core
+      ]);
+    }
+  });
+  texCache.flame.encoding=THREE.LinearEncoding;
 
   /* -- soft round glow sprite (fire, wisps, marrow) -- */
   /* -- the finishing mark: a downward blade, bright, for a stunned foe -- */
@@ -10270,20 +10312,26 @@ function setAblaze(e){
   e.burnT=Math.max(e.burnT||0,12);e.burnTick=Math.min(e.burnTick||0,.2);
   const r=e.rig,s=r.s||1;
   e.flames=[];
-  // one on the trunk, one on the skull, one on each limb it still has
-  for(const [k,sc,y] of [['torso',1.35,.22],['head',.8,.1],['armR',.62,-.12],
-                         ['armL',.62,-.12],['legR',.7,-.2],['legL',.7,-.2]]){
+  /* one on the trunk, one on the skull, one on each limb it still has —
+     and each gets its OWN copy of the sheet, because the frame is chosen
+     with the texture's offset and six sprites sharing one texture would all
+     flicker in lockstep. The copies share the canvas, so it costs a few
+     kilobytes and nothing else. */
+  for(const [k,sc,y] of [['torso',1.5,.26],['head',.85,.12],['armR',.68,-.1],
+                         ['armL',.68,-.1],['legR',.78,-.18],['legL',.78,-.18]]){
     const g=r[k];if(!g)continue;
-    const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff7a20,
-      transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending}));
-    f.scale.set(sc*s,sc*1.45*s,1);f.position.y=y*s;g.add(f);
-    e.flames.push({s:f,base:sc*s,ph:Math.random()*TAU});
+    const tex=texCache.flame.clone();tex.needsUpdate=true;
+    tex.repeat.set(.5,.5);tex.offset.set(0,.5);
+    const f=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,
+      transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending}));
+    f.scale.set(sc*s,sc*1.7*s,1);f.position.y=y*s;g.add(f);
+    e.flames.push({s:f,tex,base:sc*s,ph:Math.random()*TAU,fr:(Math.random()*4)|0});
   }
   /* and it throws its own glow — as a HAZE sprite and not as a light.
      three.js recompiles every lit shader in the scene the moment the count
      of lights changes, which is the whole reason LPOOL exists; a host of
      six going up one after another would recompile the world six times. */
-  e.fireHaze=addHaze(e.x,heightAt(e.x,e.z)+1,e.z,0xff8a28,2.8,.42);
+  e.fireHaze=addHaze(e.x,heightAt(e.x,e.z)+1,e.z,0xff8a28,2.6,.24);
   AudioSys.fireHit();AudioSys.elemPickup('fire');
   elemBurst('fire',e.x,heightAt(e.x,e.z)+1,e.z);
   G.vibr(30);
@@ -10300,15 +10348,18 @@ function tickBurn(e,dt){
   const ab=e.ablaze;
   if(Math.random()<dt*(ab?26:9))elemFleck('fire',e.x+rr3(-.4,.4),gy+.5+rr3(0,ab?1.9:1.2),e.z+rr3(-.4,.4));
   if(ab&&e.flames){
-    // they gutter, and they lean the way the thing is moving
+    // they gutter: the tongue changes shape a dozen times a second, each
+    // on its own count, and breathes in and out around it
     for(const f of e.flames){
-      const w=.82+Math.sin(G.time*13+f.ph)*.16+Math.sin(G.time*29+f.ph)*.07;
-      f.s.scale.set(f.base*w,f.base*1.45*w,1);
-      f.s.material.opacity=.62+.3*w;
+      const fr=((G.time*14+f.ph*3)|0)%4;
+      if(fr!==f.fr){f.fr=fr;f.tex.offset.set((fr%2)*.5,((fr/2)|0)?0:.5);}
+      const w=.86+Math.sin(G.time*13+f.ph)*.13+Math.sin(G.time*31+f.ph)*.06;
+      f.s.scale.set(f.base*w,f.base*1.7*w*(.92+.16*Math.sin(G.time*19+f.ph)),1);
+      f.s.material.opacity=.7+.25*w;
     }
     if(e.fireHaze){e.fireHaze.position.set(e.x,gy+1,e.z);
-      const g=2.4+Math.sin(G.time*17)*.5;e.fireHaze.scale.set(g,g,1);
-      e.fireHaze.material.opacity=.34+Math.sin(G.time*11)*.1;}
+      const g=2.3+Math.sin(G.time*17)*.45;e.fireHaze.scale.set(g,g,1);
+      e.fireHaze.material.opacity=.2+Math.sin(G.time*11)*.07;}
   }
   if(e.burnTick<=0){
     e.burnTick=ab?.25:.5;e.hp-=ab?4:2;e.flash();
