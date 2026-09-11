@@ -561,6 +561,18 @@ them the seed decides:
     wading and starts reading as a cart track. And no mark appears: a boot
     presses in over a third of a second, which is the difference between a
     footfall and a decal being switched on behind you.
+  - **and there is a FRONT to it.** A channel with no head is a channel
+    that has been cut rather than ploughed: the snow behind you was
+    disturbed by nothing at all, because nothing was ever in front of the
+    hero doing the disturbing. What was missing is the bow wave — the
+    shin-deep heap that rides ahead of the legs and keeps being pushed,
+    which is the reason there is a trench behind at all. So a wedge of snow
+    is drawn just ahead of whatever is wading, turned to the line of travel
+    and wider than the body so it can be seen from behind the shoulder,
+    which is the only place anyone ever sees it from. It is barely there at
+    a walk and a proper heap at a sprint, it stands only while something is
+    moving, and it closes off the raw leading edge of the channel while it
+    is at it.
   - **and snow goes up as well as down.** A furrow is what is left behind,
     and behind is mostly where the camera is — what you actually watch,
     pace after pace, is the snow the legs are shovelling aside right now.
@@ -710,6 +722,20 @@ it has to say.
 The first three are the hollows' own ragdoll, kicked differently, and the
 heavy one borrows their limb-shearing outright. However you came apart, you
 are built again from nothing on respawn rather than patched back together.
+
+**They do not simply stand up out of the ground.** The soil does not give,
+and a thing with no muscle left on it has to argue with it. A hand breaches
+first and scrabbles at the dirt for a moment with nothing under it; then it
+*heaves*, gets a third of the way, and the ground takes it back. It heaves
+again, gets further, slips again. The third one holds. The whole way up it
+shudders, the trunk stays folded over itself and the head hangs, and only at
+the very end does the body straighten and remember what standing was — two
+and a half seconds end to end, where it used to be one. Under it is the
+sound of soil giving way: a long low rumble that *swells* rather than starts
+— the ground shifting before anything shows — grit and small stones
+crumbling off it the whole way, and three heaves audible in it, the two that
+fail and the one that does not. The earth keeps breaking around it until it
+is out.
 
 ## Elements
 

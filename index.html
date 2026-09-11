@@ -2075,6 +2075,22 @@ const AudioSys=(()=>{
       noise(t,{peak:.04,att:.05,dec:.4,f0:600,f1:1800,type:'bandpass',Q:2}); // a breath drawn out of the bones
     },
     // the bell tolls: inharmonic bell stack over a falling sub
+    /* SOIL GIVING WAY. A long low rumble that swells rather than starts —
+       the ground shifting before anything shows — with grit and small
+       stones crumbling off it the whole way, and three heaves in it where
+       the thing pushes: the two that fail and the one that does not. */
+    graveRise(){if(!ac)return;const t=now();
+      noise(t,{peak:.17,att:.4,dec:2.1,f0:155,f1:36});
+      noise(t+.25,{peak:.11,att:.6,dec:1.8,f0:95,f1:28});
+      tone(t,{f:37,f2:23,type:'sine',peak:.13,att:.45,dec:2.2});
+      tone(t+.1,{f:52,f2:29,type:'sine',peak:.06,att:.5,dec:1.9});
+      for(let i=0;i<26;i++){const d=Math.random()*2.2;                    // grit coming off it
+        noise(t+d,{peak:.02+Math.random()*.04,att:.002,dec:.04+Math.random()*.07,
+          f0:rr2(900,2800),f1:rr2(280,700),type:'bandpass',Q:2.4});}
+      for(const d of [.62,1.25,1.85]){                                    // the heaves
+        noise(t+d,{peak:.1,att:.05,dec:.34,f0:rr2(360,520),f1:100});
+        tone(t+d+.02,{f:rr2(46,64),f2:30,type:'sawtooth',peak:.055,att:.04,dec:.4});}
+    },
     deathGong(){const t=now();
       [1,2.76,4.07,5.43,6.79].forEach((r,i)=>
         tone(t,{f:76*r*rr2(.998,1.002),f2:76*r*.985,type:'sine',peak:.2/(i+1),dec:3.2}));
@@ -4092,6 +4108,32 @@ function dressSnow(rig){
     m.visible=false;scene.add(m);rig.snowCuff.push({m,leg:g});
   }
 }
+/* THE FRONT OF THE FURROW. A channel with no head to it is a channel that
+   has been cut, not ploughed — the snow behind you was disturbed by nothing
+   at all, because there was never anything in front of the hero doing the
+   disturbing. What is missing is the BOW WAVE: the shin-deep heap of it
+   that rides ahead of the legs and keeps being pushed, the reason there is
+   a trench behind at all.
+   So one wedge of snow is drawn just in front of whatever is wading, turned
+   to the line of travel, and it grows with the pace — it is barely there at
+   a walk and is a proper heap at a sprint. It stands only while something
+   is moving, and closes off the raw leading edge of the channel while it
+   is at it. */
+let ploughHead=null;
+function ploughFront(x,z,ang,amt){
+  if(!ploughHead){
+    ploughHead=new THREE.Mesh(GCyl(.3,.16,.14,6),SNOW_ON);
+    ploughHead.visible=false;scene.add(ploughHead);
+  }
+  if(amt<.06){ploughHead.visible=false;return;}
+  // pushed out ahead far enough, and wider than the body, to be seen from
+  // behind the shoulder — which is the only place anyone ever sees it from
+  const f=.44+.3*amt;
+  ploughHead.position.set(x+Math.sin(ang)*f,heightAt(x,z)+.05,z+Math.cos(ang)*f);
+  ploughHead.rotation.y=ang;
+  ploughHead.scale.set(1.55+amt*1.5,.5+amt*.95,.6+amt*.45);  // wide across the travel, shallow along it
+  ploughHead.visible=true;
+}
 const _cuffV=new THREE.Vector3();
 function snowCuffs(rig,amt){
   if(!rig||!rig.snowCuff)return;
@@ -5827,17 +5869,34 @@ function poseBossDeath(r,t){
   r.head.rotation.y=Math.sin(t*3)*.15*c*(1-b);
   r.root.rotation.x=1.3*b;                                   // face-first onto the flags
 }
+/* COMING UP OUT OF THE GROUND. The soil does not give, and a thing with no
+   muscle left on it has to argue with it. A hand breaches first and claws
+   at the dirt for a moment with nothing under it; then it HEAVES, gets a
+   third of the way, and the ground takes it back. It heaves again, gets
+   further, slips again. The third one takes. The whole way up it shudders,
+   the trunk stays folded over and the head hangs, and only at the very end
+   does the body straighten and remember what standing was. */
 function poseRise(r,p){
-  const a=easeOut(clamp(p/.35,0,1));                  // the arm breaches first
-  const b=easeInOut(clamp((p-.3)/.7,0,1));            // then the body hauls up
-  r.root.position.y=lerp(-1.55,0,b);
-  r.torso.rotation.x+=(1-b)*.9;
-  r.head.rotation.x-=(1-b)*.5;
-  r.armR.rotation.x=-2.6*a+1.5*b;                     // reach, then push
-  r.armL.rotation.x=-1.4*a*(1-b)-.2*b;
-  r.foreR.rotation.x=-.6*(1-b);
-  r.legR.rotation.x=-1.2*(1-b);r.kneeR.rotation.x=1.6*(1-b);
-  r.legL.rotation.x=-.6*(1-b);r.kneeL.rotation.x=1.1*(1-b);
+  const ease=(a,b)=>easeInOut(clamp((p-a)/(b-a),0,1));
+  const reach=easeOut(clamp(p/.2,0,1));               // the hand breaches
+  const claw=Math.sin(clamp((p-.1)/.22,0,1)*Math.PI*2.5)*clamp(1-(p-.1)/.3,0,1);   // and scrabbles at nothing
+  const h1=ease(.24,.40)*(1-ease(.40,.52));           // up a third — and taken back
+  const h2=ease(.48,.66)*(1-ease(.66,.76));           // further — and taken back again
+  const h3=ease(.72,1);                               // this one holds
+  const up=Math.max(h1*.34,h2*.64,h3);
+  const strain=1-up;
+  r.root.position.y=lerp(-1.55,0,up)+Math.sin(p*46)*.016*strain;   // it shakes the whole way
+  r.torso.rotation.x+=strain*1.15;                    // folded over itself
+  r.head.rotation.x-=strain*.72;
+  r.body.rotation.z=Math.sin(p*7.5)*.09*strain;       // and rocks, hauling side to side
+  r.armR.rotation.x=-2.75*reach+1.75*up;              // reach, claw, then push
+  r.armR.rotation.z=claw*.3;
+  r.foreR.rotation.x=-.85*strain+claw*.5;
+  r.armL.rotation.x=-1.5*reach*strain-.2*up;
+  r.armL.rotation.z=-claw*.22;
+  r.foreL.rotation.x=-.7*strain;
+  r.legR.rotation.x=-1.35*strain;r.kneeR.rotation.x=1.75*strain;
+  r.legL.rotation.x=-.7*strain;r.kneeL.rotation.x=1.25*strain;
 }
 function poseDrink(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
@@ -8449,7 +8508,11 @@ const player={
      this.snowBoot=lerp(this.snowBoot||0,deep>=.8?.72:deep?.42:0,Math.min(1,2.2*dt));
      this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.95,Math.min(1,5*dt));
      wearSnow(r,this.snowCoat,this.snowBoot);
-     snowCuffs(r,cathDist(this.x,this.z)<4.5?0:this.snowBoot);}
+     const onStone=cathDist(this.x,this.z)<4.5;
+     snowCuffs(r,onStone?0:this.snowBoot);
+     // the heap he is pushing: only while he is actually going somewhere
+     ploughFront(this.x,this.z,Math.atan2(this.moveX||Math.sin(this.facing),this.moveZ||Math.cos(this.facing)),
+       onStone?0:deep*Math.min(1,(this.spd||0)/5.5)*(this.state==='roll'?1.3:1));}
     r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z),this.z);
     r.root.rotation.y=this.facing;
     // the backstab: whatever the pose says, the blade is aimed from the
@@ -8637,8 +8700,8 @@ class Enemy{
     if(this.state!=='dormant')return;
     this.state='rise';this.t=0;
     if(this.boss)return; // boss has its own cutscene path
-    AudioSys.hurt();
-    boneBurst(this.x,.25,this.z,0x5a4d38,8,1.6); // grave soil breaks
+    AudioSys.graveRise();
+    boneBurst(this.x,.25,this.z,0x5a4d38,10,1.6); // grave soil breaks
   }
   update(dt){
     const P=player;
@@ -8664,7 +8727,10 @@ class Enemy{
         break;
       case 'rise':
         // poseRise drives the climb out of the soil
-        if(this.t>=1.1){this.rig.root.position.y=0;this.state='chase';}
+        // the soil keeps breaking round it the whole way up
+        if(this.t<2.6&&Math.random()<dt*9)
+          boneBurst(this.x+rr3(-.35,.35),heightAt(this.x,this.z)+.12,this.z+rr3(-.35,.35),0x5a4d38,2,1.1);
+        if(this.t>=(this.boss?1.1:2.6)){this.rig.root.position.y=0;this.state='chase';}
         break;
       case 'patrol':{
         // a short beat back and forth about its post, a pause at each end; the prey in reach and it comes
@@ -8829,7 +8895,7 @@ class Enemy{
         }
         break;
       case 'rise':
-        poseRise(r,Math.min(1,this.t/1.1));
+        poseRise(r,Math.min(1,this.t/(this.boss?1.1:2.6)));
         break;
       case 'chase':case 'return':
         poseWalk(r,t+this.homeX,1,sham);break;
