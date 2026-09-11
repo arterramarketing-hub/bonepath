@@ -453,7 +453,10 @@ them the seed decides:
   **grain, not a bokeh ball**: a hard little core with the thinnest halo,
   drawn small, so that a screenful of them reads as ice in the air rather
   than white circles floating past the lens. The sky is shut and the sun
-  is put out; the fog closes to **six and twenty-seven** — and to half of
+  is put out — and a real midday over a white field turned out to be more
+  light than the grade could hold, so the fill and the exposure both come
+  back down under cloud, hardest at noon and hardest in a blizzard. The fog
+  closes to **six and twenty-seven** — and to half of
   that in a squall — so a hollow comes out of the white at about the
   distance it can smell you from, and no further. The ground takes the deeper texture — long drifts lit
   hard along the crest with deep blue troughs between them, the stalks
@@ -466,14 +469,22 @@ them the seed decides:
   to matter the boot is under it and there is nothing left to tint.) Go
   shoulder-first through a drift in a **roll** and you come up **wearing**
   it: every part of the hero from the hip down carries a cold wash, heaviest
-  at the shin and thinning to nothing by the belt, and it beats off over
-  about four seconds as he moves. Half his parts are textured, and a
+  at the shin and thinning to nothing by the belt, **and patches of the snow
+  itself are left lying on him** — a small flat one on the top face of a
+  dozen of his upper parts, found by measuring each part rather than by
+  naming it, so it works whatever armour he has on. All of it beats off over
+  about four seconds as he moves. (A wash of colour alone says almost
+  nothing against a field of snow: the hero is a dark shape on white either
+  way, so the snow has to be *there*.) Half his parts are textured, and a
   textured material's colour is plain white — a multiplier over the map, not
   a paint — so tinting it toward anything only darkens it, which is how the
   first attempt put snow on him by turning him blue. The tint is pulled
-  first and the whole thing then driven ABOVE white: dark leather goes pale
-  and cold, and a mapped surface blows out toward the snow it is packed
-  with. It is a look and nothing else: the ground the
+  first, and the lift is done with **emissive**, which adds light after the
+  map is multiplied in. Driving the colour above white instead — the obvious
+  answer — is worse than useless: the grade's S-curve is
+  `mix(c, c*c*(3-2c), .62)`, and past about 1.2 that second term turns
+  negative and the pixel goes *black*. That is why the snow he was supposed
+  to be carrying had been making him darker. It is a look and nothing else: the ground the
   game measures is exactly where it always was, so no reach, no collision
   and no blade's height changes — and it is given up over the cathedral's
   flags, where there is nothing to sink into. The footing swaps one
@@ -514,6 +525,19 @@ them the seed decides:
     section is laid so nothing shimmers; and the far end **thins out** over
     the last five sections instead of stopping square. None of it costs
     anything: a section is shaped once, and never again.
+    **A channel ploughs through whatever was there before.** Walk back
+    across your own furrow, or across one a hollow left, and the old banks
+    stood up out of the new one — two trenches crossing and neither giving
+    way, which is not how snow works. Snow shoved once is shoved again, and
+    the newer pass wins: laying a cut flattens every older one it covers,
+    wherever that one came from, its own last few excepted (those are the
+    ribbon it is attached to, not something it is crossing).
+    And a furrow's tones are **quieter than a boot-print's**: a print is a
+    collar the size of a foot, while a bank is a continuous surface running
+    twenty paces and catching the light the whole way, so the same numbers
+    that read as a pressed dish read as a painted stripe once drawn out into
+    a line. The crest sits barely above the snow, the floor barely below it,
+    the banks lean less, and the relief does the rest.
     A boot down in a furrow leaves a **scuff**, not a dish — the floor is
     already dark and has nothing bright to shove, so the tread carries the
     channel's own three tones. Given the dusting's palette it came out as a
@@ -656,6 +680,14 @@ cathedral's collision, stairs and doors are resolved against whichever
 cathedral the pilgrim is nearest. `?mode=path` on the address loads
 the path directly; a mode is a page, so choosing the other way on the
 title reloads into it.
+
+**The pilgrim goes down the way he was hit.** Not a canned fall: the same
+ragdoll the hollows use, kicked along the line of the blow that finished
+him — take a bone to the head and you are knocked over that way, and you
+land where the physics leaves you. The field goes on around you while it
+happens: the hollows keep hunting, the snow keeps coming down, the storm
+keeps leaning on the field. The screen holds off for **three whole seconds**
+before it says what it has to say.
 
 ## Elements
 

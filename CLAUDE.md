@@ -191,6 +191,14 @@ Known state of play:
   about the lobe's own centre (translate out, scale, translate back) or the
   gradient slides off the shape and the whole thing paints in its own
   transparent edge colour — silently, with no error.
+- **Never drive a material colour above 1.** The grade's S-curve is
+  `mix(c, c*c*(3-2c), .62)`; past ~1.2 the second term goes negative and the
+  pixel renders BLACK. Brightening a textured (white-based) material has to
+  be done with `emissive`, which adds after the map multiply. This bit
+  `wearSnow` twice before it was understood.
+- The hero's death uses the hollows' ragdoll (`startRagdoll`/`endRagdoll`).
+  `respawn()` must call `endRagdoll` and restore `rig.root.visible` or the
+  pilgrim comes back folded up on the floor.
 - Background audio all runs through `musicMaster` at `BG_GAIN`. Change the
   constant, not the individual layers, for an across-the-board move.
 
