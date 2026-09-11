@@ -515,6 +515,33 @@ function buildTextures(){
     speckle(ctx,S,420,['#0d100c','#2e3428','#454b3a'],1,2);
   });
 
+  /* -- the same dead field under snow: drifts that take the light, blue
+     in the hollows between them, with the turf and the bones still
+     showing through wherever it lies thin -- */
+  makeTex('snow',256,(ctx,S)=>{
+    srand(29);
+    ctx.fillStyle='#8c97a6';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,26,[204,212,226],.62);              // the drifts, lit
+    grime(ctx,S,fbm,9,[88,100,120],.32);                // the hollows, blue
+    // dead stalks pushing up through the thin places
+    for(let i=0;i<70;i++){
+      const x=rnd()*S,y=rnd()*S;
+      ctx.strokeStyle=`rgba(${(80+rnd()*30)|0},${(80+rnd()*24)|0},${(58+rnd()*18)|0},${rr(.2,.5)})`;
+      ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,y);
+      ctx.lineTo(x+rr(-2,2),y-rr(2,5));ctx.stroke();
+    }
+    // half-buried bones, paler for the frost that has taken them
+    for(let i=0;i<8;i++){
+      ctx.save();ctx.translate(rnd()*S,rnd()*S);ctx.rotate(rnd()*TAU);
+      ctx.fillStyle='rgba(208,207,196,.5)';
+      ctx.fillRect(-rr(3,8),-1.5,rr(6,16),3);
+      ctx.fillStyle='rgba(116,127,146,.4)';ctx.fillRect(-rr(3,8),1,rr(6,16),1);
+      ctx.restore();
+    }
+    speckle(ctx,S,380,['#e9eef7','#c2cbd9','#79838f'],1,2);
+  });
+
   /* -- coursed stone wall, weeping moss -- */
   makeTex('wall',256,(ctx,S)=>{
     srand(31);
@@ -1171,9 +1198,15 @@ function resize(){
 }
 addEventListener('resize',resize);
 
-// how far the land carries before it is all fog. The dome sits at 210 and
-// the camera stops at 220, so the world is gone well before either shows.
-const FOG_NEAR=34,FOG_FAR=158;
+/* how far the land carries before it is all fog. The field is a 150-unit
+   square, so a far edge stands about 106 away and the old 158 meant the
+   haze never closed on anything — it was there, and it never read. Each
+   weather now sets its own range in applyTime: clear sees a long way,
+   rain and a storm less, and snow closes the world down to a white room
+   a few strides wide. The dome sits at 210 and the camera stops at 220,
+   so the world is gone well before either shows. */
+const FOG_NEAR=30,FOG_FAR=132;
+const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68]};
 
 /* AFFINE TEXTURE MAPPING — the console's most famous wrong.
    The PS1 had no divider to spare per pixel, so it walked a texture across
@@ -1881,6 +1914,14 @@ const AudioSys=(()=>{
     },
     // armored footfall: boot on dirt, ground thump, and a whisper of mail
     step(v,surf){v=v===undefined?1:v;const t=now();
+      if(surf==='snow'){
+        // SNOW: the crust gives with a dry squeak, the boot packs what is
+        // under it, and there is nothing below to ring back
+        noise(t,{peak:.17*v,att:.004,dec:.07,f0:rr2(2600,3800),f1:rr2(900,1400),type:'bandpass',Q:1.1});   // the crust breaking
+        noise(t+.012,{peak:.12*v,att:.006,dec:.12,f0:rr2(900,1300),f1:280,type:'bandpass',Q:.8});          // packing down under the weight
+        tone(t,{f:rr2(46,58),f2:28,type:'sine',peak:.14*v,att:.006,dec:.09});                              // the weight itself, dull
+        noise(t+.03,{peak:.04*v,att:.002,dec:.05,f0:rr2(1500,1900),f1:1000,type:'bandpass',Q:1.6});        // mail, muffled by all of it
+        return;}
       if(surf!=='stone'){
         // GRASS: a knight's boot into turf — the heel's thump swallowed by the
         // ground, a brush of grass under the sole, the soil giving, and the
@@ -2300,9 +2341,9 @@ function seedRun(){
   srand(h);for(let k=0;k<6;k++)rnd();
   const pick=a=>a[(rnd()*a.length)|0];
   RUN.time=pick(['sunrise','noon','dusk','night','night']);
-  RUN.weather=pick(['clear','clear','clear','rain','storm']);
+  RUN.weather=pick(['clear','clear','clear','rain','storm','snow']);
   try{const q=new URLSearchParams(location.search),ht=q.get('time'),wq=q.get('wx');     // (testing: ?time=noon&wx=storm names them outright, the rest of the field still the seed's)
-    if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm'].includes(wq))RUN.weather=wq;}catch(e){}
+    if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm','snow'].includes(wq))RUN.weather=wq;}catch(e){}
   RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
   try{if(new URLSearchParams(location.search).get('mode')==='path')PATH.on=true;}catch(e){}
   RUN.village=pick(['Ashmere','Gallowmoor','Hollowfen','Wrenhallow','Carrowdene','Blackwold','Sallow Cross','Marrowgate']);
@@ -3300,14 +3341,22 @@ function applyTime(name){
   // weather over the hour: rain draws a pale overcast across the sky and
   // hides the sun; a storm is a dark, lumpen cloud-roof, the fog greyer,
   // the light down — so the bolts have something to light
-  const storm=RUN.weather==='storm',rain=RUN.weather==='rain',overcast=storm||rain;
+  const storm=RUN.weather==='storm',rain=RUN.weather==='rain',snow=RUN.weather==='snow',overcast=storm||rain||snow;
   if(overcast&&!texCache.skyStorm)makeCloudSkies();
-  worldLights.dome.material.map=texCache[storm?'skyStorm':rain?'skyRain':T.sky];worldLights.dome.material.needsUpdate=true;
+  worldLights.dome.material.map=texCache[storm?'skyStorm':overcast?'skyRain':T.sky];worldLights.dome.material.needsUpdate=true;
   if(worldLights.moonSprite)worldLights.moonSprite.visible=!!T.moon&&!overcast;
   if(worldLights.sunSprite){const s=worldLights.sunSprite;s.visible=!!T.sunSprite&&!overcast;
     if(T.sunSprite){s.material.color.setHex(T.sunSprite.col);s.scale.set(T.sunSprite.size,T.sunSprite.size,1);s.position.set(...T.sunSprite.pos);}}
   if(storm){RUN.fog.lerp(new THREE.Color(0x3c424a),name==='night'?.35:.6);worldLights.hemiBase*=.72;worldLights.moonBase*=.5;worldLights.hemi.color.lerp(new THREE.Color(0x7d848e),.5);}
   else if(rain){RUN.fog.lerp(new THREE.Color(0x6a7078),name==='night'?.2:.4);worldLights.hemiBase*=.88;worldLights.moonBase*=.7;}
+  // SNOW: the sky is shut, but the ground throws the light back up — so the
+  // fill RISES where a storm would drop it, the sun is a rumour behind cloud,
+  // and everything is one cold colour, the fog included
+  else if(snow){RUN.fog.lerp(new THREE.Color(0xc4ceda),name==='night'?.5:.76);
+    worldLights.hemi.color.lerp(new THREE.Color(0xd2dfee),.6);worldLights.hemi.groundColor.setHex(name==='night'?0x4d5766:0x93a0b0);
+    worldLights.hemiBase*=1.06;worldLights.moonBase*=.55;}
+  worldLights.heroCol=snow?0xa9bccf:0xd9b072;worldLights.heroDim=snow?.5:1;   // (read by the frame: heroLight is not built yet at the first call)
+  {const r=FOG_BY_WX[RUN.weather]||FOG_BY_WX.clear;if(scene.fog){scene.fog.near=r[0];scene.fog.far=r[1];}}
   if(worldLights.dust)worldLights.dust.opacity=T.dust;
   for(const L of lanternLights)if(L.lamp0)L.base=L.lamp0*T.lamp;
   scene.background.copy(RUN.fog);
@@ -3329,9 +3378,20 @@ function makeCloudSkies(){
   };
   makeTex('skyStorm',256,draw(true));makeTex('skyRain',256,draw(false));
 }
-/* set the weather — clear, light rain, or a storm — dropping whatever fell before */
+/* the field's skin: snow lies over the turf, and the marks gouged into the
+   ground go with the change — what was torn in mud is not there under a
+   foot of snow, and what is pressed into snow is not there once it melts */
+function applyGroundSurface(){
+  if(!groundMat)return;
+  const t=RUN.weather==='snow'?texCache.snow:texCache.dirt;
+  if(groundMat.map===t)return;
+  t.repeat.set(30,30);
+  groundMat.map=t;groundMat.needsUpdate=true;
+  if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
+}
+/* set the weather — clear, light rain, a storm, or snow — dropping whatever fell before */
 function setWeather(name){
-  if(!['clear','rain','storm'].includes(name))return;
+  if(!['clear','rain','storm','snow'].includes(name))return;
   if(WX.rain){scene.remove(WX.rain);WX.rain.geometry.dispose();WX.rain.material.dispose();WX.rain=null;WX.pts=null;WX.speeds=null;}
   WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;RUN.weather=name;
   AudioSys.setRain(0);
@@ -3340,7 +3400,26 @@ function setWeather(name){
 }
 const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0};
 function setupWeather(){
+  applyGroundSurface();
   if(RUN.weather==='clear')return;
+  /* SNOW: not rain in another colour. It does not fall so much as it is
+     let go of — slow, in every direction at once, and thick enough that
+     the far side of the field is only a white idea. It is silent, too:
+     no rain bed under it, just the wind that was always there. */
+  if(RUN.weather==='snow'){
+    WX.level=0;
+    if(!texCache.flake)makeTex('flake',16,(ctx,S)=>{ctx.clearRect(0,0,S,S);
+      const g=ctx.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
+      g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.45,'rgba(238,244,255,.8)');g.addColorStop(1,'rgba(222,232,250,0)');
+      ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
+    const N=760,pts=new Float32Array(N*3),sp=new Float32Array(N);
+    for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=rr(1.0,2.4);}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+    const pm=new THREE.PointsMaterial({map:texCache.flake,color:0xf4f7ff,size:.32,transparent:true,opacity:.92,depthWrite:false});
+    WX.rain=new THREE.Points(geo,pm);WX.rain.frustumCulled=false;scene.add(WX.rain);WX.pts=pts;WX.speeds=sp;
+    WX.nextBolt=0;AudioSys.setRain(0);
+    return;
+  }
   const storm=RUN.weather==='storm';WX.level=storm?1:.5;
   makeTex('rain',32,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'rgba(200,214,230,0)');g.addColorStop(.35,'rgba(200,214,230,.9)');g.addColorStop(.8,'rgba(200,214,230,.7)');g.addColorStop(1,'rgba(200,214,230,0)');ctx.fillStyle=g;ctx.fillRect(S/2-1,0,2,S);});
   const N=storm?900:360,pts=new Float32Array(N*3),sp=new Float32Array(N);
@@ -3354,9 +3433,12 @@ function setupWeather(){
 function updateWeather(dt){
   if(!WX.rain){WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;return;}
   const cx=camera.position.x,cz=camera.position.z,cy=camera.position.y,P=WX.pts,S=WX.speeds,n=S.length;
-  const wind=Math.sin(G.time*.4)*1.2;
+  const wind=Math.sin(G.time*.4)*1.2,snow=RUN.weather==='snow';
   for(let i=0;i<n;i++){const o=i*3;
-    P[o+1]-=S[i]*dt;P[o]+=wind*dt;
+    P[o+1]-=S[i]*dt;
+    // a flake is pushed about on its way down; a drop is not
+    if(snow){P[o]+=(wind*.45+Math.sin(G.time*1.7+i)*.55)*dt;P[o+2]+=Math.cos(G.time*1.3+i*.7)*.45*dt;}
+    else P[o]+=wind*dt;
     if(P[o+1]<cy-9||Math.abs(P[o]-cx)>18||Math.abs(P[o+2]-cz)>18){P[o]=cx+rr3(-18,18);P[o+1]=cy+rr3(6,13);P[o+2]=cz+rr3(-18,18);}
   }
   WX.rain.geometry.attributes.position.needsUpdate=true;
@@ -3375,7 +3457,7 @@ function updateWeather(dt){
    stroke. Scorch is the same shape, darker */
 const GP={cv:null,ctx:null,tex:null,S:1024,EXT:150,dirty:false,strokes:0,oz:0};
 function movePaint(z){GP.oz=z;if(GP.ctx)GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;if(groundMat&&groundMat.userData.shader)groundMat.userData.shader.uniforms.uPaintZ.value=z;}
-function paintScar(x,z,facing,w,l,dark){
+function paintScar(x,z,facing,w,l,dark,pal){
   if(!GP.ctx)return;
   const ctx=GP.ctx,k=GP.S/GP.EXT,cx=(x/GP.EXT+.5)*GP.S,cy=((z-GP.oz)/GP.EXT+.5)*GP.S;
   const fx=Math.sin(facing),fz=Math.cos(facing),rx=Math.cos(facing),rz=-Math.sin(facing);
@@ -3383,8 +3465,16 @@ function paintScar(x,z,facing,w,l,dark){
     for(let i=0;i<N;i++){const a=i/N*TAU,j=.65+Math.random()*.7,ax=Math.cos(a)*l/2*j*scale,az=Math.sin(a)*w/2*j*scale;   // an ellipse along the line, its edge torn
       const px=cx+(fx*ax+rx*az)*k,py=cy+(fz*ax+rz*az)*k;if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py);}
     ctx.closePath();ctx.fillStyle=fill;ctx.fill();};
-  blob(1.3,dark?'rgba(40,30,22,.5)':'rgba(104,82,56,.55)');blob(.85,dark?'rgba(20,15,11,.85)':'rgba(64,46,30,.9)');
+  const P=pal||(dark?['rgba(40,30,22,.5)','rgba(20,15,11,.85)']:['rgba(104,82,56,.55)','rgba(64,46,30,.9)']);
+  blob(1.3,P[0]);blob(.85,P[1]);
   GP.dirty=true;GP.strokes++;
+}
+// a boot pressed into snow: a small cold hollow with a lip of shadow,
+// painted into the same sheet the gouges are, so it follows the ground
+const SNOW_PRINT=['rgba(146,159,180,.32)','rgba(104,119,142,.6)'];
+function printSnow(x,z,facing){
+  const side=Math.random()<.5?-.18:.18;                      // left boot or right
+  paintScar(x+Math.cos(facing)*side,z-Math.sin(facing)*side,facing,.22,.44,false,SNOW_PRINT);
 }
 function flushPaint(){if(GP.dirty&&GP.tex){GP.tex.needsUpdate=true;GP.dirty=false;}}
 
@@ -6801,7 +6891,11 @@ const player={
       // short: a tenth of a second to three-quarters), a quicker stop, and
       // back or sideways a little slower than straight ahead
       const wantSp=(mAmt>0?(run?7.2:4.3*Math.min(1,mAmt*1.35))*(.85+.15*Math.max(0,relF)):0)*(PATH.on?1.5:1);   // (the path: half again as fast, walk and sprint — it is a run, not a pilgrimage)
-      this.spd=lerp(this.spd||0,wantSp,Math.min(1,(wantSp>(this.spd||0)?14:22)*dt));
+      // SNOW gives the boot nothing to push against: the stride is slower to
+      // build and far, far slower to shed, so every stop is a skid and every
+      // turn carries wide. The hero does not stand still where he decides to
+      const snowy=RUN.weather==='snow';
+      this.spd=lerp(this.spd||0,wantSp*(snowy?.9:1),Math.min(1,(wantSp>(this.spd||0)?(snowy?7:14):(snowy?5:22))*dt));
       if(mAmt>0){this.x+=mvx*this.spd*dt;this.z+=mvz*this.spd*dt;}
       else if(this.spd>.05){this.x+=(this.moveX||0)*this.spd*dt;this.z+=(this.moveZ||0)*this.spd*dt;}   // the last stride's carry as it stops
       this.strideT=(this.strideT||0)+dt*(this.spd/4.3);    // the walk cycle's clock runs with the ground covered, so the feet match the pace
@@ -6829,8 +6923,10 @@ const player={
       const heel=this.rig._heel||0;
       if(heel>.45&&!this._heelOn){
         this._heelOn=true;
-        AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)),cathDist(this.x,this.z)<4.5?'stone':'grass');   // (the flags and the stair ring; the field is turf)
-        if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
+        const onFlags=cathDist(this.x,this.z)<4.5;
+        AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)),onFlags?'stone':snowy?'snow':'grass');   // (the flags and the stair ring; the field is turf, or snow over it)
+        if(snowy){if(!onFlags)printSnow(this.x,this.z,this.facing);}    // the way you came is written behind you
+        else if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
       }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
       if(mAmt>0){this.moveX=mvx;this.moveZ=mvz;} // the follow camera reads this
@@ -9416,10 +9512,11 @@ document.querySelectorAll('#pause .arrow:not(.fld)').forEach(el=>el.addEventList
 /* the field's testing controls: the hour and the weather changed under the
    game, the effects and the music switched, and any seed's field reached
    by its number */
-const HOUR_LIST=['sunrise','noon','dusk','night'],WX_LIST=['clear','rain','storm'];
+const HOUR_LIST=['sunrise','noon','dusk','night'],WX_LIST=['clear','rain','storm','snow'];
+const wxLabel=()=>({storm:'a storm',rain:'light rain',snow:'snowfall'})[RUN.weather]||'clear';
 function cycleField(k,d){
   if(k==='hour'){const i=(HOUR_LIST.indexOf(RUN.time)+d+4)%4;applyTime(HOUR_LIST[i]);}
-  else if(k==='weather'){const i=(WX_LIST.indexOf(RUN.weather)+d+3)%3;setWeather(WX_LIST[i]);}
+  else if(k==='weather'){const i=(WX_LIST.indexOf(RUN.weather)+d+WX_LIST.length)%WX_LIST.length;setWeather(WX_LIST[i]);}
   else if(k==='sfx')AudioSys.setSfx(!AudioSys.sfxOn());
   else if(k==='music')AudioSys.setMusicOn(!AudioSys.musicOn());
   else if(k==='perf')perfSet(!PERF.on);
@@ -9428,7 +9525,7 @@ function cycleField(k,d){
 function fillField(){
   if(!$('selHour'))return;
   $('selHour').textContent=RUN.time;
-  $('selWeather').textContent=RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear';
+  $('selWeather').textContent=wxLabel();
   $('selSfx').textContent=AudioSys.sfxOn()?'on':'off';
   $('selMusic').textContent=AudioSys.musicOn()?'on':'off';
   if($('selPerf'))$('selPerf').textContent=PERF.on?'on':'off';
@@ -9456,7 +9553,7 @@ function fillPause(){
   $('psGhoul').textContent=slain('ghoul')?'slain':enemies.some(e=>e.kind==='ghoul'&&e.engaged)?'awake':'sleeping';
   $('psWarden').textContent=G.bossDead?'slain':G.bossActive?'awake':'waiting';
   $('psCath').textContent=G.bossDead?'yours':G.cathedralOpen?'open':'sealed';
-  if($('psRun'))$('psRun').textContent=RUN.time+', '+(RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear')+' · '+(PATH.on?'the path · hex '+Math.max(0,PATH.far-2):RUN.village);
+  if($('psRun'))$('psRun').textContent=RUN.time+', '+wxLabel()+' · '+(PATH.on?'the path · hex '+Math.max(0,PATH.far-2):RUN.village);
   fillField();
 }
 function setPaused(on){
@@ -9557,7 +9654,8 @@ function frame(now){
   // inside the nave the glow draws in: the arena stays a dark place
   const inNave=cathDist(player.x,player.z)<1;
   G.naveDim=lerp(G.naveDim||0,inNave?1:0,Math.min(1,3*dt));
-  heroLight.intensity=(2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash)*(1-.3*G.naveDim);
+  heroLight.color.setHex(worldLights.heroCol||0xd9b072);
+  heroLight.intensity=(2.2+Math.sin(G.time*1.6)*.12+1.7*cg+2.6*G.glowFlash)*(1-.3*G.naveDim)*(worldLights.heroDim||1);
   heroLight.distance=(17-6*cg+5*G.glowFlash)*(1-.3*G.naveDim);
   // the nave has a roof, as far as the light is concerned: the sky's
   // glow and the moon drain away as you step inside, and the whole

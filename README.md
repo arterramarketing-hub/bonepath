@@ -377,17 +377,36 @@ them the seed decides:
   sun, a pale haze and a blue sky, the lanterns barely showing. The
   sky's two lights, the fog colour, the sky dome, the sun or moon
   sprite, the grade's exposure and the lanterns' strength all follow.
-- **the weather** — clear (three in five), light rain, or a storm.
+- **the weather** — clear (three in six), light rain, a storm, or snow.
   Rain is a cloud of streaks that lives round the camera and falls
   through it, with its own hiss and patter under the wind; a storm has
   nine hundred of them, and every five to fourteen seconds a bolt: the
   sky dome, the fog and both sky lights leap for a few frames in a
   double flash, and the thunder comes after — a near bolt cracks first
   and rolls hard, a far one only rolls, long and low, a second or two
-  behind. Both weathers cloud the sky: light rain draws a pale sheet of
+  behind. All three cloud the sky: light rain draws a pale sheet of
   overcast across it and hides the sun or moon; a storm is a dark,
   lumpen cloud-roof, the fog greyer and the light down by a quarter,
   so the bolts have something to light.
+- **snow** is its own weather, and changes the ground under the run.
+  Seven hundred and sixty flakes wander down rather than fall — each is
+  pushed about on two axes as it drops, and there is no rain bed under
+  them, because snow is silent. The field's ground texture is swapped
+  for drifts: pale where the light takes them, blue in the hollows,
+  with dead stalks and frosted bone still showing through where it
+  lies thin. The sky is shut like rain's, but the fill light RISES
+  where a storm's drops — the ground throws it back up — the sun is a
+  rumour behind cloud, and the hero's own amber lantern-light goes cold
+  and halves, since there is no warmth on an open snowfield. **The
+  footing changes with it**: snow gives the boot nothing to push
+  against, so the stride is half again as slow to build and four times
+  slower to shed. Every stop is a skid and every turn carries wide.
+  Each heel strike presses a **boot-print** into the ground's paint
+  layer — left foot or right, offset from the centre line — so the way
+  you came is written behind you, following every rise and hollow; and
+  the print crunches, a dry squeak of crust breaking over the pack of
+  weight going into it. Changing the weather clears the paint sheet:
+  what was gouged in mud is not there under a foot of snow.
 - **the six wedges** — the field is cut into six wedges round the
   cathedral, and each takes one authored chunk, no kind more than twice
   a run: the **grave rows** (ranks of stones in arcs, every one facing
@@ -417,16 +436,17 @@ them the seed decides:
   is knocked off whole to tumble away while the post snaps in two.
 - **the testing menu** — under *The field (testing)* on the pause
   screen: the **hour** and the **weather** can be stepped through live
-  (the sky's lights, the dome, the sun or moon, the fog, the exposure,
-  the dust, the lanterns and the rain — with its hiss and the storm's
-  bolts — all re-set under the running game), **effects** and **music
+  (the sky's lights, the dome, the sun or moon, the fog and its range,
+  the exposure, the dust, the lanterns, the ground's own surface, the
+  footing, and the rain — with its hiss and the storm's bolts — all
+  re-set under the running game), **effects** and **music
   & ambience** each have a switch (remembered between loads) — the
   first is every blow, step, swing and voice; the second is the whole
   background: the theme, the wind, the drone, the far-off creaks and
   crows, the rain and the thunder — a **frame counter** (also remembered)
   that puts frames-a-second, draw calls and triangles in the bottom
   corner, off unless asked for — and the seed row
-  above. `?time=noon&wx=storm` on the address does the same from the
+  above. `?time=noon&wx=snow` on the address does the same from the
   start, the rest of the field still the seed's.
 - **the lanterns** — always at the ring's four junctions and the head
   of the stair; one or two down each quarter road at seeded distances;
@@ -619,7 +639,12 @@ Everything is generated at boot inside the one file:
   **distance fog** standing in the very colour the sky is — the same
   Color object as the background, so every hour, every weather and every
   white flash of lightning carries the fog with it, and the land never
-  ends at a hard edge — film grain and vignette overlays.
+  ends at a hard edge. Its range is the weather's: the field is a
+  150-unit square whose far edge stands about 106 away, so a fog that
+  ended at 158 was there and never read. Clear sees 30 to 132, light
+  rain 24 to 110, a storm 20 to 96, and snow closes the world down to
+  13–68 — a white room a few strides wide. Then film grain and vignette
+  overlays.
 - **Static bake** — the cathedral is three hundred and thirty-one separate
   pieces and not a stone of it moves, so at the end of its building the
   parts that are only ever looked at are folded together by material into
