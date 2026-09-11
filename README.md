@@ -739,6 +739,21 @@ and the path's sides are shorn at a width that changes down every tile —
 an instant death on a boundary you cannot read while running is a different
 game.
 
+**And you can see it coming, which you could not at first.** The camera
+sits *behind* the pilgrim, so walking toward the rim put it outside the
+hexagon — out where the ground has already fallen away. It was being
+placed half a metre above a surface that is not there, with the drop-off
+standing between it and everything else: a flat green wall a hand's breadth
+from the lens, the whole field still drawn behind it and none of it
+visible. You could not see the cliff you were about to walk off, which is
+the one thing you needed to see. The camera is held inside the hexagon now,
+far enough in that it is always over ground that exists; at the rim it
+comes in close over the shoulder, the way a camera does against a wall.
+The **spawn moved too** — it stood seven and a half metres from the lip,
+three seconds of walking backwards out of the opening shot. Thirteen and a
+half now. And the eye follows the hips down as she goes over, so you see
+what you walked off instead of a pair of boots leaving the frame.
+
 ## The path — survival
 
 The title screen offers two ways, and a third that is only a note.

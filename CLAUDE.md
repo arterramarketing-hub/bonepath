@@ -349,6 +349,24 @@ Known state of play:
   positions stay put; do not "fix" it by clamping the scale.
   `_spNow` is zeroed in `die()` or the cape streams out behind a corpse.
 
+- **The camera is clamped inside the world, and it has to be.** It rides
+  BEHIND the pilgrim, so at the rim it ends up outside the hexagon where
+  the ground mesh has fallen away — but `heightAt` out there still answers
+  with the soil the field *would* have had, so it was parked half a metre
+  above nothing with the drop-off filling the lens. Uniform green, HUD
+  fine, seventeen hundred draw calls all of them behind the wall. The
+  clamp is `HEX_AP-2.6` on the field and `|x|<20.5` on the path — and the
+  two must stay separate: the path is a corridor whose z runs far past the
+  hexagon, so applying the hex planes there would drag the camera off the
+  pilgrim entirely.
+- **A body that has gone over the brink has no floor for its CLOTH
+  either.** `stepSheet` takes its floor from `root.position.y`, and the
+  ragdoll keeps the root planted on the ground while the hips fall — so
+  the pinned row went down with the body while every free stitch was held
+  at the cliff top, and the tabard drew as one teal streak the whole depth
+  of the fall (measured: 19.97m at three seconds, exactly the fall).
+  `ragFree` sets `rig.noFloorCloth`; a rebuild clears it.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,

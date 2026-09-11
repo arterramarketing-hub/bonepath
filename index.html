@@ -2897,11 +2897,13 @@ function brinkOut(p){
   }
   return best;
 }
-// let a ragdoll off the world: nothing under it, and no walls to hold it
+// let a ragdoll off the world: nothing under it, no walls to hold it, and
+// no ground under the cloth it is wearing either
 function ragFree(rag){
   if(!rag)return;
   rag.noWall=true;
   rag.noFloor=new Set();for(let i=0;i<rag.P.length;i++)rag.noFloor.add(i);
+  if(rag.rig)rag.rig.noFloorCloth=true;   // (cleared by the next rebuild: every respawn makes a new rig)
 }
 
 /* clamp into the hexagon; the cathedral ring blocks until it opens
@@ -6108,7 +6110,14 @@ function stepSheet(r,cl,dt){
   const s=cl.s,root=r.root,pm=cl.parent.matrixWorld,v=cl.v,cv=cl.c;
   if(!cl.init){cl.init=true;for(const q of cl.P){q.p.copy(q.rest).applyMatrix4(pm);q.o.copy(q.p);}}
   cl.acc+=Math.min(dt,.05);let n=0;
-  const gy=root.position.y+.03,t=G.time;
+  /* The floor the cloth lies on is the ROOT's, and the root is planted on
+     the ground. For a body that has gone over the brink that is a lie: the
+     ragdoll has no floor under it at all, so the pinned row falls away
+     with the hips while every free stitch is still being held at the top
+     of the cliff — and the tabard draws as a single teal streak two
+     hundred metres long. Nothing under the body, nothing under what it is
+     wearing. */
+  const gy=r.noFloorCloth?-1e9:root.position.y+.03,t=G.time;
   // the spheres, in the world, for this frame
   for(const sp of cl.spheres){sp.w=sp.w||new THREE.Vector3();sp.w.copy(sp.at).applyMatrix4(sp.g.matrixWorld);}
   while(cl.acc>=1/60&&n<3){cl.acc-=1/60;n++;const h=1/60;
@@ -7901,7 +7910,12 @@ const G={
   camYaw:0,camPitch:.34,camShake:0,
   hitstop:0,
   lockTarget:null,
-  checkpoint:{x:0,z:50},
+  /* THE SPAWN, AND HOW FAR IT IS FROM THE END OF THE WORLD. It used to be
+     z=50, which is seven and a half metres from the lip of the +z face —
+     three seconds of walking BACKWARDS out of the opening shot, with the
+     cliff behind you and off camera, and no way to know it was coming.
+     Thirteen and a half now, and clear ground on every seed. */
+  checkpoint:{x:0,z:44},
   bossActive:false,bossDead:false,
   cathedralOpen:false,marrowGoal:1000,spawnT:2.5,
   marrowDrop:null,
@@ -11353,6 +11367,30 @@ function updateCamera(dt){
   const cy=hP+py+Math.sin(G.camPitch)*dist;
   if(G.bossActive){ // keep the camera off the ossuary walls
     cx=clamp(cx,-(HW-.3),HW-.3);cz=clamp(cz,-(HL-.3),HL-.3);
+  }else{
+    /* AND OFF THE EDGE OF THE WORLD. The camera sits BEHIND the pilgrim,
+       so walking toward the rim puts it outside the hexagon — out where
+       the ground mesh has already fallen away into nothing. `heightAt`
+       out there still answers with the rolling soil the field WOULD have
+       had, so the camera was being placed half a metre above a surface
+       that is not there, with the terrain's drop-off standing between it
+       and everything else: a flat green wall a hand's breadth from the
+       lens, the whole field still inside the frustum and still being
+       drawn behind it. Thirty draw calls' worth of anything visible out
+       of seventeen hundred. You could not see the cliff you were about to
+       walk off, which is the one thing you needed to see.
+       So the camera is held inside the hexagon too, and well inside — far
+       enough in that it is always over ground that exists. At the rim it
+       simply comes in close over the shoulder, the way a camera does
+       against a wall. */
+    if(PATH.on)cx=clamp(cx,-20.5,20.5);        // the path is a corridor, not a hexagon: only its shorn sides
+    else{
+      const m=HEX_AP-2.6;
+      for(let i=0;i<6;i++){
+        const n=HEXN[i],d=cx*n.x+cz*n.z;
+        if(d>m){cx-=(d-m)*n.x;cz-=(d-m)*n.z;}
+      }
+    }
   }
   camTmp.set(cx,Math.max(heightAt(cx,cz)+.6,cy),cz);
   camera.position.lerp(camTmp,1-Math.pow(.0001,dt));
@@ -11362,6 +11400,15 @@ function updateCamera(dt){
     camera.position.y+=(Math.random()-.5)*G.camShake*.3;
   }
   let lx=player.x,ly=hP+1.35,lz=player.z;
+  /* OVER THE BRINK, THE EYE GOES WITH HER. The body falls out of the world
+     and the gaze was staying level with the rim, so the last you saw of
+     yourself was a pair of boots leaving the bottom of the frame. It
+     follows the hips down instead — most of the way, so the lip stays in
+     shot and you can see what you walked off. */
+  if(player.rag&&player.state==='dead'){
+    const py=player.rag.P[player.rag.pelvis].p.y;
+    if(py<hP-.5)ly=hP+1.35+(py-(hP+1.35))*.8;
+  }
   if(foe){
     lx=(player.x+foe.x)/2;lz=(player.z+foe.z)/2;
     // and it LOOKS UP at something in the air: halfway to whatever height
