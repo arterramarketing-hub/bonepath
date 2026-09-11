@@ -237,6 +237,21 @@ Known state of play:
 - Background audio all runs through `musicMaster` at `BG_GAIN`. Change the
   constant, not the individual layers, for an across-the-board move.
 
+- **A pixel face needs a pixel-sized outline.** The drop icons outline every
+  filled cell by painting it oversized in dark. Done at a whole cell (the
+  obvious way, and what the HUD heart does at 1px on a 12px canvas) the
+  outline closes any gap two cells wide — the heart's cleft filled in
+  completely and it read as a cup with a notch. `OL` is 1.6 of a 4px cell
+  there. If a shape's negative space disappears, that is why.
+- **`reaperFinish` spends the game's existing kills, it does not add one.**
+  It alternates `katanaSlice` (which does its own `die()` and needs `hp>0`
+  going in) and `severLimb(...,'head')` (which kills on its own if hp hits
+  zero, so hp is parked at 999 across the call, the same as `die()` does).
+  Everything it can't take apart — a crow, a bone heap, something already
+  headless — just gets `die()`. The Warden is excluded before any of it.
+  `REAPER_T` is a `const` declared beside it, near `severLimb`, well below
+  `player`: safe only because `takeMark()` is never called at boot.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,

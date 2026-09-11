@@ -882,9 +882,11 @@ whole, half, and the empty socket left when it is gone — nearest-filtered
 and blown up, with no bar and no gradient anywhere in it. The shape is
 **heraldic and not the fat round one off a playing card**: narrow lobes, a
 deep cleft between them, shoulders that pull in almost at once, and a long
-tapered tail down to a point. Ten pixels across by thirteen down — ten
+tapered tail down to a point. Ten pixels across by fourteen down — ten
 because an even width is the only one with a true centre line, and a half
-heart has to split on it. The row is only rebuilt when the count of halves actually
+heart has to split on it. The cleft runs **four rows down**, not two: a
+shallow notch reads as a dent, and what makes the shape gothic rather than
+cute is how far the two lobes are driven apart before they meet. The row is only rebuilt when the count of halves actually
 changes, so watching it costs nothing.
 
 **Every blow in the field is a whole number of halves.** A hollow's swing
@@ -912,7 +914,21 @@ vigor on the spot (at full health it waits on the path for you).
 Each mote wears its nature: fire flickers restlessly and streams
 embers, lightning jitters and spits little bolts, frost hangs cold
 and still with sparkles wheeling around it, and the health mote
-beats like a heart. The elemental motes imbue the blade for a while,
+beats like a heart.
+
+**And each one has a face.** A drop used to be a round glow in a
+different colour, so four of them lying in a nave read as four of the
+same thing. Now a small painted sprite sits *inside* the glow, lit from
+behind by it: the health mote is **the heart off the corner of the
+screen**, the same heraldic shape at the same proportions, so what mends
+you looks like what it mends; fire is a molten ball with tongues licking
+up off its shoulders, lightning a dark amber one with a white fork
+standing on it, frost a pale one under a six-armed barbed flake. The
+glow is what you see from across the field and the face is what tells
+you what you are about to pick up once you are near enough to care.
+(The first pass hung thin strokes off each rim and they read as
+scratches. A face this small needs **one bold filled shape**, not
+detail.) The elemental motes imbue the blade for a while,
 glowing and shedding sparks: fire sets whatever it bites **burning** —
 a chip of life every half-second for four seconds, shedding embers,
 the way the Unburied's poison works on you — lightning arcs from your victim
@@ -977,6 +993,33 @@ so a sweep from the left throws them right and a thrust throws them
 back — tumble, and lie scattered on the path. If life remains in
 it, the bones drag themselves back together and it climbs upright
 to come at you again.
+
+## The mark of the reaper
+
+Rarely — one drop in sixteen or so — what a horror sheds is not power but
+**permission**: a white skull turning slowly in a bone-pale light, with no
+colour in it at all, because the thing it does is take colour away.
+
+Walk into it and the skull comes with you, hanging over your head and
+turning, for **sixteen seconds**. While it does, the blade does not wound
+anything it can finish — it **finishes it**, and moves on to the next. Not
+a damage number: a killing move, spent on demand. The blow alternates
+between the two the game already owns — the **cut in two** the katana has
+to earn by wearing a horror down to half its life, and the **head off** an
+overhead blow — so a nave full of them does not die the same way six times
+over. Either way it goes out in a white ring and a fall of bone dust, and
+the mark is still there for the next one.
+
+It is **not an element**. It never touches the blade's colour, nothing is
+imbued, and fire or frost already burning on the steel keeps burning
+underneath it — the only mark on the weapon is a pale cold rim, and only
+when nothing else has claimed the light. A parried blade is nowhere near a
+body, so a parry takes nothing with it. And the **Warden is too heavy to
+simply take**: the mark leans on it — near three times the damage — and no
+more.
+
+In the last three seconds the skull begins to gutter, the way an imbued
+blade does. Death lets it go, with everything else.
 
 ## The two that are not hollows
 

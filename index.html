@@ -82,7 +82,7 @@
     display:flex;flex-wrap:wrap;gap:3px;max-width:min(52vw,280px);}
   /* the hearts: one sprite drawn at boot like everything else, three faces
      of it, nearest-filtered and blown up — no bar, no gradient, no easing */
-  .hrt{width:18px;height:22px;background-size:100% 100%;image-rendering:pixelated;
+  .hrt{width:18px;height:24px;background-size:100% 100%;image-rendering:pixelated;
     filter:drop-shadow(0 1px 0 rgba(0,0,0,.7));}
   #marrow{position:absolute;right:calc(16px + env(safe-area-inset-right));
     bottom:calc(14px + env(safe-area-inset-bottom));text-align:right;
@@ -1036,10 +1036,8 @@ function buildTextures(){
        in almost at once, and a long tapered tail running down to a point.
        Still ten across, because an even width is the only one with a true
        half. */
-    const HRT=['.11....11.','1111..1111','1111111111','1111111111','1111111111',
-               '1111111111','.11111111.','.11111111.','..111111..','..111111..',
-               '...1111...','....11....','....11....'];
-    const W=10,H=13;
+    const HRT=['.11....11.','.111..111.','1111..1111','1111..1111','1111111111','1111111111','1111111111','.11111111.','.11111111.','..111111..','..111111..','...1111...','....11....','....11....'];
+    const W=10,H=14;
     const face=(mode)=>{
       const c=document.createElement('canvas');c.width=W+2;c.height=H+2;
       const x=c.getContext('2d');
@@ -1055,8 +1053,8 @@ function buildTextures(){
         // a lit top-left, a body, a darker underside — and a hollow socket
         // a glint on the upper-left lobe, the body, and the tail in shadow
         const lit=j<3&&i>1&&i<4;
-        put(i+1,j+1,full?(lit?'#e4705c':j>9?'#6a1212':j>5?'#8f1f1b':'#c23a2a')
-                        :(j>9?'#141816':j>5?'#1a1f1c':'#2b322d'));
+        put(i+1,j+1,full?(lit?'#e4705c':j>10?'#6a1212':j>6?'#8f1f1b':'#c23a2a')
+                        :(j>10?'#141816':j>6?'#1a1f1c':'#2b322d'));
       }
       return c.toDataURL();
     };
@@ -1096,6 +1094,137 @@ function buildTextures(){
     }
   });
   texCache.flame.encoding=THREE.LinearEncoding;
+
+  /* -- WHAT IS LYING ON THE GROUND. Every drop used to be the same round
+        glow in a different colour, so a run of them read as four identical
+        lights. Each has a face of its own now, drawn on transparent and
+        laid INSIDE its glow — the glow is still what you see from across
+        the field, and the face is what tells you what you are about to pick
+        up once you are near enough to care. -- */
+  {
+    const pix=(x,S,rows,pal,ox,oy,px)=>{        // a little bitmap, blown up
+      for(let j=0;j<rows.length;j++)for(let i=0;i<rows[j].length;i++){
+        const c=pal[rows[j][i]];if(!c)continue;
+        x.fillStyle=c;x.fillRect(ox+i*px,oy+j*px,px,px);
+      }
+    };
+    // THE HEART, the same heraldic shape the hearts in the corner are
+    const HD=['.11....11.','.111..111.','1111..1111','1111..1111','1111111111','1111111111','1111111111','.11111111.','.11111111.','..111111..','..111111..','...1111...','....11....','....11....'];
+    makeTex('orbHeart',64,(x,S)=>{
+      x.clearRect(0,0,S,S);
+      const px=4,ox=(S-10*px)/2,oy=(S-14*px)/2;
+      /* An outline, so the shape holds against its own glow — but only a
+         pixel and a half of one. A full cell of dark around every filled
+         cell closed the two-cell cleft entirely, and the heart read as a
+         cup with a notch cut in it. */
+      x.fillStyle='rgba(28,6,8,.85)';const OL=1.6;
+      for(let j=0;j<HD.length;j++)for(let i=0;i<10;i++){
+        if(HD[j][i]!=='1')continue;
+        x.fillRect(ox+i*px-OL,oy+j*px-OL,px+OL*2,px+OL*2);
+      }
+      pix(x,S,HD,{'1':'#d8452f'},ox,oy,px);
+      for(let j=0;j<HD.length;j++)for(let i=0;i<10;i++){
+        if(HD[j][i]!=='1')continue;
+        if(j<4&&i>1&&i<4){x.fillStyle='#ff9c7a';x.fillRect(ox+i*px,oy+j*px,px,px);}   // the glint
+        else if(j>9){x.fillStyle='#8e1c14';x.fillRect(ox+i*px,oy+j*px,px,px);}        // the tail, in shadow
+      }
+    });
+    /* THE THREE ELEMENTS, as balls of the thing itself. Each is a lit
+       sphere first — a bright shoulder up and to the left, a dark
+       underside — and then given the ONE marking that separates it from
+       the other two at the size this is actually seen at. The first pass
+       at these hung thin strokes off the rim and they read as scratches;
+       what a face this small needs is a single bold filled shape. */
+    const ball=(x,S,hi,mid,lo)=>{
+      const g=x.createRadialGradient(S*.4,S*.36,S*.04,S*.5,S*.5,S*.42);
+      g.addColorStop(0,hi);g.addColorStop(.45,mid);g.addColorStop(1,lo);
+      x.fillStyle=g;x.beginPath();x.arc(S/2,S/2,S*.38,0,TAU);x.fill();
+    };
+    // one tongue of flame: wide where it leaves the fire, curling to a point
+    const tongueUp=(x,bx,by,h,w,lean,fill)=>{
+      x.fillStyle=fill;x.beginPath();
+      x.moveTo(bx-w,by);
+      x.bezierCurveTo(bx-w*.9,by-h*.45, bx-w*.5+lean*.4,by-h*.8, bx+lean,by-h);
+      x.bezierCurveTo(bx+w*.5+lean*.4,by-h*.72, bx+w*.95,by-h*.4, bx+w,by);
+      x.quadraticCurveTo(bx,by+h*.16,bx-w,by);x.fill();
+    };
+    makeTex('orbFire',64,(x,S)=>{
+      x.clearRect(0,0,S,S);
+      /* FIRE RISES, and the ball is smaller than the others so that it can.
+         The tongues are struck first, from bases BELOW the middle, so the
+         ball is drawn over their roots and only their tips stand clear of
+         the rim — which is what a flame off a coal actually looks like. */
+      tongueUp(x,S*.50,S*.62,S*.60,S*.21,-S*.03,'rgba(190,48,6,.9)');
+      tongueUp(x,S*.27,S*.64,S*.54,S*.14,-S*.14,'rgba(212,66,8,.9)');
+      tongueUp(x,S*.73,S*.64,S*.58,S*.14, S*.14,'rgba(212,66,8,.9)');
+      tongueUp(x,S*.50,S*.60,S*.52,S*.15,-S*.02,'rgba(255,146,24,.95)');
+      tongueUp(x,S*.68,S*.62,S*.44,S*.09, S*.10,'rgba(255,176,40,.92)');
+      tongueUp(x,S*.33,S*.64,S*.38,S*.08,-S*.09,'rgba(255,176,40,.92)');
+      const g=x.createRadialGradient(S*.44,S*.46,S*.03,S*.5,S*.54,S*.32);
+      g.addColorStop(0,'#fff3cc');g.addColorStop(.45,'#ff8c1e');g.addColorStop(1,'#8e2405');
+      x.fillStyle=g;x.beginPath();x.arc(S*.5,S*.54,S*.29,0,TAU);x.fill();
+      tongueUp(x,S*.50,S*.44,S*.30,S*.08,S*.01,'rgba(255,232,164,.95)');   // the one that licks over the crown
+      for(let k=0;k<3;k++){                                   // and embers going up off it
+        x.fillStyle='rgba(255,196,90,'+(.75-k*.18)+')';
+        x.beginPath();x.arc(S*(.44+k*.09),S*(.14-k*.03),S*(.022-k*.004),0,TAU);x.fill();
+      }
+    });
+    makeTex('orbBolt',64,(x,S)=>{
+      x.clearRect(0,0,S,S);
+      // a DARKER ball than the others, because the only thing that has to
+      // read here is the white fork standing on it
+      ball(x,S,'#ffeb9e','#d99a10','#3a2a02');
+      const fork=(o)=>{x.beginPath();
+        x.moveTo(S*.60+o,S*.17);x.lineTo(S*.40+o,S*.49);x.lineTo(S*.53+o,S*.49);
+        x.lineTo(S*.38+o,S*.84);x.lineTo(S*.56+o,S*.46);x.lineTo(S*.43+o,S*.46);
+        x.closePath();};
+      x.fillStyle='rgba(28,18,0,.9)';                     // its own shadow, half a pixel off
+      x.save();x.translate(S*.022,S*.022);fork(0);x.fill();x.restore();
+      x.fillStyle='#fffbe6';fork(0);x.fill();
+      x.strokeStyle='rgba(255,246,190,.5)';x.lineWidth=3;fork(0);x.stroke();   // and the air around it, glowing
+    });
+    makeTex('orbIce',64,(x,S)=>{
+      x.clearRect(0,0,S,S);
+      ball(x,S,'#ffffff','#8fd8f6','#124a66');
+      // one six-armed flake, barbed, and nothing else
+      x.strokeStyle='rgba(255,255,255,.95)';x.lineCap='round';
+      for(let i=0;i<6;i++){
+        const a=i*Math.PI/3,cx=S/2,cy=S/2,r=S*.30;
+        const ex=cx+Math.cos(a)*r,ey=cy+Math.sin(a)*r;
+        x.lineWidth=3.2;x.beginPath();x.moveTo(cx,cy);x.lineTo(ex,ey);x.stroke();
+        x.lineWidth=2.2;
+        for(const f of [.5,.76]){                        // two pairs of barbs up each arm
+          const bx=cx+Math.cos(a)*r*f,by=cy+Math.sin(a)*r*f,bl=r*(f>.6?.16:.22);
+          for(const d of [.7,-.7]){
+            x.beginPath();x.moveTo(bx,by);
+            x.lineTo(bx+Math.cos(a+d)*bl,by+Math.sin(a+d)*bl);x.stroke();
+          }
+        }
+      }
+      x.fillStyle='rgba(255,255,255,.9)';                 // a bead at the middle
+      x.beginPath();x.arc(S/2,S/2,S*.045,0,TAU);x.fill();
+    });
+    /* THE WHITE SKULL. Bone, and nothing else in the palette — no glow of
+       its own colour, because the thing it does is take colour away. */
+    makeTex('orbSkull',64,(x,S)=>{
+      x.clearRect(0,0,S,S);
+      const R=['..111111..','.11111111.','1111111111','1111111111','1100110011',
+               '1100110011','1111111111','1111111111','.11111111.','..1.11.1..',
+               '..1.11.1..','...1..1...'];
+      const px=4.6,ox=(S-10*px)/2,oy=(S-12*px)/2;
+      for(let j=0;j<R.length;j++)for(let i=0;i<10;i++){
+        if(R[j][i]==='0'){continue;}
+        if(R[j][i]!=='1')continue;
+        x.fillStyle='rgba(20,22,20,.8)';
+        for(let d=-1;d<=1;d++)for(let e=-1;e<=1;e++)x.fillRect(ox+(i+d)*px,oy+(j+e)*px,px,px);
+      }
+      for(let j=0;j<R.length;j++)for(let i=0;i<10;i++){
+        if(R[j][i]!=='1')continue;
+        x.fillStyle=j<3?'#ffffff':j<7?'#e8e6dc':'#c4c1b2';
+        x.fillRect(ox+i*px,oy+j*px,px,px);
+      }
+    });
+  }
 
   /* -- soft round glow sprite (fire, wisps, marrow) -- */
   /* -- the finishing mark: a downward blade, bright, for a stunned foe -- */
@@ -2106,11 +2235,22 @@ const AudioSys=(()=>{
         tone(t,{f:1600,f2:2400,type:'square',peak:.03,dec:.12});
         noise(t,{peak:.1,att:.002,dec:.18,f0:3000,f1:1200,type:'bandpass',Q:3});
         tone(t+.06,{f:820,f2:1900,type:'sine',peak:.05,dec:.2});
+      }else if(kind==='skull'){
+        // a bell struck once, far off, with a dry rattle riding under it
+        tone(t,{f:147,f2:146,type:'sine',peak:.16,att:.004,dec:1.5});
+        tone(t,{f:294,f2:292,type:'sine',peak:.07,att:.004,dec:1.1});
+        tone(t+.02,{f:441,f2:437,type:'triangle',peak:.035,dec:.7});
+        noise(t+.05,{peak:.07,att:.01,dec:.5,f0:2600,f1:900,type:'bandpass',Q:2});
       }else{
         tone(t,{f:1180,f2:1170,type:'sine',peak:.06,dec:.3});
         tone(t+.09,{f:1560,f2:1550,type:'sine',peak:.05,dec:.35});
         tone(t+.2,{f:2090,f2:2080,type:'sine',peak:.04,dec:.4});
       }},
+    // the mark spent: a hard dry crack, and the bell answering under it
+    reap(){const t=now();
+      noise(t,{peak:.24,att:.001,dec:.13,f0:5200,f1:600,type:'bandpass',Q:1.2});
+      tone(t,{f:220,f2:66,type:'triangle',peak:.2,att:.002,dec:.3});
+      tone(t+.03,{f:147,f2:146,type:'sine',peak:.1,dec:.9});},
     // a telling blow: bright ring over a deep body thump
     crit(){const t=now();
       tone(t,{f:1750,f2:900,type:'square',peak:.05,dec:.14});
@@ -6945,6 +7085,11 @@ const ELEMENTS={
   ice:{hue:0x9fe4ff,lite:0x6fc4ea,em:0x1e5a6e,msg:'the blade takes frost'},
   health:{hue:0xf03a4e,lite:0xc22e3c,em:0,msg:''}, // drop only — never imbues
   poison:{hue:0x6fbf2e,lite:0x4a9a1c,em:0x1f4a0c,msg:''}, // the unburied's rot — effects only
+  /* THE MARK OF THE REAPER. Not an element — it never touches the blade's
+     emissive and never goes through setElement. It is a state on the
+     pilgrim, and it is in this table only so the drop, its glow and its
+     motes can be looked up the same way everything else is. */
+  skull:{hue:0xe6e2d2,lite:0xcfd6d8,em:0,msg:'the mark of the reaper'},
 };
 function elemBurst(kind,x,y,z){
   const pal=kind==='fire'?[0xff8c2a,0xff5f1a,0xffc46a]:
@@ -7330,20 +7475,39 @@ function borrowLight(){
 }
 function dropCleanup(d){
   scene.remove(d.s);
+  if(d.icon)scene.remove(d.icon);
   d.l.intensity=0;d.l.position.y=-50;d.l.free=true;
   if(d.extra)for(const e of d.extra)scene.remove(e);
 }
+/* which face goes inside which glow. A drop used to be a coloured light
+   and nothing else, so four of them on the ground read as four of the
+   same thing; now the glow carries you to it and the face tells you what
+   it is once you are close enough to care. */
+const DROP_FACE={fire:'orbFire',lightning:'orbBolt',ice:'orbIce',
+                 health:'orbHeart',skull:'orbSkull'};
+const DROP_ICON_S={health:.66,skull:.66,fire:.60,lightning:.60,ice:.60};
 function spawnElemDrop(x,z,kind){
-  kind=kind||['fire','lightning','ice'][(Math.random()*3)|0];
+  // the reaper's mark is rare, and never asked for: it simply turns up
+  kind=kind||(Math.random()<.06?'skull':['fire','lightning','ice'][(Math.random()*3)|0]);
   const E=ELEMENTS[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:E.hue,
     transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
   const gy=heightAt(x,z);
-  s.scale.set(.68,.68,1);s.position.set(x,gy+.8,z);scene.add(s);
+  s.scale.set(.98,.98,1);s.position.set(x,gy+.8,z);scene.add(s);   // wide enough that the face inside it still has a halo
   const l=borrowLight();
   l.color.setHex(E.lite);l.intensity=1.1;
   l.position.set(x,gy+1.1,z);
-  const d={x,z,gy,kind,s,l,t:Math.random()*9,zapT:.4,extra:null};
+  const d={x,z,gy,kind,s,l,t:Math.random()*9,zapT:.4,extra:null,icon:null};
+  // the face rides INSIDE the glow: ordinary alpha, no depth of its own, and
+  // drawn after the glow so it reads as a thing lit from behind
+  if(DROP_FACE[kind]&&texCache[DROP_FACE[kind]]){
+    const ic=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache[DROP_FACE[kind]],
+      transparent:true,opacity:.98,depthWrite:false,depthTest:true}));
+    ic.renderOrder=6;
+    const isc=DROP_ICON_S[kind]||.42;
+    ic.scale.set(isc,isc,1);ic.position.copy(s.position);scene.add(ic);
+    d.icon=ic;d.iconS=isc;
+  }
   if(kind==='ice'){ // two frost sparkles slowly orbit the cold heart
     d.extra=[0,1].map(()=>{
       const o=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
@@ -7388,6 +7552,16 @@ function updateElemDrops(dt){
       }
       if(Math.random()<dt*3)
         elemFleck('ice',d.x+rr3(-.2,.2),d.s.position.y-.1,d.z+rr3(-.2,.2));
+    }else if(d.kind==='skull'){
+      // the mark: it does not burn, spark or bob. It hangs, turning slowly,
+      // and the light around it gutters like a candle nobody is tending
+      d.s.position.set(d.x,d.gy+.84+Math.sin(d.t*.9)*.05,d.z);
+      d.s.material.rotation=0;                     // a skull does not wheel
+      pu=1+Math.sin(d.t*1.7)*.06+Math.sin(d.t*5.3)*.03;
+      d.l.intensity=.9+Math.sin(d.t*5.3)*.18+Math.sin(d.t*11.7)*.07;
+      if(d.icon)d.icon.material.rotation=Math.sin(d.t*.7)*.12;
+      if(Math.random()<dt*1.6)
+        elemFleck('skull',d.x+rr3(-.2,.2),d.s.position.y+rr3(-.1,.25),d.z+rr3(-.2,.2));
     }else{
       // health: a living heartbeat — lub-dub, warm motes drifting up
       const ph=(d.t*1.4)%1;
@@ -7398,7 +7572,11 @@ function updateElemDrops(dt){
       if(Math.random()<dt*2.5)
         elemFleck('health',d.x+rr3(-.15,.15),d.s.position.y+.05,d.z+rr3(-.15,.15));
     }
-    d.s.scale.set(.68*pu,.68*pu,1);
+    d.s.scale.set(.98*pu,.98*pu,1);
+    if(d.icon){ // the face takes a quieter share of the pulse than the glow
+      const f=d.iconS*(1+(pu-1)*.45);
+      d.icon.position.copy(d.s.position);d.icon.scale.set(f,f,1);
+    }
     if(G.mode==='play'&&player.state!=='dead'&&
        Math.hypot(player.x-d.x,player.z-d.z)<1.1){
       // a health mote waits on the path until you're actually wounded
@@ -7409,7 +7587,8 @@ function updateElemDrops(dt){
         AudioSys.flask();G.vibr(25);
         toast('the marrow mends you');
         boneBurst(player.x,1.2,player.z,0xd0762b,7,1);
-      }else player.setElement(d.kind);
+      }else if(d.kind==='skull')player.takeMark();
+      else player.setElement(d.kind);
     }
   }
 }
@@ -7436,6 +7615,7 @@ const player={
   sprintT:0,sprinting:false,chargeT:0,chargeFull:false,readyDone:false,
   poisonT:0,poisonTick:0,execT:null,
   element:null,elementT:0,elemTrailT:0,
+  reaperT:0,mark:null,markIc:null,
   snowCling:0,snowCoat:0,snowBoot:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
@@ -7513,7 +7693,35 @@ const player={
     this.rig.root.rotation.x=0;
     this.armed=true;
     this.clearElement(); // death lets the element go
+    this.clearMark();    // and the mark with it
     G.lockTarget=null;
+  },
+  /* THE MARK OF THE REAPER. A white skull turns over the pilgrim's head,
+     and while it does, anything the edge touches is already dead. It is
+     NOT an element: it never goes near the blade's emissive, nothing is
+     imbued, and an element already burning on the steel keeps burning
+     underneath it. The Warden is the one thing too heavy to simply take —
+     the mark leans on it, and no more. */
+  takeMark(){
+    this.reaperT=REAPER_T;
+    if(!this.mark){
+      const g=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
+        color:0xdfe6e8,transparent:true,opacity:.8,depthWrite:false,
+        blending:THREE.AdditiveBlending}));
+      g.scale.set(1.05,1.05,1);scene.add(g);
+      const ic=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.orbSkull,
+        transparent:true,opacity:.95,depthWrite:false}));
+      ic.renderOrder=6;ic.scale.set(.46,.46,1);scene.add(ic);
+      this.mark=g;this.markIc=ic;
+    }
+    this.mark.visible=true;this.markIc.visible=true;
+    AudioSys.elemPickup('skull');G.vibr([40,30,60]);
+    toast(ELEMENTS.skull.msg);
+  },
+  clearMark(){
+    this.reaperT=0;
+    if(this.mark){this.mark.visible=false;this.markIc.visible=false;}
+    if(!this.element&&this.bladeLight)this.bladeLight.intensity=0;
   },
   setElement(kind){
     this.element=kind;this.elementT=22;
@@ -7753,6 +7961,13 @@ const player={
       const hv=tr==='thrust'?{dx:fx,dz:fz,up:1.2}:tr==='overhead'?{dx:fx,dz:fz,up:-.7}:
         {dx:fx*.4+lx*.92,dz:fz*.4+lz*.92,up:1.7};
       {const l=Math.hypot(hv.dx,hv.dz)||1;hv.dx/=l;hv.dz/=l;}
+      // THE MARK IS SPENT HERE. The blade doesn't wound anything it can
+      // finish — it finishes it, and moves on to the next. A parried blade
+      // is nowhere near the body, so it takes nothing with it.
+      if(this.reaperT>0&&!parry){
+        if(e.boss)dmg=Math.round(dmg*2.6);      // the Warden only staggers under it
+        else{reaperFinish(e,hv,this.facing);hitAny=true;continue;}
+      }
       const preHp=e.hp;
       if(this.ultra()){kb*=3.5;hv.up*=1.6;dmg=Math.round(dmg*1.4);}       // the ultra greatsword: they leave the ground
       e.takeHit(dmg,(opts.staggerAll||this.ultra())&&!e.boss?99:poise,this.x,this.z,kb,hv);
@@ -7847,6 +8062,27 @@ const player={
             .applyMatrix4(this.rig.weapon.matrixWorld);
           elemFleck(this.element,v.x,v.y,v.z);
         }
+      }
+    }
+
+    // the mark turns overhead and gutters out when its time is up. The
+    // steel goes COLD under it rather than lit — there is no element here
+    // to burn, so the blade-light is only ever a pale rim, and only when
+    // nothing else has claimed it.
+    if(this.reaperT>0){
+      this.reaperT-=dt;
+      if(this.reaperT<=0){this.clearMark();toast('the mark fades');}
+      else{
+        const my=heightAt(this.x,this.z)+2.62+Math.sin(G.time*1.6)*.07;
+        const gut=this.reaperT<3?.45+.55*Math.abs(Math.sin(G.time*9)):1;
+        this.mark.position.set(this.x,my,this.z);
+        this.markIc.position.set(this.x,my,this.z);
+        this.mark.material.opacity=.8*gut;
+        this.markIc.material.opacity=.95*gut;
+        this.markIc.material.rotation=Math.sin(G.time*.9)*.14;
+        if(!this.element){this.bladeLight.color.setHex(0xcfd6d8);this.bladeLight.intensity=.22*gut;}
+        if(Math.random()<dt*2)
+          elemFleck('skull',this.x+rr3(-.3,.3),my+rr3(-.3,.15),this.z+rr3(-.3,.3));
       }
     }
 
@@ -10140,6 +10376,56 @@ function groundWave(x,z,facing,dmg,delay){
 /* a limb comes off: the group is cut out of the rig and thrown, a stub is
    left behind for the poses to move, the stump bleeds, and the horror
    keeps coming without it */
+/* ---------------- the mark of the reaper ----------------
+   How long the mark lasts, and what it does when it lands. Nothing below
+   is new violence: it is the game's own killing moves spent on demand —
+   the cut in two the katana has to earn by wearing a horror down, and the
+   head off an overhead blow. Which one comes up alternates, so a room
+   full of them does not die the same way six times over. */
+const REAPER_T=16;
+let REAP_N=0;
+function reaperBurst(x,y,z){
+  // no colour in it at all: a white ring going out, and bone dust
+  for(let i=0;i<10;i++){
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
+      color:i&1?0xffffff:0xdfe6e8,transparent:true,opacity:.95,
+      depthWrite:false,blending:THREE.AdditiveBlending}));
+    const sc=.1+Math.random()*.1;sp.scale.set(sc,sc,1);
+    sp.position.set(x,y,z);scene.add(sp);
+    const a=(i/10)*TAU+rr3(-.2,.2),spd=3.2+Math.random()*2.6;
+    const vx=Math.cos(a)*spd,vz=Math.sin(a)*spd;let vy=rr3(-.4,1.1);
+    let life=0;const dur=.26+Math.random()*.16;
+    effects.push({update(dt){
+      life+=dt;vy-=5*dt;
+      sp.position.x+=vx*dt;sp.position.y+=vy*dt;sp.position.z+=vz*dt;
+      sp.material.opacity=.95*Math.max(0,1-life/dur);
+      if(life>dur){scene.remove(sp);sp.material.dispose();return false;}
+      return true;}});
+  }
+  boneBurst(x,y-.5,z,0xe6e2d2,9,2.2);
+}
+function reaperFinish(e,hv,facing){
+  const gy=heightAt(e.x,e.z);
+  reaperBurst(e.x,gy+(e.big?1.7:1.15),e.z);
+  AudioSys.reap();AudioSys.smack(e);
+  G.hitstop=Math.max(G.hitstop,.2);G.camShake=Math.max(G.camShake,.55);G.vibr([50,25,90]);
+  e.poise=0;
+  e.lastHit={dx:hv.dx,dz:hv.dz,kb:2.2,up:hv.up!==undefined?hv.up:1.4};
+  const whole=e.rig&&e.rig.humanoid&&e.state!=='scatter'&&!e.crow;
+  if(whole&&!e.sliced&&!e.severedHead&&(REAP_N++&1)===0){
+    e.hp=Math.max(e.hp,1);            // katanaSlice reads this to know it is the killing cut
+    katanaSlice(e,facing,'kesa');     // through the shoulder and out at the hip
+    return;
+  }
+  if(whole&&!e.severedHead){
+    const keep=e.hp;e.hp=999;         // severLimb kills on its own if it drops to nothing
+    severLimb(e,'overhead',hv,'head');
+    e.hp=keep;
+    if(e.hp>0)e.die();
+    return;
+  }
+  if(e.hp>0)e.die();                  // a crow, a bone heap, a thing with no head left
+}
 function severLimb(e,trail,hv,want){
   const r=e.rig;
   const wantHead=trail==='overhead'||(trail==='sweep'&&Math.random()<.4);
