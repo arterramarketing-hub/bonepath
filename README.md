@@ -748,6 +748,36 @@ crumbling off it the whole way, and three heaves audible in it, the two that
 fail and the one that does not. The earth keeps breaking around it until it
 is out.
 
+## The roll
+
+**In four parts, not one.** It used to be a single move: speed at its
+maximum on the first frame and falling from there, a body turning at a flat
+rate the whole way, and five centimetres of lift on the trunk. That is not a
+dodge, it is a man falling over while he slides — there is nothing to push
+off from, nothing in the air, and nothing lands.
+
+1. **The push.** The legs drive and the speed is *built* rather than given.
+   Coiled over the front leg, trunk thrown forward, arms still down.
+   **Nothing rotates yet** — only the load goes on.
+2. **The flight.** The speed holds, with only the air on him. The whole body
+   — the *root*, not the trunk — goes up over a real arc, a third of a unit
+   at the top, and the knees come in. A fifth of the turn happens here.
+3. **The landing**, which is a beat of its own: a dip of the camera, a thud,
+   and a burst of whatever he came down in. In snow the furrow stops being
+   cut for as long as there is nothing cutting it, and gouges hard here.
+4. **The roll.** The other **four fifths of the turn whip through at once**,
+   which is what reads as a somersault instead of a stumble, while the
+   ground takes the speed back. Then he rides out on his feet with some of
+   it still in him, so a roll into a run keeps going.
+
+The **field** takes it slow and heavy — seven tenths of a second, the leap
+at eleven and a half, invulnerable from .06 to .46 so the tail of the roll
+is punishable. The **path** is a run and not a pilgrimage, so it gets the
+snappy one: just over half a second, faster off the ground, and the window
+scaled with it. The ground covered is tuned to stay near what the old roll
+covered — a leap that also doubled the dodge's reach would be a balance
+change wearing an animation's clothes.
+
 ## Life, in hearts
 
 Life is **ten hearts**, drawn as a nine-by-eight pixel heart made at boot

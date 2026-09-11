@@ -203,6 +203,11 @@ Known state of play:
   call. `poison` sets `melt` and is driven by `meltHero` in the dead frame
   instead of the ragdoll. `respawn()` calls `rebuild()` outright: a severed
   limb and a melted body are not worth patching back together.
+- The roll is `ROLL_FIELD`/`ROLL_PATH` (near `heroLight`) — push, flight,
+  landing, roll, rise. `SPD` is tuned so total ground covered stays near the
+  old roll's ~4.6 units; changing it is a balance change, not a feel change.
+  `rollAir` is read by the pose, by the root's height and by `updateTrail`
+  (nothing is ploughed by a body that is off the ground).
 - Life is `HEART=10` hp x10 hearts. Every enemy `dmg` must stay a multiple
   of `HEART/2` or the hearts show a state the player cannot reason about.
   `drawHearts()` rebuilds the row only when the half-count changes.

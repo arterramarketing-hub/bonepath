@@ -4018,7 +4018,7 @@ function updateTrail(dt){
   if(!PLOUGHS()){if(TRAIL.mesh.visible)trailClear();return;}
   // lane 0 is always the pilgrim's; the rest go to the nearest hollows
   const L0=TRAIL.lanes[0];L0.own=player;
-  if(G.mode==='play'&&player.hp>0&&cathDist(player.x,player.z)>=4.5)
+  if(G.mode==='play'&&player.hp>0&&cathDist(player.x,player.z)>=4.5&&!(player.rollAir>.04))
     /* WIDTH. A man wading leaves a channel about as wide as he is; it was
        coming out three times that, which is a cart track. Only a ROLL is
        wide, because that is the one time the whole body is on the ground
@@ -7425,7 +7425,7 @@ const player={
     if(!on&&this.rig)this.rig.snowAt=-1;   // nor the snow he is wearing
   },
   // the roll's window, and the whole of the finishing cut: nothing touches the executioner
-  iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8);},
+  iframes(){const R=rollProf();return (this.state==='roll'&&this.t>R.IF0&&this.t<R.IF1)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8);},
   takeHit(dmg,fx,fz,heavy,kind){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
@@ -7791,6 +7791,7 @@ const player={
       }
     };
     const startDodge=(s)=>{
+      this.rollLanded=false;this.rollAir=0;
       this.state='roll';this.t=0;this.rollPuffT=0;
       if(snowDeep())this.snowCling=1;      // shoulder-first through a drift
       if(s&&s.sx!==null){const a=swipeWorld(s);this.rollDX=Math.sin(a);this.rollDZ=Math.cos(a);}
@@ -8368,23 +8369,40 @@ const player={
     }
     else if(this.state==='roll'){
       // the tumble, then a beat of getting the feet back under the body
-      const TUMBLE=.46,DUR=.58;
-      const p=Math.min(1,this.t/TUMBLE);
-      const sp=this.t<TUMBLE?12.5*(1-easeIn(p)*.72)
-        :3.2*(1-(this.t-TUMBLE)/(DUR-TUMBLE));            // rides out on the feet
+      const R=rollProf(),tt=this.t;
+      let sp;
+      if(tt<R.PUSH)        sp=R.SPD*easeOut(tt/R.PUSH);                            // the legs drive
+      else if(tt<R.LAND)   sp=R.SPD*(1-.12*((tt-R.PUSH)/(R.LAND-R.PUSH)));         // carried, with only the air on him
+      else if(tt<R.ROLLED){const u=(tt-R.LAND)/(R.ROLLED-R.LAND);
+                           sp=R.SPD*.88*(1-easeIn(u)*.8);}                          // the ground takes it back
+      else                 sp=R.SPD*.17*(1-(tt-R.ROLLED)/(R.DUR-R.ROLLED));        // rides out on the feet
       this.x+=this.rollDX*sp*dt;this.z+=this.rollDZ*sp*dt;
-      // the furrow widens to a trough of its own accord while rolling (see
-      // updateTrail); what the roll adds is the sheet of snow it throws
+      // the arc: the whole body leaves the ground, root and all, and comes
+      // back down on it (read by the pose, and by the furrow, which stops
+      // being cut for as long as there is nothing cutting it)
+      this.rollAir=(tt>=R.PUSH&&tt<R.LAND)
+        ?R.RISE*4*((tt-R.PUSH)/(R.LAND-R.PUSH))*(1-(tt-R.PUSH)/(R.LAND-R.PUSH)):0;
+      // THE LANDING, which is a beat and not a moment passed through
+      if(!this.rollLanded&&tt>=R.LAND){
+        this.rollLanded=true;
+        G.camShake=Math.max(G.camShake,.3);G.vibr(20);
+        AudioSys.bodyfall();
+        AudioSys.step(1,cathDist(this.x,this.z)<4.5?'stone':snowDeep()?'snow':'grass');
+        if(snowDeep())snowPuff(this.x,this.z,Math.atan2(this.rollDX,this.rollDZ),11,5.4);
+        else boneBurst(this.x,.12,this.z,0x4a463a,7,2.1);
+      }
+      // the sheet of snow it throws — but only while something is touching it
       if(snowDeep()){this.rollPuffT=(this.rollPuffT||0)-dt;
-        if(this.rollPuffT<=0&&this.t<TUMBLE){this.rollPuffT=.05;
+        if(this.rollPuffT<=0&&tt<R.ROLLED&&!this.rollAir){this.rollPuffT=.05;
           snowPuff(this.x,this.z,Math.atan2(this.rollDX,this.rollDZ),4,4.2);}}
-      if(this.t<TUMBLE)trampleBreakables(this.x,this.z,.5,'pew');   // a roll through a pew breaks it
+      if(tt<R.ROLLED)trampleBreakables(this.x,this.z,.5,'pew');   // a roll through a pew breaks it
       // attack pressed mid-roll banks a rolling attack
       if(IN.swipe&&IN.swipe.kind==='atk')
         this.rollAtkQueued={d:IN.swipe.sx!==null?swipeWorld(IN.swipe):null};
-      if(this.rollAtkQueued&&p>=.55){
+      if(this.rollAtkQueued&&tt>=R.LAND){          // the cut comes out of the landing, not out of the air
         startRollAtk(this.rollAtkQueued.d);
-      }else if(this.t>=DUR){this.state='free';this.postRollT=0;}
+      }else if(tt>=R.DUR){this.state='free';this.postRollT=0;
+        this.spd=Math.max(this.spd||0,R.SPD*.26);}  // some of it is still in him
     }
     else if(this.state==='rollatk'){
       const DUR=.44*this.swing(),p=this.t/DUR;
@@ -8519,19 +8537,39 @@ const player={
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/(.5*this.swing())));
     else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseUppercut(r,Math.min(1,this.t/(.62*this.swing())));}
     else if(this.state==='roll'){
-      const TUMBLE=.46,DUR=.58,C=CARRY;
-      const p=Math.min(1,this.t/TUMBLE);                          // the tumble
-      const e=easeOut(clamp((this.t-TUMBLE)/(DUR-TUMBLE),0,1));   // the get-up
-      r.body.position.y=r.baseY-.34*(1-e)+Math.sin(p*Math.PI)*.05;
-      r.body.rotation.x=p*TAU;                                     // one full turn — completed
-      // out of the tuck: the legs unfold under the body into a low
-      // crouch, the trunk leans into the rise, the arms find the carry
-      r.legR.rotation.x=-1.6*(1-e)+.35*e;r.kneeR.rotation.x=2.2*(1-e)+.55*e;
-      r.legL.rotation.x=-1.6*(1-e)-.25*e;r.kneeL.rotation.x=2.2*(1-e)+.35*e;
-      r.torso.rotation.x+=.5*Math.sin(e*Math.PI);
-      r.head.rotation.x-=.25*Math.sin(e*Math.PI);
-      r.armR.rotation.x=-1.2*(1-e)+C.aRx*e;r.armL.rotation.x=-1.2*(1-e)+C.aLx*e;
-      r.foreR.rotation.x=-1.4*(1-e)+C.fRx*e;r.foreL.rotation.x=-1.4*(1-e)+C.fLx*e;
+      const R=rollProf(),C=CARRY,tt=this.t;
+      /* the turn is NOT spread evenly over the move. Nothing turns while he
+         is pushing; a fifth of it goes by in the air as he draws the knees
+         in; and the other four fifths whip through in the quarter-second
+         after he lands, which is the part anyone reads as a somersault. */
+      let rot,push=0;
+      if(tt<R.PUSH){rot=0;push=easeOut(tt/R.PUSH);}
+      else if(tt<R.LAND)  rot=easeIn((tt-R.PUSH)/(R.LAND-R.PUSH))*.2*TAU;
+      else if(tt<R.ROLLED)rot=(.2+.8*easeOut((tt-R.LAND)/(R.ROLLED-R.LAND)))*TAU;
+      else rot=TAU;
+      const e=easeOut(clamp((tt-R.ROLLED)/(R.DUR-R.ROLLED),0,1));   // the get-up
+      const air=(this.rollAir||0)/R.RISE;                            // 0 on the ground, 1 at the top
+      r.body.position.y=r.baseY-.34*(1-e)-.2*push+.06*air;
+      r.body.rotation.x=rot;
+      // THE PUSH: coiled over the front leg, the trunk thrown forward, the
+      // arms still down — no turn in it yet, only the load going on
+      if(push>0){
+        r.torso.rotation.x+=.55*push;r.head.rotation.x+=.2*push;
+        r.legR.rotation.x=-.85*push;r.kneeR.rotation.x=1.5*push;
+        r.legL.rotation.x=.5*push;r.kneeL.rotation.x=.35*push;
+        r.armR.rotation.x=C.aRx*(1-push)-.5*push;r.armL.rotation.x=C.aLx*(1-push)-.5*push;
+        r.foreR.rotation.x=C.fRx;r.foreL.rotation.x=C.fLx;
+      }else{
+        // in the air and through the roll: knees to the chest, arms in, and
+        // then the whole thing unfolds into a low crouch and finds the carry
+        const tuck=1-e;
+        r.legR.rotation.x=-1.6*tuck+.35*e;r.kneeR.rotation.x=2.2*tuck+.55*e;
+        r.legL.rotation.x=-1.6*tuck-.25*e;r.kneeL.rotation.x=2.2*tuck+.35*e;
+        r.torso.rotation.x+=.5*Math.sin(e*Math.PI)+.3*air;
+        r.head.rotation.x-=.25*Math.sin(e*Math.PI)-.2*air;
+        r.armR.rotation.x=-1.2*tuck+C.aRx*e;r.armL.rotation.x=-1.2*tuck+C.aLx*e;
+        r.foreR.rotation.x=-1.4*tuck+C.fRx*e;r.foreL.rotation.x=-1.4*tuck+C.fLx*e;
+      }
     }
     else if(this.state==='attack'){if(kat)poseKatana(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);else poseLight(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);}
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/(.44*this.swing())));
@@ -8552,7 +8590,7 @@ const player={
      // the heap he is pushing: only while he is actually going somewhere
      ploughFront(this.x,this.z,Math.atan2(this.moveX||Math.sin(this.facing),this.moveZ||Math.cos(this.facing)),
        onStone?0:deep*Math.min(1,(this.spd||0)/5.5)*(this.state==='roll'?1.3:1));}
-    r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z),this.z);
+    r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z)+(this.state==='roll'?this.rollAir||0:0),this.z);
     r.root.rotation.y=this.facing;
     // the backstab: whatever the pose says, the blade is aimed from the
     // hand straight at the spine, so it goes in through the middle of the
@@ -10582,6 +10620,30 @@ function drawHearts(){
     kids[i].style.backgroundImage='url('+texCache.heartImg[f]+')';
   }
 }
+/* THE ROLL, IN FOUR PARTS. It used to be one: speed at its maximum on the
+   first frame and falling from there, a body turning at a flat rate the
+   whole way, and five centimetres of lift on the trunk. That is not a
+   dodge, it is a man falling over while he slides — there is nothing to
+   push off from, nothing in the air, and nothing lands.
+
+   So: a PUSH, where the legs drive and the speed is built rather than
+   given and nothing rotates yet; a FLIGHT, where the speed holds and the
+   whole body — the root, not the trunk — goes up over a real arc and only
+   begins to tuck; the LANDING, which is a beat of its own with a dip of
+   the camera, a thud and a burst of whatever he came down in; and then the
+   ROLL, where four fifths of the turn goes through at once, which is what
+   makes it read as a somersault instead of a stumble. He rides out of it
+   on his feet with some of the speed still in him, so a roll into a run
+   keeps going.
+
+   The field takes it slow and heavy. The path is a run and not a
+   pilgrimage, so it gets the snappy one. */
+// (SPD is tuned so the ground covered stays near what the old roll covered
+//  — a leap that also doubled the dodge's reach would be a balance change
+//  wearing an animation's clothes)
+const ROLL_FIELD={PUSH:.11,LAND:.33,ROLLED:.56,DUR:.70,SPD:11.5,RISE:.34,IF0:.06,IF1:.46};
+const ROLL_PATH ={PUSH:.07,LAND:.24,ROLLED:.42,DUR:.54,SPD:15,RISE:.28,IF0:.045,IF1:.35};
+function rollProf(){return PATH.on?ROLL_PATH:ROLL_FIELD;}
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
 const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}
