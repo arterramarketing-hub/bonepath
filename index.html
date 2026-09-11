@@ -3477,7 +3477,14 @@ function applyTime(name){
     worldLights.hemi.color.lerp(new THREE.Color(0xd2dfee),bliz?.7:.6);worldLights.hemi.groundColor.setHex(name==='night'?0x4d5766:0x93a0b0);
     // a blizzard is a white-out: the light is everywhere and comes from
     // nowhere, so the fill holds and the sun is put out altogether
-    worldLights.hemiBase*=bliz?1.0:1.06;worldLights.moonBase*=bliz?.25:.55;}
+    /* and the middle of the day, now that it is a real midday, is far too
+       much light to put on a white field: snow returns nearly all of it and
+       the grade has nowhere left to go. The fill and the exposure both come
+       back down under cloud, hardest at noon and hardest in a blizzard. */
+    const bright=name==='noon'?1:name==='dusk'||name==='night'?.55:.8;
+    worldLights.hemiBase*=(bliz?1.0:1.06)*(1-bright*(bliz?.26:.16));
+    worldLights.expo*=1-bright*(bliz?.17:.1);
+    worldLights.moonBase*=bliz?.25:.55;}
   worldLights.heroCol=snow?0xa9bccf:0xd9b072;worldLights.heroDim=snow?.5:1;   // (read by the frame: heroLight is not built yet at the first call)
   {const r=FOG_BY_WX[RUN.weather]||FOG_BY_WX.clear;if(scene.fog){scene.fog.near=r[0];scene.fog.far=r[1];}}
   if(worldLights.dust)worldLights.dust.opacity=T.dust;
@@ -3668,6 +3675,13 @@ const TROD_PIT=[.24,.27,.34],TROD_LIP=[.54,.58,.64],TROD_FLAT=[.46,.50,.57];
    its own three tones, all of them the floor's: */
 const TROD_SCUFF=[[.24,.27,.34],[.28,.31,.39],[.185,.215,.275]];
 const TROD_PAL=[TROD_FLAT,TROD_LIP,TROD_PIT];
+/* A FURROW'S OWN TONES, and they are quieter than a boot-print's. A print
+   is a collar the size of a foot; a bank is a continuous surface running
+   twenty paces, catching the light the whole way, and the same numbers that
+   read as a pressed dish read as a painted stripe once they are drawn out
+   into a line. So the crest sits barely above the snow and the floor barely
+   below it, the banks lean less, and the relief does the rest. */
+const TR_LIP=[.53,.57,.63],TR_PIT=[.32,.36,.43];
 // the patch a boot covers, measured once as it lands
 function trodShape(p){
   const G=TROD.G,V=[];
@@ -3850,18 +3864,20 @@ function trailShape(sc){
 }
 function trailWrite(L,i,sc,tail){
   const K=TRAIL.K,base=((L*TRAIL.SEC)+i)*K,P=TRAIL.pos,C=TRAIL.col,N=TRAIL.nrm,V=sc.V;
-  const k=Math.max(0,1-sc.age/TROD.life)*tail;         // fills in with age, and dies out at the tail
+  // fills in with age, dies out at the tail, and goes flat altogether where
+  // a later pass has ploughed across it
+  const k=Math.max(0,1-sc.age/TROD.life)*tail*(sc.squash===0?0:1);
   const rim=sc.d*.3*k;
   for(let q=0;q<K;q++){
     const cls=TR_CLS[q],t=TR_OFF[q],o=(base+q)*3,v=V[q];
     const side=t<0?sc.bL:t>0?sc.bR:1;                  // this step's heavy side
     let h,c,mix=1;
     if(cls===0)     {h=TROD_UP;c=TROD_FLAT;}                                     // the skirt, lying flat
-    else if(cls===1){h=TROD_UP+rim*side*(.26+v.r*.06);c=TROD_LIP;mix=.42;}       // the shoulder it falls back to
-    else if(cls===2){h=TROD_UP+rim*side*(1+v.r*.26);c=TROD_LIP;}                 // the crest
-    else            {h=TROD_FLOOR-sc.d*.14*k*(1+v.r);c=TROD_PIT;}                // churned floor
+    else if(cls===1){h=TROD_UP+rim*side*(.26+v.r*.06);c=TR_LIP;mix=.42;}         // the shoulder it falls back to
+    else if(cls===2){h=TROD_UP+rim*side*(1+v.r*.26);c=TR_LIP;}                   // the crest
+    else            {h=TROD_FLOOR-sc.d*.14*k*(1+v.r);c=TR_PIT;}                  // churned floor
     P[o]=v.x;P[o+1]=v.y+h;P[o+2]=v.z;
-    const tip=cls===1?.9*k*Math.sign(t):cls===2?.5*k*Math.sign(t):0;   // the bank leans away from the channel
+    const tip=cls===1?.42*k*Math.sign(t):cls===2?.2*k*Math.sign(t):0;  // the bank leans away from the channel
     const nx=sc.rx*tip,nz=sc.rz*tip,nl=Math.hypot(nx,1,nz)||1;
     N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
     const j=cls===1||cls===2?sc.cj:0;
@@ -3875,6 +3891,26 @@ function trailBlank(L,i){
 /* lay the next section of a lane, if the thing has moved far enough. A big
    jump (a roll's launch, a respawn, a tile torn down under it) breaks the
    lane rather than dragging a sheet of snow across the field */
+/* WHAT IS ALREADY THERE. Walk back across your own furrow, or across one a
+   hollow left, and the old banks stood up through the new channel — two
+   trenches crossing and neither giving way, which is not how snow works.
+   Snow shoved once is shoved again, and the newer pass wins: laying a
+   section FLATTENS every older one it covers, wherever that one came from,
+   its own last few excepted (those are the ribbon it is attached to, not
+   something it is crossing). A flattened cut is not deleted — the strip it
+   belongs to has to stay continuous — it is pressed back level with the
+   untouched snow, which is exactly what the new pass did to it. */
+function trailStamp(lane,x,z,w){
+  const r2=w*w;
+  for(const ln of TRAIL.lanes){
+    const S=ln.secs,keep=ln===lane?4:0;                 // its own tail is not a crossing
+    for(let i=0;i<S.length-keep;i++){
+      const sc=S[i];if(sc.squash===0)continue;
+      const dx=sc.x-x,dz=sc.z-z;
+      if(dx*dx+dz*dz<r2)sc.squash=0;
+    }
+  }
+}
 function trailPush(lane,x,z,w,d){
   const S=lane.secs,last=S[S.length-1];
   if(last){
@@ -3883,12 +3919,14 @@ function trailPush(lane,x,z,w,d){
     if(dd>2.2){S.length=0;}                         // too far to have walked it
     else{
       const rx=-dz/dd,rz=dx/dd;                     // across the line of travel
-      const sc={x,z,rx,rz,w,d,age:0,s:(last.s||0)+dd};trailShape(sc);S.push(sc);
+      const sc={x,z,rx,rz,w,d,age:0,s:(last.s||0)+dd,squash:1};trailShape(sc);
+      trailStamp(lane,x,z,w);S.push(sc);
       if(S.length>TRAIL.SEC)S.shift();
       return;
     }
   }
-  const sc={x,z,rx:1,rz:0,w,d,age:0,s:0};trailShape(sc);S.push(sc);
+  const sc={x,z,rx:1,rz:0,w,d,age:0,s:0,squash:1};trailShape(sc);
+  trailStamp(lane,x,z,w);S.push(sc);
 }
 function updateTrail(dt){
   if(!TRAIL.mesh)return;
@@ -3956,7 +3994,9 @@ function updateTrail(dt){
    the vertex snap is put straight back on: a boot with snow on it still
    wobbles like everything else. */
 const SNOW_COAT=new THREE.Color(0xdfe8f2).convertSRGBToLinear();
+const SNOW_EM=new THREE.Color(0x9fb4cc).convertSRGBToLinear();
 const SNOW_ON=lam({color:new THREE.Color(0xa8b8cc).convertSRGBToLinear(),flatShading:true});
+const SNOW_CLING=lam({color:new THREE.Color(0xccd9ea).convertSRGBToLinear(),flatShading:true,transparent:true,opacity:0});
 function dressSnow(rig){
   /* Which parts wear it is decided by HOW LOW THEY ARE, not by which group
      they were hung on — a tabard's hem, a boot, a greave and a dangling
@@ -3973,7 +4013,7 @@ function dressSnow(rig){
     const sh=onWeapon(o)?0:clamp((.88-(v.y-y0))/.5,0,1);
     let m=o.material;
     if(sh>0){m=m.clone();psx(m);m.needsUpdate=true;o.material=m;}   // its own steel, and its wobble back
-    list.push({m,sh,base:m.color.clone()});
+    list.push({m,sh,mesh:o,base:m.color.clone()});
   });
   rig.snowDress=list;rig.snowAt=-1;rig.snowBootAt=-1;
   /* and a heap of it where each leg goes INTO the drift. Tinting a boot
@@ -3982,6 +4022,23 @@ function dressSnow(rig){
      up against the shin at the surface. So that is what is drawn: two
      little collars that live in the world rather than on the leg, and are
      put at the surface under whichever foot they follow. */
+  /* and PATCHES of it left lying on him. A wash of colour is the honest
+     way to say snow, and against a field of the stuff it says almost
+     nothing — the hero is a dark shape on white either way. So a roll also
+     leaves the snow itself on him: a small flat patch laid on the top face
+     of a dozen of his upper parts, found by measuring each one rather than
+     by naming it, so it works whatever he is wearing. */
+  rig.snowFlecks=[];
+  {const up=list.filter(e=>e.sh<.4);
+   for(let i=0;i<up.length&&rig.snowFlecks.length<12;i+=Math.max(1,Math.floor(up.length/12))){
+     const o=up[i].mesh;if(!o||!o.geometry)continue;
+     if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();
+     const bb=o.geometry.boundingBox,sx=bb.max.x-bb.min.x,sy=bb.max.y-bb.min.y,sz=bb.max.z-bb.min.z;
+     if(sx<.05||sz<.05||sx>1.2||sz>1.2)continue;
+     const m=new THREE.Mesh(GBox(sx*.62,.016,sz*.62),SNOW_CLING);
+     m.position.set((bb.min.x+bb.max.x)/2+rr3(-sx*.12,sx*.12),bb.max.y-sy*.04,(bb.min.z+bb.max.z)/2+rr3(-sz*.12,sz*.12));
+     m.rotation.y=rr3(-.4,.4);m.visible=false;o.add(m);rig.snowFlecks.push(m);
+   }}
   rig.snowCuff=[];
   for(const g of [rig.kneeR,rig.kneeL])if(g){
     const m=new THREE.Mesh(GCyl(.19,.12,.085,6),SNOW_ON);
@@ -4004,15 +4061,25 @@ function wearSnow(rig,body,boot){
   if(Math.abs(body-rig.snowAt)<.012&&Math.abs(boot-rig.snowBootAt)<.012)return;
   rig.snowAt=body;rig.snowBootAt=boot;
   /* Half the hero's parts are TEXTURED, and a textured material's colour
-     is plain white — it is a multiplier over the map, not a paint. Lerping
-     white toward any tint only darkens it, which is how the first attempt
-     put snow on the boots by making them bluer. So the tint is pulled
-     first and then the whole thing is driven ABOVE white: a dark leather
-     goes pale and cold, and a mapped surface simply blows out toward the
-     snow it is packed with. */
+     is plain white — a multiplier over the map, not a paint — so lerping it
+     toward any tint only darkens it. The obvious answer, driving it ABOVE
+     white, is worse than useless here: the grade's S-curve is
+     mix(c, c*c*(3-2c), .62), and past about 1.2 that second term turns
+     NEGATIVE and the pixel goes black. Brightening by multiplier is off the
+     table entirely.
+     So the snow is put on with EMISSIVE, which adds light after the map is
+     multiplied in and lifts a textured surface without touching what is
+     painted on it — kept low enough that nothing is driven past the curve —
+     and the tint does the rest, which is all a dark leather needs. */
   for(const e of D){
     const a=Math.max(body,boot*e.sh);
-    e.m.color.copy(e.base).lerp(SNOW_COAT,a*.7).multiplyScalar(1+a*1.1);
+    e.m.color.copy(e.base).lerp(SNOW_COAT,a*.72);
+    if(e.m.emissive)e.m.emissive.copy(SNOW_EM).multiplyScalar(a*.32);
+  }
+  if(rig.snowFlecks){
+    const on=body>.06;
+    SNOW_CLING.opacity=Math.min(1,body*1.25);
+    for(const m of rig.snowFlecks){m.visible=on;const k=.5+.8*body;m.scale.set(k,1,k);}
   }
 }
 
@@ -7153,6 +7220,8 @@ const player={
     shootArrow(this.x+fx*.6,heightAt(this.x,this.z)+1.35,this.z+fz*.6,fx,fz,spd,dmg,kind);
   },
   respawn(){
+    if(this.rag)endRagdoll(this);                           // up off the snow, limbs back where they belong
+    if(this.rig){this.rig.root.visible=true;this.rig.root.rotation.set(0,0,0);}
     this.x=G.checkpoint.x;this.z=G.checkpoint.z;
     this.hp=this.maxHp;
     this.state='free';this.t=0;this.hurtGrace=0;this.poisonT=0;
@@ -7180,6 +7249,7 @@ const player={
     for(const m of this.mats)m.emissive.setHex(on?0x77140f:0x000000);
     if(!on&&this.element) // don't let the hurt-flash wipe the imbue glow
       this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
+    if(!on&&this.rig)this.rig.snowAt=-1;   // nor the snow he is wearing
   },
   // the roll's window, and the whole of the finishing cut: nothing touches the executioner
   iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8);},
@@ -7196,14 +7266,26 @@ const player={
     bloodSpray(this.x,1.25,this.z,dmg>20?13:8,dmg>20?1.3:1);
     bloodDecal(this.x+rr3(-.3,.3),this.z+rr3(-.3,.3),.28+dmg*.008);
     const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
-    if(this.hp<=0){this.die();return 'dead';}
+    if(this.hp<=0){this.die(dx/l,dz/l,heavy?1.7:1);return 'dead';}
     this.state='hurt';this.t=0;this.hurtDur=.38;
     this.vx=dx/l*5;this.vz=dz/l*5;
     return 'hit';
   },
-  die(){
+  /* THE PILGRIM GOES DOWN THE WAY HE WAS HIT. Not a canned fall: the same
+     ragdoll the hollows use, kicked along the line of the blow that
+     finished him — take a bone to the head and you are knocked over that
+     way, and you land where the physics leaves you. The field goes on
+     around him while he falls, and the screen holds off for three whole
+     seconds before it says what it has to say. */
+  die(kx,kz,force){
     this.hp=0;this.state='dead';this.t=0;this.dropThrown();
     G.mode='dead';G.deaths++;
+    this.crumbled=false;
+    if(this.rig&&this.rig.humanoid){
+      const a=Math.random()*TAU;
+      const dx=kx!==undefined?kx:Math.sin(a),dz=kz!==undefined?kz:Math.cos(a);
+      startRagdoll(this,dx,dz,4.2*(force||1),2.4+Math.random()*.9);
+    }
     AudioSys.deathGong();G.vibr([80,60,120]);
     // the path keeps what it takes
     bloodSpray(this.x,1.1,this.z,16,1.5);
@@ -7231,18 +7313,20 @@ const player={
       this.marrow=0;
     }
     const died=$('died');
-    died.style.opacity=1;died.style.background='rgba(4,5,5,.55)';
-    setTimeout(()=>{
-      $('fade').style.opacity=1;
+    setTimeout(()=>{                                        // three seconds of falling first
+      died.style.opacity=1;died.style.background='rgba(4,5,5,.55)';
       setTimeout(()=>{
-        died.style.opacity=0;died.style.background='rgba(4,5,5,0)';
-        if(PATH.on){endGame(false);return;}                 // the path ends where you fall
-        respawnWorld();
-        this.respawn();
-        G.mode='play';
-        setTimeout(()=>$('fade').style.opacity=0,150);
-      },1100);
-    },2400);
+        $('fade').style.opacity=1;
+        setTimeout(()=>{
+          died.style.opacity=0;died.style.background='rgba(4,5,5,0)';
+          if(PATH.on){endGame(false);return;}               // the path ends where you fall
+          respawnWorld();
+          this.respawn();
+          G.mode='play';
+          setTimeout(()=>$('fade').style.opacity=0,150);
+        },1100);
+      },1900);
+    },3000);
   },
   // a stunned small or medium horror within reach can be finished
   // the blade has met something that will not give: the swing is thrown
@@ -8248,7 +8332,7 @@ const player={
     {const deep=snowDeep();
      this.snowCling=Math.max(0,(this.snowCling||0)-dt*.26);
      this.snowBoot=lerp(this.snowBoot||0,deep>=.8?.72:deep?.42:0,Math.min(1,2.2*dt));
-     this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.85,Math.min(1,5*dt));
+     this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.95,Math.min(1,5*dt));
      wearSnow(r,this.snowCoat,this.snowBoot);
      snowCuffs(r,cathDist(this.x,this.z)<4.5?0:this.snowBoot);}
     r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z),this.z);
@@ -10453,7 +10537,10 @@ function frame(now){
       if(PATH.on)updatePath(wdt);
     }else{
       player.t+=wdt;
-      resetPose(player.rig);poseDead(player.rig,player.t);
+      if(player.rag){player.rag.step(wdt);player.rag.apply();
+        player.x=player.rig.root.position.x;player.z=player.rig.root.position.z;
+        for(const m of player.mats)m.emissive.setHex(0x000000);}
+      else{resetPose(player.rig);poseDead(player.rig,player.t);}
       player.rig.root.position.set(player.x,0,player.z);
     }
     for(const e of enemies){
