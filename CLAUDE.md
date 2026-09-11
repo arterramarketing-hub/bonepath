@@ -157,6 +157,15 @@ Known state of play:
      renders nothing at all while every number in the buffer looks perfect.
      If a mark is silently absent, check the index order before anything
      else.
+- `dressSnow` / `wearSnow` put snow ON the hero. Two traps there too: a
+  TEXTURED material's `color` is white (a multiplier over the map), so
+  lerping it toward any tint only darkens it — pull the tint, then
+  `multiplyScalar` above white. And parts are chosen by **height up the
+  body**, not by group, because a tabard hem, a boot and a greave hang off
+  three different bones and are all in the snow. Boot materials are cloned
+  so the tint cannot leak into a pauldron cut from the same steel — and
+  `Material.clone()` drops `onBeforeCompile`, so `psx()` must be reapplied
+  or that part silently stops wobbling.
 - The imbued weapon's glow (`buildWeaponGlow`, near `ELEMENTS`) hangs two
   additive copies on every part of the weapon. They are `visible=false`
   until an element is taken, so an unlit weapon costs nothing; while lit it

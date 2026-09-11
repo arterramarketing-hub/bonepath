@@ -3591,13 +3591,13 @@ function groundMeshY(x,z){
    contrast, top to bottom, rather than by standing out against whatever
    happens to be under it. Written as the bright numbers they look on a
    canvas, they came out as white ribbons painted across the field. */
-const TROD_PIT=[.18,.21,.28],TROD_LIP=[.56,.60,.67],TROD_FLAT=[.46,.50,.57];
+const TROD_PIT=[.24,.27,.34],TROD_LIP=[.54,.58,.64],TROD_FLAT=[.46,.50,.57];
 /* a boot on a DUSTING presses a dish out of bright snow, so its collar is
    the bright part. A boot down in a furrow has nothing bright to shove —
    it only scuffs a floor that is already dark, and given the first palette
    it came out as a ring of light lying in the channel. So a scuff carries
    its own three tones, all of them the floor's: */
-const TROD_SCUFF=[[.18,.21,.28],[.26,.29,.37],[.11,.13,.18]];
+const TROD_SCUFF=[[.24,.27,.34],[.28,.31,.39],[.185,.215,.275]];
 const TROD_PAL=[TROD_FLAT,TROD_LIP,TROD_PIT];
 // the patch a boot covers, measured once as it lands
 function trodShape(p){
@@ -3618,8 +3618,11 @@ function trodShape(p){
 }
 function trodWrite(slot,p){
   const G=TROD.G,VP=G*G,base=slot*VP,P=TROD.pos,C=TROD.col,N=TROD.nrm,V=p.V;
-  const k=Math.max(0,1-p.age/TROD.life);          // it fills back in as it ages
-  const rim=p.depth*1.1*k;
+  // a boot does not appear, it PRESSES: the mark comes up over a third of
+  // a second, which is the difference between a footfall and a decal being
+  // switched on behind you. And then it fills back in as it ages.
+  const k=Math.max(0,1-p.age/TROD.life)*Math.min(1,p.age/.3+.25);
+  const rim=p.depth*1.05*k;
   for(let q=0;q<VP;q++){
     const v=V[q],m=v.m,o=(base+q)*3;
     const h=m>.99?TROD_UP:m>.5?TROD_UP+rim:TROD_FLOOR;
@@ -3779,7 +3782,7 @@ function trailShape(sc){
 function trailWrite(L,i,sc,tail){
   const K=TRAIL.K,base=((L*TRAIL.SEC)+i)*K,P=TRAIL.pos,C=TRAIL.col,N=TRAIL.nrm,V=sc.V;
   const k=Math.max(0,1-sc.age/TROD.life)*tail;         // fills in with age, and dies out at the tail
-  const rim=sc.d*.34*k;
+  const rim=sc.d*.3*k;
   for(let q=0;q<K;q++){
     const cls=TR_CLS[q],t=TR_OFF[q],o=(base+q)*3,v=V[q];
     const side=t<0?sc.bL:t>0?sc.bR:1;                  // this step's heavy side
@@ -3825,8 +3828,12 @@ function updateTrail(dt){
   // lane 0 is always the pilgrim's; the rest go to the nearest hollows
   const L0=TRAIL.lanes[0];L0.own=player;
   if(G.mode==='play'&&player.hp>0&&cathDist(player.x,player.z)>=4.5)
+    /* WIDTH. A man wading leaves a channel about as wide as he is; it was
+       coming out three times that, which is a cart track. Only a ROLL is
+       wide, because that is the one time the whole body is on the ground
+       and the shoulders are doing the ploughing. */
     trailPush(L0,player.x,player.z,
-      (player.state==='roll'?1.2:.76)*(.75+.45*deep),
+      (player.state==='roll'?.72:player.sprinting?.45:.39)*(.75+.45*deep),
       trailDepth(player.state==='roll'?1.3:1));
   const near=[];
   for(const e of enemies){
@@ -3845,7 +3852,7 @@ function updateTrail(dt){
   }
   for(let L=1;L<TRAIL.LN;L++){const ln=TRAIL.lanes[L];if(!ln.own)continue;
     const e=ln.own,sc=e.boss?1.9:e.big?1.4:1;
-    trailPush(ln,e.x,e.z,.58*sc*(.75+.45*deep),trailDepth(sc*.9));
+    trailPush(ln,e.x,e.z,.34*sc*(.75+.45*deep),trailDepth(sc*.9));
   }
   // the snow still falling fills a furrow in as it ages, and the whole
   // buffer is rewritten a dozen times a second rather than every frame
@@ -3864,6 +3871,80 @@ function updateTrail(dt){
   }
   TRAIL.mesh.visible=live;
   const a=TRAIL.mesh.geometry.attributes;a.position.needsUpdate=a.color.needsUpdate=a.normal.needsUpdate=true;
+}
+
+/* SNOW THE PILGRIM CARRIES. Two of them. There is the crust that gathers
+   on the BOOTS the whole time there is snow to wade through — packed in
+   over the leather and up the greave, and never quite knocked off. And
+   there is the coat a ROLL leaves: go shoulder-first through a drift and
+   you come up wearing half of it, and it beats off over the next few
+   seconds as you move.
+
+   Both are the same trick — every material the hero wears is lerped toward
+   a cold white — but the boots' share is cloned off its own material first,
+   so the snow packed round an ankle does not whiten a pauldron that happens
+   to be cut from the same steel. Cloning drops three.js's compile hook, so
+   the vertex snap is put straight back on: a boot with snow on it still
+   wobbles like everything else. */
+const SNOW_COAT=new THREE.Color(0xdfe8f2).convertSRGBToLinear();
+const SNOW_ON=lam({color:new THREE.Color(0xa8b8cc).convertSRGBToLinear(),flatShading:true});
+function dressSnow(rig){
+  /* Which parts wear it is decided by HOW LOW THEY ARE, not by which group
+     they were hung on — a tabard's hem, a boot, a greave and a dangling
+     strap belong to four different parts of the skeleton and all of them
+     are in the snow. So the rig is measured standing still and every mesh
+     gets a share by its height: packed solid up to the shin, thinning out,
+     gone by the hip. The weapon is left out of it. */
+  rig.root.updateMatrixWorld(true);
+  const y0=rig.root.position.y,v=new THREE.Vector3(),list=[];
+  const onWeapon=(o)=>{for(let p=o;p;p=p.parent)if(p===rig.weapon)return true;return false;};
+  rig.root.traverse(o=>{
+    if(!o.isMesh||!o.material||!o.material.color||Array.isArray(o.material))return;
+    o.getWorldPosition(v);
+    const sh=onWeapon(o)?0:clamp((.88-(v.y-y0))/.5,0,1);
+    let m=o.material;
+    if(sh>0){m=m.clone();psx(m);m.needsUpdate=true;o.material=m;}   // its own steel, and its wobble back
+    list.push({m,sh,base:m.color.clone()});
+  });
+  rig.snowDress=list;rig.snowAt=-1;rig.snowBootAt=-1;
+  /* and a heap of it where each leg goes INTO the drift. Tinting a boot
+     only ever goes so far, because by the time the snow is deep enough to
+     matter the boot is under it — what you actually see is the snow shoved
+     up against the shin at the surface. So that is what is drawn: two
+     little collars that live in the world rather than on the leg, and are
+     put at the surface under whichever foot they follow. */
+  rig.snowCuff=[];
+  for(const g of [rig.kneeR,rig.kneeL])if(g){
+    const m=new THREE.Mesh(GCyl(.19,.12,.085,6),SNOW_ON);
+    m.visible=false;scene.add(m);rig.snowCuff.push({m,leg:g});
+  }
+}
+const _cuffV=new THREE.Vector3();
+function snowCuffs(rig,amt){
+  if(!rig||!rig.snowCuff)return;
+  for(const c of rig.snowCuff){
+    if(amt<.08){c.m.visible=false;continue;}
+    c.leg.getWorldPosition(_cuffV);
+    c.m.position.set(_cuffV.x,heightAt(_cuffV.x,_cuffV.z)+.04,_cuffV.z);
+    const k=.5+.65*amt;c.m.scale.set(k,.55+.6*amt,k);
+    c.m.visible=true;
+  }
+}
+function wearSnow(rig,body,boot){
+  const D=rig&&rig.snowDress;if(!D)return;
+  if(Math.abs(body-rig.snowAt)<.012&&Math.abs(boot-rig.snowBootAt)<.012)return;
+  rig.snowAt=body;rig.snowBootAt=boot;
+  /* Half the hero's parts are TEXTURED, and a textured material's colour
+     is plain white — it is a multiplier over the map, not a paint. Lerping
+     white toward any tint only darkens it, which is how the first attempt
+     put snow on the boots by making them bluer. So the tint is pulled
+     first and then the whole thing is driven ABOVE white: a dark leather
+     goes pale and cold, and a mapped surface simply blows out toward the
+     snow it is packed with. */
+  for(const e of D){
+    const a=Math.max(body,boot*e.sh);
+    e.m.color.copy(e.base).lerp(SNOW_COAT,a*.7).multiplyScalar(1+a*1.1);
+  }
 }
 
 /* SNOW THROWN UP. A furrow is what is left behind, and behind is mostly
@@ -6953,6 +7034,7 @@ const player={
   sprintT:0,sprinting:false,chargeT:0,chargeFull:false,readyDone:false,
   poisonT:0,poisonTick:0,execT:null,
   element:null,elementT:0,elemTrailT:0,
+  snowCling:0,snowCoat:0,snowBoot:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
   armed:true,sheathT:0,
@@ -6980,6 +7062,7 @@ const player={
     heroifyObject(this.rig.root);                 // the hero draws crisp, on its own layer
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
+    dressSnow(this.rig);this.snowCling=this.snowCling||0;this.snowCoat=0;this.snowBoot=0;
     buildWeaponGlow(this.rig,LOADOUT.weapon);
     this.rig.weapon.add(this.bladeLight);
     this.bladeLight.position.set(0,this.weapon()==='bow'?.2:-1.1,0);
@@ -7340,6 +7423,7 @@ const player={
     };
     const startDodge=(s)=>{
       this.state='roll';this.t=0;this.rollPuffT=0;
+      if(snowDeep())this.snowCling=1;      // shoulder-first through a drift
       if(s&&s.sx!==null){const a=swipeWorld(s);this.rollDX=Math.sin(a);this.rollDZ=Math.cos(a);}
       else if(mAmt>0){this.rollDX=mvx;this.rollDZ=mvz;}
       else{this.rollDX=-Math.sin(this.facing);this.rollDZ=-Math.cos(this.facing);} // neutral = backstep
@@ -8085,6 +8169,16 @@ const player={
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
 
+    /* the snow he is wearing: a crust packed onto the boots for as long as
+       there is snow underfoot, and — for a few seconds after going
+       shoulder-first through a drift — a coat of it over everything, beaten
+       off as he moves */
+    {const deep=snowDeep();
+     this.snowCling=Math.max(0,(this.snowCling||0)-dt*.26);
+     this.snowBoot=lerp(this.snowBoot||0,deep>=.8?.72:deep?.42:0,Math.min(1,2.2*dt));
+     this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.85,Math.min(1,5*dt));
+     wearSnow(r,this.snowCoat,this.snowBoot);
+     snowCuffs(r,cathDist(this.x,this.z)<4.5?0:this.snowBoot);}
     r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z),this.z);
     r.root.rotation.y=this.facing;
     // the backstab: whatever the pose says, the blade is aimed from the

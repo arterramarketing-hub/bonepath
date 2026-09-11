@@ -428,9 +428,22 @@ them the seed decides:
   distance it can smell you from, and no further. The ground takes the deeper texture — long drifts lit
   hard along the crest with deep blue troughs between them, the stalks
   buried, only the largest bones still proud of it.
-  **And you stand IN it.** The pilgrim and every hollow are dropped a
-  quarter of a unit into the drift, so the boots go under and the snow
-  takes them to the shin. It is a look and nothing else: the ground the
+  **And you stand IN it, and you carry it with you.** The pilgrim and every
+  hollow are dropped a quarter of a unit into the drift, so the boots go
+  under and the snow takes them to the shin — and a **heap of snow stands
+  against each shin at the surface**, shoved up where the leg goes in. (It
+  is drawn rather than painted on, because by the time snow is deep enough
+  to matter the boot is under it and there is nothing left to tint.) Go
+  shoulder-first through a drift in a **roll** and you come up **wearing**
+  it: every part of the hero from the hip down carries a cold wash, heaviest
+  at the shin and thinning to nothing by the belt, and it beats off over
+  about four seconds as he moves. Half his parts are textured, and a
+  textured material's colour is plain white — a multiplier over the map, not
+  a paint — so tinting it toward anything only darkens it, which is how the
+  first attempt put snow on him by turning him blue. The tint is pulled
+  first and the whole thing then driven ABOVE white: dark leather goes pale
+  and cold, and a mapped surface blows out toward the snow it is packed
+  with. It is a look and nothing else: the ground the
   game measures is exactly where it always was, so no reach, no collision
   and no blade's height changes — and it is given up over the cathedral's
   flags, where there is nothing to sink into. The footing swaps one
@@ -475,6 +488,12 @@ them the seed decides:
     already dark and has nothing bright to shove, so the tread carries the
     channel's own three tones. Given the dusting's palette it came out as a
     ring of light lying in the channel.
+    The channel is **a body's width**, and only a **roll** is wider: that is
+    the one time the whole hero is on the ground and the shoulders are doing
+    the ploughing. Built any wider than that it stops reading as a man
+    wading and starts reading as a cart track. And no mark appears: a boot
+    presses in over a third of a second, which is the difference between a
+    footfall and a decal being switched on behind you.
   - **and snow goes up as well as down.** A furrow is what is left behind,
     and behind is mostly where the camera is — what you actually watch,
     pace after pace, is the snow the legs are shovelling aside right now.
