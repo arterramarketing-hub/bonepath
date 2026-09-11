@@ -8394,11 +8394,12 @@ const player={
       let sp;
       if(thief){
         // the quickstep: on it at once, flat the whole way, off it at once
-        if(tt<R.PUSH)        sp=R.SPD*easeOut(tt/R.PUSH);
+        if(tt<R.PUSH)        sp=R.SPD*(.9+.1*(tt/R.PUSH));
         else if(tt<R.ROLLED) sp=R.SPD*(1-.1*((tt-R.PUSH)/(R.ROLLED-R.PUSH)));
         else                 sp=R.SPD*.9*(1-easeIn((tt-R.ROLLED)/(R.DUR-R.ROLLED)));
       }
-      else if(tt<R.PUSH)   sp=R.SPD*easeOut(tt/R.PUSH);                            // the legs drive
+      // nine tenths of it on the frame the button is read, not nothing
+      else if(tt<R.PUSH)   sp=R.SPD*(.9+.1*(tt/R.PUSH));
       else if(tt<R.LAND)   sp=R.SPD*(1-.12*((tt-R.PUSH)/(R.LAND-R.PUSH)));         // carried, with only the air on him
       else if(tt<R.ROLLED){const u=(tt-R.LAND)/(R.ROLLED-R.LAND);
                            sp=R.SPD*.88*(1-easeIn(u)*.8);}                          // the ground takes it back
@@ -8595,17 +8596,22 @@ const player={
          legs while the knees are already coming in. */
       const sm=(x)=>x*x*x*(x*(x*6-15)+10);
       const u=clamp(tt/R.ROLLED,0,1);
-      r.body.rotation.x=TAU*sm(Math.pow(u,1.16));      // (the power puts the fastest of it just after the landing)
+      // a smootherstep alone leaves the first frames perfectly still, which
+      // is the same lie as a speed ramp — so a fifth of the turn runs flat
+      // from the very first frame and the curve carries the rest
+      r.body.rotation.x=TAU*(.2*u+.8*sm(Math.pow(u,1.1)));
       const e=easeOut(clamp((tt-R.ROLLED)/(R.DUR-R.ROLLED),0,1));    // the get-up
-      const pw=easeOut(Math.max(0,1-tt/(R.PUSH*1.9)));               // the load, bleeding off across the launch
+      const pw=easeOut(Math.max(0,1-tt/(R.PUSH*2.4)));               // the drive, off the legs almost at once
       const air=(this.rollAir||0)/R.RISE;                            // 0 on the ground, 1 at the top
       const tuck=(1-e)*(1-pw);
-      r.body.position.y=r.baseY-.34*(1-e)-.2*pw+.06*air;
+      r.body.position.y=r.baseY-.34*(1-e)-.07*pw+.06*air;            // (a dip, not a squat: nothing here is preparing)
       // the drive off the back leg, fading as the knees come in
-      r.torso.rotation.x+=.55*pw+.5*Math.sin(e*Math.PI)+.3*air;
-      r.head.rotation.x+=.2*pw-.25*Math.sin(e*Math.PI)+.2*air;
-      r.legR.rotation.x=-.85*pw-1.6*tuck+.35*e;r.kneeR.rotation.x=1.5*pw+2.2*tuck+.55*e;
-      r.legL.rotation.x=.5*pw-1.6*tuck-.25*e;r.kneeL.rotation.x=.35*pw+2.2*tuck+.35*e;
+      // thrown forward from the first frame, the back leg already extended
+      // behind him — the shape of a push that has HAPPENED, not one coming
+      r.torso.rotation.x+=.75*pw+.5*Math.sin(e*Math.PI)+.3*air;
+      r.head.rotation.x+=.15*pw-.25*Math.sin(e*Math.PI)+.2*air;
+      r.legR.rotation.x=-1.15*pw-1.6*tuck+.35*e;r.kneeR.rotation.x=1.2*pw+2.2*tuck+.55*e;
+      r.legL.rotation.x=.95*pw-1.6*tuck-.25*e;r.kneeL.rotation.x=.25*pw+2.2*tuck+.35*e;
       r.armR.rotation.x=-.5*pw-1.2*tuck+C.aRx*(e+pw*(1-e));
       r.armL.rotation.x=-.5*pw-1.2*tuck+C.aLx*(e+pw*(1-e));
       r.foreR.rotation.x=-1.4*tuck+C.fRx*(e+pw*(1-e));
@@ -10700,8 +10706,17 @@ function drawHearts(){
 // (SPD is tuned so the ground covered stays near what the old roll covered
 //  — a leap that also doubled the dodge's reach would be a balance change
 //  wearing an animation's clothes)
-const ROLL_FIELD={PUSH:.11,LAND:.33,ROLLED:.56,DUR:.70,SPD:11.5,RISE:.34,IF0:.06,IF1:.46};
-const ROLL_PATH ={PUSH:.07,LAND:.24,ROLLED:.42,DUR:.54,SPD:15,RISE:.28,IF0:.045,IF1:.35};
+/* THE FIRST FRAME IS THE WHOLE OF THE FEEL. A dodge that spends a tenth of
+   a second building speed out of nothing has told the player, seven frames
+   running, that his thumb did not land — and no amount of weight later in
+   the move buys that back. So the push is a KICK now and not a coil: it is
+   down to four hundredths of a second, the speed is very nearly all there
+   on the frame the button is read, the body is already committed rather
+   than crouching to get ready, and the turn has begun. He is off the ground
+   by the third frame. The weight is still in it; it just stopped asking
+   permission first. */
+const ROLL_FIELD={PUSH:.045,LAND:.30,ROLLED:.52,DUR:.66,SPD:11.5,RISE:.34,IF0:.02,IF1:.44};
+const ROLL_PATH ={PUSH:.03,LAND:.22,ROLLED:.40,DUR:.50,SPD:15,RISE:.28,IF0:.015,IF1:.33};
 /* THE THIEF DOES NOT ROLL. A man in cloth with no plate on him has no
    business throwing himself on the ground and getting up again — he steps.
    It is the quickstep: low, flat, gone and back on his feet before the
@@ -10711,8 +10726,8 @@ const ROLL_PATH ={PUSH:.07,LAND:.24,ROLLED:.42,DUR:.54,SPD:15,RISE:.28,IF0:.045,
    And while he is inside the window he is NOT QUITE THERE: the whole of
    him thins out to a quarter and comes back, which is the only warning a
    blade gets that it is going to pass through him. */
-const DASH_FIELD={PUSH:.05,LAND:99,ROLLED:.26,DUR:.40,SPD:14,RISE:0,IF0:.035,IF1:.29};
-const DASH_PATH ={PUSH:.04,LAND:99,ROLLED:.20,DUR:.32,SPD:16.5,RISE:0,IF0:.03,IF1:.23};
+const DASH_FIELD={PUSH:.025,LAND:99,ROLLED:.26,DUR:.40,SPD:14,RISE:0,IF0:.015,IF1:.29};
+const DASH_PATH ={PUSH:.02,LAND:99,ROLLED:.20,DUR:.32,SPD:16.5,RISE:0,IF0:.012,IF1:.23};
 // (a declaration, not a const: the rig is dressed during the player's own
 //  init, which runs before this line is ever reached)
 function isThief(){return LOADOUT.armour==='thief';}

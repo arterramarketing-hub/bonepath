@@ -765,8 +765,18 @@ he comes down, easing off into the finish — so there is no frame where the
 rate of it jumps. Push and tuck *overlap* rather than switch: the load is
 still coming off the legs while the knees are already coming in.
 
-1. **The push.** The legs drive and the speed is *built* rather than given.
-   Coiled over the front leg, trunk thrown forward, arms still down.
+**The first frame is the whole of the feel.** A dodge that spends a tenth of
+a second building speed out of nothing has told you, seven frames running,
+that your thumb did not land — and no amount of weight later in the move
+buys that back. So the push is a **kick and not a coil**: four hundredths of
+a second, nine tenths of the speed already there on the frame the button is
+read, the turn already begun, and the body *committed* rather than crouching
+to get ready — the shape of a push that has happened, not one that is
+coming. He is off the ground by the third frame and invulnerable by the
+second. The weight is still in it; it just stopped asking permission first.
+
+1. **The push.** A kick off the back leg, the trunk already thrown along the
+   line he is going.
 2. **The flight.** The speed holds, with only the air on him. The whole body
    — the *root*, not the trunk — goes up over a real arc, a third of a unit
    at the top, and the knees come in. A fifth of the turn happens here.
