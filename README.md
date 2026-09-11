@@ -750,6 +750,29 @@ crumbling off it the whole way, and three heaves audible in it, the two that
 fail and the one that does not. The earth keeps breaking around it until it
 is out.
 
+## The chain
+
+**A chained swing does not start from rest.** Every attack pose in the game
+is four keys — carry, wind, strike, follow-through — and the *wind* takes
+the first forty-two hundredths of the swing. Start the second cut of a combo
+at zero and the blade travels all the way back to the shoulder before it
+comes down again, so three strikes read as three separate attacks with a
+dead stop between each. But the blade is **already moving** when the second
+one begins.
+
+So a chained swing begins **a fifth of the way in**: past the carry, into
+the wind, with the load already on it. Nothing about the poses changes and
+nothing can fall out of sync, because the strike, the whoosh, the lunge and
+the hit are all read off the same clock — they simply arrive sooner, which
+is what a combo *is*. The stride carries through the seam too: a swing that
+is already going does not stand still waiting for its own wind to finish
+before it moves again. And the rig's pose blender carries the last swing's
+follow-through into this one's wind across the join, so there is no join.
+
+It applies to every weapon and every way in — the ordinary chain, the one
+that flows out of a charged cut into the overhead, and the one that comes
+out of a rolling attack — because they all go through the same door.
+
 ## The roll
 
 **In four parts, not one.** It used to be a single move: speed at its

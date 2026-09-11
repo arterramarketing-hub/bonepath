@@ -7369,6 +7369,21 @@ const player={
   // the slab's weight lands at the end of every arc: the camera jolts and the ground takes a thud
   ultraThud(p,at,n){n=n||1;if(this.ultra()&&(this.thudDone|0)<n&&p>=at){this.thudDone=n;G.camShake=Math.max(G.camShake,.3);AudioSys.bodyfall();G.vibr(25);}},                                   // the ultra's swings take half again as long
   atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.ultra()?1.05:.68;},
+  /* A CHAINED SWING DOES NOT START FROM REST. Every pose in the game is
+     four keys — carry, wind, strike, follow-through — and the wind takes
+     the first forty-two hundredths of the swing. Start the second cut of a
+     combo at zero and the blade travels all the way back to the shoulder
+     before it comes down again, so three strikes read as three separate
+     attacks with a dead stop between each. But the blade is ALREADY MOVING
+     when the second one begins.
+     So a chained swing starts a fifth of the way in: past the carry, into
+     the wind, with the load already on it. Nothing about the poses changes
+     and nothing can fall out of sync, because the strike, the whoosh, the
+     lunge and the hit are all read off the same clock — they simply arrive
+     sooner, which is what a combo is. The pose blender carries the last
+     swing's follow-through into this one's wind across the seam, so there
+     is no seam. */
+  chainIn(){this.atkDur=this.atkDurFor();this.t=this.atkDur*ATK_ENTRY;this.atkT0=this.t;},
   // the pilgrim's body is remade from the loadout: same place, same facing
   dropThrown(){if(this.katThrown){const m=this.katThrown.mesh;if(m.parent)m.parent.remove(m);this.katThrown=null;if(this.rig&&this.rig.weapon)this.rig.weapon.visible=true;}},
   rebuild(){
@@ -7791,7 +7806,7 @@ const player={
       this.state='attack';
       // lightning in the blade quickens the arm
       this.atkDur=this.atkDurFor();
-      this.t=0;this.combo=0;this.chain=0;
+      this.t=0;this.atkT0=0;this.combo=0;this.chain=0;
       this.queued=false;this.qDir=null;this.hitDone=false;
       this.sfxDone=false;this.thudDone=false;
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
@@ -8126,8 +8141,7 @@ const player={
       }
       if(p>=1){
         if(this.queued){ // flows on into the chain
-          this.state='attack';this.t=0;this.combo=2;this.chain=2;
-          this.atkDur=this.atkDurFor();
+          this.state='attack';this.combo=2;this.chain=2;this.chainIn();
           this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
@@ -8357,8 +8371,7 @@ const player={
       if(IN.swipe&&IN.swipe.kind==='atk'&&p>.85){this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;}
       if(p>=1){
         if(this.queued){
-          this.state='attack';this.t=0;this.combo=2;this.chain=2;
-          this.atkDur=this.atkDurFor();
+          this.state='attack';this.combo=2;this.chain=2;this.chainIn();
           this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
@@ -8382,7 +8395,7 @@ const player={
       }
       if(p>=1){
         if(this.queued){
-          this.state='attack';this.t=0;this.combo=0;this.chain=1;
+          this.state='attack';this.combo=0;this.chain=1;this.chainIn();
           this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;this.qDir=null;
         }else this.state='free';
@@ -8454,7 +8467,7 @@ const player={
       }
       if(p>=1){
         if(this.queued){ // flows on into the normal chain
-          this.state='attack';this.t=0;this.combo=0;this.chain=1;
+          this.state='attack';this.combo=0;this.chain=1;this.chainIn();
           this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null&&this.qDir!==undefined)this.facing=this.qDir;
           this.qDir=null;
@@ -8465,7 +8478,7 @@ const player={
       const DUR=this.atkDur||.68;
       const p=this.t/DUR;
       if(IN.swipe){
-        if(IN.swipe.kind==='atk'&&this.t>.15){
+        if(IN.swipe.kind==='atk'&&this.t>(this.atkT0||0)+.15){
           this.queued=true;
           this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;
         }else if(IN.swipe.kind==='dodge'&&p>.65){
@@ -8479,7 +8492,10 @@ const player={
       this.ultraThud(p,.78);
       // lunge through the cut — the blade goes and finds them,
       // but only strides hard when something is there to reach
-      if(p>.34&&p<.68){
+      // the stride carries THROUGH the seam: a chained swing is already
+      // going when it begins, so it does not stand still waiting for its
+      // own wind to finish before it moves again
+      if(p>(this.chain>0?ATK_ENTRY+.02:.34)&&p<.68){
         let sp=3.2;
         for(const e of enemies){
           if(e.hp<=0||(e.state==='dormant'||e.untouchable))continue;
@@ -8504,8 +8520,7 @@ const player={
         const ex=this.queued?this.execTarget():null;
         if(ex){startExecute(ex);return this.post(dt);}
         if(this.queued){
-          this.combo=(this.combo+1)%4;this.chain++;this.t=0;
-          this.atkDur=this.atkDurFor();
+          this.combo=(this.combo+1)%4;this.chain++;this.chainIn();
           this.queued=false;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
           if(!foe&&this.qDir!==null)this.facing=this.qDir;
           this.qDir=null;
@@ -10743,6 +10758,7 @@ function dashGhost(rig,a){
   const op=1-a*.78;
   for(const e of D){e.m.opacity=op;e.m.depthWrite=a<.02;}
 }
+const ATK_ENTRY=.21;      // how far into the wind a chained swing begins
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
 const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}

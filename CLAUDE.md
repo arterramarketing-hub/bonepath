@@ -203,6 +203,10 @@ Known state of play:
   call. `poison` sets `melt` and is driven by `meltHero` in the dead frame
   instead of the ragdoll. `respawn()` calls `rebuild()` outright: a severed
   limb and a melted body are not worth patching back together.
+- Chained swings enter at `ATK_ENTRY` (.21) via `player.chainIn()`, never by
+  `t=0`. Every event in an attack — whoosh, lunge, hit, pose — is read off
+  `t/atkDur`, so moving the start moves all of them together and nothing can
+  desync. If you add a new way into the `attack` state, call `chainIn()`.
 - `isThief()` must stay a function DECLARATION, not a const arrow: the rig
   is dressed during `player.init()`, which runs before that line is reached,
   and a const there puts it in the temporal dead zone and takes the whole
