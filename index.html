@@ -2053,22 +2053,24 @@ const AudioSys=(()=>{
        the same noise going through air and never did: the slab DISPLACES
        air — a low push you feel before you hear — and the katana CUTS it,
        which is a thin, fast, rising whistle with almost no body at all.
-       One flag, set when the pilgrim is rebuilt, so every swing in the
-       game — the combo, the charges, the draw, the waterfowl — speaks in
-       the right voice without a single call site having to know. */
+       One flag, set when the pilgrim is rebuilt, so every swing HE makes
+       — the combo, the charges, the draw, the waterfowl — speaks in the
+       right voice without a single call site having to know. The host is
+       not carrying his loadout, so anything that is not the pilgrim names
+       its own steel and the flag is not consulted. */
     setBlade(k){BLADE=k||'sword';},
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
-    swing(el){const t=now();
-      if(BLADE==='katana'){katanaCut(t,1);elemSwing(el,t,.8);return;}
+    swing(el,blade){const t=now();
+      if((blade||BLADE)==='katana'){katanaCut(t,1);elemSwing(el,t,.8);return;}
       noise(t,{peak:.26,att:.06,dec:.22,f0:180,f1:1500,type:'bandpass',Q:1.4});
       noise(t+.03,{peak:.14,att:.04,dec:.16,f0:2200,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:80,f2:40,type:'sine',peak:.16,att:.04,dec:.24});
       tone(t+.01,{f:60,f2:35,type:'sawtooth',peak:.03,att:.05,dec:.18});     // the haft groans
       tone(t+.04,{f:rr2(560,660),f2:1300,type:'sine',peak:.015,dec:.1});
       elemSwing(el,t,1);},
-    heavySwing(el){const t=now();
-      if(BLADE==='katana'){katanaCut(t,1.25);elemSwing(el,t,1);return;}
+    heavySwing(el,blade){const t=now();
+      if((blade||BLADE)==='katana'){katanaCut(t,1.25);elemSwing(el,t,1);return;}
       noise(t,{peak:.24,att:.09,dec:.24,f0:280,f1:1500,type:'bandpass',Q:1.6});
       noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});
@@ -2413,6 +2415,12 @@ const AudioSys=(()=>{
       noise(t+.02,{peak:.4,att:.02,dec:1.3,f0:160,f1:50});
       for(let i=0;i<6;i++)noise(t+.1+i*.09,{peak:.1,att:.01,dec:.12,f0:rr2(500,1500),f1:300,type:'bandpass',Q:2});
       tone(t+.05,{f:110,f2:90,type:'triangle',peak:.12,att:.01,dec:.5});},
+    // an edge dragging through soil: a short low scuff with grit in it —
+    // nothing like the quake, which is a second and a half of earthquake
+    soilDrag(){const t=now();
+      noise(t,{peak:.13,att:.008,dec:.16,f0:rr2(280,420),f1:110,type:'bandpass',Q:1.1});
+      noise(t+.01,{peak:.07,att:.004,dec:.09,f0:rr2(1800,2600),f1:700,type:'bandpass',Q:2.4});   // the grit
+      tone(t,{f:rr2(58,72),f2:34,type:'sine',peak:.12,att:.006,dec:.2});},
     // the flying cut: a high, thin whip of air
     airSlash(){const t=now();
       noise(t,{peak:.22,att:.02,dec:.32,f0:3200,f1:900,type:'bandpass',Q:1.6});
@@ -2827,25 +2835,26 @@ function heightAt(x,z){
    down every tile, and an instant death on a boundary you cannot read
    while running is a different game. */
 const BRINK=1.15;
+// the six faces' outward normals, made once: this is asked of the pilgrim
+// and of every live horror on every frame
+const HEXN=[];for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;HEXN.push({x:Math.cos(a),z:Math.sin(a)});}
 function overBrink(p){
   if(PATH.on||G.bossActive)return -9;
   let e=-1e9;
   for(let i=0;i<6;i++){
-    const a=Math.PI/6+i*Math.PI/3;
-    const d=p.x*Math.cos(a)+p.z*Math.sin(a)-(HEX_AP-BRINK);
+    const d=p.x*HEXN[i].x+p.z*HEXN[i].z-(HEX_AP-BRINK);
     if(d>e)e=d;
   }
   return e;
 }
 // which way is OUT from here: the normal of the nearest hex face
 function brinkOut(p){
-  let best=0,bd=-9;
+  let best=HEXN[0],bd=-1e9;
   for(let i=0;i<6;i++){
-    const a=Math.PI/6+i*Math.PI/3;
-    const d=p.x*Math.cos(a)+p.z*Math.sin(a);
-    if(d>bd){bd=d;best=a;}
+    const d=p.x*HEXN[i].x+p.z*HEXN[i].z;
+    if(d>bd){bd=d;best=HEXN[i];}
   }
-  return {x:Math.cos(best),z:Math.sin(best)};
+  return best;
 }
 // let a ragdoll off the world: nothing under it, and no walls to hold it
 function ragFree(rag){
@@ -6400,23 +6409,19 @@ const JOINT_D={body:74,torso:60,head:48,armR:42,armL:42,foreR:34,foreL:34,
    the body onto a target several joints away from where it actually is.
    The springs then chase that step, which is exactly the little hitch
    between one swing and the next that you can feel in the hand.
-   So the seam is closed at the target, not at the output. At the instant
-   a swing chains, the body's CURRENT smoothed pose is taken down, and for
-   the first eighth of a second the new swing's target is blended back
-   toward it — full weight at the seam, gone shortly after. The target
-   curve therefore starts exactly where the body already is and has no
-   step in it at all, while the springs keep every bit of the velocity
-   they had, so the swing continues rather than restarting. Nothing about
-   any pose changed, and it works for every weapon, because it never asks
-   what the weapon is. */
-/* How long the seam stays open. Every swing's pose is authored to BEGIN
-   at the carry, and a chain drops it a fifth of the way in — which on the
-   greatsword's curve is already well over half the distance from the
-   carry to the top of the wind. That is a big step to close, so the blend
-   is given real time to close it, and a smoothstep rather than a square:
-   full weight at the seam, easing away with no corner at either end, and
-   gone long before the strike. Scaled by the swing, so the ultra's slower
-   arc gets proportionally more of it. */
+   So the seam is closed at the TARGET, not at the output. At the instant
+   a swing chains, the body's current smoothed pose is taken down, and the
+   new swing's target is blended back toward it: full weight at the join,
+   easing away on a smoothstep with no corner at either end, and gone long
+   before the strike lands. The target curve therefore starts exactly
+   where the body already is and has no step in it at all, while the
+   springs keep every bit of the speed they had — so the swing continues
+   rather than restarting.
+   A fifth of a second of it, scaled by the swing, because the step is
+   big: on the greatsword's curve a fifth of the way in is already well
+   over half the distance from the carry to the top of the wind. Nothing
+   about any pose changed, and it works for every weapon, because it never
+   asks what the weapon is. */
 const SEAM_T=.2;
 function seamGrab(r){
   if(!r||!r._sm)return;
@@ -6425,9 +6430,9 @@ function seamGrab(r){
   r._seam=S;
 }
 function seamBlend(r,w){
-  const S=r&&r._seam;if(!S||!(w>0))return;
+  const S=r&&r._seam;if(!S||!(w>0)||!r._sm)return;
   for(const k of SMOOTH_JOINTS){
-    const j=r[k],q=S[k];if(!j||!q)continue;
+    const j=r[k],q=S[k];if(!j||!q||!r._sm[k])continue;   // (a joint the smoother has dropped — the katana's blade going into the saya — carries a stale snapshot)
     j.rotation.x+=wrapA(q[0]-j.rotation.x)*w;
     j.rotation.y+=wrapA(q[1]-j.rotation.y)*w;
     j.rotation.z+=wrapA(q[2]-j.rotation.z)*w;
@@ -7207,7 +7212,7 @@ function markTree(o,hx,hz,tr,sd){
    a tree actually goes. The obstacle is dropped the moment it starts to
    fall, so you can walk through where it stood, and a stump is left in
    its place. */
-const felled=[];
+const felled=[];let _stumpM=null;
 function fellTree(o,dx,dz){
   const T=o&&o.tree;if(!T||T.felled)return false;
   T.felled=true;
@@ -7218,7 +7223,8 @@ function fellTree(o,dx,dz){
   const l=Math.hypot(dx,dz)||1,ax=new THREE.Vector3(dz/l,0,-dx/l);   // the axis across the blow: it goes over AWAY from you
   const gy=heightAt(o.x,o.z);
   // the stump it leaves
-  const st=new THREE.Mesh(new THREE.CylinderGeometry(T.r*.9,T.r*1.15,.38,5),mat('bark'));
+  if(!_stumpM)_stumpM=mat('bark');                    // one bark for every stump there will ever be
+  const st=new THREE.Mesh(new THREE.CylinderGeometry(T.r*.9,T.r*1.15,.38,5),_stumpM);
   st.position.set(o.x,gy+.19,o.z);st.rotation.y=g.rotation.y;parent.add(st);   // (mat() has already given it the wobble)
   AudioSys.woodKnock();AudioSys.sever();
   boneBurst(o.x,gy+1.05,o.z,0xc9ad84,14,2.4);
@@ -7870,12 +7876,16 @@ const player={
   ultra(){return LOADOUT.weapon==='ultra';},
   swing(){return this.ultra()?1.5:1;},
   // the slab's weight lands at the end of every arc: the camera jolts and the ground takes a thud
+  /* The slab's weight lands at the end of every arc: the camera jolts, the
+     ground takes a thud and throws up dirt. Deliberately NOT the
+     earthshaker's quake and NOT a hitstop — this fires whether or not the
+     swing found anything, and a frame-freeze on every whiff reads as the
+     blade catching on air. The arc's gouge is painted in `meleeHit`, once
+     per swing, and not here as well. */
   ultraThud(p,at,n){n=n||1;if(this.ultra()&&(this.thudDone|0)<n&&p>=at){this.thudDone=n;
-    G.camShake=Math.max(G.camShake,.46);G.hitstop=Math.max(G.hitstop,.05);AudioSys.bodyfall();AudioSys.quake();G.vibr([40,20,50]);
-    // the edge drags through the soil at the bottom of the arc
+    G.camShake=Math.max(G.camShake,.42);AudioSys.bodyfall();AudioSys.soilDrag();G.vibr([40,20,50]);
     const a=this.facing;
-    for(let i=0;i<2;i++)paintScar(this.x+Math.sin(a)*(1.4+i*.5)+rr3(-.3,.3),this.z+Math.cos(a)*(1.4+i*.5)+rr3(-.3,.3),a+Math.PI/2,rr3(.3,.55),rr3(1.4,2.2),true);
-    boneBurst(this.x+Math.sin(a)*1.5,heightAt(this.x,this.z)+.12,this.z+Math.cos(a)*1.5,0x5a4c38,7,1.8);}},                                   // the ultra's swings take half again as long
+    boneBurst(this.x+Math.sin(a)*1.5,heightAt(this.x,this.z)+.12,this.z+Math.cos(a)*1.5,0x5a4c38,7,1.8);}},   // the ultra's swings take half again as long
   atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.ultra()?1.05:.68;},
   /* A CHAINED SWING DOES NOT START FROM REST. Every pose in the game is
      four keys — carry, wind, strike, follow-through — and the wind takes
@@ -7942,7 +7952,7 @@ const player={
       const d=Math.hypot(foe.x-this.x,foe.z-this.z);
       const ty=(foe.crow||foe.kind==='angel')&&foe.y!==undefined?foe.y+.4
               :heightAt(foe.x,foe.z)+(foe.boss?2.0:foe.big?1.5:1.1);
-      const tof=d/spd;                                  // time of flight at this speed
+      const tof=Math.max(.08,d/spd);                    // time of flight at this speed (never zero: that is a NaN in the loose)
       vy=(ty-y0)/tof+.5*ARROW_G*tof;                    // the lift that lands it there
     }
     vy=clamp(vy,-spd*.55,spd*.62);                      // and the bow's limit: beyond it, the shaft falls short
@@ -9469,6 +9479,12 @@ class Enemy{
     const o=brinkOut(this);
     if(this.rag)endRagdoll(this);
     this.noRag=true;                                  // (no fall of its own: the one below is the fall)
+    /* What it sheds is set back a stride from the lip before it dies. A
+       mote lying on ground that kills you for reaching it is worse than
+       no mote at all — and the ragdoll below reads the RIG's world
+       position, not this one, so the body still goes over from where it
+       actually stood. */
+    this.x-=o.x*2.2;this.z-=o.z*2.2;
     this.die();
     this.noRag=false;
     this.state='dead';this.t=0;
@@ -9612,7 +9628,7 @@ class Enemy{
           if(this.attack==='lunge'){
             this.vx=Math.sin(this.facing)*13;this.vz=Math.cos(this.facing)*13;
           }
-          AudioSys.heavySwing();
+          AudioSys.heavySwing(null,'bone');   // (the host swings its own bone, not the pilgrim's steel)
         }
         break;}
       case 'strike':{
@@ -9923,7 +9939,7 @@ class Crow{
         if(this.t>.55){
           this.state='dive';this.t=0;this.hitDone=false;
           const l=dist||1;this.vx=dx/l*11;this.vz=dz/l*11;
-          AudioSys.swing();
+          AudioSys.swing(null,'bone');
         }
         break;
       case 'dive':{
@@ -10132,7 +10148,7 @@ class FallenAngel{
         const WD=.6,SD=.22;
         if(this.t<WD){faceP(5);wingBack=this.t/WD;}
         else{wingBack=-1;
-          if(!this.hitDone){this.hitDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.12);
+          if(!this.hitDone){this.hitDone=true;AudioSys.heavySwing(null,'bone');G.camShake=Math.max(G.camShake,.12);
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             if(dist<this.reach&&ang<1.45)P.takeHit(this.dmg,this.x,this.z,true,'heavy');   // the Warden's weight
             slashArc(this.x+Math.sin(this.facing)*1.2,this.z+Math.cos(this.facing)*1.2,1.6,this.facing,0x6a4a7a);}
@@ -10321,7 +10337,7 @@ class GraveGhoul{
         const WD=.62,SD=.2;
         if(this.t<WD){faceP(4);armRaise=this.t/WD;}
         else{armRaise=-1;
-          if(!this.hitDone){this.hitDone=true;AudioSys.heavySwing();
+          if(!this.hitDone){this.hitDone=true;AudioSys.heavySwing(null,'bone');
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             if(dist<this.reach&&ang<1.2){const res=P.takeHit(this.dmg,this.x,this.z,true);
               if(res==='hit'||res==='dead')P.poison(7);}

@@ -132,8 +132,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     away from the swing and lands with a thud, leaving a stump where it
     stood and nothing to walk around. And it **marks the field**: every
     swing, landed or not, drags a furrow of torn earth along the arc the
-    edge travelled, with a second set gouged where the point drags through
-    the soil at the bottom.
+    edge travelled — once per swing, where the arc was, with the dust and
+    the thud of the weight landing separate from it.
   - **the katana** — overpowered on purpose. Carried in **chudan**, both
     hands on the grip before the navel and the point levelled at the
     throat, and it fights the way a katana does: **yoko-giri**, the level

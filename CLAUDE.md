@@ -287,6 +287,15 @@ Known state of play:
 - **`AudioSys.setBlade(k)`** is set in `player.rebuild()` and is the only
   thing that makes a katana swing sound like a katana. Never branch on
   `LOADOUT` inside AudioSys — it is defined long before the loadout is.
+  The flag is the PILGRIM'S: anything else that swings must name its own
+  steel (`AudioSys.swing(null,'bone')`), or a hollow's arm starts whistling
+  like a katana the moment the player picks one up. That was a real bug
+  for about an hour.
+- **`ultraThud` fires on every arc, landed or not** — so it must never set
+  hitstop, and must never play `quake()` (a second and a half of
+  earthquake, ten times a fight). A whiff that freezes the frame reads as
+  the blade catching on air. The arc's ground gouge is painted once, in
+  `meleeHit`, and not here as well.
 - **`fellTree(o,dx,dz)` wraps the tree in a pivot at its own foot.** The
   group's y already carries its random spin, so rotating the group itself
   topples it sideways; the pivot is rotated about the axis across the blow
