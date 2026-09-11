@@ -203,6 +203,12 @@ Known state of play:
   call. `poison` sets `melt` and is driven by `meltHero` in the dead frame
   instead of the ragdoll. `respawn()` calls `rebuild()` outright: a severed
   limb and a melted body are not worth patching back together.
+- Life is `HEART=10` hp x10 hearts. Every enemy `dmg` must stay a multiple
+  of `HEART/2` or the hearts show a state the player cannot reason about.
+  `drawHearts()` rebuilds the row only when the half-count changes.
+- `wearSnow(rig,body,boot,blood)` is the hero's whole wardrobe: snow and
+  wound-state share one pass over `rig.snowDress` and one early-out. Add any
+  future body tint there rather than walking the materials again.
 - Background audio all runs through `musicMaster` at `BG_GAIN`. Change the
   constant, not the individual layers, for an across-the-board move.
 

@@ -598,6 +598,17 @@ them the seed decides:
   down the middle of a blizzard gives the whole field away, and because
   every ribbon used to float over a rise high enough to swallow a print
   whole.
+- **buried, or already on its feet.** It used to be one or the other by
+  *mode* — the field's whole host lay in the ground and the path's whole
+  host walked about — and neither is right. What decides it now is the
+  **ground it is standing on**: grave rows are full of things still in their
+  graves (six in seven), a bone hollow nearly so; a chapel or a ruin is half
+  and half; a dead wood has more wandering than lying; and almost nothing
+  waits under a causeway or the flags of a nave, because there is nothing
+  there to wait under. An ambush is always buried — that is the whole of
+  what an ambush is. Both modes get the mix; a sleeper on the path climbs
+  out of the tile's own ground exactly as one in the field climbs out of a
+  grave.
 - **the six wedges** — the field is cut into six wedges round the
   cathedral, and each takes one authored chunk, no kind more than twice
   a run: the **grave rows** (ranks of stones in arcs, every one facing
@@ -736,6 +747,30 @@ sound of soil giving way: a long low rumble that *swells* rather than starts
 crumbling off it the whole way, and three heaves audible in it, the two that
 fail and the one that does not. The earth keeps breaking around it until it
 is out.
+
+## Life, in hearts
+
+Life is **ten hearts**, drawn as a nine-by-eight pixel heart made at boot
+like everything else in the game — whole, half, and the empty socket left
+when it is gone — nearest-filtered and blown up, with no bar and no gradient
+anywhere in it. The row is only rebuilt when the count of halves actually
+changes, so watching it costs nothing.
+
+**Every blow in the field is a whole number of halves.** A hollow's swing
+takes **one heart**; a caster's bolt or a thrown bone, **half**; the
+Unburied's reach, one; a brute's, **two**; the Warden's and the Fallen
+One's, **one and a half**; the boss, **two and a half**. The rot takes half
+a heart at a time, every second and a bit.
+
+**And what is left of you shows on you.** Three states, not a slide: above
+two thirds of your hearts you are clean, below it there is blood on you,
+below a third you are soaked, and on the last two hearts it is nearly black
+with it. It is a **colour and nothing else** — the same wardrobe the snow
+uses, lerped the other way, one pass over forty materials at the moment the
+state changes and nothing at all in between. The upper body takes most of
+it, since that is where a blow lands. (It has to be lerped toward a dark
+*red*: pulled toward something near black he only came out grimy, there
+being no red left in it to give.)
 
 ## Elements
 

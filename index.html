@@ -78,12 +78,12 @@
   #hud{position:fixed;inset:0;z-index:6;pointer-events:none;display:none;
     padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
             calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));}
-  #hpwrap{position:absolute;top:calc(12px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));}
-  #hpframe{width:min(46vw,240px);height:10px;border:1px solid var(--bone-faint);
-    background:rgba(4,6,5,.65);padding:1px;}
-  #hpfill{height:100%;width:100%;background:linear-gradient(180deg,#c23a2a,#7c1717);
-    transition:width .15s steps(6);}
-  #hpghost{position:relative;top:-8px;height:6px;background:rgba(207,196,163,.35);width:0;margin:1px;transition:width .6s .4s;}
+  #hpwrap{position:absolute;top:calc(12px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));
+    display:flex;flex-wrap:wrap;gap:3px;max-width:min(52vw,280px);}
+  /* the hearts: one sprite drawn at boot like everything else, three faces
+     of it, nearest-filtered and blown up — no bar, no gradient, no easing */
+  .hrt{width:20px;height:18px;background-size:100% 100%;image-rendering:pixelated;
+    filter:drop-shadow(0 1px 0 rgba(0,0,0,.7));}
   #marrow{position:absolute;right:calc(16px + env(safe-area-inset-right));
     bottom:calc(14px + env(safe-area-inset-bottom));text-align:right;
     font-size:15px;letter-spacing:.12em;color:var(--bone);
@@ -212,10 +212,7 @@
 <div id="lowhp"></div>
 
 <div id="hud">
-  <div id="hpwrap">
-    <div id="hpframe"><div id="hpfill"></div></div>
-    <div id="hpghost"></div>
-  </div>
+  <div id="hpwrap"></div>
   <div id="marrow"><span class="lbl">marrow</span><span id="marrowN">0</span></div>
   <div id="bossbar">
     <div id="bossname">GRAVEWARDEN OF THE BONE PATH</div>
@@ -1024,6 +1021,32 @@ function buildTextures(){
       ctx.beginPath();ctx.arc(0,0,w,0,TAU);ctx.fill();ctx.restore();
     }
   });
+
+  /* -- THE HEARTS. A nine-by-eight pixel heart, drawn once in three faces
+        — whole, half, and the empty socket left when it is gone — and
+        handed to the HUD as an image. Nothing about it is a bar. -- */
+  {
+    const HRT=['.11...11.','1111.1111','111111111','111111111','.1111111.','..11111..','...111...','....1....'];
+    const face=(mode)=>{
+      const c=document.createElement('canvas');c.width=11;c.height=10;
+      const x=c.getContext('2d');
+      const put=(px,py,col)=>{x.fillStyle=col;x.fillRect(px,py,1,1);};
+      // the outline first: every empty cell touching a filled one goes black
+      for(let j=0;j<8;j++)for(let i=0;i<9;i++){
+        if(HRT[j][i]!=='1')continue;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)put(i+1+dx,j+1+dy,'#0a0c0b');
+      }
+      for(let j=0;j<8;j++)for(let i=0;i<9;i++){
+        if(HRT[j][i]!=='1')continue;
+        const full=mode===2||(mode===1&&i<4);
+        // a lit top-left, a body, a darker underside — and a hollow socket
+        const lit=j<3&&i>1&&i<4;
+        put(i+1,j+1,full?(lit?'#e4705c':j>4?'#7c1717':'#c23a2a'):(j>4?'#1a1f1c':'#2b322d'));
+      }
+      return c.toDataURL();
+    };
+    texCache.heartImg=[face(0),face(1),face(2)];
+  }
 
   /* -- soft round glow sprite (fire, wisps, marrow) -- */
   /* -- the finishing mark: a downward blade, bright, for a stunned foe -- */
@@ -3459,7 +3482,7 @@ function drainSpawns(n){
     const q=PATH.spawnQ.shift(),t=PATH.tiles[q.tile];if(!t||t.dead)continue;
     let e;
     if(q.kind==='crow'){e=new Crow(q.x,q.z);e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
-    else{e=new Enemy(q.kind,q.x,q.z,q.o);e.patrol();}
+    else{e=new Enemy(q.kind,q.x,q.z,q.o);if(q.roam)e.patrol();}   // (else it lies in the tile's ground and climbs out)
     enemies.push(e);t.foes.push(e);
   }
 }
@@ -4058,6 +4081,20 @@ const SNOW_COAT=new THREE.Color(0xdfe8f2).convertSRGBToLinear();
 const SNOW_EM=new THREE.Color(0x9fb4cc).convertSRGBToLinear();
 const POISON_POOL=['rgba(58,88,30,.4)','rgba(28,52,16,.68)'];         // what is left of you on the ground
 const MELT_COL=new THREE.Color(0x46681e).convertSRGBToLinear();
+/* WHAT IS LEFT OF HIM SHOWS. Three states, not a gradient — above two
+   thirds of his hearts he is clean; below it there is blood on him; below a
+   third he is soaked in it; and on the last two hearts it is nearly black
+   with it. It is a colour and nothing else: the same wardrobe the snow
+   uses, lerped the other way, so it costs one pass over forty materials
+   whenever the state actually changes and nothing at all in between. The
+   upper body takes most of it, since that is where a blow lands. */
+// (a dark red, not a dark GREY: lerped toward something near black the
+//  hero only came out grimy, since there was no red left in it to give)
+const BLOOD_COL=new THREE.Color(0xa03028).convertSRGBToLinear();
+function bloodState(){
+  const f=player.hp/player.maxHp;
+  return f>.66?0:f>.33?.3:player.hp<=HEART*2?.66:.5;
+}
 const SNOW_ON=lam({color:new THREE.Color(0xa8b8cc).convertSRGBToLinear(),flatShading:true});
 const SNOW_CLING=lam({color:new THREE.Color(0xccd9ea).convertSRGBToLinear(),flatShading:true,transparent:true,opacity:0});
 function dressSnow(rig){
@@ -4078,7 +4115,7 @@ function dressSnow(rig){
     if(sh>0){m=m.clone();psx(m);m.needsUpdate=true;o.material=m;}   // its own steel, and its wobble back
     list.push({m,sh,mesh:o,base:m.color.clone()});
   });
-  rig.snowDress=list;rig.snowAt=-1;rig.snowBootAt=-1;
+  rig.snowDress=list;rig.snowAt=-1;rig.snowBootAt=-1;rig.bloodAt=-1;
   /* and a heap of it where each leg goes INTO the drift. Tinting a boot
      only ever goes so far, because by the time the snow is deep enough to
      matter the boot is under it — what you actually see is the snow shoved
@@ -4145,10 +4182,11 @@ function snowCuffs(rig,amt){
     c.m.visible=true;
   }
 }
-function wearSnow(rig,body,boot){
+function wearSnow(rig,body,boot,blood){
   const D=rig&&rig.snowDress;if(!D)return;
-  if(Math.abs(body-rig.snowAt)<.012&&Math.abs(boot-rig.snowBootAt)<.012)return;
-  rig.snowAt=body;rig.snowBootAt=boot;
+  blood=blood||0;
+  if(Math.abs(body-rig.snowAt)<.012&&Math.abs(boot-rig.snowBootAt)<.012&&blood===rig.bloodAt)return;
+  rig.snowAt=body;rig.snowBootAt=boot;rig.bloodAt=blood;
   /* Half the hero's parts are TEXTURED, and a textured material's colour
      is plain white — a multiplier over the map, not a paint — so lerping it
      toward any tint only darkens it. The obvious answer, driving it ABOVE
@@ -4163,7 +4201,8 @@ function wearSnow(rig,body,boot){
   for(const e of D){
     const a=Math.max(body,boot*e.sh);
     e.m.color.copy(e.base).lerp(SNOW_COAT,a*.72);
-    if(e.m.emissive)e.m.emissive.copy(SNOW_EM).multiplyScalar(a*.32);
+    if(blood)e.m.color.lerp(BLOOD_COL,blood*(1-e.sh*.45));    // heaviest where a blow lands
+    if(e.m.emissive)e.m.emissive.copy(SNOW_EM).multiplyScalar(a*.32*(1-blood*.7));
   }
   if(rig.snowFlecks){
     const on=body>.06;
@@ -7673,7 +7712,7 @@ const player={
     if(this.poisonT>0&&this.state!=='dead'){
       this.poisonT-=dt;this.poisonTick-=dt;
       if(Math.random()<dt*7)elemFleck('poison',this.x+rr3(-.35,.35),.5+rr3(0,1.1),this.z+rr3(-.35,.35));
-      if(this.poisonTick<=0){this.poisonTick=.5;this.hp-=2;
+      if(this.poisonTick<=0){this.poisonTick=1.2;this.hp-=HEART/2;    // the rot takes half a heart at a time
         this.flash(true);setTimeout(()=>this.flash(false),70);
         if(this.hp<=0){this.die(0,0,1,'poison');return this.post(dt);}}
     }
@@ -8507,7 +8546,7 @@ const player={
      this.snowCling=Math.max(0,(this.snowCling||0)-dt*.26);
      this.snowBoot=lerp(this.snowBoot||0,deep>=.8?.72:deep?.42:0,Math.min(1,2.2*dt));
      this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.95,Math.min(1,5*dt));
-     wearSnow(r,this.snowCoat,this.snowBoot);
+     wearSnow(r,this.snowCoat,this.snowBoot,bloodState());
      const onStone=cathDist(this.x,this.z)<4.5;
      snowCuffs(r,onStone?0:this.snowBoot);
      // the heap he is pushing: only while he is actually going somewhere
@@ -8571,7 +8610,9 @@ class Enemy{
     this.maxHp=this.boss?380:this.big?140:this.caster?52:64;
     this.hp=this.maxHp;
     this.speed=this.boss?2.7:this.big?2.1:this.caster?2.3:2.5;
-    this.dmg=this.boss?26:this.big?24:this.caster?12:14;
+    // in halves of a heart: a hollow one, a brute two, a caster a half,
+    // the boss two and a half
+    this.dmg=this.boss?25:this.big?20:this.caster?5:10;
     this.aggroR=opts.ambush?4.2:this.caster?11:10;
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
@@ -8994,7 +9035,7 @@ class Crow{
     this.big=false;this.boss=false;this.caster=false;this.heavyHitter=false;
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;
     this.radius=.4;this.maxHp=20;this.hp=20;
-    this.dmg=10;this.marrow=25;this.chillT=0;
+    this.dmg=10;this.marrow=25;this.chillT=0;   // the Unburied: one heart
     this.poise=0;this.poiseMax=99;
     this.state='fly';this.t=Math.random()*2.5;this.facing=0;
     this.vx=0;this.vz=0;this.flashUntil=0;this.flap=Math.random()*TAU;
@@ -9200,7 +9241,7 @@ class FallenAngel{
     this.kind='angel';this.mini=true;this.name='THE FALLEN ONE';
     this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;
-    this.radius=.7;this.maxHp=260;this.hp=260;this.dmg=18;this.marrow=220;
+    this.radius=.7;this.maxHp=260;this.hp=260;this.dmg=15;this.marrow=220;   // a heart and a half
     this.poise=0;this.poiseMax=8;this.chillT=0;this.speed=3.4;this.reach=3.3;
     this.rig=makeAngelRig();scene.add(this.rig.root);this.mats=this.rig.mats;
     this.state='descend';this.t=0;this.y=heightAt(x,z)+16;this.hitDone=false;
@@ -9390,7 +9431,7 @@ class GraveGhoul{
     this.kind='ghoul';this.mini=true;this.name='THE UNBURIED';
     this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=Math.random()*TAU;
-    this.radius=.6;this.maxHp=300;this.hp=300;this.dmg=16;this.marrow=200;
+    this.radius=.6;this.maxHp=300;this.hp=300;this.dmg=15;this.marrow=200;   // a heart and a half
     this.poise=0;this.poiseMax=7;this.chillT=0;this.speed=2.2;this.reach=2.5;this.aggroR=9;
     this.rig=makeGhoulRig();scene.add(this.rig.root);this.mats=this.rig.mats;
     this.state='buried';this.t=0;this.hitDone=false;this.flashUntil=0;this.cool=1;
@@ -10068,9 +10109,28 @@ function spawnFoe(kind,x,z){
 /* the host's kit: how horrors are sown, where a wedge has room for them,
    the encounter templates and each chunk's taste in them — used by the
    field's host and by every tile of the path */
-function hostKit(){
-  const queue=(kind,x,z,o)=>{PATH.spawnQ.push({kind,x,z:z+BUILD.offZ,o:o||{},tile:BUILD.tile});return null;};   // (a tile's host waits its turn, in the world's frame)
-  const sow=(kind,x,z,o)=>{if(PATH.on&&BUILD.tile>=0)return queue(kind,x,z,o);const e=new Enemy(kind,x,z,o||{});enemies.push(e);return e;};
+/* BURIED, OR ALREADY ON ITS FEET. It was one or the other by MODE — the
+   field's whole host lay in the ground and the path's whole host walked
+   about — and neither is right. What decides it is the GROUND it is on:
+   grave rows are full of things that are still in their graves, a bone
+   hollow nearly so; a chapel or a ruin is half and half; a dead wood has
+   more wandering than lying; and nothing waits under a causeway or the
+   flags of a nave, because there is nothing there to wait under. An ambush
+   is always buried — that is the whole of what an ambush is. */
+const HOST_BURIED={graves:.85,hollow:.72,chapel:.5,ruins:.48,wood:.28,causeway:.14,cathedral:.08};
+function hostKit(kindOf){
+  // (the field sows every wedge from one kit, so it hands in a function
+  //  rather than a name and the kit asks which ground it is standing on)
+  const buried=(o)=>{
+    if(o&&o.ambush)return true;
+    const k=typeof kindOf==='function'?kindOf():kindOf;
+    return rnd()<(HOST_BURIED[k]!==undefined?HOST_BURIED[k]:.45);
+  };
+  const queue=(kind,x,z,o)=>{PATH.spawnQ.push({kind,x,z:z+BUILD.offZ,o:o||{},roam:!buried(o),tile:BUILD.tile});return null;};   // (a tile's host waits its turn, in the world's frame)
+  const sow=(kind,x,z,o)=>{if(PATH.on&&BUILD.tile>=0)return queue(kind,x,z,o);
+    const roam=!buried(o);const e=new Enemy(kind,x,z,o||{});enemies.push(e);
+    if(roam)e.patrol();                                  // already up, pacing its ground
+    return e;};
   const roost=(x,z)=>{if(PATH.on&&BUILD.tile>=0)return queue('crow',x,z);const c=new Crow(x,z);c.state='roost';
     c.y=heightAt(x,z)+.25;enemies.push(c);return c;};
   /* THE HOST is sown from the run's seed: every wedge is given a marrow
@@ -10101,7 +10161,7 @@ function hostKit(){
 /* a tile's host on the path: the templates, as the field's, to the tile's
    budget — or, in a cathedral, sown inside the walls, in the nave */
 function pathHost(w,budget,cath){
-  const K=hostKit();
+  const K=hostKit(cath?'cathedral':w.kind);
   if(cath){let n=0;while(budget>=60&&n<12){const kind=rnd()<.2?'big':rnd()<.25?'caster':'hollow',cost=kind==='big'?140:kind==='caster'?80:60;
       K.sow(kind,rr(-8.5,8.5),rr(-15,15),{red:rnd()<.14||undefined});budget-=cost;n++;}return;}
   const W=K.WEIGHTS[w.kind]||K.WEIGHTS.graves;
@@ -10117,12 +10177,14 @@ function spawnEnemies(){
   // A fixed host, sown across the quarters, asleep under the soil —
   // just enough marrow among them (1170) to call the cathedral open.
   // They only stir when the pilgrim comes near.
-  const {sow,roost,spot,high,T,WEIGHTS}=hostKit();
+  let curW=null;
+  const {sow,roost,spot,high,T,WEIGHTS}=hostKit(()=>curW&&curW.kind);
   srand(RUN.seed^0x5eed);
   const TOTAL=1000,SOUTH=105;                                             // (costs are coarse: the field ends up a little over, as the old fixed host did)
   const shares=RUN.wedges.map(w=>w.i===1?0:rr(.7,1.3)),sum=shares.reduce((a,b)=>a+b,0);
   let spent=0;
   for(const w of RUN.wedges){
+    curW=w;
     let budget=w.i===1?SOUTH:(TOTAL-SOUTH)*shares[w.i]/sum;const W=WEIGHTS[w.kind]||WEIGHTS.graves;
     for(let guard=0;guard<12&&budget>=70;guard++){
       const opts=Object.keys(T).filter(k=>T[k].cost<=budget&&(w.i!==1||k==='pair'||k==='patrol'||k==='ambush'));
@@ -10130,7 +10192,7 @@ function spawnEnemies(){
       T[pick].place(w);budget-=T[pick].cost;spent+=T[pick].cost;
     }
   }
-  while(spent<TOTAL-60){const w=RUN.wedges[(rnd()*WEDGE_N)|0];T.pair.place(w);spent+=70;}   // (a failed placement or two never leaves the field short)
+  while(spent<TOTAL-60){const w=RUN.wedges[(rnd()*WEDGE_N)|0];curW=w;T.pair.place(w);spent+=70;}   // (a failed placement or two never leaves the field short)
   { // the thing under the grave rows — or under whatever lies where the seed put no graves
     const gw=RUN.wedges.find(w=>w.kind==='graves')||RUN.wedges[(rnd()*WEDGE_N)|0];
     const p=spot(gw,30,44,.3,1)||[gw.cx,gw.cz];enemies.push(new GraveGhoul(p[0],p[1]));
@@ -10359,8 +10421,7 @@ function updateLock(){
 
 /* ---------------- HUD & messaging ---------------- */
 function updateHUD(){
-  $('hpfill').style.width=clamp(player.hp/player.maxHp*100,0,100)+'%';
-  $('hpghost').style.width=clamp(player.hp/player.maxHp*100,0,100)+'%';
+  drawHearts();
   $('marrowN').textContent=G.cathedralOpen?player.marrow
     :player.marrow+' / '+G.marrowGoal;
   $('lowhp').style.animationPlayState=player.hp<player.maxHp*.3&&player.hp>0?'running':'paused';
@@ -10498,6 +10559,29 @@ resize();
 
 // the pilgrim carries their own light: a soft warm halo, souls-fashion,
 // that breathes gently and pools on the ground around them
+/* LIFE IS COUNTED IN HEARTS. Ten of them, each worth ten, and every blow
+   in the field is a whole number of halves: a hollow's swing takes one
+   heart, a caster's bolt half of one, a brute's two, the Warden two and a
+   half. Nothing chips a sliver off a bar any more. The row is only rebuilt
+   when the count of halves actually changes, so it costs nothing to watch. */
+const HEART=10;
+let heartsShown=-1,heartsMax=-1;
+function drawHearts(){
+  const wrap=$('hpwrap');if(!wrap||!texCache.heartImg)return;
+  const max=Math.round(player.maxHp/HEART),halves=Math.max(0,Math.round(clamp(player.hp,0,player.maxHp)/(HEART/2)));
+  if(halves===heartsShown&&max===heartsMax)return;
+  if(max!==heartsMax){
+    wrap.innerHTML='';
+    for(let i=0;i<max;i++){const d=document.createElement('div');d.className='hrt';wrap.appendChild(d);}
+    heartsMax=max;heartsShown=-1;
+  }
+  heartsShown=halves;
+  const kids=wrap.children;
+  for(let i=0;i<kids.length;i++){
+    const f=Math.max(0,Math.min(2,halves-i*2));       // 2 whole, 1 half, 0 gone
+    kids[i].style.backgroundImage='url('+texCache.heartImg[f]+')';
+  }
+}
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
 const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}
