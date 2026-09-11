@@ -2655,6 +2655,78 @@ function trampleBreakables(x,z,r,kind){
 }
 
 let groundMat=null;
+/* THE STATIC BAKE.
+   A cathedral is three hundred and thirty-one separate things, and the card
+   is told about every one of them on every frame, though not a stone of it
+   has moved since the world was made. Telling the card about a thing is the
+   expensive part on a phone — far more than the triangles, of which there
+   are few.
+
+   So the stone is folded together. Anything the game still holds a handle
+   on is left exactly where it is and exactly as it was: a pew that breaks,
+   a wall a blade can score, anything carrying collision, anything with a
+   light on it. Those are found by asking the registries themselves rather
+   than by guessing from names, so a thing that becomes interactive later is
+   safe as long as it is registered by the time the cathedral is finished.
+
+   What remains is only ever looked at. Those are gathered by material, each
+   one's vertices carried into the group's own frame — so the whole fold
+   still travels when the path shifts its tiles — and poured into a single
+   geometry. Hundreds of draws become one for each material.
+
+   Left out of it: anything transparent (merged into one mesh it would lose
+   the back-to-front order the card sorts it by), anything with vertex
+   colours or a missing attribute, and any group of one, which would save
+   nothing. No original geometry is disposed — some of it is shared with
+   gravestones elsewhere in the field, and freeing it here would empty them. */
+function bakeStatic(root){
+  const held=new WeakSet();
+  const claim=o=>{if(!o)return;if(o.traverse)o.traverse(c=>held.add(c));else held.add(o);};
+  for(const b of breakables){claim(b.g);claim(b.obs);}
+  for(const ob of obstacles)claim(ob&&ob.o);
+  for(const m of MARKABLE)claim(m&&(m.o||m));
+  for(const L of lanternLights)claim(L&&(L.o||L.post));
+  if(typeof scars!=='undefined')for(const sc of scars)claim(sc&&(sc.o||sc));
+
+  root.updateWorldMatrix(true,true);
+  const toLocal=new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const groups=new Map();
+  root.traverse(o=>{
+    if(!o.isMesh||o.children.length||o.name||held.has(o))return;
+    const m=o.material;
+    if(!m||Array.isArray(m)||m.transparent||m.vertexColors)return;
+    const a=o.geometry&&o.geometry.attributes;
+    if(!a||!a.position||!a.normal||!a.uv)return;
+    let list=groups.get(m);if(!list)groups.set(m,list=[]);
+    list.push(o);
+  });
+
+  const M=new THREE.Matrix4();let folded=0,made=0;
+  for(const [m,list] of groups){
+    if(list.length<2)continue;
+    const pos=[],nrm=[],uvs=[];
+    for(const o of list){
+      const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();
+      g.applyMatrix4(M.multiplyMatrices(toLocal,o.matrixWorld));   // (normals ride the normal matrix with it)
+      const p=g.attributes.position.array,q=g.attributes.normal.array,u=g.attributes.uv.array;
+      for(let i=0;i<p.length;i++)pos.push(p[i]);
+      for(let i=0;i<q.length;i++)nrm.push(q[i]);
+      for(let i=0;i<u.length;i++)uvs.push(u[i]);
+      g.dispose();
+    }
+    const merged=new THREE.BufferGeometry();
+    merged.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    merged.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));
+    merged.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    merged.computeBoundingSphere();
+    const one=new THREE.Mesh(merged,m);one.userData.baked=true;
+    root.add(one);
+    for(const o of list)if(o.parent)o.parent.remove(o);
+    folded+=list.length;made++;
+  }
+  return {folded,made};
+}
+
 function buildWorld(){
   seedRun();
   if(PATH.on){RUN.terrain=PATH.terrain;G.cathedralOpen=true;G.marrowGoal=PATH.goal;}
@@ -2856,6 +2928,9 @@ function buildWorld(){
         side:THREE.DoubleSide}));
     beam.position.set(0,26,-15);
     scene.add(beam);
+    // the stone is done and everything interactive in it is registered:
+    // fold the parts that are only ever looked at
+    cath.userData.bake=bakeStatic(cath);
   };
   buildCathedral(PATH.on);
 

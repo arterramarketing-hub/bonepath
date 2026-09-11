@@ -618,6 +618,14 @@ Everything is generated at boot inside the one file:
   Color object as the background, so every hour, every weather and every
   white flash of lightning carries the fog with it, and the land never
   ends at a hard edge — film grain and vignette overlays.
+- **Static bake** — the cathedral is three hundred and thirty-one separate
+  pieces and not a stone of it moves, so at the end of its building the
+  parts that are only ever looked at are folded together by material into
+  one geometry each — 224 pieces into 5 on the field, 221 into 4 on the
+  path. Everything the game still holds a handle on is left untouched: the
+  pews that break, the walls a blade can score, anything carrying collision
+  or a light. The picture is identical to the triangle; the card is simply
+  told about it 219 fewer times a frame.
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.

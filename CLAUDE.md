@@ -70,17 +70,39 @@ Known state of play:
 - `LPOOL` (near line 3278) is a 12-light pool that avoids three.js
   recompiling every lit shader when light count changes. It currently
   only runs in **path/survival mode**, not the main field.
-- There is **no instancing and no geometry merging** anywhere — the
-  cemetery, groves and ruins each build individual meshes.
+- `bakeStatic(root)` (just above `buildWorld`) folds a group's inert meshes
+  together by material and is called at the end of `buildCathedral`, so it
+  covers the field's cathedral and every one the path builds. It asks the
+  registries — `breakables`, `obstacles`, `MARKABLE`, `lanternLights`,
+  `scars` — which meshes the game still holds, and leaves every one of those
+  alone; anything made interactive must be registered before the cathedral
+  finishes or it will be folded away. Transparent and vertex-coloured
+  materials are skipped, and no original geometry is disposed (some is
+  shared with gravestones elsewhere). Field: 224 meshes into 5. Path: 221
+  into 4.
+- **The cemetery, groves and ruins are NOT foldable the same way.** Nearly
+  all of them are registered as `obstacles` or in `MARKABLE` — a blade can
+  score a gravestone and gouge a tree, and the mark is painted onto that
+  object — so folding them would silently kill the marks. Reaching them
+  means instancing with per-instance marking, or reworking how marks are
+  painted. Do not simply widen `bakeStatic` over them.
 - A **frame counter** (fps, draw calls, triangles) sits in the bottom-left,
   off by default, switched on under *The field (testing)* on the pause
   screen and remembered by the browser. `renderer.info.autoReset` is off
   and the counters are cleared by hand at the top of `renderFrame`, so the
   tally covers all four passes of a frame rather than only the last.
-- Measured on the field at the time of writing: **~1850 draw calls** and
-  ~57k triangles a frame. The draw calls are the number that matters on a
-  phone, and instancing the cemetery, the groves and the ruins is the
-  largest single win still available.
+- Measured on the field (seed 7, noon): **1903 draw calls before the bake,
+  1684 after** — 219 fewer — with the triangle count identical at 59.0k
+  either way, which is the check that the fold neither lost nor duplicated
+  geometry. The draw calls are the number that matters on a phone.
+- What dominates now is the **character rigs**: every hollow, and the hero,
+  is assembled from dozens of small meshes, each animated on its own
+  transform. That is the next real win and the hardest, since instancing
+  animated parts means writing world matrices per instance per frame rather
+  than leaning on the scene graph.
+- The world's geometry all sits within ~80 units of the origin, so there is
+  nothing beyond the fog to cull and no draw distance to win back by pulling
+  the camera's far plane in. This was measured; do not re-litigate it.
 
 ## Conventions
 
