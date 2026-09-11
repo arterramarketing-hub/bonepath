@@ -778,6 +778,30 @@ still coming off the legs while the knees are already coming in.
    ground takes the speed back. Then he rides out on his feet with some of
    it still in him, so a roll into a run keeps going.
 
+### The thief does not roll
+
+A man in cloth with no plate on him has no business throwing himself on the
+ground and getting up again — **he steps.** The thief's dodge is the
+quickstep: low, flat, gone and back on his feet before a greatsword has
+finished leaving the floor, with **no arc to it and no turn in it at all**,
+and it does not land because it never left. He drops low, throws the trunk
+along the line he is going, scissors the legs — one flung out ahead, one
+trailing — and sweeps the arms back behind him, all on one hump, so there is
+no recovery pose to sit in: by the time it is over he is already standing.
+
+It reaches **less than a roll** (about three and a half units to the roll's
+five) for **half the recovery** — four tenths of a second in the field, less
+than a third on the path. That is the trade.
+
+And while he is inside the window **he is not quite there**: the whole of
+him thins to a quarter and comes back, in and out fast at both ends, which
+is the only warning a blade gets that it is going to pass through him. It is
+the same wardrobe the snow and the blood use — made *able* to fade once,
+when the rig is built, because flipping forty materials to transparent at
+the moment of the dash would rebuild forty shaders in the frame the player
+most wants smooth. Depth-writing goes off while he is thin, or the parts of
+him sort against each other and he comes apart.
+
 The **field** takes it slow and heavy — seven tenths of a second, the leap
 at eleven and a half, invulnerable from .06 to .46 so the tail of the roll
 is punishable. The **path** is a run and not a pilgrimage, so it gets the

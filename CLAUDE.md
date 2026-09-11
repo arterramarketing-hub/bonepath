@@ -203,7 +203,11 @@ Known state of play:
   call. `poison` sets `melt` and is driven by `meltHero` in the dead frame
   instead of the ragdoll. `respawn()` calls `rebuild()` outright: a severed
   limb and a melted body are not worth patching back together.
-- The roll is `ROLL_FIELD`/`ROLL_PATH` (near `heroLight`) — push, flight,
+- `isThief()` must stay a function DECLARATION, not a const arrow: the rig
+  is dressed during `player.init()`, which runs before that line is reached,
+  and a const there puts it in the temporal dead zone and takes the whole
+  game down at boot. (It did.)
+- The roll is `ROLL_FIELD`/`ROLL_PATH`/`DASH_FIELD`/`DASH_PATH` (near `heroLight`) — push, flight,
   landing, roll, rise. `SPD` is tuned so total ground covered stays near the
   old roll's ~4.6 units; changing it is a balance change, not a feel change.
   `rollAir` is read by the pose, by the root's height and by `updateTrail`

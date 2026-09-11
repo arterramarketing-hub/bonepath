@@ -4144,7 +4144,11 @@ function dressSnow(rig){
     if(sh>0){m=m.clone();psx(m);m.needsUpdate=true;o.material=m;}   // its own steel, and its wobble back
     list.push({m,sh,mesh:o,base:m.color.clone()});
   });
-  rig.snowDress=list;rig.snowAt=-1;rig.snowBootAt=-1;rig.bloodAt=-1;
+  rig.snowDress=list;rig.snowAt=-1;rig.snowBootAt=-1;rig.bloodAt=-1;rig.ghostAt=-1;
+  /* the thief is made ABLE to fade here and never again — flipping
+     `transparent` on a material at the moment of the dash would rebuild
+     forty shaders in the frame the player most wants smooth */
+  if(isThief())for(const e of list){e.m.transparent=true;e.m.opacity=1;e.m.needsUpdate=true;}
   /* and a heap of it where each leg goes INTO the drift. Tinting a boot
      only ever goes so far, because by the time the snow is deep enough to
      matter the boot is under it — what you actually see is the snow shoved
@@ -7803,7 +7807,12 @@ const player={
       }
     };
     const startDodge=(s)=>{
-      this.rollLanded=false;this.rollAir=0;
+      this.rollLanded=false;this.rollAir=0;this.dashGhost=0;
+      if(isThief()){                                  // cloth and grit, and gone
+        AudioSys.step(.8,cathDist(this.x,this.z)<4.5?'stone':snowDeep()?'snow':'grass');
+        if(snowDeep())snowPuff(this.x,this.z,this.facing,6,3.4);
+        else boneBurst(this.x,.1,this.z,0x4a463a,5,1.6);
+      }
       this.state='roll';this.t=0;this.rollPuffT=0;
       if(snowDeep())this.snowCling=1;      // shoulder-first through a drift
       if(s&&s.sx!==null){const a=swipeWorld(s);this.rollDX=Math.sin(a);this.rollDZ=Math.cos(a);}
@@ -8381,9 +8390,15 @@ const player={
     }
     else if(this.state==='roll'){
       // the tumble, then a beat of getting the feet back under the body
-      const R=rollProf(),tt=this.t;
+      const R=rollProf(),tt=this.t,thief=isThief();
       let sp;
-      if(tt<R.PUSH)        sp=R.SPD*easeOut(tt/R.PUSH);                            // the legs drive
+      if(thief){
+        // the quickstep: on it at once, flat the whole way, off it at once
+        if(tt<R.PUSH)        sp=R.SPD*easeOut(tt/R.PUSH);
+        else if(tt<R.ROLLED) sp=R.SPD*(1-.1*((tt-R.PUSH)/(R.ROLLED-R.PUSH)));
+        else                 sp=R.SPD*.9*(1-easeIn((tt-R.ROLLED)/(R.DUR-R.ROLLED)));
+      }
+      else if(tt<R.PUSH)   sp=R.SPD*easeOut(tt/R.PUSH);                            // the legs drive
       else if(tt<R.LAND)   sp=R.SPD*(1-.12*((tt-R.PUSH)/(R.LAND-R.PUSH)));         // carried, with only the air on him
       else if(tt<R.ROLLED){const u=(tt-R.LAND)/(R.ROLLED-R.LAND);
                            sp=R.SPD*.88*(1-easeIn(u)*.8);}                          // the ground takes it back
@@ -8392,10 +8407,13 @@ const player={
       // the arc: the whole body leaves the ground, root and all, and comes
       // back down on it (read by the pose, and by the furrow, which stops
       // being cut for as long as there is nothing cutting it)
-      this.rollAir=(tt>=R.PUSH&&tt<R.LAND)
+      this.rollAir=(!thief&&tt>=R.PUSH&&tt<R.LAND)
         ?R.RISE*4*((tt-R.PUSH)/(R.LAND-R.PUSH))*(1-(tt-R.PUSH)/(R.LAND-R.PUSH)):0;
+      // and he thins out across the window, in and out fast at both ends
+      if(thief)this.dashGhost=clamp(Math.min(tt-R.IF0,R.IF1-tt)/.05,0,1);
+      else this.dashGhost=0;
       // THE LANDING, which is a beat and not a moment passed through
-      if(!this.rollLanded&&tt>=R.LAND){
+      if(!this.rollLanded&&!thief&&tt>=R.LAND){
         this.rollLanded=true;
         G.camShake=Math.max(G.camShake,.3);G.vibr(20);
         AudioSys.bodyfall();
@@ -8414,7 +8432,8 @@ const player={
       if(this.rollAtkQueued&&tt>=R.LAND){          // the cut comes out of the landing, not out of the air
         startRollAtk(this.rollAtkQueued.d);
       }else if(tt>=R.DUR){this.state='free';this.postRollT=0;
-        this.spd=Math.max(this.spd||0,R.SPD*.26);}  // some of it is still in him
+        this.dashGhost=0;if(this.rig)dashGhost(this.rig,0);   // solid again
+        this.spd=Math.max(this.spd||0,R.SPD*(thief?.3:.26));} // some of it is still in him
     }
     else if(this.state==='rollatk'){
       const DUR=.44*this.swing(),p=this.t/DUR;
@@ -8550,6 +8569,23 @@ const player={
     else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseUppercut(r,Math.min(1,this.t/(.62*this.swing())));}
     else if(this.state==='roll'){
       const R=rollProf(),C=CARRY,tt=this.t;
+      if(isThief()){
+        /* THE QUICKSTEP. Nothing turns and nothing leaves the ground: he
+           drops low, throws the trunk along the line he is going, scissors
+           the legs — one flung out ahead, one trailing — and sweeps the
+           arms back behind him. It goes in and out on one hump, so there is
+           no recovery pose to sit in: by the time it is over he is already
+           standing. */
+        const lead=Math.sin(Math.min(1,tt/R.DUR)*Math.PI);
+        r.body.position.y=r.baseY-.19*lead;
+        r.body.rotation.x=.4*lead;r.body.rotation.z=.12*lead;
+        r.torso.rotation.x+=.2*lead;r.head.rotation.x-=.3*lead;
+        r.legR.rotation.x=-1.2*lead;r.kneeR.rotation.x=1.45*lead;
+        r.legL.rotation.x=1.0*lead;r.kneeL.rotation.x=.3*lead;
+        r.armR.rotation.x=C.aRx*(1-lead)+.8*lead;r.armL.rotation.x=C.aLx*(1-lead)+.95*lead;
+        r.foreR.rotation.x=C.fRx*(1-lead)-.5*lead;r.foreL.rotation.x=C.fLx*(1-lead)-.35*lead;
+        dashGhost(r,this.dashGhost||0);
+      }else{
       /* ONE MOTION, not four poses in a row. The turn runs on a single
          curve from the first frame to the last of the roll — flat at the
          start while he is still loading, accelerating through the air,
@@ -8574,6 +8610,7 @@ const player={
       r.armL.rotation.x=-.5*pw-1.2*tuck+C.aLx*(e+pw*(1-e));
       r.foreR.rotation.x=-1.4*tuck+C.fRx*(e+pw*(1-e));
       r.foreL.rotation.x=-1.4*tuck+C.fLx*(e+pw*(1-e));
+      }
     }
     else if(this.state==='attack'){if(kat)poseKatana(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);else poseLight(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);}
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/(.44*this.swing())));
@@ -10665,7 +10702,32 @@ function drawHearts(){
 //  wearing an animation's clothes)
 const ROLL_FIELD={PUSH:.11,LAND:.33,ROLLED:.56,DUR:.70,SPD:11.5,RISE:.34,IF0:.06,IF1:.46};
 const ROLL_PATH ={PUSH:.07,LAND:.24,ROLLED:.42,DUR:.54,SPD:15,RISE:.28,IF0:.045,IF1:.35};
-function rollProf(){return PATH.on?ROLL_PATH:ROLL_FIELD;}
+/* THE THIEF DOES NOT ROLL. A man in cloth with no plate on him has no
+   business throwing himself on the ground and getting up again — he steps.
+   It is the quickstep: low, flat, gone and back on his feet before the
+   greatsword has finished leaving the floor, with no arc to it and no turn
+   in it at all, and it does not land because it never left. Shorter reach
+   than a roll and half the recovery, which is the trade.
+   And while he is inside the window he is NOT QUITE THERE: the whole of
+   him thins out to a quarter and comes back, which is the only warning a
+   blade gets that it is going to pass through him. */
+const DASH_FIELD={PUSH:.05,LAND:99,ROLLED:.26,DUR:.40,SPD:14,RISE:0,IF0:.035,IF1:.29};
+const DASH_PATH ={PUSH:.04,LAND:99,ROLLED:.20,DUR:.32,SPD:16.5,RISE:0,IF0:.03,IF1:.23};
+// (a declaration, not a const: the rig is dressed during the player's own
+//  init, which runs before this line is ever reached)
+function isThief(){return LOADOUT.armour==='thief';}
+function rollProf(){return isThief()?(PATH.on?DASH_PATH:DASH_FIELD):(PATH.on?ROLL_PATH:ROLL_FIELD);}
+/* the fade. Every material the hero wears is already gathered for the snow
+   and the blood, so it is that list again — made transparent once when the
+   rig is built, so nothing recompiles mid-step, and only the opacity moves
+   after that. Depth-writing goes off while he is thin, or the parts of him
+   sort against each other and he comes apart. */
+function dashGhost(rig,a){
+  const D=rig&&rig.snowDress;if(!D||rig.ghostAt===a)return;
+  rig.ghostAt=a;
+  const op=1-a*.78;
+  for(const e of D){e.m.opacity=op;e.m.depthWrite=a<.02;}
+}
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
 const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}
