@@ -2148,18 +2148,11 @@ const Input=(()=>{
   });
   ctl.addEventListener('pointermove',e=>{
     if(e.pointerId===stickId){
-      let dx=e.clientX-stickOX,dy=e.clientY-stickOY;
+      const dx=e.clientX-stickOX,dy=e.clientY-stickOY;
       const d=Math.hypot(dx,dy);
-      if(d>RADIUS){ // drag the base along so the stick "floats"
-        const ex=(d-RADIUS);
-        stickOX+=dx/d*ex;stickOY+=dy/d*ex;
-        base.style.left=(stickOX-48)+'px';base.style.top=(stickOY-48)+'px';
-        dx=e.clientX-stickOX;dy=e.clientY-stickOY;
-      }
-      st.mx=dx/RADIUS;st.mz=dy/RADIUS;
-      const l=Math.hypot(st.mx,st.mz);
-      if(l>1){st.mx/=l;st.mz/=l;}
-      nub.style.left=(e.clientX-20)+'px';nub.style.top=(e.clientY-20)+'px';
+      const k=d>RADIUS?RADIUS/d:1;   // the base is planted where the thumb landed: past the ring the nub rides its edge
+      st.mx=dx*k/RADIUS;st.mz=dy*k/RADIUS;
+      nub.style.left=(stickOX+dx*k-20)+'px';nub.style.top=(stickOY+dy*k-20)+'px';
     }else if(e.pointerId===camId&&gesture){
       const g=gesture;
       if(g.mode==='pending'){

@@ -57,7 +57,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 
 ## Controls (touch)
 
-- **Left thumb** — floating joystick. Push it past three-quarters and
+- **Left thumb** — joystick. It appears wherever the thumb first lands
+  and stays planted there; drag past the ring and the nub rides its edge
+  rather than dragging the whole stick along. Push it past three-quarters and
   the walk breaks into a **sprint** — the knight pitches forward and
   the greatsword trails along the hip
 - **Right thumb — tap to fight, hold to break them, flick to live:**
