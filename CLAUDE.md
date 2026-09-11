@@ -138,13 +138,25 @@ Known state of play:
   PS1's worth. `?affine=0` off, `?affine=full` uncapped (the broken look),
   `?affine=<0..1>` to retune. **If bricks ever look sheared again, lower
   the cap — do not reach for more geometry.**
-- `TROD` (near `updateWeather`) adds one draw, and only while something is
-  pressed into snow: every boot-print, roll-trough and hollow's tread in
-  the field written into one shared world-space buffer, 72 slots of a 7x7
-  patch each, oldest recycled, `mesh.visible` false when none are live.
-  Do not give prints their own meshes. The snowfall points are one more
-  draw. `snowSink()` drops standing BODIES into the drift and touches
-  nothing the game measures — never make it change `heightAt`.
+- Snow marks are two buffers near `updateWeather`, one draw each and only
+  while something is marked: `TROD` (boot-prints, 72 slots of a 7x7 patch)
+  in light snow, and `TRAIL` (the ploughed furrow, 10 lanes of 48
+  cross-sections) in a blizzard. `PLOUGHS()` picks between them — never
+  both at once, or prints and channel fight for the same height. Do not
+  give marks their own meshes. The snowfall points are one more draw.
+  `snowSink()` drops standing BODIES into the drift and touches nothing the
+  game measures — never make it change `heightAt`.
+- **Three traps in that code, all of which cost hours:**
+  1. A mark written BELOW the ground is invisible. The ground is one mesh
+     and nothing carves into it, so everything sits above the surface
+     (`TROD_UP` / `TROD_FLOOR`) and reads as relief, not as a hole.
+  2. The clearance has to beat the ROAD ribbons, which lie at `heightAt+.05`
+     and ride higher still over a rise. They are sampled every 1.5 units
+     now (the ground mesh's own cell) to keep that small.
+  3. Winding. A ground ribbon wound the wrong way is back-face culled and
+     renders nothing at all while every number in the buffer looks perfect.
+     If a mark is silently absent, check the index order before anything
+     else.
 - The imbued weapon's glow (`buildWeaponGlow`, near `ELEMENTS`) hangs two
   additive copies on every part of the weapon. They are `visible=false`
   until an element is taken, so an unlit weapon costs nothing; while lit it

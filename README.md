@@ -410,14 +410,22 @@ them the seed decides:
   what was gouged in mud is not there under a foot of snow.
 - **a blizzard** is snow past the point of weather. Three thousand four
   hundred flakes, and they do not fall — they are *driven*, one way and
-  hard, the gusts shoving the whole sheet of it sideways faster than it
-  drops, with a hiss under it that quiet snow does not have. Each one is a
+  hard, the gusts shoving the whole sheet of it sideways nearly twice as
+  fast as it drops, with a hiss under it that quiet snow does not have.
+  **A third of it is not falling at all**: it is spindrift, snow already
+  down and picked up again, tearing along a few feet off the ground, and
+  it is what makes a storm look like it is going somewhere rather than
+  just coming down. And every seven to fifteen seconds the storm **leans
+  on the field** — a squall swells and lets go over four seconds, the
+  wind up by most of itself again, the fog shut to half of what it was,
+  the wind's own voice rising with it, and for a second or two there is
+  nothing out there at all. Each one is a
   **grain, not a bokeh ball**: a hard little core with the thinnest halo,
   drawn small, so that a screenful of them reads as ice in the air rather
   than white circles floating past the lens. The sky is shut and the sun
-  is put out; the fog closes to **nine and forty-four**, a white room a few
-  strides wide, and a hollow comes out of it at about the distance it can
-  smell you from. The ground takes the deeper texture — long drifts lit
+  is put out; the fog closes to **six and twenty-seven** — and to half of
+  that in a squall — so a hollow comes out of the white at about the
+  distance it can smell you from, and no further. The ground takes the deeper texture — long drifts lit
   hard along the crest with deep blue troughs between them, the stalks
   buried, only the largest bones still proud of it.
   **And you stand IN it.** The pilgrim and every hollow are dropped a
@@ -429,26 +437,49 @@ them the seed decides:
   complaint for another too: where fresh snow is *slippery*, drifts
   **drag**. The top speed comes down by a fifth and the skid comes back,
   because a man wading is not a man sliding.
-- **trodden snow** — under snow of either kind, what walks through it
-  leaves a hole, not a stain. Every print is real geometry: a seven-by-seven
-  patch of ground in three rings — the untouched outside, a collar of shoved
-  snow, and a flat floor pressed under it — with the whole grid pushed out
-  onto circles, so what a boot leaves is a round-ended dish and not a
-  stamped rectangle. It catches the light on one side, holds shadow on the
-  other, and reads from any angle instead of only from above; and a drift
-  takes a deeper, wider one than a dusting does. The
-  pilgrim's boots leave them, left and right off the centre line. A
-  **roll** does not step, it ploughs: a wide shallow trough laid the whole
-  length of the tumble. And **every hollow in the field leaves its own**,
-  scaled to what is doing the treading — a mini's tread, the big one's,
-  the Warden's at nearly twice the size.
-  Every print in the field is written straight into ONE shared buffer in
-  world space, so it needs no transform and no object of its own, and the
-  lot of them draw in a **single call** however many there are. Seventy-two
-  slots; the oldest is taken back when they run out. Each fills itself
-  back in as it ages — the snow still coming down puts it back — over
-  forty seconds in quiet snowfall and **sixteen in a blizzard**, because
-  there is that much more of it falling.
+- **trodden snow.** A dusting is stepped ON; a drift is walked THROUGH,
+  and those are not the same mark. So the field keeps whichever one it
+  should, and never both:
+  - **a dusting keeps boot-prints.** Each is real geometry: a seven-by-seven
+    patch of ground in three rings — the untouched outside, a collar of
+    shoved snow, and a flat floor pressed under it — with the whole grid
+    pushed out onto circles, so what a boot leaves is a round-ended dish
+    and not a stamped rectangle. Left and right off the centre line, and
+    every hollow leaves its own, scaled to what is doing the treading.
+  - **a drift keeps a furrow.** In deep snow the body does not step on the
+    surface, it *ploughs*: the legs push the snow aside and what is left
+    behind is one continuous channel, its floor pressed flat and a bank of
+    shoved snow standing along both sides of it, running back the whole
+    way you came. Everything that can carve one gets a **lane** — the
+    pilgrim and the nine nearest hollows — and a lane is a strip of
+    cross-sections laid down every third of a stride, nine points across,
+    the oldest pushed off the back when the lane is full. **Roll**, and
+    the channel widens to the trough a shoulder makes.
+  - **and snow goes up as well as down.** A furrow is what is left behind,
+    and behind is mostly where the camera is — what you actually watch,
+    pace after pace, is the snow the legs are shovelling aside right now.
+    So every stride kicks loose grains up and back, more of them at a run,
+    and a roll throws a whole sheet of it.
+
+  Prints live in one shared buffer and lanes in another, both written
+  straight into world space so nothing needs a transform or an object of
+  its own, and each **draws in a single call** however many marks there
+  are — and not at all when the snow is untouched. Every mark fills itself
+  back in as it ages (the snow still coming down puts it back) over forty
+  seconds in quiet snowfall and **sixteen in a blizzard**, because there is
+  that much more of it falling.
+  Two things had to be got right for any of it to show. A mark sits just
+  **above** the surface rather than cut into it, because the ground is one
+  mesh on a grid a unit and a half across and nothing carves into it — a
+  floor written below it is simply hidden, and all that ever showed was the
+  collar. It gets its depth the way a relief does: the shoved snow stands
+  up as real geometry, the pressed floor goes darker than any trough in the
+  drift, and the body that made it is dropped into the drift so it walks
+  down among the banks rather than over them. And **the roads go under the
+  snow** with everything else, both because a flagstone ribbon lying bare
+  down the middle of a blizzard gives the whole field away, and because
+  every ribbon used to float over a rise high enough to swallow a print
+  whole.
 - **the six wedges** — the field is cut into six wedges round the
   cathedral, and each takes one authored chunk, no kind more than twice
   a run: the **grave rows** (ranks of stones in arcs, every one facing

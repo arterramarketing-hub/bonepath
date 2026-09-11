@@ -1222,7 +1222,7 @@ addEventListener('resize',resize);
    a few strides wide. The dome sits at 210 and the camera stops at 220,
    so the world is gone well before either shows. */
 const FOG_NEAR=30,FOG_FAR=132;
-const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68],blizzard:[9,44]};
+const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68],blizzard:[6,27]};
 
 /* AFFINE TEXTURE MAPPING — the console's most famous wrong.
    The PS1 had no divider to spare per pixel, so it walked a texture across
@@ -2611,11 +2611,12 @@ function clearSpot(x,z,pad){
   return true;
 }
 // a flat flagstone ribbon laid over the terrain between two points
+const roadMeshes=[];   // the flagstone ribbons, so the snow can bury them
 function layRoad(ax,az,bx,bz,w){
   roads.push({ax,az,bx,bz});
   const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);
   const ux=dx/len,uz=dz/len,nx=-uz,nz=ux;
-  const N=Math.max(2,Math.ceil(len/3));
+  const N=Math.max(2,Math.ceil(len/1.5));    // the ground mesh's own cell: any coarser and the ribbon floats over every rise
   const pos=[],uv=[],idx=[];
   for(let i=0;i<=N;i++){
     const t=i/N,px=ax+dx*t,pz=az+dz*t;
@@ -2628,7 +2629,7 @@ function layRoad(ax,az,bx,bz,w){
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
   g.setIndex(idx);g.computeVertexNormals();
-  world.add(new THREE.Mesh(g,matNS('flag')));
+  const rm=new THREE.Mesh(g,matNS('flag'));world.add(rm);roadMeshes.push(rm);
 }
 
 /* ---------------- the pews: furniture that breaks ----------------
@@ -3437,23 +3438,31 @@ function makeCloudSkies(){
 function applyGroundSurface(){
   if(!groundMat)return;
   const w=RUN.weather;
+  const snowy=w==='snow'||w==='blizzard';
   const t=w==='blizzard'?texCache.snowDeep:w==='snow'?texCache.snow:texCache.dirt;
   if(groundMat.map===t)return;
   t.repeat.set(w==='blizzard'?13:30,w==='blizzard'?13:30);   // deeper snow reads as bigger, longer drifts
   groundMat.map=t;groundMat.needsUpdate=true;
+  /* the roads go under with everything else — a flagstone ribbon lying
+     bare down the middle of a blizzard is the one thing that gives the
+     whole field away. They carry their own uv (across the width, and up
+     the length in fours), so the snow gets its own copy of the texture
+     with a repeat that matches the ground's tile size on both. */
+  if(snowy&&!texCache.snowRoad){const rt=t.clone();rt.needsUpdate=true;rt.repeat.set(.25,.35);texCache.snowRoad=rt;}
+  for(const rm of roadMeshes){rm.material.map=snowy?texCache.snowRoad:texCache.flag;rm.material.needsUpdate=true;}
   if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
-  trodClear();
+  trodClear();trailClear();
 }
 /* set the weather — clear, light rain, a storm, or snow — dropping whatever fell before */
 function setWeather(name){
   if(!['clear','rain','storm','snow','blizzard'].includes(name))return;
   if(WX.rain){scene.remove(WX.rain);WX.rain.geometry.dispose();WX.rain.material.dispose();WX.rain=null;WX.pts=null;WX.speeds=null;}
-  WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;RUN.weather=name;
+  WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;WX.squall=0;WX.squallT=9;WX.nextSquall=rr3(4,9);RUN.weather=name;
   AudioSys.setRain(0);
   setupWeather();
   applyTime(RUN.time);   // the sky, the fog and the light follow the weather
 }
-const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0};
+const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0,squall:0,nextSquall:0};
 function setupWeather(){
   applyGroundSurface();
   if(RUN.weather==='clear')return;
@@ -3463,7 +3472,7 @@ function setupWeather(){
      no rain bed under it, just the wind that was always there. */
   if(RUN.weather==='snow'||RUN.weather==='blizzard'){
     const bliz=RUN.weather==='blizzard';
-    WX.level=bliz?.34:0;                       // a blizzard has a voice; quiet snow has none
+    WX.level=bliz?.5:0;                        // a blizzard has a voice; quiet snow has none
     // a flake is a GRAIN, not a bokeh ball: a hard little core with only
     // the thinnest halo, so that blown up on screen it still reads as a
     // speck of ice rather than a soft white circle
@@ -3473,7 +3482,12 @@ function setupWeather(){
       g.addColorStop(.52,'rgba(226,238,255,.35)');g.addColorStop(1,'rgba(214,230,255,0)');
       ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
     const N=bliz?3400:820,pts=new Float32Array(N*3),sp=new Float32Array(N);   // smaller flakes, so more of them
-    for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=bliz?rr(2.6,5.2):rr(1.0,2.4);}
+    // a third of a blizzard is not falling at all — it is SPINDRIFT, snow
+    // already down and picked up again, tearing along a few feet off the
+    // ground; it is what makes a storm look like it is going somewhere
+    for(let i=0;i<N;i++){const low=bliz&&i%3===0;
+      pts[i*3]=rr(-18,18);pts[i*3+1]=low?rr(0,1.6):rr(0,16);pts[i*3+2]=rr(-18,18);
+      sp[i]=bliz?(low?rr(.3,1.1):rr(3.2,6.4)):rr(1.0,2.4);}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
     const pm=new THREE.PointsMaterial({map:texCache.flake,color:0xf8fbff,size:bliz?.15:.22,transparent:true,opacity:bliz?.95:.9,depthWrite:false});
     WX.rain=new THREE.Points(geo,pm);WX.rain.frustumCulled=false;scene.add(WX.rain);WX.pts=pts;WX.speeds=sp;
@@ -3507,7 +3521,7 @@ function setupWeather(){
    fills itself in as it ages — the snow that is still falling puts it back
    — and a blizzard buries a print two and a half times as fast as quiet
    snowfall does, because there is that much more of it coming down. */
-const TROD={N:72,G:7,mesh:null,pos:null,col:null,live:null,next:0,life:40};
+const TROD={N:72,G:7,mesh:null,pos:null,col:null,live:null,next:0,life:40,tick:0};
 function trodInit(){
   if(TROD.mesh)return;
   const N=TROD.N,G=TROD.G,VP=G*G,QP=(G-1)*(G-1);
@@ -3540,18 +3554,47 @@ function trodClear(){
   TROD.mesh.geometry.attributes.color.needsUpdate=true;
   TROD.mesh.geometry.attributes.normal.needsUpdate=true;
 }
+/* A NOTE ON WHERE THE SNOW ACTUALLY IS. The ground is one mesh on a grid
+   a unit and a half across, and nothing carves into it — so a floor
+   written BELOW it is simply behind it, hidden, and all that ever showed
+   of a print was the collar standing proud. Everything pressed into the
+   snow therefore sits just ABOVE the surface and gets its depth the way a
+   relief does: the shoved snow stands up as real geometry, the pressed
+   floor goes darker than any trough in the drift, and the body that made
+   it is dropped into the drift by snowSink so it is walking down among the
+   banks rather than over them. */
+const TROD_UP=.13,TROD_FLOOR=.115;   // (a road ribbon lies at +.05 and rides a little over a rise — clear it)
+/* THE GROUND MESH IS NOT THE GROUND FUNCTION. The field is one plane on a
+   grid a unit and a half across: it reads `groundAt` at the corners and is
+   FLAT between them, so over any rise the surface actually drawn sits
+   above the curve it was sampled from — by a good deal more than the few
+   centimetres a print stands proud. That is what swallowed the furrow into
+   every hillside. So anything laid on the snow asks the mesh's own surface
+   instead, interpolated the way the mesh interpolates it; and it is asked
+   ONCE, when the mark is made, because the ground does not move afterwards
+   and a mark being redrawn as it fills in has no business resampling it. */
+const GCELL=150/100;
+function groundMeshY(x,z){
+  if(PATH.on)return heightAt(x,z);                    // (the path's tiles are finer; the curve will do)
+  const gx=Math.floor((x+75)/GCELL)*GCELL-75,gz=Math.floor((z+75)/GCELL)*GCELL-75;
+  const fx=(x-gx)/GCELL,fz=(z-gz)/GCELL;
+  const a=heightAt(gx,gz),b=heightAt(gx+GCELL,gz),c=heightAt(gx,gz+GCELL),d=heightAt(gx+GCELL,gz+GCELL);
+  return (a*(1-fx)+b*fx)*(1-fz)+(c*(1-fx)+d*fx)*fz;
+}
 // the snow's own colours: the pressed floor of a print, its lit lip, and
 // the untouched surface its outer ring has to disappear into
-/* these are LINEAR, and the snow they have to sit in is a sRGB texture
-   decoded to about .30 — so the untouched ring is .30, the lit lip only
-   about twice that, and the pressed floor a third of it. Written as the
-   bright numbers they look on a canvas, a print came out a white ribbon
-   painted across the field. */
-const TROD_PIT=[.09,.11,.16],TROD_LIP=[.42,.45,.52],TROD_FLAT=[.30,.33,.38];
-function trodWrite(slot,p){
-  const G=TROD.G,VP=G*G,base=slot*VP,P=TROD.pos,C=TROD.col,N=TROD.nrm;
-  const k=Math.max(0,1-p.age/TROD.life);          // it fills back in as it ages
-  const d=p.depth*k,rim=p.depth*.42*k;
+/* These are LINEAR, and they have to live in a snow texture that renders
+   anywhere from about .45 in a trough to .70 on a lit crest. So the
+   untouched ring sits near the middle of that and all but disappears into
+   it, while the crest of shoved snow goes brighter than any drift and the
+   pressed floor goes darker than any trough: a furrow reads by its OWN
+   contrast, top to bottom, rather than by standing out against whatever
+   happens to be under it. Written as the bright numbers they look on a
+   canvas, they came out as white ribbons painted across the field. */
+const TROD_PIT=[.17,.20,.27],TROD_LIP=[.62,.66,.73],TROD_FLAT=[.46,.50,.57];
+// the patch a boot covers, measured once as it lands
+function trodShape(p){
+  const G=TROD.G,V=[];
   const fx=Math.sin(p.ang),fz=Math.cos(p.ang),rx=Math.cos(p.ang),rz=-Math.sin(p.ang);
   for(let j=0;j<G;j++)for(let i=0;i<G;i++){
     let u=i/(G-1)*2-1,v=j/(G-1)*2-1;
@@ -3562,15 +3605,23 @@ function trodWrite(slot,p){
     if(m>0){const rd=Math.hypot(u,v)||1,sc=m/rd;u*=sc;v*=sc;}
     const ax=u*p.w*.5,az=v*p.l*.5;
     const wx=p.x+rx*ax+fx*az,wz=p.z+rz*ax+fz*az;
-    const h=m>.99?0:m>.5?rim:-d;
-    const o=(base+j*G+i)*3;
-    P[o]=wx;P[o+1]=heightAt(wx,wz)+h+.012;P[o+2]=wz;
+    V.push({x:wx,y:groundMeshY(wx,wz),z:wz,m,nx:rx*u+fx*v,nz:rz*u+fz*v});
+  }
+  p.V=V;
+}
+function trodWrite(slot,p){
+  const G=TROD.G,VP=G*G,base=slot*VP,P=TROD.pos,C=TROD.col,N=TROD.nrm,V=p.V;
+  const k=Math.max(0,1-p.age/TROD.life);          // it fills back in as it ages
+  const rim=p.depth*1.1*k;
+  for(let q=0;q<VP;q++){
+    const v=V[q],m=v.m,o=(base+q)*3;
+    const h=m>.99?TROD_UP:m>.5?TROD_UP+rim:TROD_FLOOR;
+    P[o]=v.x;P[o+1]=v.y+h;P[o+2]=v.z;
     // the lip's own normal, tipped away from the middle of the print
-    const tip=m>.5&&m<.99?.6*k:0,nx=rx*u*tip+fx*v*tip,nz=rz*u*tip+fz*v*tip;
-    const nl=Math.hypot(nx,1,nz)||1;
+    const tip=m>.5&&m<.99?.6*k:0,nx=v.nx*tip,nz=v.nz*tip,nl=Math.hypot(nx,1,nz)||1;
     N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
     const c=m>.99?TROD_FLAT:m>.5?TROD_LIP:TROD_PIT;
-    for(let q=0;q<3;q++)C[o+q]=lerp(TROD_FLAT[q],c[q],k);   // and its colours flatten with it
+    for(let r=0;r<3;r++)C[o+r]=lerp(TROD_FLAT[r],c[r],k);   // and its colours flatten with it
   }
 }
 function trodFree(slot){
@@ -3596,27 +3647,212 @@ function snowSink(x,z){
 }
 /* press something into the snow: a boot, a shoulder rolled through it, a
    hollow's dragging foot. Silent unless there is snow to press */
-function snowStamp(x,z,ang,w,l,depth){
+function snowStamp(x,z,ang,w,l,depth,drop){
   if(RUN.weather!=='snow'&&RUN.weather!=='blizzard')return;
   trodInit();
   const slot=TROD.next;TROD.next=(TROD.next+1)%TROD.N;
   const k=.55+.9*snowDeep();                      // a drift takes a deeper print than a dusting
-  const p={x,z,ang,w:w*(.85+.3*snowDeep()),l:l*(.85+.3*snowDeep()),depth:depth*k,age:0};
-  TROD.live[slot]=p;trodWrite(slot,p);trodFlush();
+  const p={x,z,ang,w:w*(.85+.3*snowDeep()),l:l*(.85+.3*snowDeep()),depth:depth*k,drop:drop||0,age:0};
+  trodShape(p);TROD.live[slot]=p;trodWrite(slot,p);trodFlush();
   TROD.mesh.visible=true;
 }
 function updateTrod(dt){
   if(!TROD.mesh||!TROD.live)return;
   TROD.life=RUN.weather==='blizzard'?16:40;
   let touched=false;
+  for(let s=0;s<TROD.N;s++){const p=TROD.live[s];if(p){p.age+=dt;touched=true;}}
+  TROD.mesh.visible=touched;   // with nothing pressed into it the buffer is not drawn at all
+  TROD.tick-=dt;
+  if(!touched||TROD.tick>0)return;
+  TROD.tick=1/12;              // the fill-in is redrawn a dozen times a second, not sixty
   for(let s=0;s<TROD.N;s++){
     const p=TROD.live[s];if(!p)continue;
-    p.age+=dt;touched=true;
     if(p.age>=TROD.life)trodFree(s);else trodWrite(s,p);
   }
-  if(touched)trodFlush();
-  TROD.mesh.visible=touched;   // with nothing pressed into it the buffer is not drawn at all
+  trodFlush();
 }
+/* ============ THE FURROW ============
+   A line of separate boot-prints is what walking on snow leaves. It is not
+   what walking THROUGH snow leaves. In a drift the body does not step on
+   the surface, it PLOUGHS: the legs push the snow aside and what is left
+   behind is one continuous channel, its floor pressed flat and a bank of
+   shoved snow standing along either side of it, running back the whole way
+   you came.
+
+   Everything that can carve one gets a LANE — the pilgrim and the nine
+   nearest hollows — and a lane is a strip of cross-sections laid down as
+   it moves: seven points across, the untouched ground at each edge, a bank
+   crest inside that, and the pressed floor between. A section goes down
+   every third of a stride, the oldest is pushed off the back when the lane
+   is full, and the channel is always the last twenty paces or so. Roll,
+   and the section widens to the trough a shoulder makes.
+
+   Every lane in the field lives in one buffer and draws in one call, and
+   the boot-prints are pressed into the FLOOR of the furrow rather than
+   onto the ground, so they read as tread in the bottom of a channel and
+   not as mounds standing in it. */
+/* ACROSS the channel, in units of half the pressed floor's width: the
+   floor itself, then a crest of shoved snow standing outside each edge of
+   it, then the untouched snow the bank falls back into. A body ploughing
+   through a drift leaves a channel about as wide as the body, not a slot
+   cut with a knife — so the floor is the wide part and the banks stand
+   outside it rather than eating into it. */
+const TR_OFF=[-1.95,-1.45,-1,-.5,0,.5,1,1.45,1.95];
+const TR_CLS=[0,1,2,2,2,2,2,1,0];      // 0 untouched · 1 bank crest · 2 floor
+const TRAIL={LN:10,SEC:48,K:TR_OFF.length,STEP:.28,mesh:null,pos:null,col:null,nrm:null,lanes:null,tick:0};
+function trailDepth(scale){return .34*snowDeep()*(scale||1);}
+const PLOUGHS=()=>snowDeep()>=.8;    // only a real drift is ploughed through
+function trailInit(){
+  if(TRAIL.mesh)return;
+  const LN=TRAIL.LN,SEC=TRAIL.SEC,K=TRAIL.K,V=LN*SEC*K;
+  TRAIL.pos=new Float32Array(V*3);TRAIL.col=new Float32Array(V*3);TRAIL.nrm=new Float32Array(V*3);
+  const idx=new Uint16Array(LN*(SEC-1)*(K-1)*6);let o=0;
+  for(let L=0;L<LN;L++)for(let i=0;i<SEC-1;i++)for(let k=0;k<K-1;k++){
+    const b=(L*SEC+i)*K+k;
+    // wound so the face looks UP: along the lane crossed with across it
+    idx[o++]=b;idx[o++]=b+1;idx[o++]=b+K;idx[o++]=b+1;idx[o++]=b+K+1;idx[o++]=b+K;
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(TRAIL.pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(TRAIL.col,3));
+  geo.setAttribute('normal',new THREE.BufferAttribute(TRAIL.nrm,3));
+  geo.setIndex(new THREE.BufferAttribute(idx,1));
+  TRAIL.mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));
+  TRAIL.mesh.frustumCulled=false;TRAIL.mesh.renderOrder=1;TRAIL.mesh.visible=false;
+  scene.add(TRAIL.mesh);
+  TRAIL.lanes=[];for(let L=0;L<LN;L++)TRAIL.lanes.push({own:null,secs:[]});
+  trailClear();
+}
+function trailClear(){
+  if(!TRAIL.mesh)return;
+  TRAIL.pos.fill(-999);TRAIL.col.fill(0);
+  for(let i=0;i<TRAIL.nrm.length;i+=3){TRAIL.nrm[i]=0;TRAIL.nrm[i+1]=1;TRAIL.nrm[i+2]=0;}
+  for(const L of TRAIL.lanes){L.own=null;L.secs.length=0;}
+  TRAIL.mesh.visible=false;
+  const a=TRAIL.mesh.geometry.attributes;a.position.needsUpdate=a.color.needsUpdate=a.normal.needsUpdate=true;
+}
+// one cross-section of the channel, written where the lane says it goes
+function trailShape(sc){
+  const V=[];
+  for(let q=0;q<TR_OFF.length;q++){
+    const ax=TR_OFF[q]*sc.w*.5;
+    const wx=sc.x+sc.rx*ax,wz=sc.z+sc.rz*ax;
+    V.push({x:wx,y:groundMeshY(wx,wz),z:wz});
+  }
+  sc.V=V;
+}
+function trailWrite(L,i,sc){
+  const K=TRAIL.K,base=((L*TRAIL.SEC)+i)*K,P=TRAIL.pos,C=TRAIL.col,N=TRAIL.nrm,V=sc.V;
+  const k=Math.max(0,1-sc.age/TROD.life);
+  const rim=sc.d*.5*k;                                  // how high the shoved snow stands
+  for(let q=0;q<K;q++){
+    const cls=TR_CLS[q],o=(base+q)*3,v=V[q];
+    const h=cls===0?TROD_UP:cls===1?TROD_UP+rim:TROD_FLOOR;
+    P[o]=v.x;P[o+1]=v.y+h;P[o+2]=v.z;
+    const tip=cls===1?.75*k*Math.sign(TR_OFF[q]):0;     // the bank leans away from the channel
+    const nx=sc.rx*tip,nz=sc.rz*tip,nl=Math.hypot(nx,1,nz)||1;
+    N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
+    const c=cls===0?TROD_FLAT:cls===1?TROD_LIP:TROD_PIT;
+    for(let r=0;r<3;r++)C[o+r]=lerp(TROD_FLAT[r],c[r],k);
+  }
+}
+function trailBlank(L,i){
+  const K=TRAIL.K,b=((L*TRAIL.SEC)+i)*K*3;
+  for(let q=0;q<K*3;q++)TRAIL.pos[b+q]=-999;
+}
+/* lay the next section of a lane, if the thing has moved far enough. A big
+   jump (a roll's launch, a respawn, a tile torn down under it) breaks the
+   lane rather than dragging a sheet of snow across the field */
+function trailPush(lane,x,z,w,d){
+  const S=lane.secs,last=S[S.length-1];
+  if(last){
+    const dx=x-last.x,dz=z-last.z,dd=Math.hypot(dx,dz);
+    if(dd<TRAIL.STEP)return;
+    if(dd>2.2){S.length=0;}                         // too far to have walked it
+    else{
+      const rx=-dz/dd,rz=dx/dd;                     // across the line of travel
+      const sc={x,z,rx,rz,w,d,age:0};trailShape(sc);S.push(sc);
+      if(S.length>TRAIL.SEC)S.shift();
+      return;
+    }
+  }
+  const sc={x,z,rx:1,rz:0,w,d,age:0};trailShape(sc);S.push(sc);
+}
+function updateTrail(dt){
+  if(!TRAIL.mesh)return;
+  const deep=snowDeep();
+  if(!PLOUGHS()){if(TRAIL.mesh.visible)trailClear();return;}
+  // lane 0 is always the pilgrim's; the rest go to the nearest hollows
+  const L0=TRAIL.lanes[0];L0.own=player;
+  if(G.mode==='play'&&player.hp>0&&cathDist(player.x,player.z)>=4.5)
+    trailPush(L0,player.x,player.z,
+      (player.state==='roll'?1.3:.84)*(.75+.45*deep),
+      trailDepth(player.state==='roll'?1.3:1));
+  const near=[];
+  for(const e of enemies){
+    if(e.hp<=0||e.state==='dormant'||e.state==='burrowed')continue;
+    const dd=Math.hypot(e.x-player.x,e.z-player.z);
+    if(dd<30)near.push([dd,e]);
+  }
+  near.sort((a,b)=>a[0]-b[0]);
+  const want=new Set(near.slice(0,TRAIL.LN-1).map(n=>n[1]));
+  for(let L=1;L<TRAIL.LN;L++){const ln=TRAIL.lanes[L];
+    if(ln.own&&!want.has(ln.own)){ln.own=null;ln.secs.length=0;}}
+  for(const e of want){
+    if(TRAIL.lanes.some(l=>l.own===e))continue;
+    const free=TRAIL.lanes.find((l,i)=>i>0&&!l.own);if(!free)break;
+    free.own=e;free.secs.length=0;
+  }
+  for(let L=1;L<TRAIL.LN;L++){const ln=TRAIL.lanes[L];if(!ln.own)continue;
+    const e=ln.own,sc=e.boss?1.9:e.big?1.4:1;
+    trailPush(ln,e.x,e.z,.58*sc*(.75+.45*deep),trailDepth(sc*.9));
+  }
+  // the snow still falling fills a furrow in as it ages, and the whole
+  // buffer is rewritten a dozen times a second rather than every frame
+  let live=false;
+  for(const ln of TRAIL.lanes)for(const sc of ln.secs){sc.age+=dt;live=true;}
+  TRAIL.tick-=dt;
+  if(TRAIL.tick>0)return;
+  TRAIL.tick=1/12;
+  for(let L=0;L<TRAIL.LN;L++){
+    const S=TRAIL.lanes[L].secs;
+    for(let i=S.length-1;i>=0;i--)if(S[i].age>=TROD.life)S.splice(i,1);
+    for(let i=0;i<TRAIL.SEC;i++){if(i<S.length)trailWrite(L,i,S[i]);else trailBlank(L,i);}
+  }
+  TRAIL.mesh.visible=live;
+  const a=TRAIL.mesh.geometry.attributes;a.position.needsUpdate=a.color.needsUpdate=a.normal.needsUpdate=true;
+}
+
+/* SNOW THROWN UP. A furrow is what is left behind, and behind is mostly
+   where the camera is — what you actually watch, pace after pace, is the
+   snow the legs are shovelling aside RIGHT NOW. So each stride kicks a
+   little of it up and back: loose grains that fly, slow down, and drop.
+   More of it at a run, a whole sheet of it out of a roll. */
+function snowPuff(x,z,ang,n,force){
+  if(!snowDeep())return;
+  const y=heightAt(x,z);
+  for(let i=0;i<n;i++){
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.flake||texCache.glow,
+      color:0xe8f0ff,transparent:true,opacity:.85,depthWrite:false}));
+    const sc=.07+Math.random()*.1;
+    sp.scale.set(sc,sc,1);sp.position.set(x+rr3(-.18,.18),y+.06,z+rr3(-.18,.18));
+    scene.add(sp);
+    // thrown back along the stride, and out to the sides of it
+    const spread=rr3(-1.1,1.1),f=force*(.55+Math.random()*.75);
+    const vx=-Math.sin(ang)*f+Math.cos(ang)*spread*f*.5;
+    const vz=-Math.cos(ang)*f-Math.sin(ang)*spread*f*.5;
+    let vy=1.1+Math.random()*1.9,life=0;const dur=.34+Math.random()*.3;
+    effects.push({update(dt){
+      life+=dt;vy-=7.5*dt;
+      sp.position.x+=vx*dt;sp.position.y+=vy*dt;sp.position.z+=vz*dt;
+      if(sp.position.y<y+.02){sp.position.y=y+.02;vy=0;}
+      sp.material.opacity=Math.max(0,.85*(1-life/dur));
+      if(life>dur){scene.remove(sp);sp.material.dispose();return false;}
+      return true;
+    }});
+  }
+}
+
 /* and everything that moves through the field leaves its own mark: the
    pilgrim's boots, the long smear of a roll, and every hollow's tread,
    sized to whatever is doing the treading */
@@ -3628,7 +3864,7 @@ function trodEnemies(){
     if(e._trodX===undefined||d>stride){
       e._trodX=e.x;e._trodZ=e.z;
       const sc=e.boss?1.9:e.big?1.4:1;
-      snowStamp(e.x+rr3(-.12,.12)*sc,e.z+rr3(-.12,.12)*sc,e.facing||0,.34*sc,.6*sc,.11*sc);
+      snowStamp(e.x+rr3(-.1,.1)*sc,e.z+rr3(-.1,.1)*sc,e.facing||0,.34*sc,.6*sc,.1*sc);
     }
   }
 }
@@ -3638,16 +3874,37 @@ function updateWeather(dt){
   const wind=Math.sin(G.time*.4)*1.2,bliz=RUN.weather==='blizzard',snow=RUN.weather==='snow'||bliz;
   // a blizzard does not fall, it is DRIVEN: one way, hard, the gusts
   // shoving the whole sheet of it sideways faster than it drops
-  const gust=bliz?7.5+Math.sin(G.time*.7)*3.4+Math.sin(G.time*2.3)*1.6:0;
+  // a storm does not blow steadily: it LEANS, and every so often it throws
+  // its shoulder into the field and everything goes white for a second or two
+  const sq=WX.squall||0;
+  const gust=bliz?(13+Math.sin(G.time*.55)*5.5+Math.sin(G.time*1.9)*3.2+Math.sin(G.time*4.7)*1.4)*(1+sq*.85):0;
   for(let i=0;i<n;i++){const o=i*3;
     P[o+1]-=S[i]*dt;
     // a flake is pushed about on its way down; a drop is not
-    if(bliz){P[o]+=(gust+Math.sin(G.time*5+i)*1.4)*dt;P[o+2]+=(gust*.42+Math.cos(G.time*4+i*.7)*1.2)*dt;}
+    if(bliz){P[o]+=(gust+Math.sin(G.time*5+i)*2.1)*dt;P[o+2]+=(gust*.42+Math.cos(G.time*4+i*.7)*1.8)*dt;}
     else if(snow){P[o]+=(wind*.45+Math.sin(G.time*1.7+i)*.55)*dt;P[o+2]+=Math.cos(G.time*1.3+i*.7)*.45*dt;}
     else P[o]+=wind*dt;
-    if(P[o+1]<cy-9||Math.abs(P[o]-cx)>18||Math.abs(P[o+2]-cz)>18){P[o]=cx+rr3(-18,18);P[o+1]=cy+rr3(6,13);P[o+2]=cz+rr3(-18,18);}
+    if(P[o+1]<cy-9||Math.abs(P[o]-cx)>18||Math.abs(P[o+2]-cz)>18){
+      const low=bliz&&i%3===0;
+      P[o]=cx+rr3(-18,18);P[o+1]=low?heightAt(cx,cz)+rr3(.1,1.8):cy+rr3(6,13);P[o+2]=cz+rr3(-18,18);}
   }
   WX.rain.geometry.attributes.position.needsUpdate=true;
+  /* THE SQUALL. Every so often the storm leans on the field: the wind goes
+     up by most of itself again, the fog shuts to half what it was, and for
+     a second or two there is nothing out there at all. It swells and lets
+     go over about four seconds, and the wind's own voice swells with it —
+     the hiss is fed in slowly on purpose, so it arrives as a rising roar
+     rather than a switch being thrown. */
+  if(RUN.weather==='blizzard'){
+    WX.nextSquall-=dt;
+    if(WX.nextSquall<=0){WX.nextSquall=rr3(7,15);WX.squallT=0;}
+    WX.squallT=(WX.squallT||9)+dt;
+    const p=WX.squallT<4?Math.sin(Math.min(1,WX.squallT/4)*Math.PI):0;
+    WX.squall=p*p;
+    const r=FOG_BY_WX.blizzard;
+    if(scene.fog){scene.fog.near=r[0]*(1-.45*WX.squall);scene.fog.far=r[1]*(1-.5*WX.squall);}
+    AudioSys.setRain(WX.level*(1+.9*WX.squall));
+  }else if(WX.squall){WX.squall=0;}
   if(RUN.weather==='storm'){
     WX.nextBolt-=dt;
     if(WX.nextBolt<=0){WX.nextBolt=rr3(5,14);WX.flash=1;WX.pop=.13;const near=Math.random()<.4;
@@ -3751,8 +4008,9 @@ function addWisp(x,y,z,color,size){
 }
 
 function updateAmbient(t,dt){
-  updateWeather(dt);updateTrod(dt);
-  if(RUN.weather==='snow'||RUN.weather==='blizzard')trodEnemies();
+  updateWeather(dt);
+  if(snowDeep()){trailInit();if(!PLOUGHS())trodEnemies();}
+  updateTrail(dt);updateTrod(dt);
   flushPaint();
   if(PATH.on)for(const w of wispSystems)if(w.dust)w.pts.position.z=player.z;
   for(const L of lanternLights){
@@ -7038,7 +7296,7 @@ const player={
       }
     };
     const startDodge=(s)=>{
-      this.state='roll';this.t=0;this.rollTrodT=0;
+      this.state='roll';this.t=0;this.rollPuffT=0;
       if(s&&s.sx!==null){const a=swipeWorld(s);this.rollDX=Math.sin(a);this.rollDZ=Math.cos(a);}
       else if(mAmt>0){this.rollDX=mvx;this.rollDZ=mvz;}
       else{this.rollDX=-Math.sin(this.facing);this.rollDZ=-Math.cos(this.facing);} // neutral = backstep
@@ -7226,9 +7484,12 @@ const player={
         this._heelOn=true;
         const onFlags=cathDist(this.x,this.z)<4.5;
         AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)),onFlags?'stone':snowy?'snow':'grass');   // (the flags and the stair ring; the field is turf, or snow over it)
+        // a dusting is stepped ON and keeps a boot; a drift is ploughed
+        // THROUGH and keeps a furrow instead (see updateTrail)
         if(snowy){if(!onFlags){printSnow(this.x,this.z,this.facing);
-          const side=Math.random()<.5?-.17:.17;                                // left boot or right, pressed in
-          snowStamp(this.x+Math.cos(this.facing)*side,this.z-Math.sin(this.facing)*side,this.facing,.34,.62,.13);}}
+          snowPuff(this.x,this.z,this.facing,this.sprinting?5:3,this.sprinting?3.1:1.9);
+          if(!PLOUGHS()){const side=Math.random()<.5?-.15:.15;                 // left boot or right
+            snowStamp(this.x+Math.cos(this.facing)*side,this.z-Math.sin(this.facing)*side,this.facing,.34,.62,.13);}}}
         else if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
       }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
@@ -7612,13 +7873,11 @@ const player={
       const sp=this.t<TUMBLE?12.5*(1-easeIn(p)*.72)
         :3.2*(1-(this.t-TUMBLE)/(DUR-TUMBLE));            // rides out on the feet
       this.x+=this.rollDX*sp*dt;this.z+=this.rollDZ*sp*dt;
-      // a body through deep snow does not step, it PLOUGHS: a wide, long
-      // trough laid down the length of the tumble
-      if(RUN.weather==='snow'||RUN.weather==='blizzard'){
-        this.rollTrodT=(this.rollTrodT||0)-dt;
-        if(this.rollTrodT<=0&&this.t<TUMBLE){this.rollTrodT=.055;
-          snowStamp(this.x,this.z,Math.atan2(this.rollDX,this.rollDZ),.78,.62,.15);}
-      }
+      // the furrow widens to a trough of its own accord while rolling (see
+      // updateTrail); what the roll adds is the sheet of snow it throws
+      if(snowDeep()){this.rollPuffT=(this.rollPuffT||0)-dt;
+        if(this.rollPuffT<=0&&this.t<TUMBLE){this.rollPuffT=.05;
+          snowPuff(this.x,this.z,Math.atan2(this.rollDX,this.rollDZ),4,4.2);}}
       if(this.t<TUMBLE)trampleBreakables(this.x,this.z,.5,'pew');   // a roll through a pew breaks it
       // attack pressed mid-roll banks a rolling attack
       if(IN.swipe&&IN.swipe.kind==='atk')
@@ -10053,7 +10312,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,printSnow,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
