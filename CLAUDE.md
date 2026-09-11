@@ -180,6 +180,20 @@ Known state of play:
   nothing beyond the fog to cull and no draw distance to win back by pulling
   the camera's far plane in. This was measured; do not re-litigate it.
 
+- **The sky dome's horizon is the MIDDLE of its texture**, and the camera
+  only ever shows roughly y 0.25 to 0.50 of the canvas. Anything painted
+  below y 0.5 is under the ground and will never be seen — the original
+  gradients put their whole horizon band at 0.72-1.0, which is why every
+  sky was a flat wash for so long. Paint into the top half. (`cloudBand`
+  and the `skyDay`/`skyDusk`/`skyDawn`/overcast gradients all assume this.)
+  A gradient made with `createRadialGradient` uses ABSOLUTE canvas
+  coordinates, so if you scale the context to squash a lobe you must scale
+  about the lobe's own centre (translate out, scale, translate back) or the
+  gradient slides off the shape and the whole thing paints in its own
+  transparent edge colour — silently, with no error.
+- Background audio all runs through `musicMaster` at `BG_GAIN`. Change the
+  constant, not the individual layers, for an across-the-board move.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,

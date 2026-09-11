@@ -377,6 +377,36 @@ them the seed decides:
   sun, a pale haze and a blue sky, the lanterns barely showing. The
   sky's two lights, the fog colour, the sky dome, the sun or moon
   sprite, the grade's exposure and the lanterns' strength all follow.
+  **Noon reads as the middle of the day** — the fill up by a third, the sun
+  harder and whiter, a brighter haze to stand in and the grade's exposure
+  lifted with it. It had been landing somewhere around six in the evening.
+- **the clouds.** The dome carried nothing but a gradient, and a sky with
+  no cloud in it reads as a backdrop. Every hour now has banks of them,
+  drawn as masses of overlapping lozenges, each lit along its top edge and
+  dark underneath so it has a lit side and a base rather than being fog:
+  fair-weather cumulus by day, cloud undersides lit orange at dusk, cold
+  gold at the green dawn. The dome turns a few degrees a minute — faster
+  when the wind is up enough to drive snow or rain sideways — so they go
+  somewhere.
+  Finding where to put them turned up something that had been wrong since
+  the skies were written. **The dome's horizon falls at the middle of the
+  texture**, and the camera, low behind the pilgrim's shoulder, shows a
+  strip from about a quarter of the way down to it. Every gradient had its
+  best part — the pale horizon band, the dusk's orange, the dawn's gold —
+  placed at three-quarters and below, which is *under the ground*, and not
+  one pixel of it had ever been seen. That is why the sky was a flat wash
+  at every hour. The stops are all pulled up into the top half now.
+- **the overcast sheets are tinted by the hour.** They are painted once and
+  used at every hour, so a pale rain sky hung over a midnight field like a
+  lit ceiling. The dome is dimmed to a fifth under a night's cloud, half
+  under a dusk, and full only at noon; a storm's lightning multiplies on
+  top of that rather than replacing it.
+- **the ambience runs at under two-thirds.** The whole background bus —
+  wind, drone, rain, thunder, the far-off creaks and the theme — sat at
+  full and talked over the game. The storm's own two voices, which were the
+  loudest things in the field by a distance, are pulled down harder still
+  on top of that: the rain bed by nearly half, and every layer of the
+  thunder by half.
 - **the weather** — clear (three in seven), light rain, a storm, snow, or
   a blizzard.
   Rain is a cloud of streaks that lives round the camera and falls

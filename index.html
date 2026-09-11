@@ -1307,6 +1307,12 @@ const AudioSys=(()=>{
   // swing and voice — and the BACKGROUND on the other: the music, and all
   // that is ambient with it (the wind, the drone, the far-off creaks and
   // crows, the rain, the thunder) — so either can be switched off (testing)
+  /* the whole BACKGROUND bus — wind, drone, rain, thunder, the far-off
+     creaks and the theme — sat at full and shouted over the game. It runs
+     at a bit under two-thirds now, and the storm's own two voices, which
+     were the loudest things in the field by a distance, are pulled down
+     harder still on top of that. */
+  const BG_GAIN=.62;
   let sfxBus=null,musicMaster=null,sfxOn=true,musicWanted=true;
   try{sfxOn=localStorage.getItem('bp_sfx')!=='0';musicWanted=localStorage.getItem('bp_music')!=='0';}catch(e){}                                     // the rain bed's gain, and the level asked for before the graph exists
   let verbSend=null,verbWet=null,space=0;
@@ -1333,7 +1339,7 @@ const AudioSys=(()=>{
     ac=new (window.AudioContext||window.webkitAudioContext)();
     master=ac.createGain();master.gain.value=.7;
     sfxBus=ac.createGain();sfxBus.gain.value=sfxOn?1:0;sfxBus.connect(master);
-    musicMaster=ac.createGain();musicMaster.gain.value=musicWanted?1:0;musicMaster.connect(master);
+    musicMaster=ac.createGain();musicMaster.gain.value=musicWanted?BG_GAIN:0;musicMaster.connect(master);
     const crush=ac.createWaveShaper();crush.curve=crushCurve();crush.oversample='none';
     const dull=ac.createBiquadFilter();dull.type='lowpass';dull.frequency.value=6800;dull.Q.value=.6;
     const rumble=ac.createBiquadFilter();rumble.type='highpass';rumble.frequency.value=32;
@@ -1363,7 +1369,7 @@ const AudioSys=(()=>{
     // graveyard wind: looped noise through a slowly wandering lowpass
     const src=ac.createBufferSource();src.buffer=noiseBuf;src.loop=true;
     const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=320;f.Q.value=.8;
-    const g=ac.createGain();g.gain.value=.022;                    // faint: a breath at the edge of hearing
+    const g=ac.createGain();g.gain.value=.016;                    // faint: a breath at the edge of hearing
     src.connect(f).connect(g).connect(musicMaster);src.start();
     const lfo=ac.createOscillator();lfo.frequency.value=.07;
     const lg=ac.createGain();lg.gain.value=190;
@@ -1374,7 +1380,7 @@ const AudioSys=(()=>{
     // a second, higher wind band: grit and grass hiss riding over the low moan
     const src2=ac.createBufferSource();src2.buffer=noiseBuf;src2.loop=true;src2.playbackRate.value=1.9;
     const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1400;f2.Q.value=.7;
-    const g2=ac.createGain();g2.gain.value=.006;
+    const g2=ac.createGain();g2.gain.value=.0045;
     src2.connect(f2).connect(g2).connect(musicMaster);src2.start();
     const lfo3=ac.createOscillator();lfo3.frequency.value=.11;
     const lg3=ac.createGain();lg3.gain.value=.004;lfo3.connect(lg3).connect(g2.gain);lfo3.start();
@@ -1384,7 +1390,7 @@ const AudioSys=(()=>{
       const rf=ac.createBiquadFilter();rf.type='bandpass';rf.frequency.value=2600;rf.Q.value=.5;
       const rs2=ac.createBufferSource();rs2.buffer=noiseBuf;rs2.loop=true;rs2.playbackRate.value=.6;
       const rf2=ac.createBiquadFilter();rf2.type='lowpass';rf2.frequency.value=700;
-      rainG=ac.createGain();rainG.gain.value=rainLevel*.085;
+      rainG=ac.createGain();rainG.gain.value=rainLevel*.046;
       rs.connect(rf).connect(rainG);rs2.connect(rf2).connect(rainG);rainG.connect(musicMaster);rs.start();rs2.start();
       const rl=ac.createOscillator();rl.frequency.value=.13;const rlg=ac.createGain();rlg.gain.value=.012;rl.connect(rlg).connect(rainG.gain);rl.start();}
     // the field is never silent: far-off creaks, a crow, a chain — sparse and random
@@ -1778,20 +1784,20 @@ const AudioSys=(()=>{
       noise(t+.05,{peak:.36,att:.05,dec:1.1,f0:320,f1:60});tone(t+.02,{f:2600,f2:900,type:'square',peak:.05,att:.002,dec:.12});},
     // the two switches (testing): the effects, and the music
     setSfx(on){sfxOn=!!on;try{localStorage.setItem('bp_sfx',on?'1':'0');}catch(e){}if(sfxBus)sfxBus.gain.setTargetAtTime(on?1:0,ac.currentTime,.05);},
-    setMusicOn(on){musicWanted=!!on;try{localStorage.setItem('bp_music',on?'1':'0');}catch(e){}if(musicMaster)musicMaster.gain.setTargetAtTime(on?1:0,ac.currentTime,.1);},
+    setMusicOn(on){musicWanted=!!on;try{localStorage.setItem('bp_music',on?'1':'0');}catch(e){}if(musicMaster)musicMaster.gain.setTargetAtTime(on?BG_GAIN:0,ac.currentTime,.1);},
     sfxOn(){return sfxOn;},musicOn(){return musicWanted;},
     // the world holds still: the whole graph sleeps
     pause(on){if(!ac)return;if(on)ac.suspend();else ac.resume();},
     tap(){if(!ac)return null;const a=ac.createAnalyser();a.fftSize=2048;master.connect(a);return a;},   // (probes: the mix at the master)
     chanting(){return !!chant;},
     // the rain's level: 0, a light rain, or a storm
-    setRain(level){rainLevel=level;if(rainG&&ac)rainG.gain.setTargetAtTime(level*.085,ac.currentTime,2);},
+    setRain(level){rainLevel=level;if(rainG&&ac)rainG.gain.setTargetAtTime(level*.046,ac.currentTime,2);},
     // thunder: a near bolt cracks first and rolls hard; a far one only rolls, long and low
     thunder(near){if(!ac)return;const t=now(),bus=musicMaster;   // (weather: background)
-      if(near){noise(t,{peak:.55,att:.003,dec:.3,f0:2400,f1:160,bus});tone(t,{f:90,f2:40,type:'sawtooth',peak:.22,att:.005,dec:.4,bus});}
-      noise(t+(near?.06:0),{peak:near?.5:.3,att:near?.08:.5,dec:near?2.4:3.4,f0:170,f1:45,bus});
-      noise(t+.5,{peak:near?.28:.2,att:.3,dec:2.6,f0:120,f1:40,bus});
-      tone(t,{f:44,f2:26,type:'sine',peak:near?.4:.25,att:.12,dec:2.6});},
+      if(near){noise(t,{peak:.27,att:.003,dec:.3,f0:2400,f1:160,bus});tone(t,{f:90,f2:40,type:'sawtooth',peak:.11,att:.005,dec:.4,bus});}
+      noise(t+(near?.06:0),{peak:near?.25:.15,att:near?.08:.5,dec:near?2.4:3.4,f0:170,f1:45,bus});
+      noise(t+.5,{peak:near?.14:.1,att:.3,dec:2.6,f0:120,f1:40,bus});
+      tone(t,{f:44,f2:26,type:'sine',peak:near?.2:.12,att:.12,dec:2.6,bus});},
     start,setSpace,
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
@@ -3191,12 +3197,67 @@ function buildWorld(){
     night:  {hemi:[0x46596a,0x201d18,.26],sun:[0x9cb2c4,.21,[28,52,-34]],fog:0x090d12,sky:'sky',moon:true,sunSprite:null,expo:1.04,lamp:1,dust:.5},
     dusk:   {hemi:[0x7a4e62,0x2a1a14,.5],sun:[0xff8a4a,.6,[-60,12,14]],fog:0x2a1a26,sky:'skyDusk',moon:false,sunSprite:{pos:[-96,14,22],col:0xff9a4a,size:26},expo:1.0,lamp:.9,dust:.3},
     sunrise:{hemi:[0x8fb4a2,0x2c3a2a,.55],sun:[0xe8dca0,.62,[62,10,-12]],fog:0x33443a,sky:'skyDawn',moon:false,sunSprite:{pos:[98,12,-20],col:0xf0e8b0,size:24},expo:1.0,lamp:.7,dust:.25},   // a GREEN dawn: cold teal overhead, pale green-gold at the horizon (dusk keeps the purples)
-    noon:   {hemi:[0x9fb4d0,0x5a5244,.9],sun:[0xfff4dc,.95,[20,80,10]],fog:0x8a96a4,sky:'skyDay',moon:false,sunSprite:{pos:[30,120,15],col:0xfff8e8,size:18},expo:.95,lamp:.35,dust:.12},
+    // NOON reads as the middle of the day now: the fill up by a third, the
+    // sun harder and whiter, a brighter haze to sit in and the grade's
+    // exposure lifted with it. It was landing somewhere around six o'clock.
+    noon:   {hemi:[0xbcd0e8,0x6d6656,1.22],sun:[0xfffaf0,1.2,[20,80,10]],fog:0xa8b4c2,sky:'skyDay',moon:false,sunSprite:{pos:[30,120,15],col:0xfffdf4,size:20},expo:1.14,lamp:.3,dust:.12},
   };Object.assign(HOURS,_T);}
   const T=TIMES[RUN.time];RUN.fog=new THREE.Color(T.fog);
-  makeTex('skyDay',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#3a5a8a');g.addColorStop(.5,'#7a94b8');g.addColorStop(.85,'#a8b4bc');g.addColorStop(1,'#a8b4bc');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
-  makeTex('skyDusk',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#1a1428');g.addColorStop(.45,'#5a2a4a');g.addColorStop(.72,'#b8563a');g.addColorStop(.85,'#d08a4a');g.addColorStop(1,'#2a1a26');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
-  makeTex('skyDawn',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#1c2e34');g.addColorStop(.45,'#3f6f62');g.addColorStop(.72,'#a8c98e');g.addColorStop(.85,'#e6dc9a');g.addColorStop(1,'#33443a');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
+  /* CLOUD BANKS. The dome carried nothing but a gradient, and a sky with
+     no cloud in it reads as a backdrop. These are drawn in the lower half
+     of the canvas — the band between the zenith and the horizon, where a
+     sphere's mapping does not pinch — as masses of overlapping lozenges,
+     each a little brighter along its top edge and darker underneath, so
+     they have a lit side and a base rather than being fog. The dome turns
+     a few degrees a minute, so they drift.
+     WHERE THE SKY ACTUALLY IS ON THIS CANVAS: the dome's equator — the
+     horizon — falls at y = 0.5, and the camera, sitting low behind the
+     pilgrim's shoulder, shows a strip from about y 0.25 up to it. Every
+     one of these gradients had its good part (the pale horizon band, the
+     dusk's orange, the dawn's gold) placed at y 0.72 to 1.0, which is
+     under the ground and has never once been seen. That is why the sky was
+     a flat wash. The stops are all pulled up into the top half now, and
+     the cloud with them. */
+  const cloudBand=(ctx,S,n,top,base,y0,y1,scale,alpha)=>{
+    for(let i=0;i<n;i++){
+      const cy=S*rr(y0,y1),cx=rnd()*S,w=S*scale*rr(.6,1.5),h=w*rr(.16,.3);
+      for(let j=0;j<7;j++){                                  // one mass, built of lobes
+        const ox=cx+rr(-w*.5,w*.5),oy=cy+rr(-h*.35,h*.35),r=h*rr(.5,1.15);
+        const g=ctx.createRadialGradient(ox,oy-r*.3,r*.1,ox,oy,r);
+        g.addColorStop(0,`rgba(${top[0]},${top[1]},${top[2]},${alpha})`);
+        g.addColorStop(.55,`rgba(${base[0]},${base[1]},${base[2]},${alpha*.8})`);
+        g.addColorStop(1,`rgba(${base[0]},${base[1]},${base[2]},0)`);
+        ctx.fillStyle=g;
+        // scale ABOUT the lobe's own centre — translate out, scale, translate
+        // back — or the gradient, whose coordinates are absolute, is carried
+        // off the shape it is meant to fill and the whole cloud paints in its
+        // own transparent edge colour. (Which is exactly what happened.)
+        ctx.save();ctx.translate(ox,oy);ctx.scale(1.7,1);ctx.translate(-ox,-oy);
+        ctx.beginPath();ctx.arc(ox,oy,r,0,TAU);ctx.fill();ctx.restore();
+      }
+    }
+  };
+  makeTex('skyDay',256,(ctx,S)=>{srand(61);const g=ctx.createLinearGradient(0,0,0,S);
+    g.addColorStop(0,'#2f63ae');g.addColorStop(.26,'#5f8fca');g.addColorStop(.42,'#9dbcdb');
+    g.addColorStop(.50,'#cfdae3');g.addColorStop(1,'#cfdae3');
+    ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+    // the strip of sky the camera actually shows is a narrow one, so the
+    // band is laid thickly across the whole lower half rather than placed
+    // where a sky looks best on a flat canvas
+    cloudBand(ctx,S,6,[255,255,255],[146,163,190],.20,.36,.24,.92);   // fair-weather cumulus, lit from above
+    cloudBand(ctx,S,11,[252,254,255],[136,151,178],.36,.50,.15,.9);});// and a bank of them stacked on the horizon
+  makeTex('skyDusk',256,(ctx,S)=>{srand(62);const g=ctx.createLinearGradient(0,0,0,S);
+    g.addColorStop(0,'#170f22');g.addColorStop(.20,'#4a2444');g.addColorStop(.36,'#9c4440');
+    g.addColorStop(.46,'#d0854a');g.addColorStop(.50,'#e6a95e');g.addColorStop(1,'#e6a95e');
+    ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+    cloudBand(ctx,S,8,[255,196,138],[84,44,66],.20,.36,.24,.78);
+    cloudBand(ctx,S,16,[255,178,112],[58,30,48],.35,.50,.16,.85);});   // lit along the top by what is left of the sun
+  makeTex('skyDawn',256,(ctx,S)=>{srand(63);const g=ctx.createLinearGradient(0,0,0,S);
+    g.addColorStop(0,'#18282f');g.addColorStop(.20,'#376458');g.addColorStop(.37,'#8bb87e');
+    g.addColorStop(.47,'#dcd894');g.addColorStop(.50,'#ece7a4');g.addColorStop(1,'#ece7a4');
+    ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+    cloudBand(ctx,S,7,[236,246,196],[54,86,80],.20,.36,.22,.7);
+    cloudBand(ctx,S,16,[244,250,206],[44,74,70],.35,.50,.15,.8);});    // cold green dawn, the cloud edges catching it
   scene.background=RUN.fog.clone();
   /* the field goes off into the very colour the sky is, so the land never
      ends at a hard edge and the far tiles of the path arrive out of haze
@@ -3396,6 +3457,14 @@ function applyTime(name){
   const storm=RUN.weather==='storm',rain=RUN.weather==='rain',snow=RUN.weather==='snow'||bliz,overcast=storm||rain||snow;
   if(overcast&&!texCache.skyStorm)makeCloudSkies();
   worldLights.dome.material.map=texCache[storm?'skyStorm':overcast?'skyRain':T.sky];worldLights.dome.material.needsUpdate=true;
+  /* the overcast sheets are painted once and used at every hour, so at
+     NIGHT a pale rain sky hung over the field like a lit ceiling. The dome
+     is tinted by the hour instead — near black under a night's cloud,
+     halfway under a dusk, full only at noon. The lightning flash multiplies
+     on top of this rather than replacing it. */
+  worldLights.domeTint=overcast
+    ?({night:.19,dusk:.5,sunrise:.62,noon:1}[name]||1)*(storm?.85:1)
+    :1;
   if(worldLights.moonSprite)worldLights.moonSprite.visible=!!T.moon&&!overcast;
   if(worldLights.sunSprite){const s=worldLights.sunSprite;s.visible=!!T.sunSprite&&!overcast;
     if(T.sunSprite){s.material.color.setHex(T.sunSprite.col);s.scale.set(T.sunSprite.size,T.sunSprite.size,1);s.position.set(...T.sunSprite.pos);}}
@@ -3421,11 +3490,11 @@ function applyTime(name){
 function makeCloudSkies(){
   const draw=(dark)=>(ctx,S)=>{
     const g=ctx.createLinearGradient(0,0,0,S);
-    if(dark){g.addColorStop(0,'#1e2228');g.addColorStop(.5,'#3a3f47');g.addColorStop(.85,'#565b62');g.addColorStop(1,'#3c424a');}
-    else{g.addColorStop(0,'#6e7580');g.addColorStop(.5,'#8d939c');g.addColorStop(.85,'#a7abb0');g.addColorStop(1,'#6a7078');}
+    if(dark){g.addColorStop(0,'#171a20');g.addColorStop(.22,'#2c3038');g.addColorStop(.40,'#454a53');g.addColorStop(.50,'#5a606a');g.addColorStop(1,'#5a606a');}
+    else{g.addColorStop(0,'#5f6772');g.addColorStop(.22,'#7c838d');g.addColorStop(.40,'#99a0a8');g.addColorStop(.50,'#adb2b8');g.addColorStop(1,'#adb2b8');}
     ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
     let q=dark?77:78;const R=()=>{q=(Math.imul(q,1664525)+1013904223)>>>0;return q/4294967296;},RR=(a,b)=>a+R()*(b-a);   // its own little generator: the field's seed is left untouched
-    for(let i=0;i<90;i++){const cx=R()*S,cy=R()*S*.8,rx=S*RR(.08,.24),ry=rx*RR(.3,.6);
+    for(let i=0;i<110;i++){const cx=R()*S,cy=RR(.02,.52)*S,rx=S*RR(.07,.22),ry=rx*RR(.28,.58);
       const l=dark?RR(-.08,.09):RR(-.05,.07);const c=Math.round((dark?70:150)*(1+l));
       const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,rx);rg.addColorStop(0,`rgba(${c},${c+2},${c+6},${dark?.5:.35})`);rg.addColorStop(1,`rgba(${c},${c+2},${c+6},0)`);
       ctx.fillStyle=rg;ctx.save();ctx.translate(cx,cy);ctx.scale(1,ry/rx);ctx.translate(-cx,-cy);ctx.beginPath();ctx.arc(cx,cy,rx,0,TAU);ctx.fill();ctx.restore();}
@@ -4132,6 +4201,9 @@ function addWisp(x,y,z,color,size){
 }
 
 function updateAmbient(t,dt){
+  // the sky turns a few degrees a minute, so its cloud goes somewhere —
+  // faster when the wind is up enough to be driving snow or rain sideways
+  if(worldLights.dome)worldLights.dome.rotation.y+=dt*(RUN.weather==='blizzard'?.028:RUN.weather==='storm'?.016:.0045);
   updateWeather(dt);
   if(snowDeep()){trailInit();if(!PLOUGHS())trodEnemies();}
   updateTrail(dt);updateTrod(dt);
@@ -10416,7 +10488,7 @@ function frame(now){
   {const f=WX.flash||0;                                                       // (a storm's bolt lights everything for a few frames)
     worldLights.hemi.intensity=worldLights.hemiBase*(1-.45*G.naveDim)+f*2.4;
     worldLights.moon.intensity=worldLights.moonBase*(1-.55*G.naveDim)+f*1.2;
-    if(worldLights.dome)worldLights.dome.material.color.setScalar(1+f*3.5);
+    if(worldLights.dome)worldLights.dome.material.color.setScalar((worldLights.domeTint||1)*(1+f*3.5));
     if(RUN.fog)scene.background.copy(RUN.fog).lerp(WX_WHITE,f*.8);}
   gradeMat.uniforms.uExpo.value=(worldLights.expo||1.04)*(1+.06*G.naveDim);
   AudioSys.setSpace(G.naveDim);
