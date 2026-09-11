@@ -122,6 +122,24 @@ Known state of play:
   1684 after** — 219 fewer — with the triangle count identical at 59.0k
   either way, which is the check that the fold neither lost nor duplicated
   geometry. The draw calls are the number that matters on a phone.
+- Since then the field reads **~1691 draws / 66.4k triangles**. The extra
+  7.4k is bought deliberately: `box()` and `cyl()` (near line 2529) now
+  segment the world's geometry about every two units, six a side at most,
+  via `WSEG`. Affine texture mapping's swim is an error proportional to
+  the triangle's size, and the cathedral's faces were single quads
+  twenty-four units wide, so the brick courses bowed and sheared. Cutting
+  them up is what the PS1 itself did. **Do not undo this to win the
+  triangles back** — the bricks glitch again if you do, and the draws (the
+  number that matters) barely moved.
+- Two systems add exactly one draw each, and only in snow: the snowfall
+  points, and `TROD` (near `updateWeather`) — every boot-print, roll-trough
+  and hollow's tread in the field written into one shared world-space
+  buffer, 72 slots, oldest recycled. Do not give prints their own meshes.
+- The imbued weapon's glow (`buildWeaponGlow`, near `ELEMENTS`) hangs two
+  additive copies on every part of the weapon. They are `visible=false`
+  until an element is taken, so an unlit weapon costs nothing; while lit it
+  is roughly 20-30 extra draws on one small object. `player.rebuild()` must
+  call `disposeWeaponGlow` first or the puffed fringe geometry leaks.
 - What dominates now is the **character rigs**: every hollow, and the hero,
   is assembled from dozens of small meshes, each animated on its own
   transform. That is the next real win and the hardest, since instancing

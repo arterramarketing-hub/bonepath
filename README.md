@@ -377,7 +377,8 @@ them the seed decides:
   sun, a pale haze and a blue sky, the lanterns barely showing. The
   sky's two lights, the fog colour, the sky dome, the sun or moon
   sprite, the grade's exposure and the lanterns' strength all follow.
-- **the weather** — clear (three in six), light rain, a storm, or snow.
+- **the weather** — clear (three in seven), light rain, a storm, snow, or
+  a blizzard.
   Rain is a cloud of streaks that lives round the camera and falls
   through it, with its own hiss and patter under the wind; a storm has
   nine hundred of them, and every five to fourteen seconds a bolt: the
@@ -407,6 +408,36 @@ them the seed decides:
   the print crunches, a dry squeak of crust breaking over the pack of
   weight going into it. Changing the weather clears the paint sheet:
   what was gouged in mud is not there under a foot of snow.
+- **a blizzard** is snow past the point of weather. Two thousand four
+  hundred flakes, and they do not fall — they are *driven*, one way and
+  hard, the gusts shoving the whole sheet of it sideways faster than it
+  drops, with a hiss under it that quiet snow does not have. The sky is
+  shut and the sun is put out; the fog closes to **nine and forty-four**,
+  which is a white room a few strides wide, and a hollow comes out of it
+  at about the distance it can smell you from. The ground takes the
+  deeper texture — longer, softer drifts, the stalks buried, only the
+  largest bones still proud of it. And the footing swaps one complaint
+  for another: where fresh snow is *slippery*, drifts **drag**. The top
+  speed comes down by a fifth and the skid comes back, because a man
+  wading is not a man sliding.
+- **trodden snow** — under snow of either kind, what walks through it
+  leaves a hole, not a stain. Every print is real geometry: a five-by-five
+  patch of ground, twenty-five vertices and thirty-two triangles, its
+  middle pressed below the surface with a lip of shoved snow standing
+  round it — so it catches the light on one side, holds shadow on the
+  other, and reads from any angle instead of only from above. The
+  pilgrim's boots leave them, left and right off the centre line. A
+  **roll** does not step, it ploughs: a wide shallow trough laid the whole
+  length of the tumble. And **every hollow in the field leaves its own**,
+  scaled to what is doing the treading — a mini's tread, the big one's,
+  the Warden's at nearly twice the size.
+  Every print in the field is written straight into ONE shared buffer in
+  world space, so it needs no transform and no object of its own, and the
+  lot of them draw in a **single call** however many there are. Seventy-two
+  slots; the oldest is taken back when they run out. Each fills itself
+  back in as it ages — the snow still coming down puts it back — over
+  forty seconds in quiet snowfall and **sixteen in a blizzard**, because
+  there is that much more of it falling.
 - **the six wedges** — the field is cut into six wedges round the
   cathedral, and each takes one authored chunk, no kind more than twice
   a run: the **grave rows** (ranks of stones in arcs, every one facing
@@ -437,9 +468,10 @@ them the seed decides:
 - **the testing menu** — under *The field (testing)* on the pause
   screen: the **hour** and the **weather** can be stepped through live
   (the sky's lights, the dome, the sun or moon, the fog and its range,
-  the exposure, the dust, the lanterns, the ground's own surface, the
-  footing, and the rain — with its hiss and the storm's bolts — all
-  re-set under the running game), **effects** and **music
+  the exposure, the dust, the lanterns, the ground's own surface and
+  texture, the footing, the prints already pressed into it, and the rain
+  — with its hiss and the storm's bolts — all re-set under the running
+  game), **effects** and **music
   & ambience** each have a switch (remembered between loads) — the
   first is every blow, step, swing and voice; the second is the whole
   background: the theme, the wind, the drone, the far-off creaks and
@@ -530,6 +562,33 @@ the way the Unburied's poison works on you — lightning arcs from your victim
 to the next horror in reach — and quickens your arm while it rides
 the blade — and frost FREEZES whatever it bites where it stands for twelve long seconds: no step, no swing, its state clock stopped, a rest pose with a shiver and a rime of mist coming off it.
 The element gutters out after a time — or is lost with your life.
+
+**An imbued weapon lights as itself.** It used to be one round sprite hung
+off the blade's point light — a ball of colour near the hand, the same ball
+for a longbow as for a slab of a greatsword. Now every mesh the weapon is
+built from is copied twice, each copy a *child* of the part it copies, so
+it inherits that part's transform exactly and follows every joint of every
+swing with nothing of its own to keep in step. The first copy is the
+geometry unchanged, drawn additive: the steel burns in the element's colour,
+in its own outline — a slab where a slab is, a curve where a curve is. The
+second is the same geometry pushed out along its own normals once, at
+build, and turned inside out: a fringe of light standing just off the
+silhouette. Only the blade parts take the fringe; the grip and the guard
+get the burn alone, and only as much of it as the weapon lets down to them.
+A chain of soft beads is strung down the weapon's longest axis in place of
+the one ball, each weighted by how far it is from the *hand* — so on a bow,
+where the hand is halfway along, both limbs burn and the handle between them
+stays dim. All of it is hidden until an element is taken: an unlit weapon
+costs nothing.
+
+**And each weapon takes it its own way:**
+
+| | how it lights |
+|---|---|
+| **greatsword** | a broad blade takes it whole — an even heat the length of it, breathing slow, the fringe wide |
+| **ultra greatsword** | too much iron to light at once: the heat CRAWLS up the slab from the guard to the point and starts again, slow and heavy |
+| **katana** | only the edge really takes it — a thin, bright, restless line that shivers rather than breathes, and next to nothing on the grip |
+| **longbow** | the limbs hold it and the string carries it, and the whole stave answers the DRAW: banked at rest, fiercest at full stretch |
 
 A landed cut can also take something with it: a sweep or a thrust
 sometimes shears an arm off at the shoulder, an overhead sometimes takes
@@ -635,7 +694,15 @@ Everything is generated at boot inside the one file:
   `noperspective` to ask it not to, so the correction is undone by hand:
   the uv is carried multiplied by w with w beside it and the two divided
   back out in the fragment, where the division cancels and what lands is
-  linear in screen space; `?affine=0` turns it off to compare),
+  linear in screen space; `?affine=0` turns it off to compare) — **kept
+  honest by cutting the world up**, since the swim is an error that grows
+  with the size of the triangle it is walked across, and a cathedral face
+  built as one quad twenty-four units wide bent its brick courses into a
+  bow. The PS1's own answer was never to let a triangle get large, so
+  every box and column the world is built from is now segmented about
+  every two units, six a side at most. A pew and a post are two triangles
+  a face as before; only the big flat spans gain vertices, and the static
+  bake folds them into the same handful of draws either way —
   **distance fog** standing in the very colour the sky is — the same
   Color object as the background, so every hour, every weather and every
   white flash of lightning carries the fog with it, and the land never
@@ -643,8 +710,7 @@ Everything is generated at boot inside the one file:
   150-unit square whose far edge stands about 106 away, so a fog that
   ended at 158 was there and never read. Clear sees 30 to 132, light
   rain 24 to 110, a storm 20 to 96, and snow closes the world down to
-  13–68 — a white room a few strides wide. Then film grain and vignette
-  overlays.
+  13–68, and a blizzard 9–44. Then film grain and vignette overlays.
 - **Static bake** — the cathedral is three hundred and thirty-one separate
   pieces and not a stone of it moves, so at the end of its building the
   parts that are only ever looked at are folded together by material into

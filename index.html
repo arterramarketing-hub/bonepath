@@ -542,6 +542,22 @@ function buildTextures(){
     speckle(ctx,S,380,['#e9eef7','#c2cbd9','#79838f'],1,2);
   });
 
+  /* -- and the same field under a blizzard's worth of it: the drifts are
+     bigger and softer, the stalks are gone under, and only the largest
+     bones still break the surface -- */
+  makeTex('snowDeep',256,(ctx,S)=>{
+    srand(31);
+    ctx.fillStyle='#949fae';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,44,[212,220,234],.8);               // long drifts, lit along the top
+    grime(ctx,S,fbm,15,[96,108,128],.24);               // and the troughs between them
+    for(let i=0;i<3;i++){                                // a bone or two still proud of it
+      ctx.save();ctx.translate(rnd()*S,rnd()*S);ctx.rotate(rnd()*TAU);
+      ctx.fillStyle='rgba(214,214,206,.42)';ctx.fillRect(-rr(4,9),-1.5,rr(8,18),3);
+      ctx.restore();
+    }
+    speckle(ctx,S,260,['#eef2f9','#ccd4e0','#8994a4'],1,3);
+  });
+
   /* -- coursed stone wall, weeping moss -- */
   makeTex('wall',256,(ctx,S)=>{
     srand(31);
@@ -1206,7 +1222,7 @@ addEventListener('resize',resize);
    a few strides wide. The dome sits at 210 and the camera stops at 220,
    so the world is gone well before either shows. */
 const FOG_NEAR=30,FOG_FAR=132;
-const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68]};
+const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68],blizzard:[9,44]};
 
 /* AFFINE TEXTURE MAPPING — the console's most famous wrong.
    The PS1 had no divider to spare per pixel, so it walked a texture across
@@ -2341,9 +2357,9 @@ function seedRun(){
   srand(h);for(let k=0;k<6;k++)rnd();
   const pick=a=>a[(rnd()*a.length)|0];
   RUN.time=pick(['sunrise','noon','dusk','night','night']);
-  RUN.weather=pick(['clear','clear','clear','rain','storm','snow']);
+  RUN.weather=pick(['clear','clear','clear','rain','storm','snow','blizzard']);
   try{const q=new URLSearchParams(location.search),ht=q.get('time'),wq=q.get('wx');     // (testing: ?time=noon&wx=storm names them outright, the rest of the field still the seed's)
-    if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm','snow'].includes(wq))RUN.weather=wq;}catch(e){}
+    if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm','snow','blizzard'].includes(wq))RUN.weather=wq;}catch(e){}
   RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
   try{if(new URLSearchParams(location.search).get('mode')==='path')PATH.on=true;}catch(e){}
   RUN.village=pick(['Ashmere','Gallowmoor','Hollowfen','Wrenhallow','Carrowdene','Blackwold','Sallow Cross','Marrowgate']);
@@ -2526,13 +2542,24 @@ const bonfires=[];    // (the marrowfires are gone — the field gives no rest)
 const roads=[];       // road segments — decor keeps off them
 const worldLights={}; // the sky's lights, dimmed by the game inside the nave
 
+/* AFFINE MAPPING AND BIG QUADS. The console's texture swim is an error
+   that grows with the size of the triangle it is walked across, and the
+   PS1's own answer was never to let a triangle get large: a wall was
+   built out of panels. Here a cathedral face was one quad twenty-four
+   units wide, and the affine pass bent its courses into a bow — brick
+   rows sagging and shearing where they should have run straight.
+   So every box and column the WORLD is built from is cut about every
+   two units, six a side at most. A pew and a post are two triangles a
+   face as before; only the big flat spans gain vertices, and the static
+   bake folds them into the same handful of draws either way. */
+const WSEG=(n)=>Math.max(1,Math.min(6,Math.round(Math.abs(n)/2)));
 function box(w,h,d,m,x,y,z,ry){
-  const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+  const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d,WSEG(w),WSEG(h),WSEG(d)),m);
   me.position.set(x,y,z);if(ry)me.rotation.y=ry;
   return me;
 }
 function cyl(rt,rb,h,seg,m,x,y,z){
-  const me=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),m);
+  const me=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg,WSEG(h)),m);
   me.position.set(x,y,z);return me;
 }
 function nearRoad(x,z){
@@ -3341,7 +3368,8 @@ function applyTime(name){
   // weather over the hour: rain draws a pale overcast across the sky and
   // hides the sun; a storm is a dark, lumpen cloud-roof, the fog greyer,
   // the light down — so the bolts have something to light
-  const storm=RUN.weather==='storm',rain=RUN.weather==='rain',snow=RUN.weather==='snow',overcast=storm||rain||snow;
+  const bliz=RUN.weather==='blizzard';
+  const storm=RUN.weather==='storm',rain=RUN.weather==='rain',snow=RUN.weather==='snow'||bliz,overcast=storm||rain||snow;
   if(overcast&&!texCache.skyStorm)makeCloudSkies();
   worldLights.dome.material.map=texCache[storm?'skyStorm':overcast?'skyRain':T.sky];worldLights.dome.material.needsUpdate=true;
   if(worldLights.moonSprite)worldLights.moonSprite.visible=!!T.moon&&!overcast;
@@ -3352,9 +3380,11 @@ function applyTime(name){
   // SNOW: the sky is shut, but the ground throws the light back up — so the
   // fill RISES where a storm would drop it, the sun is a rumour behind cloud,
   // and everything is one cold colour, the fog included
-  else if(snow){RUN.fog.lerp(new THREE.Color(0xc4ceda),name==='night'?.5:.76);
-    worldLights.hemi.color.lerp(new THREE.Color(0xd2dfee),.6);worldLights.hemi.groundColor.setHex(name==='night'?0x4d5766:0x93a0b0);
-    worldLights.hemiBase*=1.06;worldLights.moonBase*=.55;}
+  else if(snow){RUN.fog.lerp(new THREE.Color(bliz?0xb0bcca:0xc4ceda),name==='night'?(bliz?.62:.5):(bliz?.88:.76));
+    worldLights.hemi.color.lerp(new THREE.Color(0xd2dfee),bliz?.7:.6);worldLights.hemi.groundColor.setHex(name==='night'?0x4d5766:0x93a0b0);
+    // a blizzard is a white-out: the light is everywhere and comes from
+    // nowhere, so the fill holds and the sun is put out altogether
+    worldLights.hemiBase*=bliz?1.0:1.06;worldLights.moonBase*=bliz?.25:.55;}
   worldLights.heroCol=snow?0xa9bccf:0xd9b072;worldLights.heroDim=snow?.5:1;   // (read by the frame: heroLight is not built yet at the first call)
   {const r=FOG_BY_WX[RUN.weather]||FOG_BY_WX.clear;if(scene.fog){scene.fog.near=r[0];scene.fog.far=r[1];}}
   if(worldLights.dust)worldLights.dust.opacity=T.dust;
@@ -3383,15 +3413,17 @@ function makeCloudSkies(){
    foot of snow, and what is pressed into snow is not there once it melts */
 function applyGroundSurface(){
   if(!groundMat)return;
-  const t=RUN.weather==='snow'?texCache.snow:texCache.dirt;
+  const w=RUN.weather;
+  const t=w==='blizzard'?texCache.snowDeep:w==='snow'?texCache.snow:texCache.dirt;
   if(groundMat.map===t)return;
-  t.repeat.set(30,30);
+  t.repeat.set(w==='blizzard'?18:30,w==='blizzard'?18:30);   // deeper snow reads as bigger drifts
   groundMat.map=t;groundMat.needsUpdate=true;
   if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
+  trodClear();
 }
 /* set the weather — clear, light rain, a storm, or snow — dropping whatever fell before */
 function setWeather(name){
-  if(!['clear','rain','storm','snow'].includes(name))return;
+  if(!['clear','rain','storm','snow','blizzard'].includes(name))return;
   if(WX.rain){scene.remove(WX.rain);WX.rain.geometry.dispose();WX.rain.material.dispose();WX.rain=null;WX.pts=null;WX.speeds=null;}
   WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;RUN.weather=name;
   AudioSys.setRain(0);
@@ -3406,18 +3438,19 @@ function setupWeather(){
      let go of — slow, in every direction at once, and thick enough that
      the far side of the field is only a white idea. It is silent, too:
      no rain bed under it, just the wind that was always there. */
-  if(RUN.weather==='snow'){
-    WX.level=0;
+  if(RUN.weather==='snow'||RUN.weather==='blizzard'){
+    const bliz=RUN.weather==='blizzard';
+    WX.level=bliz?.34:0;                       // a blizzard has a voice; quiet snow has none
     if(!texCache.flake)makeTex('flake',16,(ctx,S)=>{ctx.clearRect(0,0,S,S);
       const g=ctx.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
       g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.45,'rgba(238,244,255,.8)');g.addColorStop(1,'rgba(222,232,250,0)');
       ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
-    const N=760,pts=new Float32Array(N*3),sp=new Float32Array(N);
-    for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=rr(1.0,2.4);}
+    const N=bliz?2400:760,pts=new Float32Array(N*3),sp=new Float32Array(N);
+    for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=bliz?rr(2.6,5.2):rr(1.0,2.4);}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
-    const pm=new THREE.PointsMaterial({map:texCache.flake,color:0xf4f7ff,size:.32,transparent:true,opacity:.92,depthWrite:false});
+    const pm=new THREE.PointsMaterial({map:texCache.flake,color:0xf8fbff,size:bliz?.42:.32,transparent:true,opacity:bliz?.95:.92,depthWrite:false});
     WX.rain=new THREE.Points(geo,pm);WX.rain.frustumCulled=false;scene.add(WX.rain);WX.pts=pts;WX.speeds=sp;
-    WX.nextBolt=0;AudioSys.setRain(0);
+    WX.nextBolt=0;AudioSys.setRain(WX.level);
     return;
   }
   const storm=RUN.weather==='storm';WX.level=storm?1:.5;
@@ -3430,14 +3463,137 @@ function setupWeather(){
   WX.nextBolt=storm?rr(3,8):0;
   AudioSys.setRain(WX.level);
 }
+/* ============ TRODDEN SNOW ============
+   Deep snow keeps what walks through it, and a hole is not a stain: every
+   print here is REAL GEOMETRY sunk below the surface, a pressed middle
+   with a lip of shoved snow standing round it, so it catches the light on
+   one side and holds shadow on the other and reads from any angle.
+
+   A print is a five-by-five patch of ground — twenty-five vertices, thirty
+   two triangles — written STRAIGHT INTO WORLD SPACE in one shared buffer,
+   so it needs no transform, no matrix and no object of its own, and the
+   whole field's worth of them draws in a single call however many there
+   are. Seventy-two slots; the oldest is taken back when they run out. Each
+   fills itself in as it ages — the snow that is still falling puts it back
+   — and a blizzard buries a print two and a half times as fast as quiet
+   snowfall does, because there is that much more of it coming down. */
+const TROD={N:72,G:5,mesh:null,pos:null,col:null,live:null,next:0,life:40};
+function trodInit(){
+  if(TROD.mesh)return;
+  const N=TROD.N,G=TROD.G,VP=G*G,QP=(G-1)*(G-1);
+  TROD.pos=new Float32Array(N*VP*3);TROD.col=new Float32Array(N*VP*3);TROD.nrm=new Float32Array(N*VP*3);
+  const idx=new Uint16Array(N*QP*6);
+  for(let s=0;s<N;s++)for(let j=0;j<G-1;j++)for(let i=0;i<G-1;i++){
+    const b=s*VP+j*G+i,o=(s*QP+j*(G-1)+i)*6;
+    idx[o]=b;idx[o+1]=b+G;idx[o+2]=b+1;idx[o+3]=b+1;idx[o+4]=b+G;idx[o+5]=b+G+1;
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(TROD.pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(TROD.col,3));
+  geo.setAttribute('normal',new THREE.BufferAttribute(TROD.nrm,3));
+  geo.setIndex(new THREE.BufferAttribute(idx,1));
+  // Lambert lights per VERTEX, so the normals are written by hand with the
+  // rest of the print rather than derived: flat on the untouched ring and
+  // on the pressed floor, tipped outward round the lip so the shoved snow
+  // takes the light on one side of a print and holds shadow on the other
+  const m=new THREE.MeshLambertMaterial({vertexColors:true});
+  TROD.mesh=new THREE.Mesh(geo,m);TROD.mesh.frustumCulled=false;TROD.mesh.renderOrder=1;
+  scene.add(TROD.mesh);
+  TROD.live=new Array(N).fill(null);
+  trodClear();
+}
+function trodClear(){
+  if(!TROD.mesh)return;
+  TROD.pos.fill(-999);TROD.col.fill(0);TROD.live.fill(null);TROD.next=0;
+  for(let i=0;i<TROD.nrm.length;i+=3){TROD.nrm[i]=0;TROD.nrm[i+1]=1;TROD.nrm[i+2]=0;}
+  TROD.mesh.geometry.attributes.position.needsUpdate=true;
+  TROD.mesh.geometry.attributes.color.needsUpdate=true;
+  TROD.mesh.geometry.attributes.normal.needsUpdate=true;
+}
+// the snow's own colours: the pressed floor of a print, its lit lip, and
+// the untouched surface its outer ring has to disappear into
+/* these are LINEAR, and the snow they have to sit in is a sRGB texture
+   decoded to about .30 — so the untouched ring is .30, the lit lip only
+   about twice that, and the pressed floor a third of it. Written as the
+   bright numbers they look on a canvas, a print came out a white ribbon
+   painted across the field. */
+const TROD_PIT=[.10,.12,.17],TROD_LIP=[.56,.60,.68],TROD_FLAT=[.30,.33,.38];
+function trodWrite(slot,p){
+  const G=TROD.G,VP=G*G,base=slot*VP,P=TROD.pos,C=TROD.col,N=TROD.nrm;
+  const k=Math.max(0,1-p.age/TROD.life);          // it fills back in as it ages
+  const d=p.depth*k,rim=p.depth*.42*k;
+  const fx=Math.sin(p.ang),fz=Math.cos(p.ang),rx=Math.cos(p.ang),rz=-Math.sin(p.ang);
+  for(let j=0;j<G;j++)for(let i=0;i<G;i++){
+    const u=i/(G-1)*2-1,v=j/(G-1)*2-1,m=Math.max(Math.abs(u),Math.abs(v));
+    const ax=u*p.w*.5,az=v*p.l*.5;
+    const wx=p.x+rx*ax+fx*az,wz=p.z+rz*ax+fz*az;
+    const h=m>.99?0:m>.49?rim:-d;
+    const o=(base+j*G+i)*3;
+    P[o]=wx;P[o+1]=heightAt(wx,wz)+h+.012;P[o+2]=wz;
+    // the lip's own normal, tipped away from the middle of the print
+    const tip=m>.49&&m<.99?.6*k:0,nx=rx*u*tip+fx*v*tip,nz=rz*u*tip+fz*v*tip;
+    const nl=Math.hypot(nx,1,nz)||1;
+    N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
+    const c=m>.99?TROD_FLAT:m>.49?TROD_LIP:TROD_PIT;
+    for(let q=0;q<3;q++)C[o+q]=lerp(TROD_FLAT[q],c[q],k);   // and its colours flatten with it
+  }
+}
+function trodFree(slot){
+  const VP=TROD.G*TROD.G,b=slot*VP*3;
+  for(let i=0;i<VP*3;i++)TROD.pos[b+i]=-999;
+  TROD.live[slot]=null;
+}
+function trodFlush(){
+  const a=TROD.mesh.geometry.attributes;
+  a.position.needsUpdate=true;a.color.needsUpdate=true;a.normal.needsUpdate=true;
+}
+/* press something into the snow: a boot, a shoulder rolled through it, a
+   hollow's dragging foot. Silent unless there is snow to press */
+function snowStamp(x,z,ang,w,l,depth){
+  if(RUN.weather!=='snow'&&RUN.weather!=='blizzard')return;
+  trodInit();
+  const slot=TROD.next;TROD.next=(TROD.next+1)%TROD.N;
+  const p={x,z,ang,w,l,depth,age:0};
+  TROD.live[slot]=p;trodWrite(slot,p);trodFlush();
+}
+function updateTrod(dt){
+  if(!TROD.mesh||!TROD.live)return;
+  TROD.life=RUN.weather==='blizzard'?16:40;
+  let touched=false;
+  for(let s=0;s<TROD.N;s++){
+    const p=TROD.live[s];if(!p)continue;
+    p.age+=dt;touched=true;
+    if(p.age>=TROD.life)trodFree(s);else trodWrite(s,p);
+  }
+  if(touched)trodFlush();
+}
+/* and everything that moves through the field leaves its own mark: the
+   pilgrim's boots, the long smear of a roll, and every hollow's tread,
+   sized to whatever is doing the treading */
+function trodEnemies(){
+  for(const e of enemies){
+    if(e.hp<=0||e.state==='dormant'||e.state==='burrowed')continue;
+    const d=Math.hypot(e.x-(e._trodX!==undefined?e._trodX:e.x),e.z-(e._trodZ!==undefined?e._trodZ:e.z));
+    const stride=e.boss?1.0:e.big?.8:.6;
+    if(e._trodX===undefined||d>stride){
+      e._trodX=e.x;e._trodZ=e.z;
+      const sc=e.boss?1.9:e.big?1.4:1;
+      snowStamp(e.x+rr3(-.12,.12)*sc,e.z+rr3(-.12,.12)*sc,e.facing||0,.34*sc,.6*sc,.11*sc);
+    }
+  }
+}
 function updateWeather(dt){
   if(!WX.rain){WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;return;}
   const cx=camera.position.x,cz=camera.position.z,cy=camera.position.y,P=WX.pts,S=WX.speeds,n=S.length;
-  const wind=Math.sin(G.time*.4)*1.2,snow=RUN.weather==='snow';
+  const wind=Math.sin(G.time*.4)*1.2,bliz=RUN.weather==='blizzard',snow=RUN.weather==='snow'||bliz;
+  // a blizzard does not fall, it is DRIVEN: one way, hard, the gusts
+  // shoving the whole sheet of it sideways faster than it drops
+  const gust=bliz?7.5+Math.sin(G.time*.7)*3.4+Math.sin(G.time*2.3)*1.6:0;
   for(let i=0;i<n;i++){const o=i*3;
     P[o+1]-=S[i]*dt;
     // a flake is pushed about on its way down; a drop is not
-    if(snow){P[o]+=(wind*.45+Math.sin(G.time*1.7+i)*.55)*dt;P[o+2]+=Math.cos(G.time*1.3+i*.7)*.45*dt;}
+    if(bliz){P[o]+=(gust+Math.sin(G.time*5+i)*1.4)*dt;P[o+2]+=(gust*.42+Math.cos(G.time*4+i*.7)*1.2)*dt;}
+    else if(snow){P[o]+=(wind*.45+Math.sin(G.time*1.7+i)*.55)*dt;P[o+2]+=Math.cos(G.time*1.3+i*.7)*.45*dt;}
     else P[o]+=wind*dt;
     if(P[o+1]<cy-9||Math.abs(P[o]-cx)>18||Math.abs(P[o+2]-cz)>18){P[o]=cx+rr3(-18,18);P[o+1]=cy+rr3(6,13);P[o+2]=cz+rr3(-18,18);}
   }
@@ -3545,7 +3701,9 @@ function addWisp(x,y,z,color,size){
 }
 
 function updateAmbient(t,dt){
-  updateWeather(dt);flushPaint();
+  updateWeather(dt);updateTrod(dt);
+  if(RUN.weather==='snow'||RUN.weather==='blizzard')trodEnemies();
+  flushPaint();
   if(PATH.on)for(const w of wispSystems)if(w.dust)w.pts.position.z=player.z;
   for(const L of lanternLights){
     const b=L.base||.72;
@@ -5982,6 +6140,95 @@ function elemBurst(kind,x,y,z){
     }});
   }
 }
+/* ================= THE IMBUED WEAPON =================
+   It used to be one round sprite hung off the blade's point light: a ball
+   of colour near the hand, the same ball for a longbow as for a slab of a
+   greatsword. Now the WEAPON lights, and it lights as ITSELF.
+
+   Every mesh the weapon group is built from is copied twice, each copy a
+   CHILD of the part it copies — so it inherits that part's transform
+   exactly and follows every joint of every swing with nothing of its own
+   to keep in step. The first copy is the geometry unchanged, drawn
+   additive: the steel burns in the element's colour, in its own outline,
+   a slab where a slab is and a curve where a curve is. The second is the
+   same geometry pushed out along its own normals once, at build, and
+   turned inside out — a fringe of light standing just off the silhouette.
+   Only the blade parts get the fringe; the grip and the guard take the
+   burn alone. Both are hidden until an element is taken, so an unlit
+   weapon costs nothing.
+
+   And a chain of soft beads is strung down the weapon's longest axis in
+   place of the one ball, so the bloom is the shape of the thing too.
+
+   Each weapon takes the element its own way — how hot, how wide, how the
+   light moves, and how much of it reaches the grip: */
+const WPN_GLOW={
+  // THE GREATSWORD — a broad straight blade takes it whole: an even heat
+  // the length of it, breathing slow, the fringe wide
+  sword:  {beads:5,bead:.36,rate:2.0,warm:.40,puff:.014,hot:1.00,mode:'breathe'},
+  // THE ULTRA — too much iron to light at once. The heat CRAWLS up the
+  // slab from the guard to the point and starts again, slow and heavy
+  ultra:  {beads:6,bead:.52,rate:.90,warm:.30,puff:.020,hot:1.15,mode:'crawl'},
+  // THE KATANA — only the edge really takes it. A thin, bright, restless
+  // line that shivers rather than breathes, and next to nothing on the grip
+  katana: {beads:6,bead:.22,rate:6.5,warm:.12,puff:.007,hot:.95,mode:'shimmer'},
+  // THE BOW — the limbs hold it and the string carries it, and the whole
+  // stave answers the DRAW: banked at rest, fiercest at full stretch
+  bow:    {beads:5,bead:.28,rate:2.4,warm:.85,puff:.010,hot:.80,mode:'draw'},
+};
+// the fringe geometry: every vertex pushed out along its own normal, once
+function puffGeo(geo,amt){
+  const g=geo.clone(),P=g.attributes.position,N=g.attributes.normal;
+  if(!N)return g;
+  for(let i=0;i<P.count;i++)P.setXYZ(i,P.getX(i)+N.getX(i)*amt,P.getY(i)+N.getY(i)*amt,P.getZ(i)+N.getZ(i)*amt);
+  P.needsUpdate=true;g.computeBoundingSphere();return g;
+}
+/* hang the two copies on every part of the weapon, and measure the weapon
+   in its own frame so the beads know where its length runs */
+function buildWeaponGlow(rig,key){
+  const W=WPN_GLOW[key]||WPN_GLOW.sword;
+  if(!rig||!rig.weapon)return;
+  const bladeM=rig.bladeMesh&&rig.bladeMesh.material;
+  const addM=(side)=>new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,
+    depthWrite:false,blending:THREE.AdditiveBlending,fog:false,side:side||THREE.FrontSide});
+  const burn=addM(),warm=addM(),fringe=addM(THREE.BackSide);   // the blade, the grip and guard, and the fringe off the edge
+  const src=[],geos=[];
+  rig.weapon.traverse(o=>{if(o.isMesh&&o.geometry)src.push(o);});
+  // the weapon measured in the WEAPON's frame, not the world's: every part
+  // carried back through the hand and the arm it hangs off
+  rig.root.updateMatrixWorld(true);
+  const inv=new THREE.Matrix4().copy(rig.weapon.matrixWorld).invert();
+  const box=new THREE.Box3(),tmp=new THREE.Box3(),mx=new THREE.Matrix4();
+  for(const m of src){
+    if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();
+    mx.multiplyMatrices(inv,m.matrixWorld);
+    tmp.copy(m.geometry.boundingBox).applyMatrix4(mx);box.union(tmp);
+    const hot=bladeM&&m.material===bladeM;
+    const b=new THREE.Mesh(m.geometry,hot?burn:warm);b.renderOrder=3;b.visible=false;m.add(b);
+    if(hot){const pg=puffGeo(m.geometry,W.puff);geos.push(pg);
+      const f=new THREE.Mesh(pg,fringe);f.renderOrder=2;f.visible=false;m.add(f);}
+  }
+  // the beads run down whichever way the weapon is longest
+  const lo=box.min,hi=box.max,sp=hi.clone().sub(lo);
+  const ax=sp.x>sp.y&&sp.x>sp.z?'x':sp.z>sp.y?'z':'y';
+  // ...and each bead is weighted by how far it is from the HAND (the
+  // weapon group's own origin): the blade end burns, the grip barely does.
+  // On a bow, where the hand is halfway along, both limbs burn and the
+  // handle between them stays dim — which is exactly right
+  const pts=[],wgt=[],reach=Math.max(.001,Math.max(Math.abs(lo[ax]),Math.abs(hi[ax])));
+  for(let i=0;i<W.beads;i++){
+    const t=W.beads===1?.5:i/(W.beads-1);
+    const v=lo.clone().lerp(hi,.5);v[ax]=lo[ax]+(hi[ax]-lo[ax])*t;
+    pts.push(v);wgt.push(lerp(W.warm,1,Math.min(1,Math.abs(v[ax])/(reach*.45))));
+  }
+  rig.glow={cfg:W,burn,warm,fringe,pts,wgt,geos,on:false};
+}
+function disposeWeaponGlow(rig){
+  if(!rig||!rig.glow)return;
+  rig.glow.burn.dispose();rig.glow.warm.dispose();rig.glow.fringe.dispose();
+  for(const g of rig.glow.geos)g.dispose();
+  rig.glow=null;
+}
 function elemFleck(kind,x,y,z){ // one mote drifting off the imbued blade
   const E=ELEMENTS[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
@@ -6375,13 +6622,14 @@ const player={
   dropThrown(){if(this.katThrown){const m=this.katThrown.mesh;if(m.parent)m.parent.remove(m);this.katThrown=null;if(this.rig&&this.rig.weapon)this.rig.weapon.visible=true;}},
   rebuild(){
     this.dropThrown();
-    if(this.rig)scene.remove(this.rig.root);
+    if(this.rig){scene.remove(this.rig.root);disposeWeaponGlow(this.rig);}
     this.rig=makeKnightRig(LOADOUT);
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
     heroifyObject(this.rig.root);                 // the hero draws crisp, on its own layer
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
+    buildWeaponGlow(this.rig,LOADOUT.weapon);
     this.rig.weapon.add(this.bladeLight);
     this.bladeLight.position.set(0,this.weapon()==='bow'?.2:-1.1,0);
     if(this.element)this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
@@ -6740,7 +6988,7 @@ const player={
       }
     };
     const startDodge=(s)=>{
-      this.state='roll';this.t=0;
+      this.state='roll';this.t=0;this.rollTrodT=0;
       if(s&&s.sx!==null){const a=swipeWorld(s);this.rollDX=Math.sin(a);this.rollDZ=Math.cos(a);}
       else if(mAmt>0){this.rollDX=mvx;this.rollDZ=mvz;}
       else{this.rollDX=-Math.sin(this.facing);this.rollDZ=-Math.cos(this.facing);} // neutral = backstep
@@ -6891,11 +7139,14 @@ const player={
       // short: a tenth of a second to three-quarters), a quicker stop, and
       // back or sideways a little slower than straight ahead
       const wantSp=(mAmt>0?(run?7.2:4.3*Math.min(1,mAmt*1.35))*(.85+.15*Math.max(0,relF)):0)*(PATH.on?1.5:1);   // (the path: half again as fast, walk and sprint — it is a run, not a pilgrimage)
-      // SNOW gives the boot nothing to push against: the stride is slower to
-      // build and far, far slower to shed, so every stop is a skid and every
-      // turn carries wide. The hero does not stand still where he decides to
-      const snowy=RUN.weather==='snow';
-      this.spd=lerp(this.spd||0,wantSp*(snowy?.9:1),Math.min(1,(wantSp>(this.spd||0)?(snowy?7:14):(snowy?5:22))*dt));
+      /* SNOW gives the boot nothing to push against: the stride is slower
+         to build and far, far slower to shed, so every stop is a skid and
+         every turn carries wide. DEEP snow is the other complaint — a
+         blizzard's drifts drag, so the top speed comes down hard and the
+         skid comes back, because a man wading is not a man sliding. */
+      const bliz=RUN.weather==='blizzard',snowy=RUN.weather==='snow'||bliz;
+      const top=bliz?.78:snowy?.9:1,up=bliz?5.5:snowy?7:14,down=bliz?9:snowy?5:22;
+      this.spd=lerp(this.spd||0,wantSp*top,Math.min(1,(wantSp>(this.spd||0)?up:down)*dt));
       if(mAmt>0){this.x+=mvx*this.spd*dt;this.z+=mvz*this.spd*dt;}
       else if(this.spd>.05){this.x+=(this.moveX||0)*this.spd*dt;this.z+=(this.moveZ||0)*this.spd*dt;}   // the last stride's carry as it stops
       this.strideT=(this.strideT||0)+dt*(this.spd/4.3);    // the walk cycle's clock runs with the ground covered, so the feet match the pace
@@ -6925,7 +7176,9 @@ const player={
         this._heelOn=true;
         const onFlags=cathDist(this.x,this.z)<4.5;
         AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)),onFlags?'stone':snowy?'snow':'grass');   // (the flags and the stair ring; the field is turf, or snow over it)
-        if(snowy){if(!onFlags)printSnow(this.x,this.z,this.facing);}    // the way you came is written behind you
+        if(snowy){if(!onFlags){printSnow(this.x,this.z,this.facing);
+          const side=Math.random()<.5?-.17:.17;                                // left boot or right, pressed in
+          snowStamp(this.x+Math.cos(this.facing)*side,this.z-Math.sin(this.facing)*side,this.facing,.34,.62,.13);}}
         else if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
       }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);
@@ -7309,6 +7562,13 @@ const player={
       const sp=this.t<TUMBLE?12.5*(1-easeIn(p)*.72)
         :3.2*(1-(this.t-TUMBLE)/(DUR-TUMBLE));            // rides out on the feet
       this.x+=this.rollDX*sp*dt;this.z+=this.rollDZ*sp*dt;
+      // a body through deep snow does not step, it PLOUGHS: a wide, long
+      // trough laid down the length of the tumble
+      if(RUN.weather==='snow'||RUN.weather==='blizzard'){
+        this.rollTrodT=(this.rollTrodT||0)-dt;
+        if(this.rollTrodT<=0&&this.t<TUMBLE){this.rollTrodT=.055;
+          snowStamp(this.x,this.z,Math.atan2(this.rollDX,this.rollDZ),.78,.62,.15);}
+      }
       if(this.t<TUMBLE)trampleBreakables(this.x,this.z,.5,'pew');   // a roll through a pew breaks it
       // attack pressed mid-roll banks a rolling attack
       if(IN.swipe&&IN.swipe.kind==='atk')
@@ -9453,8 +9713,51 @@ resize();
 // that breathes gently and pools on the ground around them
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
-const bladeHaze=addHaze(0,-50,0,0xffffff,1.5,.22);bladeHaze.visible=false;
+const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}
 const _bv=new THREE.Vector3();
+/* the imbued weapon, once a frame: the burn over the steel, the fringe off
+   its edge, and the beads strung down its length — each weapon moving the
+   light its own way (see WPN_GLOW). The blade light's own guttering, as the
+   element burns down, carries all three without a second clock. */
+function updateWeaponGlow(){
+  const rig=player.rig,gl=rig&&rig.glow;
+  if(!gl)return;
+  const lit=!!player.element&&player.bladeLight.intensity>0;
+  if(lit!==gl.on){gl.on=lit;rig.weapon.traverse(o=>{if(o.material===gl.burn||o.material===gl.warm||o.material===gl.fringe)o.visible=lit;});}
+  for(const h of bladeHazes)h.visible=false;
+  if(!lit)return;
+  const W=gl.cfg,E=ELEMENTS[player.element],t=G.time,life=player.bladeLight.intensity/.55;
+  // how bright the thing is as a whole, and where along it the light sits
+  let body,at;
+  switch(W.mode){
+    case 'crawl':{                                  // the heat climbs the slab, reaches the point, and starts again
+      const ph=(t*W.rate*.35)%1;
+      body=.62+.38*Math.max(0,1-Math.abs(.55-ph)*2);
+      at=(i)=>.30+.90*Math.max(0,1-Math.abs(i/(W.beads-1)-ph)*3.2);break;}
+    case 'shimmer':{                                // the edge never settles
+      body=.72+.28*Math.sin(t*W.rate);
+      at=(i)=>.55+.45*Math.sin(t*W.rate+i*1.9);break;}
+    case 'draw':{                                   // the stave answers the string
+      const d=player.state==='charge'?Math.min(1,player.chargeT/.7):0;
+      body=.35+.65*d;at=()=>body;break;}
+    default:                                        // breathe
+      body=.78+.22*Math.sin(t*W.rate);at=()=>body;
+  }
+  gl.burn.color.setHex(E.hue);gl.warm.color.setHex(E.hue);gl.fringe.color.setHex(E.hue);
+  gl.burn.opacity=.30*W.hot*body*life;
+  gl.warm.opacity=.30*W.hot*W.warm*body*life;       // the grip takes only what the weapon lets down to it
+  gl.fringe.opacity=.22*W.hot*body*life;
+  const mw=rig.weapon.matrixWorld;
+  for(let i=0;i<gl.pts.length&&i<bladeHazes.length;i++){
+    const h=bladeHazes[i];
+    _bv.copy(gl.pts[i]).applyMatrix4(mw);
+    h.position.copy(_bv);
+    h.material.color.setHex(E.hue);
+    h.scale.set(W.bead,W.bead,1);
+    h.material.opacity=Math.max(0,(.10+.24*life)*at(i)*gl.wgt[i]);
+    h.visible=true;
+  }
+}
 
 let last=performance.now(),grainT=0;
 /* ---------------- the pause ---------------- */
@@ -9512,8 +9815,8 @@ document.querySelectorAll('#pause .arrow:not(.fld)').forEach(el=>el.addEventList
 /* the field's testing controls: the hour and the weather changed under the
    game, the effects and the music switched, and any seed's field reached
    by its number */
-const HOUR_LIST=['sunrise','noon','dusk','night'],WX_LIST=['clear','rain','storm','snow'];
-const wxLabel=()=>({storm:'a storm',rain:'light rain',snow:'snowfall'})[RUN.weather]||'clear';
+const HOUR_LIST=['sunrise','noon','dusk','night'],WX_LIST=['clear','rain','storm','snow','blizzard'];
+const wxLabel=()=>({storm:'a storm',rain:'light rain',snow:'snowfall',blizzard:'a blizzard'})[RUN.weather]||'clear';
 function cycleField(k,d){
   if(k==='hour'){const i=(HOUR_LIST.indexOf(RUN.time)+d+4)%4;applyTime(HOUR_LIST[i]);}
   else if(k==='weather'){const i=(WX_LIST.indexOf(RUN.weather)+d+WX_LIST.length)%WX_LIST.length;setWeather(WX_LIST[i]);}
@@ -9685,11 +9988,7 @@ function frame(now){
     if(l.haze.visible){l.haze.position.copy(l.position);l.haze.material.color.copy(l.color);
       l.haze.material.opacity=.1+.06*l.intensity;}
   }
-  if(player.element&&player.bladeLight.intensity>0){
-    player.bladeLight.getWorldPosition(_bv);bladeHaze.position.copy(_bv);
-    bladeHaze.material.color.setHex(ELEMENTS[player.element].hue);
-    bladeHaze.material.opacity=.14+.25*player.bladeLight.intensity;bladeHaze.visible=true;
-  }else bladeHaze.visible=false;
+  updateWeaponGlow();
   updateCamera(dt);
 
   grainT+=dt;
@@ -9704,7 +10003,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,printSnow,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
