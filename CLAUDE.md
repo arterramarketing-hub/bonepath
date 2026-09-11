@@ -20,8 +20,14 @@ The real game code is lines 326–end (~9,100 lines).
 
 ## Branch layout
 
-`claude/dark-souls-mobile-poc-xnquc4` is the **default branch and the only
-live one**. Work there.
+**`main` is the default branch and the only live one. Work there.**
+
+It was called `claude/dark-souls-mobile-poc-xnquc4` until 2026-09-11 — a
+name left over from the first prototype — and was renamed once the old
+Godot `main` was deleted out of the way. The deploy workflow answers to
+both names, so it kept working across the rename; if you are certain the
+old name is gone for good, it can be dropped from
+`.github/workflows/pages.yml`.
 
 The repo also held an unrelated **Godot** project that shared no git history
 with the game — a skeleton on `main` plus three character and weather
@@ -112,8 +118,12 @@ Known state of play:
   Match that register.
 - `README.md` is the design document and is kept genuinely current. When
   you change behaviour, update it in the same commit.
-- Pushing to `claude/dark-souls-mobile-poc-xnquc4` auto-deploys the game
-  via `.github/workflows/pages.yml`.
+- Pushing to `main` auto-deploys the game via
+  `.github/workflows/pages.yml`, which publishes to GitHub Pages at
+  https://arterramarketing-hub.github.io/bonepath/ . The `github-pages`
+  environment is set to "No restriction" for deployment branches — if that
+  is ever narrowed back to a single branch, a rename will break deploys
+  with an "environment protection rules" error.
 
 ## Testing
 
