@@ -408,24 +408,35 @@ them the seed decides:
   the print crunches, a dry squeak of crust breaking over the pack of
   weight going into it. Changing the weather clears the paint sheet:
   what was gouged in mud is not there under a foot of snow.
-- **a blizzard** is snow past the point of weather. Two thousand four
+- **a blizzard** is snow past the point of weather. Three thousand four
   hundred flakes, and they do not fall — they are *driven*, one way and
   hard, the gusts shoving the whole sheet of it sideways faster than it
-  drops, with a hiss under it that quiet snow does not have. The sky is
-  shut and the sun is put out; the fog closes to **nine and forty-four**,
-  which is a white room a few strides wide, and a hollow comes out of it
-  at about the distance it can smell you from. The ground takes the
-  deeper texture — longer, softer drifts, the stalks buried, only the
-  largest bones still proud of it. And the footing swaps one complaint
-  for another: where fresh snow is *slippery*, drifts **drag**. The top
-  speed comes down by a fifth and the skid comes back, because a man
-  wading is not a man sliding.
+  drops, with a hiss under it that quiet snow does not have. Each one is a
+  **grain, not a bokeh ball**: a hard little core with the thinnest halo,
+  drawn small, so that a screenful of them reads as ice in the air rather
+  than white circles floating past the lens. The sky is shut and the sun
+  is put out; the fog closes to **nine and forty-four**, a white room a few
+  strides wide, and a hollow comes out of it at about the distance it can
+  smell you from. The ground takes the deeper texture — long drifts lit
+  hard along the crest with deep blue troughs between them, the stalks
+  buried, only the largest bones still proud of it.
+  **And you stand IN it.** The pilgrim and every hollow are dropped a
+  quarter of a unit into the drift, so the boots go under and the snow
+  takes them to the shin. It is a look and nothing else: the ground the
+  game measures is exactly where it always was, so no reach, no collision
+  and no blade's height changes — and it is given up over the cathedral's
+  flags, where there is nothing to sink into. The footing swaps one
+  complaint for another too: where fresh snow is *slippery*, drifts
+  **drag**. The top speed comes down by a fifth and the skid comes back,
+  because a man wading is not a man sliding.
 - **trodden snow** — under snow of either kind, what walks through it
-  leaves a hole, not a stain. Every print is real geometry: a five-by-five
-  patch of ground, twenty-five vertices and thirty-two triangles, its
-  middle pressed below the surface with a lip of shoved snow standing
-  round it — so it catches the light on one side, holds shadow on the
-  other, and reads from any angle instead of only from above. The
+  leaves a hole, not a stain. Every print is real geometry: a seven-by-seven
+  patch of ground in three rings — the untouched outside, a collar of shoved
+  snow, and a flat floor pressed under it — with the whole grid pushed out
+  onto circles, so what a boot leaves is a round-ended dish and not a
+  stamped rectangle. It catches the light on one side, holds shadow on the
+  other, and reads from any angle instead of only from above; and a drift
+  takes a deeper, wider one than a dusting does. The
   pilgrim's boots leave them, left and right off the centre line. A
   **roll** does not step, it ploughs: a wide shallow trough laid the whole
   length of the tumble. And **every hollow in the field leaves its own**,
@@ -694,15 +705,21 @@ Everything is generated at boot inside the one file:
   `noperspective` to ask it not to, so the correction is undone by hand:
   the uv is carried multiplied by w with w beside it and the two divided
   back out in the fragment, where the division cancels and what lands is
-  linear in screen space; `?affine=0` turns it off to compare) — **kept
-  honest by cutting the world up**, since the swim is an error that grows
-  with the size of the triangle it is walked across, and a cathedral face
-  built as one quad twenty-four units wide bent its brick courses into a
-  bow. The PS1's own answer was never to let a triangle get large, so
-  every box and column the world is built from is now segmented about
-  every two units, six a side at most. A pew and a post are two triangles
-  a face as before; only the big flat spans gain vertices, and the static
-  bake folds them into the same handful of draws either way —
+  linear in screen space) — and **capped**, which the console never had to
+  do. The swim is an error proportional to how much `w` varies across a
+  triangle, and the PS1 never had to bound it because its triangles were
+  never large. This cathedral's are: a wall face spans many units, and
+  seen at a *grazing* angle the error stops being a wobble and becomes a
+  shear, the brick courses sagging, kinking and running off diagonally.
+  Cutting the world's boxes up (every box and column is segmented about
+  every two units now, six a side at most, which also buys better
+  per-vertex lighting on a big wall) brings the flat-on view back and can
+  never fix the oblique one. So the fragment is handed BOTH uvs — the true
+  one and the swimming one — and the difference between them, which is the
+  swim exactly, is clamped to three hundredths of a face: a small triangle
+  never reaches the limit and keeps the whole of its wobble, while a
+  wall-sized one is held to a PS1's worth of it instead of tearing itself
+  open. `?affine=0` turns it off, `?affine=full` lifts the cap —
   **distance fog** standing in the very colour the sky is — the same
   Color object as the background, so every hour, every weather and every
   white flash of lightning carries the fog with it, and the land never

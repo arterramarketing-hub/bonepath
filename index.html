@@ -547,9 +547,9 @@ function buildTextures(){
      bones still break the surface -- */
   makeTex('snowDeep',256,(ctx,S)=>{
     srand(31);
-    ctx.fillStyle='#949fae';ctx.fillRect(0,0,S,S);
-    grime(ctx,S,fbm,44,[212,220,234],.8);               // long drifts, lit along the top
-    grime(ctx,S,fbm,15,[96,108,128],.24);               // and the troughs between them
+    ctx.fillStyle='#8c97a8';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,54,[216,224,238],.92);              // long drifts, lit hard along the crest
+    grime(ctx,S,fbm,19,[74,86,108],.38);                // and deep blue troughs between them
     for(let i=0;i<3;i++){                                // a bone or two still proud of it
       ctx.save();ctx.translate(rnd()*S,rnd()*S);ctx.rotate(rnd()*TAU);
       ctx.fillStyle='rgba(214,214,206,.42)';ctx.fillRect(-rr(4,9),-1.5,rr(8,18),3);
@@ -1234,9 +1234,29 @@ const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68],blizzar
    back out in the fragment. Both were divided by w on the way, so the
    division cancels and what lands is linear in screen space: the swim.
    Packed into one varying (xy the premultiplied uv, z the w) to spend a
-   single slot on a phone. ?affine=0 turns it off to compare. */
-let PSX_AFFINE=true;
-try{PSX_AFFINE=new URLSearchParams(location.search).get('affine')!=='0';}catch(e){}
+   single slot on a phone.
+
+   AND IT IS CAPPED, which the console never had to do. The swim is an
+   error proportional to how much w varies across the triangle, and the
+   PS1 never had to bound it because its triangles were never large. This
+   cathedral's are: a wall face is a span of many units, and seen at a
+   GRAZING angle the error stops being a wobble and becomes a shear — the
+   brick courses sagging, kinking, running off diagonally. Cutting the
+   world's boxes up (see WSEG) brought the flat-on view back; nothing
+   fixes the oblique one, because the error there has no bound.
+   So the fragment is given BOTH uvs — the true one in vUv and the
+   swimming one in vAff — and the difference between them IS the swim,
+   exactly. Clamp it to a few hundredths of a face and a small triangle
+   never reaches the limit, keeping the whole of its wobble, while a
+   wall-sized one is held to a PS1's worth of it instead of tearing
+   itself open. ?affine=0 turns it off altogether; ?affine=full lifts the
+   cap, which is what it looked like before; ?affine=<0..1> sets it. */
+let PSX_AFFINE=true,PSX_AFFLIM=.03;
+try{const q=new URLSearchParams(location.search).get('affine');
+  PSX_AFFINE=q!=='0';
+  if(q==='full')PSX_AFFLIM=9;
+  else if(q&&/^[0-9.]+$/.test(q)&&+q>0&&+q<1)PSX_AFFLIM=+q;}catch(e){}
+const affLim={value:PSX_AFFLIM};
 
 // PSX vertex wobble: snap clip-space verts to a coarse grid
 function psx(mat){
@@ -1252,11 +1272,14 @@ function psx(mat){
     );
     // the swap is a macro around the one chunk that samples the map, so the
     // stock chunk is never rewritten and later chunks keep the true vUv
-    if(warp)s.fragmentShader='varying vec3 vAff;\n'+s.fragmentShader.replace(
+    if(warp){s.uniforms.uAffLim=affLim;
+      s.fragmentShader='varying vec3 vAff;\nuniform float uAffLim;\n'+s.fragmentShader.replace(
       '#include <map_fragment>',
-      `#define vUv (vAff.xy/vAff.z)
+      // the TRUE uv is read first, before the name is taken over
+      `vec2 vUvSwim = vUv + clamp(vAff.xy/vAff.z - vUv, -uAffLim, uAffLim);
+       #define vUv vUvSwim
        #include <map_fragment>
-       #undef vUv`);
+       #undef vUv`);}
   };
   return mat;
 }
@@ -3416,7 +3439,7 @@ function applyGroundSurface(){
   const w=RUN.weather;
   const t=w==='blizzard'?texCache.snowDeep:w==='snow'?texCache.snow:texCache.dirt;
   if(groundMat.map===t)return;
-  t.repeat.set(w==='blizzard'?18:30,w==='blizzard'?18:30);   // deeper snow reads as bigger drifts
+  t.repeat.set(w==='blizzard'?13:30,w==='blizzard'?13:30);   // deeper snow reads as bigger, longer drifts
   groundMat.map=t;groundMat.needsUpdate=true;
   if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
   trodClear();
@@ -3441,14 +3464,18 @@ function setupWeather(){
   if(RUN.weather==='snow'||RUN.weather==='blizzard'){
     const bliz=RUN.weather==='blizzard';
     WX.level=bliz?.34:0;                       // a blizzard has a voice; quiet snow has none
+    // a flake is a GRAIN, not a bokeh ball: a hard little core with only
+    // the thinnest halo, so that blown up on screen it still reads as a
+    // speck of ice rather than a soft white circle
     if(!texCache.flake)makeTex('flake',16,(ctx,S)=>{ctx.clearRect(0,0,S,S);
       const g=ctx.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
-      g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.45,'rgba(238,244,255,.8)');g.addColorStop(1,'rgba(222,232,250,0)');
+      g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.30,'rgba(246,250,255,.95)');
+      g.addColorStop(.52,'rgba(226,238,255,.35)');g.addColorStop(1,'rgba(214,230,255,0)');
       ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
-    const N=bliz?2400:760,pts=new Float32Array(N*3),sp=new Float32Array(N);
+    const N=bliz?3400:820,pts=new Float32Array(N*3),sp=new Float32Array(N);   // smaller flakes, so more of them
     for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=bliz?rr(2.6,5.2):rr(1.0,2.4);}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
-    const pm=new THREE.PointsMaterial({map:texCache.flake,color:0xf8fbff,size:bliz?.42:.32,transparent:true,opacity:bliz?.95:.92,depthWrite:false});
+    const pm=new THREE.PointsMaterial({map:texCache.flake,color:0xf8fbff,size:bliz?.15:.22,transparent:true,opacity:bliz?.95:.9,depthWrite:false});
     WX.rain=new THREE.Points(geo,pm);WX.rain.frustumCulled=false;scene.add(WX.rain);WX.pts=pts;WX.speeds=sp;
     WX.nextBolt=0;AudioSys.setRain(WX.level);
     return;
@@ -3469,15 +3496,18 @@ function setupWeather(){
    with a lip of shoved snow standing round it, so it catches the light on
    one side and holds shadow on the other and reads from any angle.
 
-   A print is a five-by-five patch of ground — twenty-five vertices, thirty
-   two triangles — written STRAIGHT INTO WORLD SPACE in one shared buffer,
+   A print is a seven-by-seven patch of ground — three rings: the untouched
+   outside, a collar of shoved snow, and a flat floor pressed under it, the
+   whole grid pushed out onto circles so a boot leaves a round-ended dish
+   and not a stamped rectangle — written STRAIGHT INTO WORLD SPACE in one
+   shared buffer,
    so it needs no transform, no matrix and no object of its own, and the
    whole field's worth of them draws in a single call however many there
    are. Seventy-two slots; the oldest is taken back when they run out. Each
    fills itself in as it ages — the snow that is still falling puts it back
    — and a blizzard buries a print two and a half times as fast as quiet
    snowfall does, because there is that much more of it coming down. */
-const TROD={N:72,G:5,mesh:null,pos:null,col:null,live:null,next:0,life:40};
+const TROD={N:72,G:7,mesh:null,pos:null,col:null,live:null,next:0,life:40};
 function trodInit(){
   if(TROD.mesh)return;
   const N=TROD.N,G=TROD.G,VP=G*G,QP=(G-1)*(G-1);
@@ -3517,24 +3547,29 @@ function trodClear(){
    about twice that, and the pressed floor a third of it. Written as the
    bright numbers they look on a canvas, a print came out a white ribbon
    painted across the field. */
-const TROD_PIT=[.10,.12,.17],TROD_LIP=[.56,.60,.68],TROD_FLAT=[.30,.33,.38];
+const TROD_PIT=[.09,.11,.16],TROD_LIP=[.42,.45,.52],TROD_FLAT=[.30,.33,.38];
 function trodWrite(slot,p){
   const G=TROD.G,VP=G*G,base=slot*VP,P=TROD.pos,C=TROD.col,N=TROD.nrm;
   const k=Math.max(0,1-p.age/TROD.life);          // it fills back in as it ages
   const d=p.depth*k,rim=p.depth*.42*k;
   const fx=Math.sin(p.ang),fz=Math.cos(p.ang),rx=Math.cos(p.ang),rz=-Math.sin(p.ang);
   for(let j=0;j<G;j++)for(let i=0;i<G;i++){
-    const u=i/(G-1)*2-1,v=j/(G-1)*2-1,m=Math.max(Math.abs(u),Math.abs(v));
+    let u=i/(G-1)*2-1,v=j/(G-1)*2-1;
+    const m=Math.max(Math.abs(u),Math.abs(v));
+    // the grid is square and a boot is not: each ring of it is pushed out
+    // onto a circle of its own radius, so what presses into the snow is a
+    // round-ended dish rather than a stamped rectangle
+    if(m>0){const rd=Math.hypot(u,v)||1,sc=m/rd;u*=sc;v*=sc;}
     const ax=u*p.w*.5,az=v*p.l*.5;
     const wx=p.x+rx*ax+fx*az,wz=p.z+rz*ax+fz*az;
-    const h=m>.99?0:m>.49?rim:-d;
+    const h=m>.99?0:m>.5?rim:-d;
     const o=(base+j*G+i)*3;
     P[o]=wx;P[o+1]=heightAt(wx,wz)+h+.012;P[o+2]=wz;
     // the lip's own normal, tipped away from the middle of the print
-    const tip=m>.49&&m<.99?.6*k:0,nx=rx*u*tip+fx*v*tip,nz=rz*u*tip+fz*v*tip;
+    const tip=m>.5&&m<.99?.6*k:0,nx=rx*u*tip+fx*v*tip,nz=rz*u*tip+fz*v*tip;
     const nl=Math.hypot(nx,1,nz)||1;
     N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
-    const c=m>.99?TROD_FLAT:m>.49?TROD_LIP:TROD_PIT;
+    const c=m>.99?TROD_FLAT:m>.5?TROD_LIP:TROD_PIT;
     for(let q=0;q<3;q++)C[o+q]=lerp(TROD_FLAT[q],c[q],k);   // and its colours flatten with it
   }
 }
@@ -3547,14 +3582,28 @@ function trodFlush(){
   const a=TROD.mesh.geometry.attributes;
   a.position.needsUpdate=true;a.color.needsUpdate=true;a.normal.needsUpdate=true;
 }
+/* HOW DEEP THE SNOW IS. Two numbers come off it: how far a body standing
+   in it goes under, and how much harder a print presses. The sink is a
+   LOOK and nothing more — the ground the game measures is exactly where it
+   always was, so no reach, no collision and no blade's height changes; only
+   the body is dropped into the drift, and the boots go under with it. It is
+   given up over stone, where there is nothing to sink into. */
+function snowDeep(){return RUN.weather==='blizzard'?1:RUN.weather==='snow'?.35:0;}
+function snowSink(x,z){
+  const d=snowDeep();
+  if(!d||cathDist(x,z)<4.5)return 0;
+  return .26*d;
+}
 /* press something into the snow: a boot, a shoulder rolled through it, a
    hollow's dragging foot. Silent unless there is snow to press */
 function snowStamp(x,z,ang,w,l,depth){
   if(RUN.weather!=='snow'&&RUN.weather!=='blizzard')return;
   trodInit();
   const slot=TROD.next;TROD.next=(TROD.next+1)%TROD.N;
-  const p={x,z,ang,w,l,depth,age:0};
+  const k=.55+.9*snowDeep();                      // a drift takes a deeper print than a dusting
+  const p={x,z,ang,w:w*(.85+.3*snowDeep()),l:l*(.85+.3*snowDeep()),depth:depth*k,age:0};
   TROD.live[slot]=p;trodWrite(slot,p);trodFlush();
+  TROD.mesh.visible=true;
 }
 function updateTrod(dt){
   if(!TROD.mesh||!TROD.live)return;
@@ -3566,6 +3615,7 @@ function updateTrod(dt){
     if(p.age>=TROD.life)trodFree(s);else trodWrite(s,p);
   }
   if(touched)trodFlush();
+  TROD.mesh.visible=touched;   // with nothing pressed into it the buffer is not drawn at all
 }
 /* and everything that moves through the field leaves its own mark: the
    pilgrim's boots, the long smear of a roll, and every hollow's tread,
@@ -7729,7 +7779,7 @@ const player={
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='dead')poseDead(r,this.t);
 
-    r.root.position.set(this.x,heightAt(this.x,this.z),this.z);
+    r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z),this.z);
     r.root.rotation.y=this.facing;
     // the backstab: whatever the pose says, the blade is aimed from the
     // hand straight at the spine, so it goes in through the middle of the
@@ -8153,7 +8203,7 @@ class Enemy{
         break;
     }
     r.root.position.x=this.x;r.root.position.z=this.z;
-    const gh=heightAt(this.x,this.z);
+    const gh=heightAt(this.x,this.z)-(this.boss?.5:1)*snowSink(this.x,this.z);   // (the Warden is big enough to stand on it)
     if(this.state==='rise')r.root.position.y+=gh;      // poseRise set the burial offset
     else if(this.state!=='dormant')r.root.position.y=gh;
     r.root.rotation.y=this.facing;

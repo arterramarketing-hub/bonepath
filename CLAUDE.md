@@ -122,19 +122,29 @@ Known state of play:
   1684 after** — 219 fewer — with the triangle count identical at 59.0k
   either way, which is the check that the fold neither lost nor duplicated
   geometry. The draw calls are the number that matters on a phone.
-- Since then the field reads **~1691 draws / 66.4k triangles**. The extra
-  7.4k is bought deliberately: `box()` and `cyl()` (near line 2529) now
+- Since then the field reads **~1691 draws / 64.1k triangles**. The extra
+  5k is bought deliberately: `box()` and `cyl()` (near line 2529) now
   segment the world's geometry about every two units, six a side at most,
-  via `WSEG`. Affine texture mapping's swim is an error proportional to
-  the triangle's size, and the cathedral's faces were single quads
-  twenty-four units wide, so the brick courses bowed and sheared. Cutting
-  them up is what the PS1 itself did. **Do not undo this to win the
-  triangles back** — the bricks glitch again if you do, and the draws (the
-  number that matters) barely moved.
-- Two systems add exactly one draw each, and only in snow: the snowfall
-  points, and `TROD` (near `updateWeather`) — every boot-print, roll-trough
-  and hollow's tread in the field written into one shared world-space
-  buffer, 72 slots, oldest recycled. Do not give prints their own meshes.
+  via `WSEG`. This is for the *lighting* as much as anything — Lambert is
+  per-vertex, and a wall of two triangles is lit as two triangles.
+- **The brick warp was affine, and it is fixed in the shader, not the
+  geometry.** The swim is an error proportional to how much `w` varies
+  across a triangle. Subdividing (WSEG) brought the flat-on view back but
+  could never fix the oblique one, where the error is unbounded and the
+  courses shear into diagonals. So `psx()` now hands the fragment BOTH
+  uvs — the true `vUv` and the swimming `vAff.xy/vAff.z` — and clamps the
+  difference to `PSX_AFFLIM` (0.03 of a face). A small triangle never
+  reaches the cap and keeps all its wobble; a wall-sized one is held to a
+  PS1's worth. `?affine=0` off, `?affine=full` uncapped (the broken look),
+  `?affine=<0..1>` to retune. **If bricks ever look sheared again, lower
+  the cap — do not reach for more geometry.**
+- `TROD` (near `updateWeather`) adds one draw, and only while something is
+  pressed into snow: every boot-print, roll-trough and hollow's tread in
+  the field written into one shared world-space buffer, 72 slots of a 7x7
+  patch each, oldest recycled, `mesh.visible` false when none are live.
+  Do not give prints their own meshes. The snowfall points are one more
+  draw. `snowSink()` drops standing BODIES into the drift and touches
+  nothing the game measures — never make it change `heightAt`.
 - The imbued weapon's glow (`buildWeaponGlow`, near `ELEMENTS`) hangs two
   additive copies on every part of the weapon. They are `visible=false`
   until an element is taken, so an unlit weapon costs nothing; while lit it
