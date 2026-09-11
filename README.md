@@ -382,8 +382,12 @@ them the seed decides:
   lifted with it. It had been landing somewhere around six in the evening.
 - **the clouds.** The dome carried nothing but a gradient, and a sky with
   no cloud in it reads as a backdrop. Every hour now has banks of them,
-  drawn as masses of overlapping lozenges, each lit along its top edge and
-  dark underneath so it has a lit side and a base rather than being fog:
+  built the way a cumulus is built: a dozen or more lobes strung along one
+  **flat baseline**, swollen toward the middle of the mass and domed over
+  it, each going down faint so that the density comes from the overlap
+  rather than from one opaque blob — which is what the first pass was, and
+  why they read as pasted on. Only the lobes riding highest take much
+  light, which gives the mass a lit crown and a shadowed underside:
   fair-weather cumulus by day, cloud undersides lit orange at dusk, cold
   gold at the green dawn. The dome turns a few degrees a minute — faster
   when the wind is up enough to drive snow or rain sideways — so they go
@@ -415,7 +419,16 @@ them the seed decides:
   sky dome, the fog and both sky lights leap for a few frames in a
   double flash, and the thunder comes after — a near bolt cracks first
   and rolls hard, a far one only rolls, long and low, a second or two
-  behind. All three cloud the sky: light rain draws a pale sheet of
+  behind. **No two bolts are alike**: one comes down on top of you and
+  *cracks* — a bright rip of tearing air and the whole sky falling in behind
+  it, lighting everything once and hard; one *crackles*, a broken string of
+  five or six dry reports running away from you over the field, each further
+  off than the last, with the flash flickering to match; one is a flat
+  *boom* a mile out; and one is only a *rumble* that never quite arrives,
+  the low end alone, arriving late and slow and barely lifting the sky. The
+  rain under them is heavier than it was by half again, falling faster, and
+  driven sideways in gusts that come through in waves.
+  All three cloud the sky: light rain draws a pale sheet of
   overcast across it and hides the sun or moon; a storm is a dark,
   lumpen cloud-roof, the fog greyer and the light down by a quarter,
   so the bolts have something to light.
@@ -681,13 +694,22 @@ cathedral the pilgrim is nearest. `?mode=path` on the address loads
 the path directly; a mode is a page, so choosing the other way on the
 title reloads into it.
 
-**The pilgrim goes down the way he was hit.** Not a canned fall: the same
-ragdoll the hollows use, kicked along the line of the blow that finished
-him — take a bone to the head and you are knocked over that way, and you
-land where the physics leaves you. The field goes on around you while it
-happens: the hollows keep hunting, the snow keeps coming down, the storm
-keeps leaning on the field. The screen holds off for **three whole seconds**
-before it says what it has to say.
+**What kills you decides how you go down.** Not one canned fall but four,
+and the field goes on around you through all of them — the hollows keep
+hunting, the snow keeps coming down, the storm keeps leaning on the field —
+while the screen holds off for **three whole seconds** before it says what
+it has to say.
+
+| killed by | what happens |
+|---|---|
+| **a blade** | opened up. The blood goes out of you in a sheet and keeps coming for a second after, and you fold where you stand — no throw to it at all |
+| **a thrown bone** | struck. Taken off your feet down the line the thing came in on, and you land wherever the physics leaves you |
+| **something heavy** | the weight takes a limb with it. An arm or a leg comes off and lands a stride away, spurting, and the rest of you crumbles after it |
+| **poison** | no fall. The rot has been in you a while by the time it finishes, so there is nothing left standing to fall: the knees go, then you lose your shape altogether — squatting down into the ground and out at the sides, going green as you go and spitting the stuff off you the whole way, until there is nothing above the field but the pool you left |
+
+The first three are the hollows' own ragdoll, kicked differently, and the
+heavy one borrows their limb-shearing outright. However you came apart, you
+are built again from nothing on respawn rather than patched back together.
 
 ## Elements
 

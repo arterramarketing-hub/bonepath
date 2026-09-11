@@ -196,9 +196,13 @@ Known state of play:
   pixel renders BLACK. Brightening a textured (white-based) material has to
   be done with `emissive`, which adds after the map multiply. This bit
   `wearSnow` twice before it was understood.
-- The hero's death uses the hollows' ragdoll (`startRagdoll`/`endRagdoll`).
-  `respawn()` must call `endRagdoll` and restore `rig.root.visible` or the
-  pilgrim comes back folded up on the floor.
+- The hero's death branches on what killed him (`die(kx,kz,force,kind)`,
+  kinds `blade`/`bone`/`heavy`/`poison`); `takeHit` carries the kind in.
+  Three use the hollows' ragdoll, `heavy` also calls `severLimb` — which
+  calls `e.die()` if it drops hp to zero, so hp is parked at 999 across that
+  call. `poison` sets `melt` and is driven by `meltHero` in the dead frame
+  instead of the ragdoll. `respawn()` calls `rebuild()` outright: a severed
+  limb and a melted body are not worth patching back together.
 - Background audio all runs through `musicMaster` at `BG_GAIN`. Change the
   constant, not the individual layers, for an across-the-board move.
 

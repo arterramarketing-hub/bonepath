@@ -1793,11 +1793,43 @@ const AudioSys=(()=>{
     // the rain's level: 0, a light rain, or a storm
     setRain(level){rainLevel=level;if(rainG&&ac)rainG.gain.setTargetAtTime(level*.046,ac.currentTime,2);},
     // thunder: a near bolt cracks first and rolls hard; a far one only rolls, long and low
-    thunder(near){if(!ac)return;const t=now(),bus=musicMaster;   // (weather: background)
-      if(near){noise(t,{peak:.27,att:.003,dec:.3,f0:2400,f1:160,bus});tone(t,{f:90,f2:40,type:'sawtooth',peak:.11,att:.005,dec:.4,bus});}
-      noise(t+(near?.06:0),{peak:near?.25:.15,att:near?.08:.5,dec:near?2.4:3.4,f0:170,f1:45,bus});
-      noise(t+.5,{peak:near?.14:.1,att:.3,dec:2.6,f0:120,f1:40,bus});
-      tone(t,{f:44,f2:26,type:'sine',peak:near?.2:.12,att:.12,dec:2.6,bus});},
+    /* FOUR KINDS OF THUNDER, because one sound played at two volumes is a
+       sound effect and not weather. A CRACK is the tearing of air directly
+       overhead — a bright rip, then the whole sky falling in behind it. A
+       CRACKLE is the stutter you get when the channel is long and broken:
+       five or six dry reports running away from you, each further off than
+       the last, and a roll underneath. A BOOM is the flat one a mile out.
+       And a RUMBLE never arrives at all — it is only the low end, long and
+       slow, somewhere past the edge of the field. */
+    thunder(kind){if(!ac)return;const t=now(),bus=musicMaster;   // (weather: background)
+      if(kind===true)kind='boom';if(kind===false||!kind)kind='rumble';
+      if(kind==='crack'){
+        noise(t,{peak:.3,att:.002,dec:.22,f0:3600,f1:220,bus});                 // the air tears
+        noise(t+.012,{peak:.24,att:.001,dec:.09,f0:1400,f1:600,type:'bandpass',Q:1.1,bus});
+        tone(t,{f:105,f2:38,type:'sawtooth',peak:.13,att:.004,dec:.5,bus});
+        noise(t+.07,{peak:.27,att:.05,dec:2.8,f0:190,f1:42,bus});               // and the sky comes down behind it
+        noise(t+.7,{peak:.14,att:.35,dec:3,f0:110,f1:36,bus});
+        tone(t,{f:42,f2:24,type:'sine',peak:.2,att:.09,dec:2.8,bus});
+        return;}
+      if(kind==='crackle'){
+        const n=5+((Math.random()*3)|0);
+        for(let i=0;i<n;i++){                                                    // running away over the field
+          const d=i*(.055+Math.random()*.075),f=1-i/n;
+          noise(t+d,{peak:(.1+.12*f),att:.002,dec:.07+.05*f,f0:1100+2200*f,f1:200+400*f,type:'bandpass',Q:.9,bus});
+          if(Math.random()<.6)tone(t+d+.01,{f:70+120*f,f2:40,type:'sawtooth',peak:.05*f,att:.003,dec:.16,bus});
+        }
+        noise(t+.18,{peak:.18,att:.22,dec:2.6,f0:165,f1:44,bus});                // the roll under all of it
+        tone(t+.1,{f:46,f2:26,type:'sine',peak:.13,att:.16,dec:2.4,bus});
+        return;}
+      if(kind==='boom'){
+        noise(t,{peak:.2,att:.06,dec:2.4,f0:230,f1:50,bus});
+        noise(t+.45,{peak:.12,att:.3,dec:2.6,f0:120,f1:40,bus});
+        tone(t,{f:48,f2:26,type:'sine',peak:.15,att:.11,dec:2.6,bus});
+        return;}
+      // rumble: no report at all, only the low end arriving late and slow
+      noise(t,{peak:.1,att:.9,dec:4.2,f0:120,f1:34,bus});
+      noise(t+1.1,{peak:.07,att:.8,dec:3.4,f0:90,f1:30,bus});
+      tone(t,{f:38,f2:22,type:'sine',peak:.1,att:.5,dec:3.6,bus});},
     start,setSpace,
     // a colossal blade tearing the air: deep displaced-air layers under
     // the whistle — the mass reads in the low end
@@ -3220,19 +3252,30 @@ function buildWorld(){
      the cloud with them. */
   const cloudBand=(ctx,S,n,top,base,y0,y1,scale,alpha)=>{
     for(let i=0;i<n;i++){
-      const cy=S*rr(y0,y1),cx=rnd()*S,w=S*scale*rr(.6,1.5),h=w*rr(.16,.3);
-      for(let j=0;j<7;j++){                                  // one mass, built of lobes
-        const ox=cx+rr(-w*.5,w*.5),oy=cy+rr(-h*.35,h*.35),r=h*rr(.5,1.15);
-        const g=ctx.createRadialGradient(ox,oy-r*.3,r*.1,ox,oy,r);
-        g.addColorStop(0,`rgba(${top[0]},${top[1]},${top[2]},${alpha})`);
-        g.addColorStop(.55,`rgba(${base[0]},${base[1]},${base[2]},${alpha*.8})`);
+      const cy=S*rr(y0,y1),cx=rnd()*S,w=S*scale*rr(.7,1.7),h=w*rr(.2,.34);
+      const lobes=12+((rnd()*9)|0);
+      for(let j=0;j<lobes;j++){
+        /* a cumulus sits on a FLAT base and domes over it, and it is lumpy:
+           so the lobes are strung along one baseline, swollen toward the
+           middle of the mass, and the ones riding highest are the only ones
+           that take much light. Each goes down faint — a dozen of them
+           overlapping is what makes the density, not one opaque blob, which
+           is what the first pass was and why they read as pasted on. */
+        const t=(j+rr(-.35,.35))/(lobes-1),hump=Math.max(0,Math.sin(Math.max(0,Math.min(1,t))*Math.PI));
+        const r=h*(.34+.66*hump)*rr(.7,1.2);
+        const ox=cx+(t-.5)*w,oy=cy-r*.5-h*.42*hump*rr(.55,1.05);
+        const lit=Math.min(1,.18+hump*.95*rr(.8,1.15));
+        const c0=[0,1,2].map(q=>Math.round(base[q]+(top[q]-base[q])*lit));
+        const g=ctx.createRadialGradient(ox,oy-r*.35,r*.08,ox,oy,r);
+        g.addColorStop(0,`rgba(${c0[0]},${c0[1]},${c0[2]},${alpha})`);
+        g.addColorStop(.5,`rgba(${c0[0]},${c0[1]},${c0[2]},${alpha*.55})`);
         g.addColorStop(1,`rgba(${base[0]},${base[1]},${base[2]},0)`);
         ctx.fillStyle=g;
         // scale ABOUT the lobe's own centre — translate out, scale, translate
         // back — or the gradient, whose coordinates are absolute, is carried
         // off the shape it is meant to fill and the whole cloud paints in its
         // own transparent edge colour. (Which is exactly what happened.)
-        ctx.save();ctx.translate(ox,oy);ctx.scale(1.7,1);ctx.translate(-ox,-oy);
+        ctx.save();ctx.translate(ox,oy);ctx.scale(1.45,1);ctx.translate(-ox,-oy);
         ctx.beginPath();ctx.arc(ox,oy,r,0,TAU);ctx.fill();ctx.restore();
       }
     }
@@ -3244,20 +3287,20 @@ function buildWorld(){
     // the strip of sky the camera actually shows is a narrow one, so the
     // band is laid thickly across the whole lower half rather than placed
     // where a sky looks best on a flat canvas
-    cloudBand(ctx,S,6,[255,255,255],[146,163,190],.20,.36,.24,.92);   // fair-weather cumulus, lit from above
-    cloudBand(ctx,S,11,[252,254,255],[136,151,178],.36,.50,.15,.9);});// and a bank of them stacked on the horizon
+    cloudBand(ctx,S,6,[255,255,255],[168,182,204],.18,.35,.26,.46);   // fair-weather cumulus, lit from above
+    cloudBand(ctx,S,12,[248,251,255],[162,176,198],.34,.50,.17,.4);});// and a bank of them stacked on the horizon
   makeTex('skyDusk',256,(ctx,S)=>{srand(62);const g=ctx.createLinearGradient(0,0,0,S);
     g.addColorStop(0,'#170f22');g.addColorStop(.20,'#4a2444');g.addColorStop(.36,'#9c4440');
     g.addColorStop(.46,'#d0854a');g.addColorStop(.50,'#e6a95e');g.addColorStop(1,'#e6a95e');
     ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
-    cloudBand(ctx,S,8,[255,196,138],[84,44,66],.20,.36,.24,.78);
-    cloudBand(ctx,S,16,[255,178,112],[58,30,48],.35,.50,.16,.85);});   // lit along the top by what is left of the sun
+    cloudBand(ctx,S,8,[255,204,148],[108,60,80],.18,.35,.26,.46);
+    cloudBand(ctx,S,15,[255,186,122],[72,40,58],.34,.50,.18,.42);});    // lit along the top by what is left of the sun
   makeTex('skyDawn',256,(ctx,S)=>{srand(63);const g=ctx.createLinearGradient(0,0,0,S);
     g.addColorStop(0,'#18282f');g.addColorStop(.20,'#376458');g.addColorStop(.37,'#8bb87e');
     g.addColorStop(.47,'#dcd894');g.addColorStop(.50,'#ece7a4');g.addColorStop(1,'#ece7a4');
     ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
-    cloudBand(ctx,S,7,[236,246,196],[54,86,80],.20,.36,.22,.7);
-    cloudBand(ctx,S,16,[244,250,206],[44,74,70],.35,.50,.15,.8);});    // cold green dawn, the cloud edges catching it
+    cloudBand(ctx,S,7,[232,242,198],[74,106,96],.18,.35,.24,.44);
+    cloudBand(ctx,S,15,[240,248,204],[58,88,82],.34,.50,.17,.4);});   // cold green dawn, the cloud edges catching it
   scene.background=RUN.fog.clone();
   /* the field goes off into the very colour the sky is, so the land never
      ends at a hard edge and the far tiles of the path arrive out of haze
@@ -3572,12 +3615,12 @@ function setupWeather(){
   }
   const storm=RUN.weather==='storm';WX.level=storm?1:.5;
   makeTex('rain',32,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'rgba(200,214,230,0)');g.addColorStop(.35,'rgba(200,214,230,.9)');g.addColorStop(.8,'rgba(200,214,230,.7)');g.addColorStop(1,'rgba(200,214,230,0)');ctx.fillStyle=g;ctx.fillRect(S/2-1,0,2,S);});
-  const N=storm?900:360,pts=new Float32Array(N*3),sp=new Float32Array(N);
-  for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=rr(9,14);}
+  const N=storm?1700:380,pts=new Float32Array(N*3),sp=new Float32Array(N);
+  for(let i=0;i<N;i++){pts[i*3]=rr(-18,18);pts[i*3+1]=rr(0,16);pts[i*3+2]=rr(-18,18);sp[i]=storm?rr(15,23):rr(9,14);}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
-  const pm=new THREE.PointsMaterial({map:texCache.rain,color:0xc8d4e2,size:storm?.75:.6,transparent:true,opacity:storm?.55:.38,depthWrite:false});
+  const pm=new THREE.PointsMaterial({map:texCache.rain,color:0xc8d4e2,size:storm?.92:.6,transparent:true,opacity:storm?.6:.38,depthWrite:false});
   WX.rain=new THREE.Points(geo,pm);WX.rain.frustumCulled=false;scene.add(WX.rain);WX.pts=pts;WX.speeds=sp;
-  WX.nextBolt=storm?rr(3,8):0;
+  WX.nextBolt=storm?rr(2,5):0;
   AudioSys.setRain(WX.level);
 }
 /* ============ TRODDEN SNOW ============
@@ -3667,7 +3710,9 @@ function groundMeshY(x,z){
    contrast, top to bottom, rather than by standing out against whatever
    happens to be under it. Written as the bright numbers they look on a
    canvas, they came out as white ribbons painted across the field. */
-const TROD_PIT=[.24,.27,.34],TROD_LIP=[.54,.58,.64],TROD_FLAT=[.46,.50,.57];
+/* and these sit as close together as the furrow's do: a print that reads as
+   a bright ring with a black middle is a decal, not a dent. */
+const TROD_PIT=[.34,.38,.45],TROD_LIP=[.53,.57,.63],TROD_FLAT=[.46,.50,.57];
 /* a boot on a DUSTING presses a dish out of bright snow, so its collar is
    the bright part. A boot down in a furrow has nothing bright to shove —
    it only scuffs a floor that is already dark, and given the first palette
@@ -3705,13 +3750,13 @@ function trodWrite(slot,p){
   // a second, which is the difference between a footfall and a decal being
   // switched on behind you. And then it fills back in as it ages.
   const k=Math.max(0,1-p.age/TROD.life)*Math.min(1,p.age/.3+.25);
-  const rim=p.depth*1.05*k;
+  const rim=p.depth*.8*k;
   for(let q=0;q<VP;q++){
     const v=V[q],m=v.m,o=(base+q)*3;
     const h=m>.99?TROD_UP:m>.5?TROD_UP+rim:TROD_FLOOR;
     P[o]=v.x;P[o+1]=v.y+h;P[o+2]=v.z;
     // the lip's own normal, tipped away from the middle of the print
-    const tip=m>.5&&m<.99?.6*k:0,nx=v.nx*tip,nz=v.nz*tip,nl=Math.hypot(nx,1,nz)||1;
+    const tip=m>.5&&m<.99?.4*k:0,nx=v.nx*tip,nz=v.nz*tip,nl=Math.hypot(nx,1,nz)||1;
     N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
     const PA=p.pal||TROD_PAL,c=m>.99?PA[0]:m>.5?PA[1]:PA[2];
     for(let r=0;r<3;r++)C[o+r]=lerp(PA[0][r],c[r],k);       // and its colours flatten with it
@@ -3995,6 +4040,8 @@ function updateTrail(dt){
    wobbles like everything else. */
 const SNOW_COAT=new THREE.Color(0xdfe8f2).convertSRGBToLinear();
 const SNOW_EM=new THREE.Color(0x9fb4cc).convertSRGBToLinear();
+const POISON_POOL=['rgba(58,88,30,.4)','rgba(28,52,16,.68)'];         // what is left of you on the ground
+const MELT_COL=new THREE.Color(0x46681e).convertSRGBToLinear();
 const SNOW_ON=lam({color:new THREE.Color(0xa8b8cc).convertSRGBToLinear(),flatShading:true});
 const SNOW_CLING=lam({color:new THREE.Color(0xccd9ea).convertSRGBToLinear(),flatShading:true,transparent:true,opacity:0});
 function dressSnow(rig){
@@ -4143,6 +4190,10 @@ function updateWeather(dt){
     // a flake is pushed about on its way down; a drop is not
     if(bliz){P[o]+=(gust+Math.sin(G.time*5+i)*2.1)*dt;P[o+2]+=(gust*.42+Math.cos(G.time*4+i*.7)*1.8)*dt;}
     else if(snow){P[o]+=(wind*.45+Math.sin(G.time*1.7+i)*.55)*dt;P[o+2]+=Math.cos(G.time*1.3+i*.7)*.45*dt;}
+    // a storm's rain does not fall straight either: it is driven, and the
+    // gusts come through in waves a few seconds apart
+    else if(RUN.weather==='storm'){const gs=4.2+Math.sin(G.time*.5)*3.2+Math.sin(G.time*1.7)*1.6;
+      P[o]+=(wind+gs)*dt;P[o+2]+=gs*.35*dt;}
     else P[o]+=wind*dt;
     if(P[o+1]<cy-9||Math.abs(P[o]-cx)>18||Math.abs(P[o+2]-cz)>18){
       const low=bliz&&i%3===0;
@@ -4167,9 +4218,27 @@ function updateWeather(dt){
   }else if(WX.squall){WX.squall=0;}
   if(RUN.weather==='storm'){
     WX.nextBolt-=dt;
-    if(WX.nextBolt<=0){WX.nextBolt=rr3(5,14);WX.flash=1;WX.pop=.13;const near=Math.random()<.4;
-      setTimeout(()=>AudioSys.thunder(near),near?250:rr3(900,2200));}
-    if(WX.pop>0){WX.pop-=dt;if(WX.pop<=0)WX.flash=Math.max(WX.flash,.7);}   // the second pop of a double flash
+    /* NO TWO BOLTS ALIKE. One comes down on top of you and CRACKS, one
+       stutters — a broken string of pops running away over the field — one
+       is a flat boom a mile off, and one is only a long rumble that never
+       quite arrives. The flash is cut to match: a crack lights everything
+       once and hard, a crackle flickers four or five times, a rumble barely
+       lifts the sky at all. */
+    if(WX.nextBolt<=0){
+      const r=Math.random();
+      const kind=r<.18?'crack':r<.46?'crackle':r<.74?'boom':'rumble';
+      WX.nextBolt=kind==='rumble'?rr3(2,6):rr3(3.5,11);
+      WX.kind=kind;
+      WX.flash=kind==='crack'?1:kind==='crackle'?.85:kind==='boom'?.6:.22;
+      WX.pop=kind==='crackle'?.09:kind==='crack'?.13:0;
+      WX.pops=kind==='crackle'?3+((Math.random()*3)|0):kind==='crack'?1:0;
+      const delay=kind==='crack'?rr3(60,180):kind==='crackle'?rr3(500,1400):kind==='boom'?rr3(1100,2400):rr3(2200,4200);
+      setTimeout(()=>AudioSys.thunder(kind),delay);
+    }
+    if(WX.pop>0){WX.pop-=dt;
+      if(WX.pop<=0&&WX.pops>0){WX.pops--;
+        WX.flash=Math.max(WX.flash,WX.kind==='crackle'?.4+Math.random()*.45:.7);
+        WX.pop=WX.kind==='crackle'?.05+Math.random()*.1:0;}}
   }
   WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;                   // (whatever the weather: Thor's bolt lights a clear night too)
 }
@@ -6662,7 +6731,7 @@ function throwBone(x,z,tx,tz,dmg){
     const done=()=>{scene.remove(m);m.geometry.dispose();return false;};
     if(player.state!=='dead'&&
        Math.hypot(player.x-m.position.x,player.z-m.position.z)<.55){
-      const res=player.takeHit(dmg,m.position.x-vx*.2,m.position.z-vz*.2,false);
+      const res=player.takeHit(dmg,m.position.x-vx*.2,m.position.z-vz*.2,false,'bone');
       if(res!=='iframe'){ // grace lets it whistle past
         boneBurst(m.position.x,1.2,m.position.z,0xcfc4a3,4,2);
         return done();
@@ -7220,9 +7289,15 @@ const player={
     shootArrow(this.x+fx*.6,heightAt(this.x,this.z)+1.35,this.z+fz*.6,fx,fz,spd,dmg,kind);
   },
   respawn(){
-    if(this.rag)endRagdoll(this);                           // up off the snow, limbs back where they belong
-    if(this.rig){this.rig.root.visible=true;this.rig.root.rotation.set(0,0,0);}
+    if(this.rag)endRagdoll(this);
+    // however he came apart — a limb off, a body melted into the ground —
+    // he is built again from nothing rather than patched back together
+    this.melt=false;this.severedArm=false;this.severedLeg=false;this.severedHead=false;
+    this.snowCling=0;this.snowCoat=0;this.snowBoot=0;
+    if(this.rig){this.rig.root.scale.set(1,1,1);this.rig.root.visible=true;}
     this.x=G.checkpoint.x;this.z=G.checkpoint.z;
+    this.rebuild();
+    this.rig.root.visible=true;this.rig.root.rotation.set(0,0,0);
     this.hp=this.maxHp;
     this.state='free';this.t=0;this.hurtGrace=0;this.poisonT=0;
     this.facing=0;
@@ -7253,7 +7328,7 @@ const player={
   },
   // the roll's window, and the whole of the finishing cut: nothing touches the executioner
   iframes(){return (this.state==='roll'&&this.t>.03&&this.t<.38)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8);},
-  takeHit(dmg,fx,fz,heavy){
+  takeHit(dmg,fx,fz,heavy,kind){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
     if(this.hurtGrace>0)return 'immune';
@@ -7266,7 +7341,7 @@ const player={
     bloodSpray(this.x,1.25,this.z,dmg>20?13:8,dmg>20?1.3:1);
     bloodDecal(this.x+rr3(-.3,.3),this.z+rr3(-.3,.3),.28+dmg*.008);
     const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
-    if(this.hp<=0){this.die(dx/l,dz/l,heavy?1.7:1);return 'dead';}
+    if(this.hp<=0){this.die(dx/l,dz/l,heavy?1.7:1,kind||(heavy?'heavy':'blade'));return 'dead';}
     this.state='hurt';this.t=0;this.hurtDur=.38;
     this.vx=dx/l*5;this.vz=dz/l*5;
     return 'hit';
@@ -7277,21 +7352,61 @@ const player={
      way, and you land where the physics leaves you. The field goes on
      around him while he falls, and the screen holds off for three whole
      seconds before it says what it has to say. */
-  die(kx,kz,force){
+  /* WHAT KILLS YOU DECIDES HOW YOU GO DOWN.
+       a BLADE — opened up: the blood goes out of you in a sheet and you
+         fold where you stand, with no throw to it at all.
+       a thrown BONE — struck: taken off your feet down the line the thing
+         came in on, and you land wherever you land.
+       something HEAVY — the weight takes a limb with it. An arm or a leg
+         goes, and the rest of you crumbles after it.
+       POISON — no fall at all. The rot finishes what it started: you go
+         down into a green pool and sink into the field.
+     Everything but the poison is the hollows' own ragdoll, kicked
+     differently. */
+  die(kx,kz,force,kind){
     this.hp=0;this.state='dead';this.t=0;this.dropThrown();
     G.mode='dead';G.deaths++;
-    this.crumbled=false;
-    if(this.rig&&this.rig.humanoid){
-      const a=Math.random()*TAU;
-      const dx=kx!==undefined?kx:Math.sin(a),dz=kz!==undefined?kz:Math.cos(a);
-      startRagdoll(this,dx,dz,4.2*(force||1),2.4+Math.random()*.9);
+    this.crumbled=false;this.melt=false;
+    kind=kind||'blade';this.deathKind=kind;
+    const a=Math.random()*TAU;
+    const dx=kx||Math.sin(a),dz=kz||Math.cos(a),dl=Math.hypot(dx,dz)||1;
+    const ux=dx/dl,uz=dz/dl;
+    const rig=this.rig&&this.rig.humanoid?this.rig:null;
+    if(kind==='poison'){
+      this.melt=true;
+      AudioSys.poisoned();G.vibr([40,40,40,40,200]);
+      for(let i=0;i<26;i++)elemFleck('poison',this.x+rr3(-.5,.5),.2+Math.random()*1.5,this.z+rr3(-.5,.5));
+      elemBurst('poison',this.x,.9,this.z);
+      paintScar(this.x,this.z,0,2.1,2.1,false,POISON_POOL);
+      paintScar(this.x+rr3(-.7,.7),this.z+rr3(-.7,.7),1,1.3,1.3,false,POISON_POOL);
+    }else if(kind==='heavy'){
+      // the weight takes a limb with it, then what is left falls after it
+      if(rig){this.hp=999;                                        // (severLimb kills what it maims)
+        severLimb(this,Math.random()<.5?'sweep':'overhead',{dx:ux,dz:uz},Math.random()<.5?'armL':'legL');
+        this.hp=0;}
+      startRagdoll(this,ux,uz,5.6*(force||1),3.2+Math.random());
+      G.camShake=Math.max(G.camShake,.6);
+    }else if(kind==='bone'){
+      startRagdoll(this,ux,uz,7.4*(force||1),2.2+Math.random()*.8);   // taken off your feet
+      G.camShake=Math.max(G.camShake,.45);
+      boneBurst(this.x,1.3,this.z,0xcfc4a3,8,3);
+    }else{
+      startRagdoll(this,ux,uz,1.5*(force||1),1.5+Math.random()*.5);   // opened up: you fold, you do not fly
     }
     AudioSys.deathGong();G.vibr([80,60,120]);
     // the path keeps what it takes
-    bloodSpray(this.x,1.1,this.z,16,1.5);
-    bloodDecal(this.x,this.z,.75);
-    bloodDecal(this.x+rr3(-.5,.5),this.z+rr3(-.5,.5),.3);
-    bloodDecal(this.x+rr3(-.5,.5),this.z+rr3(-.5,.5),.24);
+    if(kind!=='poison'){
+      bloodSpray(this.x,1.1,this.z,kind==='blade'?30:18,kind==='blade'?2.2:1.5);
+      if(kind==='blade'){                                            // the sheet of it keeps coming for a moment
+        let t=0;const px=this.x,pz=this.z;
+        effects.push({update(dt){t+=dt;if(t>1.1)return false;
+          if(Math.random()<dt*22)bloodSpray(px+rr3(-.3,.3),.5+Math.random()*.9,pz+rr3(-.3,.3),2,1.1);
+          return true;}});
+      }
+      bloodDecal(this.x,this.z,kind==='blade'?1.05:.75);
+      bloodDecal(this.x+rr3(-.6,.6),this.z+rr3(-.6,.6),.34);
+      bloodDecal(this.x+rr3(-.6,.6),this.z+rr3(-.6,.6),.26);
+    }
     // drop the marrow where you fell
     if(G.marrowDrop){clearMarrowDrop();toast('the lost marrow fades');}
     if(this.marrow>0){
@@ -7501,7 +7616,7 @@ const player={
       if(Math.random()<dt*7)elemFleck('poison',this.x+rr3(-.35,.35),.5+rr3(0,1.1),this.z+rr3(-.35,.35));
       if(this.poisonTick<=0){this.poisonTick=.5;this.hp-=2;
         this.flash(true);setTimeout(()=>this.flash(false),70);
-        if(this.hp<=0){this.die();return this.post(dt);}}
+        if(this.hp<=0){this.die(0,0,1,'poison');return this.post(dt);}}
     }
 
     // an imbued element burns down, sheds motes off the blade, and
@@ -9001,7 +9116,7 @@ function featherShard(x,z,ang,dmg){
     m.position.y=heightAt(m.position.x,m.position.z)+1.3-life*.35;
     const done=()=>{scene.remove(m);m.geometry.dispose();return false;};
     if(player.state!=='dead'&&Math.hypot(player.x-m.position.x,player.z-m.position.z)<.6){
-      const res=player.takeHit(dmg,m.position.x-vx*.2,m.position.z-vz*.2,false);
+      const res=player.takeHit(dmg,m.position.x-vx*.2,m.position.z-vz*.2,false,'bone');
       if(res!=='iframe')return done();
     }
     if(life>1.7)return done();
@@ -10320,6 +10435,29 @@ resize();
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
 const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}
+/* THE MELT. The rot has been in him for a while by the time it finishes the
+   job, so there is no fall to it: the knees go first, then he simply loses
+   his shape — the whole body squats down into the ground and out at the
+   sides, going green as it goes, spitting the stuff off him the whole way,
+   until there is nothing above the snow but the pool he left. Three seconds
+   end to end, which is the same three the screen waits. */
+function meltHero(dt){
+  const p=player,r=p.rig;if(!r)return;
+  const k=Math.min(1,p.t/2.7),e=k*k;
+  resetPose(r);poseDead(r,Math.min(p.t,.55));                 // the knees go first
+  const gy=heightAt(p.x,p.z)-snowSink(p.x,p.z);
+  r.root.position.set(p.x,gy-e*1.35,p.z);
+  r.root.scale.set(1+e*.55,Math.max(.02,1-e*.92),1+e*.55);    // it spreads as it sinks
+  // and it goes the colour of what killed it
+  if(r.snowDress){const a=Math.min(.85,k*1.1);
+    for(const en of r.snowDress){
+      en.m.color.copy(en.base).lerp(MELT_COL,a);
+      if(en.m.emissive)en.m.emissive.copy(MELT_COL).multiplyScalar(a*.25);
+    }}
+  if(Math.random()<dt*26)elemFleck('poison',p.x+rr3(-.7,.7),gy+.1+Math.random()*(1.2*(1-e)),p.z+rr3(-.7,.7));
+  if(Math.random()<dt*3)paintScar(p.x+rr3(-.9,.9),p.z+rr3(-.9,.9),Math.random()*TAU,1.0,1.0,false,POISON_POOL);
+  if(k>=1&&r.root.visible){r.root.visible=false;elemBurst('poison',p.x,gy+.2,p.z);}
+}
 const _bv=new THREE.Vector3();
 /* the imbued weapon, once a frame: the burn over the steel, the fringe off
    its edge, and the beads strung down its length — each weapon moving the
@@ -10537,7 +10675,8 @@ function frame(now){
       if(PATH.on)updatePath(wdt);
     }else{
       player.t+=wdt;
-      if(player.rag){player.rag.step(wdt);player.rag.apply();
+      if(player.melt)meltHero(wdt);
+      else if(player.rag){player.rag.step(wdt);player.rag.apply();
         player.x=player.rig.root.position.x;player.z=player.rig.root.position.z;
         for(const m of player.mats)m.emissive.setHex(0x000000);}
       else{resetPose(player.rig);poseDead(player.rig,player.t);}
