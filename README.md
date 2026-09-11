@@ -750,6 +750,38 @@ crumbling off it the whole way, and three heaves audible in it, the two that
 fail and the one that does not. The earth keeps breaking around it until it
 is out.
 
+## The weight of a swing
+
+Two things carry the mass of a weapon, and neither of them is speed.
+
+**The shape of the arc, which was backwards.** Every swing runs on four
+keys — carry, wind, strike, follow-through. The carry-to-wind leg was right,
+an ease-out, the blade settling at the top of the load. But the *wind to
+strike* leg ran on `1-(1-x)^3.5`, which is an ease-out as well: the blade
+lurched to its fastest on the first frame of the arc and **decelerated all
+the way into the impact**. That is the whole of why a swing read as starting
+up with new momentum and then going slack — there was no acceleration in it
+anywhere, only a lurch. A blade accelerates *into* the thing it hits. The
+arc is an ease-in now, fastest at the moment of contact, and the
+follow-through drags out long and slow behind it with the weight still in
+it. The mass lives in that contrast and nowhere else.
+
+**A kinetic chain, where there was a blend.** Every joint used to chase the
+posed frame at the same rate, so the hips, the shoulder and the blade all
+arrived together — which is a puppet, not a body. A body throws a weapon in
+*sequence*: the hips go, the trunk follows, the shoulder follows that, and
+the blade is last, arrives late and **overshoots**, because nobody stops a
+greatsword exactly where they meant to. So each joint is on its own spring
+now — stiff and quick at the hips, slacker and later at every joint further
+out, slackest of all at the weapon — and every one of them is *under-damped*,
+so it carries past the pose and settles back. The lag down the chain is the
+whip and the overshoot is the follow-through, and between them they are the
+entire feeling of weight. Measured on a sweep: the trunk peaks at 0.66 of
+the swing, the arm at 0.88, the blade at 1.03 — each a beat behind the last,
+the blade still travelling after the swing is nominally over.
+
+None of the poses changed. They did not need to.
+
 ## The chain
 
 **A chained swing does not start from rest.** Every attack pose in the game
@@ -883,6 +915,19 @@ the way the Unburied's poison works on you — lightning arcs from your victim
 to the next horror in reach — and quickens your arm while it rides
 the blade — and frost FREEZES whatever it bites where it stands for twelve long seconds: no step, no swing, its state clock stopped, a rest pose with a shiver and a rime of mist coming off it.
 The element gutters out after a time — or is lost with your life.
+
+**Fire clings, and then it takes.** One hit off a burning blade leaves a
+horror smouldering — embers, a chip of life every half second, guttering out
+in four. A **second hit**, while the first is still on them, is the one that
+does it: dry bone that has been alight twice does not go out. *They go up.*
+Ablaze is its own thing and not a bigger number — it burns three times as
+long, takes twice as much twice as often, and the fire is **on** them:
+riding the trunk, the skull and every limb they still have, guttering and
+leaning with everything they do, throwing a glow of its own across the
+ground. They carry it until it kills them, which it very often does. (The
+glow is a haze sprite and not a light: three.js recompiles every lit shader
+in the scene the moment the count of lights changes, and a host of six going
+up one after another would recompile the world six times.)
 
 **An imbued weapon lights as itself.** It used to be one round sprite hung
 off the blade's point light — a ball of colour near the hand, the same ball

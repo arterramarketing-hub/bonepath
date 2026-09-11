@@ -203,6 +203,18 @@ Known state of play:
   call. `poison` sets `melt` and is driven by `meltHero` in the dead frame
   instead of the ragdoll. `respawn()` calls `rebuild()` outright: a severed
   limb and a melted body are not worth patching back together.
+- The feel of weight in a swing is `seg4`'s middle leg (an ease-IN: the
+  blade accelerates into the hit) and the per-joint springs `JOINT_K` /
+  `JOINT_D` in the pose smoother. Those springs are UNDER-damped on purpose
+  — critical would be `2*sqrt(K)` — because the overshoot is the
+  follow-through. Stiff at the hips, slack at the weapon; that ordering is
+  the whip. Do not "fix" the overshoot or flatten the rates.
+- Enemy fire goes through `fireBite(e)` — never set `burnT` directly, or the
+  second-hit ignition never counts. `setAblaze` hangs sprites on the rig and
+  a HAZE sprite for the glow (never a light: light-count changes recompile
+  every lit shader). `dowseFlames` must run on death and on tile recycling.
+- The heart bitmap is TEN pixels wide, not nine. An odd width has no true
+  half, and the join sat a pixel left of centre.
 - Chained swings enter at `ATK_ENTRY` (.21) via `player.chainIn()`, never by
   `t=0`. Every event in an attack — whoosh, lunge, hit, pose — is read off
   `t/atkDur`, so moving the start moves all of them together and nothing can
