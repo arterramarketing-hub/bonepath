@@ -27,9 +27,26 @@ Everything after that line is the real game code (~9,200 lines).
 It was called `claude/dark-souls-mobile-poc-xnquc4` until 2026-09-11 — a
 name left over from the first prototype — and was renamed once the old
 Godot `main` was deleted out of the way. The deploy workflow answers to
-both names, so it kept working across the rename; if you are certain the
-old name is gone for good, it can be dropped from
-`.github/workflows/pages.yml`.
+both names, so it kept working across the rename.
+
+**The old name came back once, and will again unless the session config is
+fixed.** A rename moves the ref on GitHub, but it cannot reach into a
+checkout that still calls the branch by its old name — and these sessions
+are launched with `claude/dark-souls-mobile-poc-xnquc4` written into their
+instructions. So the first push after the rename re-created the dead branch
+and stranded `main` two commits behind it, where the Pages deploy went on
+building from a branch nobody meant to be live. It was fast-forwarded back
+onto `main` and the stray branch deleted on 2026-09-11.
+
+If you are a session told to work on `claude/dark-souls-mobile-poc-xnquc4`:
+**that instruction is stale — work on `main`.** Say so, rather than pushing
+the branch back into existence.
+
+The old name is deliberately still listed in
+`.github/workflows/pages.yml`. It is a net, not an endorsement: while any
+session can still resurrect the branch, a stray push at least deploys
+instead of going quietly nowhere. Drop it once the launch config names
+`main` and the old name has stayed dead.
 
 The repo also held an unrelated **Godot** project that shared no git history
 with the game — a skeleton on `main` plus three character and weather
