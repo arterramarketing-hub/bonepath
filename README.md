@@ -61,7 +61,15 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   and stays planted there; drag past the ring and the nub rides its edge
   rather than dragging the whole stick along. Push it past three-quarters and
   the walk breaks into a **sprint** — the knight pitches forward and
-  the greatsword trails along the hip
+  the greatsword trails along the hip.
+  **It cannot lock on any more.** A touch that vanishes without a lift —
+  a system gesture taking it, a notification, the tab going to the
+  background, the browser quietly handing the capture back — used to leave
+  the last deflection in it for good, and the pilgrim would walk into the
+  fog on his own with nothing on screen to argue with. There are five ways
+  out of that now, and the last one needs no clever plumbing at all: **a
+  fresh touch anywhere on the left half re-seats the stick**, whatever
+  went wrong
 - **Right thumb — tap to fight, hold to break them, flick to live:**
   - **tap** — swing the sword; keep tapping and the combo climbs:
     slash, backhand, crushing overhead, deep thrust, and around again
@@ -867,22 +875,34 @@ is already going does not stand still waiting for its own wind to finish
 before it moves again. And the rig's pose blender carries the last swing's
 follow-through into this one's wind across the join, so there is no join.
 
-**And the seam itself is closed.** Getting the *timing* right was only half
-of it. Every swing's pose is authored to begin at the carry, so entering one
-a fifth of the way in drops the body onto a target that is already well over
-half the distance from the carry to the top of the wind — a step, taken in a
-single frame, which the joints then chase. That step is precisely the little
-hitch you could feel between one cut and the next.
-So at the instant a swing chains, the body's **current** pose is taken down,
-and for the first fifth of a second the new swing's target is blended back
-toward it: full weight at the join, easing away with no corner at either
-end, and gone long before the strike lands. The target curve therefore
-*starts exactly where the body already is* and has no step in it at all,
-while the springs keep every bit of the speed they had — so the swing
-continues rather than restarting. Measured across the join, the greatsword
-moves **40% less** in the frames after a chain than it used to, the ultra
-**70% less**. The seam is scaled to the swing, so the slab gets three
-tenths of a second of it and the katana under two.
+**And a swing that is about to become the next one ends early.** That was
+the real thing, and blending across the join was not enough on its own.
+Every pose is authored to end at the **carry** — so the last third of a
+swing is the blade travelling all the way back to the shoulder and stopping
+there. Waiting for that before starting the next cut means the blade
+*reverses twice* between strikes: out of the strike, back to rest, out
+again to the wind, and only then forward. No amount of smoothing over that
+join can make two reversals read as one motion.
+
+So once the next cut is asked for, the current one leaves at **seven tenths**
+— past the strike, a little way into the drag, while the blade is still
+going out and has not unwound — and the next picks it up from there. The
+strikes themselves are not one frame faster: the same arc, the same speed,
+the same damage, the same peak. It is the **pause between them** that is
+gone, and it was a third of the time:
+
+| | strike to strike, before | after |
+|---|---|---|
+| **greatsword** | 0.58s | 0.39s |
+| **katana** | 0.46s | 0.30s |
+| **ultra greatsword** | 0.92s | 0.59s |
+
+There is still a blend across the join, but it is a **join and not a
+blanket** now — five to twelve hundredths of a second, enough to take the
+one-frame step out of the target and no more. The first attempt ran it for
+a fifth of a second, which on the katana is longer than its entire wind: the
+blade never reached the top of its load and the whole cut came out short.
+That cost the katana **18% of the distance its tip travelled**. It is back.
 
 It applies to every weapon and every way in — the ordinary chain, the one
 that flows out of a charged cut into the overhead, and the one that comes
@@ -926,6 +946,18 @@ second. The weight is still in it; it just stopped asking permission first.
    which is what reads as a somersault instead of a stumble, while the
    ground takes the speed back. Then he rides out on his feet with some of
    it still in him, so a roll into a run keeps going.
+
+**A cut pressed during a roll waits for the roll to finish.** It used to
+come out at the *landing* — but the landing is only where the body first
+touches, and the somersault runs from there on: the trunk turns its full
+circle over the span from the landing to the end of the roll proper. So the
+cut was arriving a little over halfway round the tumble and the rig snapped
+upright out of a half-turned body, which is what looked like the hero
+getting up the wrong way. It comes out of the **rise** now, at the moment
+the turn completes, and carries it. (That also gave the thief his
+quickstep-cut back: his profiles have no landing at all — he never leaves
+the ground — so a banked attack used to simply evaporate when the dash ran
+out, and had never once fired.)
 
 ### The thief does not roll
 

@@ -2509,6 +2509,7 @@ const Input=(()=>{
   };
   const keys={};
   let stickId=null,camId=null,gesture=null;
+  let stickHeld=false,camHeld=false;   // ...and whether the browser confirmed the capture
   let stickOX=0,stickOY=0;
   const base=$('stickBase'),nub=$('stickNub');
   const RADIUS=52;
@@ -2540,14 +2541,21 @@ const Input=(()=>{
     if(e.target.closest('.btn'))return;
     e.preventDefault();st.anyPressed=true;
     try{ctl.setPointerCapture(e.pointerId);}catch(err){}
+    reapStale();                       // a thumb that never said goodbye is not still holding the stick
+    /* AND THE LEFT HALF IS ALWAYS THE STICK. Whatever went wrong, a fresh
+       touch on the left re-seats it — so even a lock the four releases
+       above never caught is one tap away from being over, and the player
+       never has to work out what happened. */
+    if(e.clientX<innerWidth*.45&&stickId!==null&&stickId!==e.pointerId)dropStick();
     if(e.clientX<innerWidth*.45&&stickId===null){
       stickId=e.pointerId;stickOX=e.clientX;stickOY=e.clientY;
+      stickHeld=ctl.hasPointerCapture(e.pointerId);
       base.style.display='block';nub.style.display='block';
       base.style.left=(stickOX-48)+'px';base.style.top=(stickOY-48)+'px';
       nub.style.left=(stickOX-20)+'px';nub.style.top=(stickOY-20)+'px';
     }else if(camId===null){
       // right-side gesture: undecided until it's a flick or a hold
-      camId=e.pointerId;
+      camId=e.pointerId;camHeld=ctl.hasPointerCapture(e.pointerId);
       gesture={t0:performance.now(),x0:e.clientX,y0:e.clientY,
                lx:e.clientX,ly:e.clientY,mode:'pending',maxD:0};
     }
@@ -2583,11 +2591,37 @@ const Input=(()=>{
     if(g.maxD<14){g.mode='charge';touchCharge=true;}
     else{g.mode='cam';g.lx=x;g.ly=y;}
   }
+  /* EVERY WAY A THUMB CAN GO AWAY WITHOUT SAYING SO.
+     `poll` only zeroes the move vector while no stick is down, so a
+     pointer that vanishes without a `pointerup` leaves the last deflection
+     in it FOREVER and the pilgrim walks into the fog on his own. And a
+     pointer can vanish: the capture is released implicitly if the element
+     stops being rendered, a system gesture or a notification can take the
+     touch away without a cancel, the tab can go to the background
+     mid-drag, and `setPointerCapture` can throw — in which case the events
+     for that pointer never reach `#controls` at all.
+     So there are four ways out now and they all land here: the ordinary
+     up/cancel; `lostpointercapture`; an up or cancel anywhere in the
+     document (the window backstop); and, for the case where no event ever
+     comes, a check on every frame that the capture the stick was given is
+     still held. Every one of them is idempotent — they only act on the id
+     they are holding. */
+  function dropStick(){
+    stickId=null;stickHeld=false;st.mx=0;st.mz=0;
+    base.style.display='none';nub.style.display='none';
+  }
+  function dropCam(){
+    if(gesture&&gesture.mode==='charge'){touchCharge=false;st.chargeRelease=true;}
+    camId=null;camHeld=false;gesture=null;
+  }
+  // a pointer the browser no longer says we hold: let it go
+  function reapStale(){
+    if(stickId!==null&&stickHeld&&!ctl.hasPointerCapture(stickId))dropStick();
+    if(camId!==null&&camHeld&&!ctl.hasPointerCapture(camId))dropCam();
+  }
+  function releaseAll(){dropStick();dropCam();for(const k in keys)keys[k]=false;touchCharge=false;}
   function endPtr(e){
-    if(e.pointerId===stickId){
-      stickId=null;st.mx=0;st.mz=0;
-      base.style.display='none';nub.style.display='none';
-    }
+    if(e.pointerId===stickId)dropStick();
     if(e.pointerId===camId){
       // a fast flick can end before any move crossed the threshold
       if(gesture&&gesture.mode==='pending'){
@@ -2599,12 +2633,18 @@ const Input=(()=>{
           st.swipe={kind:'atk',atype:'tap',sx:null,sy:null}; // plain tap = quick strike
         else if(dist<14)settleHold(gesture,e.clientX,e.clientY); // held still, never moved: charge
       }
-      if(gesture&&gesture.mode==='charge'){touchCharge=false;st.chargeRelease=true;}
-      camId=null;gesture=null;
+      dropCam();
     }
   }
   ctl.addEventListener('pointerup',endPtr);
   ctl.addEventListener('pointercancel',endPtr);
+  ctl.addEventListener('lostpointercapture',endPtr);
+  // and the backstop: an up or a cancel ANYWHERE ends it, whether or not
+  // the capture survived long enough to route it to us
+  addEventListener('pointerup',endPtr,true);
+  addEventListener('pointercancel',endPtr,true);
+  addEventListener('blur',releaseAll);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAll();});
   addEventListener('contextmenu',e=>e.preventDefault());
 
   // keyboard fallback for desktop testing
@@ -2622,6 +2662,7 @@ const Input=(()=>{
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
 
   function poll(dt){
+    reapStale();                    // (the frame's own check: no event is needed to notice)
     // fold keyboard into the move vector
     let kx=0,kz=0;
     if(keys.KeyW||keys.ArrowUp)kz-=1;
@@ -2644,7 +2685,7 @@ const Input=(()=>{
     st.interactPressed=false;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
-  return {st,poll,consume};
+  return {st,poll,consume,releaseAll};
 })();
 const IN=Input.st;
 /* ---------------- level geometry & walkable space ----------------
@@ -7729,7 +7770,7 @@ function dropCleanup(d){
    it is once you are close enough to care. */
 const DROP_FACE={fire:'orbFire',lightning:'orbBolt',ice:'orbIce',
                  health:'orbHeart',skull:'orbSkull'};
-const DROP_ICON_S={health:.66,skull:.66,fire:.60,lightning:.60,ice:.60};
+const DROP_ICON_S={health:.48,skull:.48,fire:.44,lightning:.44,ice:.44};
 function spawnElemDrop(x,z,kind){
   // the reaper's mark is rare, and never asked for: it simply turns up
   kind=kind||(Math.random()<.06?'skull':['fire','lightning','ice'][(Math.random()*3)|0]);
@@ -7737,7 +7778,7 @@ function spawnElemDrop(x,z,kind){
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:E.hue,
     transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
   const gy=heightAt(x,z);
-  s.scale.set(.98,.98,1);s.position.set(x,gy+.8,z);scene.add(s);   // wide enough that the face inside it still has a halo
+  s.scale.set(.72,.72,1);s.position.set(x,gy+.8,z);scene.add(s);   // wide enough that the face inside it still has a halo
   const l=borrowLight();
   l.color.setHex(E.lite);l.intensity=1.1;
   l.position.set(x,gy+1.1,z);
@@ -7816,7 +7857,7 @@ function updateElemDrops(dt){
       if(Math.random()<dt*2.5)
         elemFleck('health',d.x+rr3(-.15,.15),d.s.position.y+.05,d.z+rr3(-.15,.15));
     }
-    d.s.scale.set(.98*pu,.98*pu,1);
+    d.s.scale.set(.72*pu,.72*pu,1);
     if(d.icon){ // the face takes a quieter share of the pulse than the glow
       const f=d.iconS*(1+(pu-1)*.45);
       d.icon.position.copy(d.s.position);d.icon.scale.set(f,f,1);
@@ -7902,7 +7943,7 @@ const player={
      swing's follow-through into this one's wind across the seam, so there
      is no seam. */
   chainIn(){this.atkDur=this.atkDurFor();this.t=this.atkDur*ATK_ENTRY;this.atkT0=this.t;
-    seamGrab(this.rig);this.seamDur=Math.min(.3,Math.max(.12,this.atkDur*.34));this.seamT=this.seamDur;},
+    seamGrab(this.rig);this.seamDur=clamp(this.atkDur*.12,.05,.12);this.seamT=this.seamDur;},
   // the pilgrim's body is remade from the loadout: same place, same facing
   dropThrown(){if(this.katThrown){const m=this.katThrown.mesh;if(m.parent)m.parent.remove(m);this.katThrown=null;if(this.rig&&this.rig.weapon)this.rig.weapon.visible=true;}},
   rebuild(){
@@ -9102,7 +9143,18 @@ const player={
       // attack pressed mid-roll banks a rolling attack
       if(IN.swipe&&IN.swipe.kind==='atk')
         this.rollAtkQueued={d:IN.swipe.sx!==null?swipeWorld(IN.swipe):null};
-      if(this.rollAtkQueued&&tt>=R.LAND){          // the cut comes out of the landing, not out of the air
+      /* AND THE ROLL FINISHES FIRST. This fired at LAND, which is where
+         the body first TOUCHES — the somersault itself runs from there to
+         ROLLED, and `poseRoll` turns the trunk a full circle over exactly
+         that span. So the cut was cutting in halfway round the tumble and
+         the rig snapped upright out of a half-rotated body, which is the
+         "he turns back up the wrong way" of it. ROLLED is where the turn
+         completes and the get-up begins: the cut comes out of the rise,
+         and carries it.
+         It also gives the THIEF his quickstep-attack back. His profiles
+         have LAND at 99 — he never leaves the ground, so he never landed,
+         so a banked attack simply evaporated when the dash ran out. */
+      if(this.rollAtkQueued&&tt>=R.ROLLED){
         startRollAtk(this.rollAtkQueued.d);
       }else if(tt>=R.DUR){this.state='free';this.postRollT=0;
         this.dashGhost=0;if(this.rig)dashGhost(this.rig,0);   // solid again
@@ -9148,7 +9200,7 @@ const player={
       // of the blade even when it finds nothing
       if(!this.sfxDone&&p>=.36){this.sfxDone=true;if(this.ultra())AudioSys.heavySwing(this.element);else AudioSys.swing(this.element);
         G.camShake=Math.max(G.camShake,this.ultra()?.16:.09);}
-      this.ultraThud(p,.78);
+      this.ultraThud(p,.66);        // (before the chain can cut the tail off)
       // lunge through the cut — the blade goes and finds them,
       // but only strides hard when something is there to reach
       // the stride carries THROUGH the seam: a chained swing is already
@@ -9175,7 +9227,23 @@ const player={
            cut:kat?['yoko','kesa','gyaku','thrust'][this.combo]:undefined});
         if(hit)AudioSys.hit();
       }
-      if(p>=1){
+      /* THE TAIL OF A SWING THAT IS ABOUT TO BECOME THE NEXT ONE IS DEAD
+         TIME, AND IT WAS THE WHOLE PROBLEM. Every pose is authored to end
+         at the CARRY — so the last third of a swing is the blade coming
+         all the way back to the shoulder and stopping there. Waiting for
+         that before starting the next cut means the blade reverses twice
+         between strikes: out of the strike, back to rest, out again to the
+         wind, and only then forward. No amount of blending across that
+         join can make two reversals read as one motion, which is why the
+         first attempt did not.
+         So a swing that already has the next one queued ENDS EARLY, while
+         the blade is still travelling out of its follow-through and has
+         not unwound. The next cut picks it up from there. The strikes
+         themselves are not one frame faster — the same arc, the same
+         speed, the same damage — it is the pause between them that is
+         gone, which is also what makes it answer the thumb sooner. */
+      const chainOut=this.queued&&this.hitDone&&p>=CHAIN_OUT;
+      if(p>=1||chainOut){
         const ex=this.queued?this.execTarget():null;
         if(ex){startExecute(ex);return this.post(dt);}
         if(this.queued){
@@ -11618,6 +11686,10 @@ function dashGhost(rig,a){
   for(const e of D){e.m.opacity=op;e.m.depthWrite=a<.02;}
 }
 const ATK_ENTRY=.15;      // how far into the wind a chained swing begins
+/* ...and how far through the OUTGOING one it is allowed to leave, when the
+   next is already asked for. Past the strike and a little way into the
+   drag, while the blade is still going out — never back at the carry. */
+const CHAIN_OUT=.70;
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
 const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}
@@ -11793,6 +11865,7 @@ function setPaused(on){
   if(G.mode!=='play'&&G.mode!=='dead')return;
   if(on===G.paused)return;
   G.paused=on;
+  if(on)Input.releaseAll();     // no thumb survives the pause screen holding a direction
   $('pause').classList.toggle('on',on);
   if(on)fillPause();
   AudioSys.pause(on);
@@ -11944,7 +12017,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={G,player,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

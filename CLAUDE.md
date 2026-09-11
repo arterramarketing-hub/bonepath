@@ -301,6 +301,37 @@ Known state of play:
   topples it sideways; the pivot is rotated about the axis across the blow
   instead. The obstacle is dropped the instant it starts to fall.
 
+- **The move vector is only zeroed while no stick is down** (`poll`), so a
+  touch that disappears without a `pointerup` locks the pilgrim into a
+  direction *forever*. A pointer really can disappear: implicit capture
+  release, a system gesture, the tab backgrounding, or `setPointerCapture`
+  throwing (in which case `#controls` never sees that pointer again). There
+  are five ways out and all of them land in `endPtr`/`dropStick`:
+  up/cancel, `lostpointercapture`, a window-level up/cancel in the capture
+  phase, a per-frame `reapStale()` against `hasPointerCapture` (only trusted
+  when the capture was confirmed at pointerdown — synthetic PointerEvents
+  cannot capture, so this path is untestable with dispatched events and
+  needs CDP `Input.dispatchTouchEvent`), and a fresh left-half touch
+  re-seating the stick outright. Do not remove the belt or the braces.
+- **A rolling attack fires at `R.ROLLED`, not `R.LAND`.** `poseRoll` turns
+  the trunk a full `TAU` over `0 → ROLLED`; LAND is only where the body
+  first touches, about 58% of the way round. Cutting there snapped the rig
+  upright out of a half-turned body. `ROLLED` is also the only trigger the
+  THIEF can reach — the dash profiles set `LAND:99` because he never leaves
+  the ground, so a banked cut used to evaporate silently.
+- **`CHAIN_OUT` (.70) is what makes a combo one motion; `SEAM_T` is not.**
+  Every pose ends at the carry, so the last third of a swing is the blade
+  walking back to rest — waiting for it means two reversals between
+  strikes, and no blend over that join can read as one motion. A swing with
+  the next already queued leaves at `CHAIN_OUT`. Measured: strike-to-strike
+  0.58→0.39s (greatsword), 0.46→0.30s (katana), 0.92→0.59s (ultra), with
+  peak tip speed unchanged — the cuts are not faster, the pause is gone.
+  The seam blend is now a JOIN and not a blanket: `atkDur*.12`, clamped to
+  .05–.12. It was a fifth of a second, which is longer than the katana's
+  entire wind, and cost that blade 18% of the distance its tip travelled.
+  **If a weapon's arc ever looks short, check `seamDur` against its wind
+  before you touch a pose.**
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,
