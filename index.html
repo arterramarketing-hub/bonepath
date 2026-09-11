@@ -3946,6 +3946,13 @@ function trailShape(sc){
   }
   sc.V=V;
 }
+/* THE HEAD OF IT. The heap of snow riding in front of the legs was its own
+   little mesh floating along ahead of the trench, which is two things where
+   there should be one — you could see the join. It is a CUT of the ribbon
+   now, written at the leading end from wherever the thing has got to since
+   the last section was laid: the same nine points across, but with the
+   middle pushed UP into a heap instead of pressed down into a floor, so the
+   channel runs continuously into the bank it is throwing. */
 function trailWrite(L,i,sc,tail){
   const K=TRAIL.K,base=((L*TRAIL.SEC)+i)*K,P=TRAIL.pos,C=TRAIL.col,N=TRAIL.nrm,V=sc.V;
   // fills in with age, dies out at the tail, and goes flat altogether where
@@ -3959,6 +3966,7 @@ function trailWrite(L,i,sc,tail){
     if(cls===0)     {h=TROD_UP;c=TROD_FLAT;}                                     // the skirt, lying flat
     else if(cls===1){h=TROD_UP+rim*side*(.26+v.r*.06);c=TR_LIP;mix=.42;}         // the shoulder it falls back to
     else if(cls===2){h=TROD_UP+rim*side*(1+v.r*.26);c=TR_LIP;}                   // the crest
+    else if(sc.head){h=TROD_UP+sc.heap*(1-Math.abs(t))*(.8+v.r*.3);c=TR_LIP;mix=.75;}  // the heap being pushed
     else            {h=TROD_FLOOR-sc.d*.14*k*(1+v.r);c=TR_PIT;}                  // churned floor
     P[o]=v.x;P[o+1]=v.y+h;P[o+2]=v.z;
     const tip=cls===1?.42*k*Math.sign(t):cls===2?.2*k*Math.sign(t):0;  // the bank leans away from the channel
@@ -3967,6 +3975,20 @@ function trailWrite(L,i,sc,tail){
     const j=cls===1||cls===2?sc.cj:0;
     for(let r=0;r<3;r++)C[o+r]=Math.max(0,lerp(TROD_FLAT[r],lerp(TROD_FLAT[r],c[r],mix),k)+j*k);
   }
+}
+/* built fresh every rewrite, never stored: where the body is now, how fast
+   it is going, and therefore how much it is shoving in front of it */
+function trailHead(lane){
+  const own=lane.own,S=lane.secs,last=S[S.length-1];
+  const x=own.x,z=own.z,dx=x-last.x,dz=z-last.z,dd=Math.hypot(dx,dz);
+  if(dd<.04)return null;
+  const spd=own===player?(own.spd||0):(own.speed||2.2);
+  const amt=Math.min(1,spd/5.5)*(own.state==='roll'?1.35:1);
+  const sc={x:x+dx/dd*.34,z:z+dz/dd*.34,rx:-dz/dd,rz:dx/dd,
+    w:last.w*(1.12+amt*.5),d:last.d,age:0,s:last.s,squash:1,
+    bL:1,bR:1,cj:0,head:true,heap:.07+.22*amt};
+  trailShape(sc);
+  return sc;
 }
 function trailBlank(L,i){
   const K=TRAIL.K,b=((L*TRAIL.SEC)+i)*K*3;
@@ -4055,8 +4077,13 @@ function updateTrail(dt){
   for(let L=0;L<TRAIL.LN;L++){
     const S=TRAIL.lanes[L].secs;
     for(let i=S.length-1;i>=0;i--)if(S[i].age>=TROD.life)S.splice(i,1);
+    /* the live head: one more cut at the leading end, taken from where the
+       thing is NOW rather than from where it last laid a section, so the
+       ribbon always reaches the body instead of stopping a stride behind it */
+    const own=TRAIL.lanes[L].own,hd=(own&&S.length>1&&S.length<TRAIL.SEC)?trailHead(TRAIL.lanes[L]):null;
     for(let i=0;i<TRAIL.SEC;i++){
       if(i<S.length)trailWrite(L,i,S[i],Math.min(1,i/5));   // the oldest sections thin out to nothing
+      else if(i===S.length&&hd)trailWrite(L,i,hd,1);
       else trailBlank(L,i);
     }
   }
@@ -4079,6 +4106,8 @@ function updateTrail(dt){
    wobbles like everything else. */
 const SNOW_COAT=new THREE.Color(0xdfe8f2).convertSRGBToLinear();
 const SNOW_EM=new THREE.Color(0x9fb4cc).convertSRGBToLinear();
+let _soilM=null;
+function soilMat(){return _soilM||(_soilM=lam({color:new THREE.Color(0x4a3f2e).convertSRGBToLinear(),flatShading:true}));}
 const POISON_POOL=['rgba(58,88,30,.4)','rgba(28,52,16,.68)'];         // what is left of you on the ground
 const MELT_COL=new THREE.Color(0x46681e).convertSRGBToLinear();
 /* WHAT IS LEFT OF HIM SHOWS. Three states, not a gradient — above two
@@ -4144,32 +4173,6 @@ function dressSnow(rig){
     const m=new THREE.Mesh(GCyl(.19,.12,.085,6),SNOW_ON);
     m.visible=false;scene.add(m);rig.snowCuff.push({m,leg:g});
   }
-}
-/* THE FRONT OF THE FURROW. A channel with no head to it is a channel that
-   has been cut, not ploughed — the snow behind you was disturbed by nothing
-   at all, because there was never anything in front of the hero doing the
-   disturbing. What is missing is the BOW WAVE: the shin-deep heap of it
-   that rides ahead of the legs and keeps being pushed, the reason there is
-   a trench behind at all.
-   So one wedge of snow is drawn just in front of whatever is wading, turned
-   to the line of travel, and it grows with the pace — it is barely there at
-   a walk and is a proper heap at a sprint. It stands only while something
-   is moving, and closes off the raw leading edge of the channel while it
-   is at it. */
-let ploughHead=null;
-function ploughFront(x,z,ang,amt){
-  if(!ploughHead){
-    ploughHead=new THREE.Mesh(GCyl(.3,.16,.14,6),SNOW_ON);
-    ploughHead.visible=false;scene.add(ploughHead);
-  }
-  if(amt<.06){ploughHead.visible=false;return;}
-  // pushed out ahead far enough, and wider than the body, to be seen from
-  // behind the shoulder — which is the only place anyone ever sees it from
-  const f=.44+.3*amt;
-  ploughHead.position.set(x+Math.sin(ang)*f,heightAt(x,z)+.05,z+Math.cos(ang)*f);
-  ploughHead.rotation.y=ang;
-  ploughHead.scale.set(1.55+amt*1.5,.5+amt*.95,.6+amt*.45);  // wide across the travel, shallow along it
-  ploughHead.visible=true;
 }
 const _cuffV=new THREE.Vector3();
 function snowCuffs(rig,amt){
@@ -5919,15 +5922,20 @@ function poseRise(r,p){
   const ease=(a,b)=>easeInOut(clamp((p-a)/(b-a),0,1));
   const reach=easeOut(clamp(p/.2,0,1));               // the hand breaches
   const claw=Math.sin(clamp((p-.1)/.22,0,1)*Math.PI*2.5)*clamp(1-(p-.1)/.3,0,1);   // and scrabbles at nothing
-  const h1=ease(.24,.40)*(1-ease(.40,.52));           // up a third — and taken back
-  const h2=ease(.48,.66)*(1-ease(.66,.76));           // further — and taken back again
-  const h3=ease(.72,1);                               // this one holds
-  const up=Math.max(h1*.34,h2*.64,h3);
+  const h1=ease(.22,.36)*(1-ease(.36,.50));           // up a third — and taken back
+  const h2=ease(.46,.62)*(1-ease(.62,.74));           // further — and taken back again
+  const h3=ease(.78,1);                               // this one holds
+  const up=Math.max(h1*.3,h2*.6,h3);
   const strain=1-up;
-  r.root.position.y=lerp(-1.55,0,up)+Math.sin(p*46)*.016*strain;   // it shakes the whole way
-  r.torso.rotation.x+=strain*1.15;                    // folded over itself
-  r.head.rotation.x-=strain*.72;
-  r.body.rotation.z=Math.sin(p*7.5)*.09*strain;       // and rocks, hauling side to side
+  // it is STUCK for a moment before each heave, and it shakes throughout —
+  // harder the deeper it still is
+  const stuck=Math.max(0,Math.sin(clamp((p-.5)/.28,0,1)*Math.PI));
+  r.root.position.y=lerp(-1.55,0,up)+Math.sin(p*52)*.028*strain;
+  r.torso.rotation.x+=strain*1.3;                     // folded over itself
+  r.head.rotation.x-=strain*.85;
+  // and it WRENCHES: rocking side to side, twisting to get a shoulder free
+  r.body.rotation.z=(Math.sin(p*8.5)*.14+Math.sin(p*21)*.04)*strain;
+  r.body.rotation.y=Math.sin(p*5.5)*.22*strain+stuck*.14;
   r.armR.rotation.x=-2.75*reach+1.75*up;              // reach, claw, then push
   r.armR.rotation.z=claw*.3;
   r.foreR.rotation.x=-.85*strain+claw*.5;
@@ -7335,7 +7343,7 @@ const G={
 /* ---------------- the player ---------------- */
 const player={
   rig:null,x:0,z:50,facing:0,
-  hp:100,maxHp:100,marrow:0,
+  hp:70,maxHp:70,marrow:0,      // seven hearts
   state:'free',t:0,combo:0,queued:false,qDir:null,chain:0,hitDone:false,
   sprintT:0,sprinting:false,chargeT:0,chargeFull:false,readyDone:false,
   poisonT:0,poisonTick:0,execT:null,
@@ -7439,7 +7447,11 @@ const player={
     bloodSpray(this.x,1.25,this.z,dmg>20?13:8,dmg>20?1.3:1);
     bloodDecal(this.x+rr3(-.3,.3),this.z+rr3(-.3,.3),.28+dmg*.008);
     const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
-    if(this.hp<=0){this.die(dx/l,dz/l,heavy?1.7:1,kind||(heavy?'heavy':'blade'));return 'dead';}
+    /* 'heavy' means a limb comes off, and that has to be RARE or every
+       death looks the same and reads as a bug. The `heavy` flag on a blow
+       is about stagger, not about mass — most of the host sets it — so the
+       kind is asked for outright by the things big enough to earn it. */
+    if(this.hp<=0){this.die(dx/l,dz/l,heavy?1.7:1,kind||'blade');return 'dead';}
     this.state='hurt';this.t=0;this.hurtDur=.38;
     this.vx=dx/l*5;this.vz=dz/l*5;
     return 'hit';
@@ -8538,38 +8550,30 @@ const player={
     else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseUppercut(r,Math.min(1,this.t/(.62*this.swing())));}
     else if(this.state==='roll'){
       const R=rollProf(),C=CARRY,tt=this.t;
-      /* the turn is NOT spread evenly over the move. Nothing turns while he
-         is pushing; a fifth of it goes by in the air as he draws the knees
-         in; and the other four fifths whip through in the quarter-second
-         after he lands, which is the part anyone reads as a somersault. */
-      let rot,push=0;
-      if(tt<R.PUSH){rot=0;push=easeOut(tt/R.PUSH);}
-      else if(tt<R.LAND)  rot=easeIn((tt-R.PUSH)/(R.LAND-R.PUSH))*.2*TAU;
-      else if(tt<R.ROLLED)rot=(.2+.8*easeOut((tt-R.LAND)/(R.ROLLED-R.LAND)))*TAU;
-      else rot=TAU;
-      const e=easeOut(clamp((tt-R.ROLLED)/(R.DUR-R.ROLLED),0,1));   // the get-up
+      /* ONE MOTION, not four poses in a row. The turn runs on a single
+         curve from the first frame to the last of the roll — flat at the
+         start while he is still loading, accelerating through the air,
+         fastest right about where he comes down, and easing off into the
+         finish — so there is no frame where the rate of it jumps. Push and
+         tuck OVERLAP rather than switch: the load is still coming off the
+         legs while the knees are already coming in. */
+      const sm=(x)=>x*x*x*(x*(x*6-15)+10);
+      const u=clamp(tt/R.ROLLED,0,1);
+      r.body.rotation.x=TAU*sm(Math.pow(u,1.16));      // (the power puts the fastest of it just after the landing)
+      const e=easeOut(clamp((tt-R.ROLLED)/(R.DUR-R.ROLLED),0,1));    // the get-up
+      const pw=easeOut(Math.max(0,1-tt/(R.PUSH*1.9)));               // the load, bleeding off across the launch
       const air=(this.rollAir||0)/R.RISE;                            // 0 on the ground, 1 at the top
-      r.body.position.y=r.baseY-.34*(1-e)-.2*push+.06*air;
-      r.body.rotation.x=rot;
-      // THE PUSH: coiled over the front leg, the trunk thrown forward, the
-      // arms still down — no turn in it yet, only the load going on
-      if(push>0){
-        r.torso.rotation.x+=.55*push;r.head.rotation.x+=.2*push;
-        r.legR.rotation.x=-.85*push;r.kneeR.rotation.x=1.5*push;
-        r.legL.rotation.x=.5*push;r.kneeL.rotation.x=.35*push;
-        r.armR.rotation.x=C.aRx*(1-push)-.5*push;r.armL.rotation.x=C.aLx*(1-push)-.5*push;
-        r.foreR.rotation.x=C.fRx;r.foreL.rotation.x=C.fLx;
-      }else{
-        // in the air and through the roll: knees to the chest, arms in, and
-        // then the whole thing unfolds into a low crouch and finds the carry
-        const tuck=1-e;
-        r.legR.rotation.x=-1.6*tuck+.35*e;r.kneeR.rotation.x=2.2*tuck+.55*e;
-        r.legL.rotation.x=-1.6*tuck-.25*e;r.kneeL.rotation.x=2.2*tuck+.35*e;
-        r.torso.rotation.x+=.5*Math.sin(e*Math.PI)+.3*air;
-        r.head.rotation.x-=.25*Math.sin(e*Math.PI)-.2*air;
-        r.armR.rotation.x=-1.2*tuck+C.aRx*e;r.armL.rotation.x=-1.2*tuck+C.aLx*e;
-        r.foreR.rotation.x=-1.4*tuck+C.fRx*e;r.foreL.rotation.x=-1.4*tuck+C.fLx*e;
-      }
+      const tuck=(1-e)*(1-pw);
+      r.body.position.y=r.baseY-.34*(1-e)-.2*pw+.06*air;
+      // the drive off the back leg, fading as the knees come in
+      r.torso.rotation.x+=.55*pw+.5*Math.sin(e*Math.PI)+.3*air;
+      r.head.rotation.x+=.2*pw-.25*Math.sin(e*Math.PI)+.2*air;
+      r.legR.rotation.x=-.85*pw-1.6*tuck+.35*e;r.kneeR.rotation.x=1.5*pw+2.2*tuck+.55*e;
+      r.legL.rotation.x=.5*pw-1.6*tuck-.25*e;r.kneeL.rotation.x=.35*pw+2.2*tuck+.35*e;
+      r.armR.rotation.x=-.5*pw-1.2*tuck+C.aRx*(e+pw*(1-e));
+      r.armL.rotation.x=-.5*pw-1.2*tuck+C.aLx*(e+pw*(1-e));
+      r.foreR.rotation.x=-1.4*tuck+C.fRx*(e+pw*(1-e));
+      r.foreL.rotation.x=-1.4*tuck+C.fLx*(e+pw*(1-e));
     }
     else if(this.state==='attack'){if(kat)poseKatana(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);else poseLight(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);}
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/(.44*this.swing())));
@@ -8585,11 +8589,7 @@ const player={
      this.snowBoot=lerp(this.snowBoot||0,deep>=.8?.72:deep?.42:0,Math.min(1,2.2*dt));
      this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.95,Math.min(1,5*dt));
      wearSnow(r,this.snowCoat,this.snowBoot,bloodState());
-     const onStone=cathDist(this.x,this.z)<4.5;
-     snowCuffs(r,onStone?0:this.snowBoot);
-     // the heap he is pushing: only while he is actually going somewhere
-     ploughFront(this.x,this.z,Math.atan2(this.moveX||Math.sin(this.facing),this.moveZ||Math.cos(this.facing)),
-       onStone?0:deep*Math.min(1,(this.spd||0)/5.5)*(this.state==='roll'?1.3:1));}
+     snowCuffs(r,cathDist(this.x,this.z)<4.5?0:this.snowBoot);}
     r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z)+(this.state==='roll'?this.rollAir||0:0),this.z);
     r.root.rotation.y=this.facing;
     // the backstab: whatever the pose says, the blade is aimed from the
@@ -8766,6 +8766,7 @@ class Enemy{
     boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
     if(this.boss)onBossDead();
     // the body falls the way the blow sent it — or folds where it stood
+    if(this.mound){scene.remove(this.mound);this.mound.geometry.dispose();this.mound=null;}
     if(!this.noRag&&this.rig.humanoid){
       const h=this.lastHit||{dx:rr3(-1,1),dz:rr3(-1,1),kb:.3};
       startRagdoll(this,h.dx,h.dz,3+h.kb*3.5,h.up!==undefined?1.3+h.up:2.6);
@@ -8781,6 +8782,18 @@ class Enemy{
     if(this.boss)return; // boss has its own cutscene path
     AudioSys.graveRise();
     boneBurst(this.x,.25,this.z,0x5a4d38,10,1.6); // grave soil breaks
+    /* AND THE GROUND SHOWS IT. A body sliding up out of a surface that
+       never moved is the whole reason the rise read as a fault rather than
+       as a thing climbing: nothing was displaced. So the earth over it is
+       torn open in the paint, and a mound of the stuff is pushed up and
+       heaved wider as the thing works at it, falling back flat once it is
+       out — the spoil is left painted there for good. */
+    const a0=Math.random()*TAU;
+    paintScar(this.x,this.z,a0,1.5,1.7,true);
+    paintScar(this.x+rr3(-.5,.5),this.z+rr3(-.5,.5),a0+1.1,1.0,1.2,true);
+    this.mound=new THREE.Mesh(GCyl(.34,.62,.3,7),soilMat());
+    this.mound.position.set(this.x,heightAt(this.x,this.z)-.24,this.z);
+    this.mound.rotation.y=a0;scene.add(this.mound);
   }
   update(dt){
     const P=player;
@@ -8809,6 +8822,15 @@ class Enemy{
         // the soil keeps breaking round it the whole way up
         if(this.t<2.6&&Math.random()<dt*9)
           boneBurst(this.x+rr3(-.35,.35),heightAt(this.x,this.z)+.12,this.z+rr3(-.35,.35),0x5a4d38,2,1.1);
+        if(this.mound){
+          const q=Math.min(1,this.t/2.6);
+          // heaved up and out while it works, then pressed flat behind it
+          const swell=q<.72?Math.sin(q/.72*Math.PI*.72):Math.max(0,1-(q-.72)/.28);
+          this.mound.scale.set(1+q*.85,Math.max(.06,.35+swell*.95),1+q*.85);
+          this.mound.position.y=heightAt(this.x,this.z)-.24+swell*.12;
+          if(q>=1){scene.remove(this.mound);this.mound.geometry.dispose();this.mound=null;
+            paintScar(this.x,this.z,Math.random()*TAU,1.9,2.1,true);}   // the spoil stays
+        }
         if(this.t>=(this.boss?1.1:2.6)){this.rig.root.position.y=0;this.state='chase';}
         break;
       case 'patrol':{
@@ -8874,7 +8896,7 @@ class Enemy{
           this.x+=this.vx*dt;this.z+=this.vz*dt;
           this.vx*=Math.pow(.1,dt);this.vz*=Math.pow(.1,dt);
           if(!this.hitDone&&dist<this.reach*.75){
-            this.hitDone=true;P.takeHit(this.dmg,this.x,this.z,true);
+            this.hitDone=true;P.takeHit(this.dmg,this.x,this.z,true,this.big||this.boss?'heavy':'blade');
           }
         }else if(!this.hitDone&&this.t>=sd*.45){
           this.hitDone=true;
@@ -8885,11 +8907,11 @@ class Enemy{
             shockRing(this.x+Math.sin(this.facing)*1.6,this.z+Math.cos(this.facing)*1.6,0xd8b34a,4.2,.5);
             const sx=this.x+Math.sin(this.facing)*1.6,sz=this.z+Math.cos(this.facing)*1.6;
             const sd2=Math.hypot(P.x-sx,P.z-sz);
-            if(sd2<3.6)P.takeHit(this.dmg+6,sx,sz,true);
+            if(sd2<3.6)P.takeHit(this.dmg+6,sx,sz,true,this.big||this.boss?'heavy':'blade');
           }else{
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             const arc=this.attack==='sweep'?1.9:1.05;
-            if(dist<this.reach&&ang<arc)P.takeHit(this.dmg,this.x,this.z,this.heavyHitter);
+            if(dist<this.reach&&ang<arc)P.takeHit(this.dmg,this.x,this.z,this.heavyHitter,this.big||this.boss?'heavy':'blade');
           }
         }
         if(this.t>=sd){
@@ -9364,7 +9386,7 @@ class FallenAngel{
         else{wingBack=-1;
           if(!this.hitDone){this.hitDone=true;AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.12);
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
-            if(dist<this.reach&&ang<1.45)P.takeHit(this.dmg,this.x,this.z,true);
+            if(dist<this.reach&&ang<1.45)P.takeHit(this.dmg,this.x,this.z,true,'heavy');   // the Warden's weight
             slashArc(this.x+Math.sin(this.facing)*1.2,this.z+Math.cos(this.facing)*1.2,1.6,this.facing,0x6a4a7a);}
         }
         if(this.t>=WD+SD+.5){this.state='hover';this.cool=.9+Math.random()*.6;}

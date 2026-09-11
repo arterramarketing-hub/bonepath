@@ -538,6 +538,15 @@ them the seed decides:
     section is laid so nothing shimmers; and the far end **thins out** over
     the last five sections instead of stopping square. None of it costs
     anything: a section is shaped once, and never again.
+    **And there is a head to it, which is part of it.** The heap of snow
+    riding in front of the legs was its own little mesh floating along ahead
+    of the trench — two things where there should be one, and you could see
+    the join. It is a *cut of the ribbon* now, written at the leading end
+    from wherever the body has got to since the last section was laid: the
+    same nine points across, but with the middle pushed **up** into a heap
+    instead of pressed down into a floor, so the channel runs continuously
+    into the bank it is throwing. Only a blizzard has one, because only a
+    blizzard has a furrow.
     **A channel ploughs through whatever was there before.** Walk back
     across your own furrow, or across one a hollow left, and the old banks
     stood up out of the new one — two trenches crossing and neither giving
@@ -561,18 +570,6 @@ them the seed decides:
     wading and starts reading as a cart track. And no mark appears: a boot
     presses in over a third of a second, which is the difference between a
     footfall and a decal being switched on behind you.
-  - **and there is a FRONT to it.** A channel with no head is a channel
-    that has been cut rather than ploughed: the snow behind you was
-    disturbed by nothing at all, because nothing was ever in front of the
-    hero doing the disturbing. What was missing is the bow wave — the
-    shin-deep heap that rides ahead of the legs and keeps being pushed,
-    which is the reason there is a trench behind at all. So a wedge of snow
-    is drawn just ahead of whatever is wading, turned to the line of travel
-    and wider than the body so it can be seen from behind the shoulder,
-    which is the only place anyone ever sees it from. It is barely there at
-    a walk and a proper heap at a sprint, it stands only while something is
-    moving, and it closes off the raw leading edge of the channel while it
-    is at it.
   - **and snow goes up as well as down.** A furrow is what is left behind,
     and behind is mostly where the camera is — what you actually watch,
     pace after pace, is the snow the legs are shovelling aside right now.
@@ -734,7 +731,12 @@ The first three are the hollows' own ragdoll, kicked differently, and the
 heavy one borrows their limb-shearing outright. However you came apart, you
 are built again from nothing on respawn rather than patched back together.
 
-**They do not simply stand up out of the ground.** The soil does not give,
+**They do not simply stand up out of the ground, and the ground shows it.**
+A body sliding up out of a surface that never moved is the whole reason the
+rise read as a fault rather than as a thing climbing: nothing was displaced.
+So the earth over it is **torn open in the paint**, and a **mound of spoil**
+is pushed up and heaved wider as the thing works at it, falling back flat
+once it is out — and the torn ground is left there for good. The soil does not give,
 and a thing with no muscle left on it has to argue with it. A hand breaches
 first and scrabbles at the dirt for a moment with nothing under it; then it
 *heaves*, gets a third of the way, and the ground takes it back. It heaves
@@ -756,9 +758,15 @@ rate the whole way, and five centimetres of lift on the trunk. That is not a
 dodge, it is a man falling over while he slides — there is nothing to push
 off from, nothing in the air, and nothing lands.
 
+It is **one motion**, not four poses in a row: the turn runs on a single
+curve from the first frame to the last of the roll — flat at the start while
+he is still loading, accelerating through the air, fastest right about where
+he comes down, easing off into the finish — so there is no frame where the
+rate of it jumps. Push and tuck *overlap* rather than switch: the load is
+still coming off the legs while the knees are already coming in.
+
 1. **The push.** The legs drive and the speed is *built* rather than given.
    Coiled over the front leg, trunk thrown forward, arms still down.
-   **Nothing rotates yet** — only the load goes on.
 2. **The flight.** The speed holds, with only the air on him. The whole body
    — the *root*, not the trunk — goes up over a real arc, a third of a unit
    at the top, and the knees come in. A fifth of the turn happens here.
@@ -780,7 +788,7 @@ change wearing an animation's clothes.
 
 ## Life, in hearts
 
-Life is **ten hearts**, drawn as a nine-by-eight pixel heart made at boot
+Life is **seven hearts**, drawn as a nine-by-eight pixel heart made at boot
 like everything else in the game — whole, half, and the empty socket left
 when it is gone — nearest-filtered and blown up, with no bar and no gradient
 anywhere in it. The row is only rebuilt when the count of halves actually
