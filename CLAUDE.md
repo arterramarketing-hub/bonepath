@@ -18,20 +18,30 @@ grep -n "PATTERN" index.html | grep -v '^325:'
 
 The real game code is lines 326–end (~9,100 lines).
 
-## Branch layout — this trips people up
+## Branch layout
 
-This repo contains two unrelated projects that share **no git history**.
+`claude/dark-souls-mobile-poc-xnquc4` is the **default branch and the only
+live one**. Work there.
 
-| Branch | What it is |
+The repo also held an unrelated **Godot** project that shared no git history
+with the game — a skeleton on `main` plus three character and weather
+experiments. None of it was ever a playable game. Those branches were
+removed on 2026-09-11 as noise.
+
+Nothing is lost: if any of it is ever wanted back, each tip commit is still
+recoverable by SHA.
+
+| What it was | Tip commit |
 |---|---|
-| `claude/dark-souls-mobile-poc-xnquc4` | **The game. Work here.** |
-| `main` | An abandoned near-empty **Godot** skeleton. Not the game. |
-| `claude/bone-path-hero-character-*` | Abandoned Godot character experiment |
-| `claude/knight-lowpoly-character-*` | Abandoned Godot + Blender experiment |
-| `claude/zealous-gates-*` | Abandoned Godot weather experiment |
+| `main` — Godot skeleton | `6cfb5c127a84fce56f1b45ea432503b73245c146` |
+| Godot hero-character experiment | `07b3907a32e0ceef3400e5d71b012bd146771de2` |
+| Godot + Blender knight (has rendered turnarounds) | `178fbf2efffeeed36d9cd904ad612bd99753f903` |
+| Godot weather system | `3219d5c3cb1923678ba6c04cd625e8b99a377f62` |
 
-If you find yourself in a Godot project (`project.godot`, `.tscn` files),
-you are on the wrong branch. The game is HTML and three.js.
+Restore one with `git checkout -b rescue <sha>`.
+
+If you ever find yourself in a Godot project (`project.godot`, `.tscn`
+files), you are on the wrong branch. The game is HTML and three.js.
 
 ## The aesthetic is the point
 
