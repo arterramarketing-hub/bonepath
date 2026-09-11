@@ -3591,7 +3591,14 @@ function groundMeshY(x,z){
    contrast, top to bottom, rather than by standing out against whatever
    happens to be under it. Written as the bright numbers they look on a
    canvas, they came out as white ribbons painted across the field. */
-const TROD_PIT=[.17,.20,.27],TROD_LIP=[.62,.66,.73],TROD_FLAT=[.46,.50,.57];
+const TROD_PIT=[.18,.21,.28],TROD_LIP=[.56,.60,.67],TROD_FLAT=[.46,.50,.57];
+/* a boot on a DUSTING presses a dish out of bright snow, so its collar is
+   the bright part. A boot down in a furrow has nothing bright to shove —
+   it only scuffs a floor that is already dark, and given the first palette
+   it came out as a ring of light lying in the channel. So a scuff carries
+   its own three tones, all of them the floor's: */
+const TROD_SCUFF=[[.18,.21,.28],[.26,.29,.37],[.11,.13,.18]];
+const TROD_PAL=[TROD_FLAT,TROD_LIP,TROD_PIT];
 // the patch a boot covers, measured once as it lands
 function trodShape(p){
   const G=TROD.G,V=[];
@@ -3620,8 +3627,8 @@ function trodWrite(slot,p){
     // the lip's own normal, tipped away from the middle of the print
     const tip=m>.5&&m<.99?.6*k:0,nx=v.nx*tip,nz=v.nz*tip,nl=Math.hypot(nx,1,nz)||1;
     N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
-    const c=m>.99?TROD_FLAT:m>.5?TROD_LIP:TROD_PIT;
-    for(let r=0;r<3;r++)C[o+r]=lerp(TROD_FLAT[r],c[r],k);   // and its colours flatten with it
+    const PA=p.pal||TROD_PAL,c=m>.99?PA[0]:m>.5?PA[1]:PA[2];
+    for(let r=0;r<3;r++)C[o+r]=lerp(PA[0][r],c[r],k);       // and its colours flatten with it
   }
 }
 function trodFree(slot){
@@ -3647,12 +3654,12 @@ function snowSink(x,z){
 }
 /* press something into the snow: a boot, a shoulder rolled through it, a
    hollow's dragging foot. Silent unless there is snow to press */
-function snowStamp(x,z,ang,w,l,depth,drop){
+function snowStamp(x,z,ang,w,l,depth,drop,pal){
   if(RUN.weather!=='snow'&&RUN.weather!=='blizzard')return;
   trodInit();
   const slot=TROD.next;TROD.next=(TROD.next+1)%TROD.N;
   const k=.55+.9*snowDeep();                      // a drift takes a deeper print than a dusting
-  const p={x,z,ang,w:w*(.85+.3*snowDeep()),l:l*(.85+.3*snowDeep()),depth:depth*k,drop:drop||0,age:0};
+  const p={x,z,ang,w:w*(.85+.3*snowDeep()),l:l*(.85+.3*snowDeep()),depth:depth*k,drop:drop||0,pal:pal||null,age:0};
   trodShape(p);TROD.live[slot]=p;trodWrite(slot,p);trodFlush();
   TROD.mesh.visible=true;
 }
@@ -3697,8 +3704,15 @@ function updateTrod(dt){
    through a drift leaves a channel about as wide as the body, not a slot
    cut with a knife — so the floor is the wide part and the banks stand
    outside it rather than eating into it. */
-const TR_OFF=[-1.95,-1.45,-1,-.5,0,.5,1,1.45,1.95];
-const TR_CLS=[0,1,2,2,2,2,2,1,0];      // 0 untouched · 1 bank crest · 2 floor
+/* ACROSS the channel, in units of half the pressed floor's width. Four
+   kinds of point, and the reason there are four is that a furrow with only
+   a crest and a floor comes out as an extruded rail — two parallel white
+   mouldings with a flat strip between them, which is a ski track, not
+   snow. Snow shoved aside piles into a crest and then FALLS BACK, so the
+   bank is given a shoulder outside it and a skirt outside that, dying into
+   the untouched surface instead of stopping at a line. */
+const TR_OFF=[-2.25,-1.8,-1.38,-1,-.5,0,.5,1,1.38,1.8,2.25];
+const TR_CLS=[0,1,2,3,3,3,3,3,2,1,0];  // 0 skirt · 1 shoulder · 2 bank crest · 3 pressed floor
 const TRAIL={LN:10,SEC:48,K:TR_OFF.length,STEP:.28,mesh:null,pos:null,col:null,nrm:null,lanes:null,tick:0};
 function trailDepth(scale){return .34*snowDeep()*(scale||1);}
 const PLOUGHS=()=>snowDeep()>=.8;    // only a real drift is ploughed through
@@ -3732,28 +3746,54 @@ function trailClear(){
   const a=TRAIL.mesh.geometry.attributes;a.position.needsUpdate=a.color.needsUpdate=a.normal.needsUpdate=true;
 }
 // one cross-section of the channel, written where the lane says it goes
+/* A SECTION IS NOT A COPY OF THE LAST ONE. Everything that made the first
+   furrow read as a ribbon lives here:
+
+   - a STRIDE. Legs do not plough evenly down a centre line; each step
+     throws snow mostly to one side, and the next throws it to the other.
+     So the two banks take turns being the heavy one, on a beat set by the
+     distance covered, and the channel scallops instead of running true.
+   - a WANDER. The line itself drifts a few centimetres either way, because
+     nobody walks a ruled line through a drift.
+   - JITTER, fixed the moment the section is laid so it never shimmers: the
+     width, each bank's height on its own, the churn of the floor, and the
+     colour of the shoved snow, all thrown about by a fifth or so.
+
+   None of it costs anything at all — a section is shaped once. */
 function trailShape(sc){
-  const V=[];
+  const V=[],R=()=>Math.random()*2-1;
+  // the stride's beat, and which side this step is throwing snow to
+  const beat=Math.sin(sc.s*4.1),lean=Math.sin(sc.s*4.1+.9);
+  sc.bL=Math.max(.3,.72+.5*Math.max(0,beat)+R()*.2);
+  sc.bR=Math.max(.3,.72+.5*Math.max(0,-beat)+R()*.2);
+  sc.cj=R()*.07;                                       // this section's own tone
+  const wob=sc.w*(1+R()*.14);                          // and its own width
+  const off=lean*sc.w*.09+R()*sc.w*.05;                // the line wanders
   for(let q=0;q<TR_OFF.length;q++){
-    const ax=TR_OFF[q]*sc.w*.5;
+    const ax=TR_OFF[q]*wob*.5+off;
     const wx=sc.x+sc.rx*ax,wz=sc.z+sc.rz*ax;
-    V.push({x:wx,y:groundMeshY(wx,wz),z:wz});
+    V.push({x:wx,y:groundMeshY(wx,wz),z:wz,r:R()});
   }
   sc.V=V;
 }
-function trailWrite(L,i,sc){
+function trailWrite(L,i,sc,tail){
   const K=TRAIL.K,base=((L*TRAIL.SEC)+i)*K,P=TRAIL.pos,C=TRAIL.col,N=TRAIL.nrm,V=sc.V;
-  const k=Math.max(0,1-sc.age/TROD.life);
-  const rim=sc.d*.5*k;                                  // how high the shoved snow stands
+  const k=Math.max(0,1-sc.age/TROD.life)*tail;         // fills in with age, and dies out at the tail
+  const rim=sc.d*.34*k;
   for(let q=0;q<K;q++){
-    const cls=TR_CLS[q],o=(base+q)*3,v=V[q];
-    const h=cls===0?TROD_UP:cls===1?TROD_UP+rim:TROD_FLOOR;
+    const cls=TR_CLS[q],t=TR_OFF[q],o=(base+q)*3,v=V[q];
+    const side=t<0?sc.bL:t>0?sc.bR:1;                  // this step's heavy side
+    let h,c,mix=1;
+    if(cls===0)     {h=TROD_UP;c=TROD_FLAT;}                                     // the skirt, lying flat
+    else if(cls===1){h=TROD_UP+rim*side*(.26+v.r*.06);c=TROD_LIP;mix=.42;}       // the shoulder it falls back to
+    else if(cls===2){h=TROD_UP+rim*side*(1+v.r*.26);c=TROD_LIP;}                 // the crest
+    else            {h=TROD_FLOOR-sc.d*.14*k*(1+v.r);c=TROD_PIT;}                // churned floor
     P[o]=v.x;P[o+1]=v.y+h;P[o+2]=v.z;
-    const tip=cls===1?.75*k*Math.sign(TR_OFF[q]):0;     // the bank leans away from the channel
+    const tip=cls===1?.9*k*Math.sign(t):cls===2?.5*k*Math.sign(t):0;   // the bank leans away from the channel
     const nx=sc.rx*tip,nz=sc.rz*tip,nl=Math.hypot(nx,1,nz)||1;
     N[o]=nx/nl;N[o+1]=1/nl;N[o+2]=nz/nl;
-    const c=cls===0?TROD_FLAT:cls===1?TROD_LIP:TROD_PIT;
-    for(let r=0;r<3;r++)C[o+r]=lerp(TROD_FLAT[r],c[r],k);
+    const j=cls===1||cls===2?sc.cj:0;
+    for(let r=0;r<3;r++)C[o+r]=Math.max(0,lerp(TROD_FLAT[r],lerp(TROD_FLAT[r],c[r],mix),k)+j*k);
   }
 }
 function trailBlank(L,i){
@@ -3771,12 +3811,12 @@ function trailPush(lane,x,z,w,d){
     if(dd>2.2){S.length=0;}                         // too far to have walked it
     else{
       const rx=-dz/dd,rz=dx/dd;                     // across the line of travel
-      const sc={x,z,rx,rz,w,d,age:0};trailShape(sc);S.push(sc);
+      const sc={x,z,rx,rz,w,d,age:0,s:(last.s||0)+dd};trailShape(sc);S.push(sc);
       if(S.length>TRAIL.SEC)S.shift();
       return;
     }
   }
-  const sc={x,z,rx:1,rz:0,w,d,age:0};trailShape(sc);S.push(sc);
+  const sc={x,z,rx:1,rz:0,w,d,age:0,s:0};trailShape(sc);S.push(sc);
 }
 function updateTrail(dt){
   if(!TRAIL.mesh)return;
@@ -3786,7 +3826,7 @@ function updateTrail(dt){
   const L0=TRAIL.lanes[0];L0.own=player;
   if(G.mode==='play'&&player.hp>0&&cathDist(player.x,player.z)>=4.5)
     trailPush(L0,player.x,player.z,
-      (player.state==='roll'?1.3:.84)*(.75+.45*deep),
+      (player.state==='roll'?1.2:.76)*(.75+.45*deep),
       trailDepth(player.state==='roll'?1.3:1));
   const near=[];
   for(const e of enemies){
@@ -3817,7 +3857,10 @@ function updateTrail(dt){
   for(let L=0;L<TRAIL.LN;L++){
     const S=TRAIL.lanes[L].secs;
     for(let i=S.length-1;i>=0;i--)if(S[i].age>=TROD.life)S.splice(i,1);
-    for(let i=0;i<TRAIL.SEC;i++){if(i<S.length)trailWrite(L,i,S[i]);else trailBlank(L,i);}
+    for(let i=0;i<TRAIL.SEC;i++){
+      if(i<S.length)trailWrite(L,i,S[i],Math.min(1,i/5));   // the oldest sections thin out to nothing
+      else trailBlank(L,i);
+    }
   }
   TRAIL.mesh.visible=live;
   const a=TRAIL.mesh.geometry.attributes;a.position.needsUpdate=a.color.needsUpdate=a.normal.needsUpdate=true;
@@ -7488,8 +7531,12 @@ const player={
         // THROUGH and keeps a furrow instead (see updateTrail)
         if(snowy){if(!onFlags){printSnow(this.x,this.z,this.facing);
           snowPuff(this.x,this.z,this.facing,this.sprinting?5:3,this.sprinting?3.1:1.9);
-          if(!PLOUGHS()){const side=Math.random()<.5?-.15:.15;                 // left boot or right
-            snowStamp(this.x+Math.cos(this.facing)*side,this.z-Math.sin(this.facing)*side,this.facing,.34,.62,.13);}}}
+          const side=Math.random()<.5?-.15:.15;                               // left boot or right
+          // on a dusting the boot presses a dish; down in a furrow it only
+          // scuffs the floor, a dark tread with next to no relief to it —
+          // the channel already has all the relief it needs
+          snowStamp(this.x+Math.cos(this.facing)*side,this.z-Math.sin(this.facing)*side,this.facing,
+            PLOUGHS()?.3:.34,PLOUGHS()?.5:.62,PLOUGHS()?.022:.13,0,PLOUGHS()?TROD_SCUFF:null);}}
         else if(Math.random()<.5)boneBurst(this.x,.08,this.z,0x4a463a,2,.7);
       }else if(heel<.15)this._heelOn=false;
       this.moveAmt=lerp(this.moveAmt,mAmt,10*dt);

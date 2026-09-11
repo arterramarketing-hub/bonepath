@@ -452,9 +452,29 @@ them the seed decides:
     shoved snow standing along both sides of it, running back the whole
     way you came. Everything that can carve one gets a **lane** — the
     pilgrim and the nine nearest hollows — and a lane is a strip of
-    cross-sections laid down every third of a stride, nine points across,
-    the oldest pushed off the back when the lane is full. **Roll**, and
-    the channel widens to the trough a shoulder makes.
+    cross-sections laid down every third of a stride, the oldest pushed off
+    the back when the lane is full. **Roll**, and the channel widens to the
+    trough a shoulder makes.
+    A cross-section is eleven points across and **no two are alike**, which
+    is the whole difference between a furrow and a ribbon. Built as a crest
+    and a floor it came out an extruded rail — two parallel white mouldings
+    with a flat strip between them, which is a ski track, not snow. So the
+    bank is given a **shoulder** outside it and a **skirt** outside that,
+    dying back into the untouched surface instead of stopping at a line;
+    the two banks take turns being the heavy one on a **stride** beat set
+    by the distance covered, because each step throws snow mostly to one
+    side and the next throws it to the other, so the channel scallops
+    rather than running true; the line itself **wanders** a few centimetres
+    either way, because nobody walks a ruled line through a drift; the
+    width, each bank's height, the churn of the floor and the tone of the
+    shoved snow are all **thrown about by a fifth**, fixed the moment the
+    section is laid so nothing shimmers; and the far end **thins out** over
+    the last five sections instead of stopping square. None of it costs
+    anything: a section is shaped once, and never again.
+    A boot down in a furrow leaves a **scuff**, not a dish — the floor is
+    already dark and has nothing bright to shove, so the tread carries the
+    channel's own three tones. Given the dusting's palette it came out as a
+    ring of light lying in the channel.
   - **and snow goes up as well as down.** A furrow is what is left behind,
     and behind is mostly where the camera is — what you actually watch,
     pace after pace, is the snow the legs are shovelling aside right now.
