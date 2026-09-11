@@ -178,6 +178,12 @@
   #fpsNote .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
   #fpsNote p{margin:8px 0;}
   #fpsNote .btns{display:flex;justify-content:center;margin-top:14px;}
+  /* the frame's own measure, off unless asked for in the testing menu */
+  #perf{position:fixed;bottom:10px;left:12px;z-index:14;display:none;pointer-events:none;
+    font-family:Georgia,'Times New Roman',serif;font-size:11px;letter-spacing:.14em;
+    color:rgba(200,190,160,.62);text-shadow:0 1px 2px #000;line-height:1.5;}
+  #perf.on{display:block;}
+  #perf b{font-weight:normal;color:#e8dcc0;}
   #begin{margin-top:4px;font-size:14px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;
     color:var(--ember-hi);animation:breathe 2.6s ease-in-out infinite;}
   @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
@@ -252,6 +258,7 @@
       <div class="sel"><span>weather</span><div class="pick"><div class="arrow fld" data-k="weather" data-d="-1">&lsaquo;</div><b id="selWeather">clear</b><div class="arrow fld" data-k="weather" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>effects</span><div class="pick"><div class="arrow fld" data-k="sfx" data-d="1">&lsaquo;</div><b id="selSfx">on</b><div class="arrow fld" data-k="sfx" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>music &amp; ambience</span><div class="pick"><div class="arrow fld" data-k="music" data-d="1">&lsaquo;</div><b id="selMusic">on</b><div class="arrow fld" data-k="music" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>frame counter</span><div class="pick"><div class="arrow fld" data-k="perf" data-d="1">&lsaquo;</div><b id="selPerf">off</b><div class="arrow fld" data-k="perf" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>go to seed</span><div class="pick"><input id="seedIn" inputmode="numeric" pattern="[0-9]*" placeholder="number"><div class="btn2 sm" id="btnSeed">Enter</div></div></div>
     </div>
     <div class="col">
@@ -301,6 +308,7 @@
   </div>
 </div>
 
+<div id="perf"></div>
 <div id="fpsNote"><div class="panel">
   <h2>FPS Mode</h2><div class="sub">not yet walked &middot; a note for what it will be</div>
   <p>A first-person way through the same field and the same path: the view from behind the pilgrim's own eyes, as in a first-person shooter, and in the pilgrim's hand not a blade but a <b>revolver</b> &mdash; six rounds, a reload, and nothing else.</p>
@@ -1014,6 +1022,10 @@ const canvas=$('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.setPixelRatio(1);
+// the draw counters are ours to clear: a frame is four passes, and three.js
+// would otherwise wipe the tally at the start of each one, leaving only the
+// last (two triangles of post) to read
+renderer.info.autoReset=false;
 renderer.localClippingEnabled=true;   // the finishing cut halves a body with clipping planes
 const FOGC=0x090d12;
 const scene=new THREE.Scene();
@@ -1113,6 +1125,7 @@ const gradeMat=new THREE.ShaderMaterial({
     '}'].join('\n')});
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
 function renderFrame(){
+  renderer.info.reset();
   renderer.setRenderTarget(rt);
   renderer.render(scene,camera);
   if(HERO_HI){
@@ -1152,15 +1165,43 @@ function resize(){
 }
 addEventListener('resize',resize);
 
+// how far the land carries before it is all fog. The dome sits at 210 and
+// the camera stops at 220, so the world is gone well before either shows.
+const FOG_NEAR=34,FOG_FAR=158;
+
+/* AFFINE TEXTURE MAPPING — the console's most famous wrong.
+   The PS1 had no divider to spare per pixel, so it walked a texture across
+   a triangle in even steps of SCREEN space rather than of the surface, and
+   the picture swims and buckles as the angle changes. Hardware since
+   interpolates every varying perspective-correct, and there is no
+   `noperspective` to ask it not to in WebGL1 — so the correction is undone
+   by hand: carry uv MULTIPLIED by w, carry w beside it, and divide the two
+   back out in the fragment. Both were divided by w on the way, so the
+   division cancels and what lands is linear in screen space: the swim.
+   Packed into one varying (xy the premultiplied uv, z the w) to spend a
+   single slot on a phone. ?affine=0 turns it off to compare. */
+let PSX_AFFINE=true;
+try{PSX_AFFINE=new URLSearchParams(location.search).get('affine')!=='0';}catch(e){}
+
 // PSX vertex wobble: snap clip-space verts to a coarse grid
 function psx(mat){
   mat.onBeforeCompile=s=>{
     s.uniforms.uSnap=snapUniform;
-    s.vertexShader='uniform vec2 uSnap;\n'+s.vertexShader.replace(
+    const warp=PSX_AFFINE&&!!mat.map;
+    s.vertexShader=(warp?'varying vec3 vAff;\n':'')+'uniform vec2 uSnap;\n'+s.vertexShader.replace(
       '#include <project_vertex>',
       `#include <project_vertex>
        gl_Position.xy = floor(gl_Position.xy / gl_Position.w * uSnap + 0.5) / uSnap * gl_Position.w;`
+      +(warp?`
+       vAff = vec3(vUv * gl_Position.w, gl_Position.w);`:'')
     );
+    // the swap is a macro around the one chunk that samples the map, so the
+    // stock chunk is never rewritten and later chunks keep the true vUv
+    if(warp)s.fragmentShader='varying vec3 vAff;\n'+s.fragmentShader.replace(
+      '#include <map_fragment>',
+      `#define vUv (vAff.xy/vAff.z)
+       #include <map_fragment>
+       #undef vUv`);
   };
   return mat;
 }
@@ -2991,6 +3032,13 @@ function buildWorld(){
   makeTex('skyDusk',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#1a1428');g.addColorStop(.45,'#5a2a4a');g.addColorStop(.72,'#b8563a');g.addColorStop(.85,'#d08a4a');g.addColorStop(1,'#2a1a26');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
   makeTex('skyDawn',256,(ctx,S)=>{const g=ctx.createLinearGradient(0,0,0,S);g.addColorStop(0,'#1c2e34');g.addColorStop(.45,'#3f6f62');g.addColorStop(.72,'#a8c98e');g.addColorStop(.85,'#e6dc9a');g.addColorStop(1,'#33443a');ctx.fillStyle=g;ctx.fillRect(0,0,S,S);});
   scene.background=RUN.fog.clone();
+  /* the field goes off into the very colour the sky is, so the land never
+     ends at a hard edge and the far tiles of the path arrive out of haze
+     instead of appearing. The fog's colour IS the background's — the same
+     Color, not a copy — so every turn of the hour, every weather, and every
+     white flash of lightning carries it without another line anywhere. */
+  scene.fog=new THREE.Fog(0x000000,FOG_NEAR,FOG_FAR);
+  scene.fog.color=scene.background;
   const hemi=new THREE.HemisphereLight(T.hemi[0],T.hemi[1],T.hemi[2]);
   const moonL=new THREE.DirectionalLight(T.sun[0],T.sun[1]);
   scene.add(hemi,moonL);
@@ -9300,6 +9348,7 @@ function cycleField(k,d){
   else if(k==='weather'){const i=(WX_LIST.indexOf(RUN.weather)+d+3)%3;setWeather(WX_LIST[i]);}
   else if(k==='sfx')AudioSys.setSfx(!AudioSys.sfxOn());
   else if(k==='music')AudioSys.setMusicOn(!AudioSys.musicOn());
+  else if(k==='perf')perfSet(!PERF.on);
   fillField();renderFrame();
 }
 function fillField(){
@@ -9308,6 +9357,7 @@ function fillField(){
   $('selWeather').textContent=RUN.weather==='storm'?'a storm':RUN.weather==='rain'?'light rain':'clear';
   $('selSfx').textContent=AudioSys.sfxOn()?'on':'off';
   $('selMusic').textContent=AudioSys.musicOn()?'on':'off';
+  if($('selPerf'))$('selPerf').textContent=PERF.on?'on':'off';
   $('psSeed').textContent=RUN.seed;
 }
 document.querySelectorAll('#pause .arrow.fld').forEach(el=>el.addEventListener('pointerdown',e=>{
@@ -9348,8 +9398,36 @@ $('btnResume').addEventListener('pointerdown',e=>{e.preventDefault();setPaused(f
 $('btnRestart').addEventListener('pointerdown',e=>{e.preventDefault();location.reload();});
 $('pause').addEventListener('pointerdown',e=>{e.stopPropagation();});
 
+/* THE FRAME'S OWN MEASURE. Not for the player: for knowing whether a change
+   cost anything. Frames a second, and what the card was asked to draw for
+   each of them — the draws being the number that matters on a phone, since
+   every one is the processor stopping to tell the card about a thing.
+   Sampled four times a second, or the numbers move too fast to read.
+   Remembered by the browser like the sound switches. */
+const PERF={on:false,el:null,frames:0,t0:0};
+try{PERF.on=localStorage.getItem('bp_perf')==='1';}catch(e){}
+function perfSet(v){
+  PERF.on=v;PERF.frames=0;PERF.t0=0;
+  try{localStorage.setItem('bp_perf',v?'1':'0');}catch(e){}
+  if(PERF.el){PERF.el.classList.toggle('on',v);if(!v)PERF.el.textContent='';}
+}
+function perfTick(now){
+  if(!PERF.el)PERF.el=$('perf');
+  if(!PERF.on||!PERF.el)return;
+  PERF.frames++;
+  if(!PERF.t0){PERF.t0=now;return;}
+  const span=now-PERF.t0;
+  if(span<250)return;
+  const r=renderer.info.render,tri=r.triangles;
+  PERF.el.innerHTML='<b>'+Math.round(PERF.frames*1000/span)+'</b> fps &middot; <b>'
+    +r.calls+'</b> draws &middot; <b>'+(tri>=1000?(tri/1000).toFixed(1)+'k':tri)+'</b> tris';
+  PERF.frames=0;PERF.t0=now;
+}
+if($('perf')){PERF.el=$('perf');PERF.el.classList.toggle('on',PERF.on);}
+
 function frame(now){
   requestAnimationFrame(frame);
+  perfTick(now);
   let dt=Math.min(.05,(now-last)/1000);last=now;
   if(IN.pausePressed){IN.pausePressed=false;setPaused(!G.paused);}
   if(G.paused){renderFrame();Input.consume();return;}

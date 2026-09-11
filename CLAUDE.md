@@ -72,8 +72,15 @@ Known state of play:
   only runs in **path/survival mode**, not the main field.
 - There is **no instancing and no geometry merging** anywhere — the
   cemetery, groves and ruins each build individual meshes.
-- There is **no FPS or draw-call readout**. Add one before optimizing;
-  do not guess at performance.
+- A **frame counter** (fps, draw calls, triangles) sits in the bottom-left,
+  off by default, switched on under *The field (testing)* on the pause
+  screen and remembered by the browser. `renderer.info.autoReset` is off
+  and the counters are cleared by hand at the top of `renderFrame`, so the
+  tally covers all four passes of a frame rather than only the last.
+- Measured on the field at the time of writing: **~1850 draw calls** and
+  ~57k triangles a frame. The draw calls are the number that matters on a
+  phone, and instancing the cemetery, the groves and the ruins is the
+  largest single win still available.
 
 ## Conventions
 

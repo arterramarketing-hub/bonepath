@@ -421,7 +421,9 @@ them the seed decides:
   & ambience** each have a switch (remembered between loads) — the
   first is every blow, step, swing and voice; the second is the whole
   background: the theme, the wind, the drone, the far-off creaks and
-  crows, the rain and the thunder — and the seed row
+  crows, the rain and the thunder — a **frame counter** (also remembered)
+  that puts frames-a-second, draw calls and triangles in the bottom
+  corner, off unless asked for — and the seed row
   above. `?time=noon&wx=storm` on the address does the same from the
   start, the rest of the field still the seed's.
 - **the lanterns** — always at the ring's four junctions and the head
@@ -604,7 +606,18 @@ Everything is generated at boot inside the one file:
 
 - **Renderer** — three.js r128 (inlined), rendered at ~240p and upscaled with
   nearest-neighbor, clip-space vertex snapping for the PSX wobble,
-  film grain and vignette overlays.
+  **affine texture mapping** — the console's most famous wrong, textures
+  walked across a triangle in even steps of screen space instead of of
+  the surface, so the picture swims and buckles with the angle (hardware
+  has interpolated perspective-correct since, and WebGL1 has no
+  `noperspective` to ask it not to, so the correction is undone by hand:
+  the uv is carried multiplied by w with w beside it and the two divided
+  back out in the fragment, where the division cancels and what lands is
+  linear in screen space; `?affine=0` turns it off to compare),
+  **distance fog** standing in the very colour the sky is — the same
+  Color object as the background, so every hour, every weather and every
+  white flash of lightning carries the fog with it, and the land never
+  ends at a hard edge — film grain and vignette overlays.
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
