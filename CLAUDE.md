@@ -8,15 +8,17 @@ server. Open it in a browser and it runs.
 
 ## Read this before you touch anything
 
-**`index.html` line 325 is the inlined three.js r128 bundle — a single
-minified 603 KB line.** It will swamp every grep you run. Always filter it
-out:
+**One line of `index.html` is the inlined three.js r128 bundle — a single
+minified 603 KB line.** It will swamp every grep you run. Do not trust a
+line number for it: any edit above it moves it (it was 325, and is 333 at
+the time of writing). Find it, then filter it out:
 
 ```sh
-grep -n "PATTERN" index.html | grep -v '^325:'
+BUNDLE=$(awk 'length($0)>5000 {print NR}' index.html)
+grep -n "PATTERN" index.html | grep -v "^$BUNDLE:"
 ```
 
-The real game code is lines 326–end (~9,100 lines).
+Everything after that line is the real game code (~9,200 lines).
 
 ## Branch layout
 
