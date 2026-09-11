@@ -805,6 +805,23 @@ The first three are the hollows' own ragdoll, kicked differently, and the
 heavy one borrows their limb-shearing outright. However you came apart, you
 are built again from nothing on respawn rather than patched back together.
 
+**And what she is wearing falls with her.** Every armour in the game carries
+simulated cloth — the knight's and the sheet knight's split tabard is three
+hanging panels, the thief's mantle is a whole cloth cape, the first knight's
+is a chain of hinges — and all of it is stepped from the same place the
+walk cycle and the arm IK are stepped from. Which is only ever reached while
+the pilgrim is *alive*. So the moment she went down, every stitch on her
+stopped at the shape it had on the last living frame and rode the ragdoll
+like a sheet of tin: the thief's cape stood straight up out of the ground
+behind the body, and the tabard's panels stuck out at the hip as two flat
+boards. Four armours, four deaths, frozen to the fourth decimal.
+The cloth is its own pass now, and the dead frame steps it — so the tabard
+drapes over the hip the body came to rest on, the cape falls over the back
+and settles on the grass, and the poison melt takes the cloth down into the
+pool with everything else. The cape also stops *streaming*: it was holding
+whatever speed the run had at the moment of death, so a pilgrim killed at a
+sprint kept a cape flying out behind her forever.
+
 **They do not simply stand up out of the ground, and the ground shows it.**
 A body sliding up out of a surface that never moved is the whole reason the
 rise read as a fault rather than as a thing climbing: nothing was displaced.

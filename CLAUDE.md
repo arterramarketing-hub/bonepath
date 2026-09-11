@@ -332,6 +332,23 @@ Known state of play:
   **If a weapon's arc ever looks short, check `seamDur` against its wind
   before you touch a pose.**
 
+- **The dead frame does not run `updateRigExtras`, and must not.** It
+  begins by MIRRORING the arm channels in place, then runs the joint
+  springs and the arm IK over them — all three would fight the quaternions
+  `rag.apply()` has just written, every frame, flipping. But the cloth
+  lived at the end of that function, so every stitch on the pilgrim froze
+  the instant she died and rode the ragdoll as a rigid sheet. `updateRigCloth(r,dt)`
+  is the cloth on its own (the hinged cape chain + `fitCape`, and
+  `stepCloth`); `updateRigExtras` calls it last, and the dead frame — and
+  the enemy ragdoll branch, which returns just as early — call only it.
+  Every armour has cloth: knight and sheet have the three tabard panels
+  (`faraam`), thief has a full cloth cape (`clothCape`), og has the hinged
+  chain (`cape`). `stepSheet` writes back through `root.matrixWorld`
+  inverted, so the melt's root scale (y down to .02) blows the LOCAL
+  coordinates up ~50x — that is consistent and harmless, the world
+  positions stay put; do not "fix" it by clamping the scale.
+  `_spNow` is zeroed in `die()` or the cape streams out behind a corpse.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,

@@ -6479,6 +6479,37 @@ function seamBlend(r,w){
     j.rotation.z+=wrapA(q[2]-j.rotation.z)*w;
   }
 }
+/* WHAT A BODY WEARS, STEPPED ON ITS OWN.
+   This used to live at the end of `updateRigExtras`, which is only ever
+   called from the two update loops — so the moment the pilgrim died,
+   every stitch on her stopped. The tabard's three panels, the thief's
+   cloth cape, the first knight's hinged one: all of them held the exact
+   shape they had on the last living frame and then rode the ragdoll down
+   like a sheet of tin. Four armours, four deaths, all of them frozen to
+   the fourth decimal.
+   It cannot simply be `updateRigExtras` that the dead frame calls: that
+   begins by MIRRORING the arm channels in place and then runs the joint
+   springs and the arm IK over them, and all three would fight the
+   quaternions the ragdoll has just written — every frame, flipping. So
+   the cloth is its own pass now, and the dead frame calls only this. */
+function updateRigCloth(r,dt){
+  if(r.cape){
+    r.capeSway+=((r._spNow||0)-r.capeSway)*Math.min(1,6*dt);
+    const t=G.time,sw=r.capeSway;
+    // positive x pitches the hanging cloth BACK, away from the spine. The
+    // whole cape lifts by ONE capped angle that is shared down the chain —
+    // most of it at the shoulder, less at each hinge below — so at a
+    // sprint it streams out behind the body and never curls up over it
+    const total=Math.min(.95,.1+sw*.5),share=[.42,.24,.16,.11,.07];
+    for(let i=0;i<r.cape.length;i++){
+      const g=r.cape[i],k=i%5;
+      g.rotation.x=total*share[k]+Math.sin(t*(3.2+k)+k*1.7)*(.03+sw*.045);
+      g.rotation.z=Math.sin(t*2.1+k*2.3)*.04*(1+sw)+(g._side||0)*(k===0?.07:.015);
+    }
+    if(r.capeMesh)fitCape(r);
+  }
+  if(r.cloths&&r.cloths.length)stepCloth(r,dt);
+}
 function updateRigExtras(r,dt){
   if(r.mirrorArms){
     // poses are authored for a +x weapon arm; flip the arms' lateral
@@ -6532,22 +6563,7 @@ function updateRigExtras(r,dt){
   }
   if(ikR)solveHandTo(r,'R',ikR);
   if(ikL)solveHandTo(r,'L',ikL);else if(ik)solveLeftHand(r);
-  if(r.cape){
-    r.capeSway+=((r._spNow||0)-r.capeSway)*Math.min(1,6*dt);
-    const t=G.time,sw=r.capeSway;
-    // positive x pitches the hanging cloth BACK, away from the spine. The
-    // whole cape lifts by ONE capped angle that is shared down the chain —
-    // most of it at the shoulder, less at each hinge below — so at a
-    // sprint it streams out behind the body and never curls up over it
-    const total=Math.min(.95,.1+sw*.5),share=[.42,.24,.16,.11,.07];
-    for(let i=0;i<r.cape.length;i++){
-      const g=r.cape[i],k=i%5;
-      g.rotation.x=total*share[k]+Math.sin(t*(3.2+k)+k*1.7)*(.03+sw*.045);
-      g.rotation.z=Math.sin(t*2.1+k*2.3)*.04*(1+sw)+(g._side||0)*(k===0?.07:.015);
-    }
-    if(r.capeMesh)fitCape(r);
-  }
-  if(r.cloths&&r.cloths.length)stepCloth(r,dt);
+  updateRigCloth(r,dt);
   if(r.heart&&r.heartOn){
     const p=1+Math.sin(G.time*7)*.25;
     r.heart.scale.setScalar(p);
@@ -8115,6 +8131,7 @@ const player={
   },
   die(kx,kz,force,kind){
     this.hp=0;this.state='dead';this.t=0;this.dropThrown();
+    if(this.rig)this.rig._spNow=0;   // the cape stops streaming: nothing is running any more
     G.mode='dead';G.deaths++;
     this.crumbled=false;this.melt=false;
     kind=kind||'blade';this.deathKind=kind;
@@ -9791,6 +9808,7 @@ class Enemy{
       // wherever its hips ended up
       this.rag.step(dt);this.rag.apply();
       this.x=r.root.position.x;this.z=r.root.position.z;
+      updateRigCloth(r,dt);      // (the same hole as the pilgrim's: this branch returns before the extras. No horror wears cloth today; the next one will not be frozen either.)
       for(const m of this.mats)m.emissive.setHex(0x000000);
       if(this.state==='down'){if(this.t>=1.3)endRagdoll(this);}   // then it drags itself up
       else if(this.state==='dead'){
@@ -11948,6 +11966,8 @@ function frame(now){
         for(const m of player.mats)m.emissive.setHex(0x000000);}
       else{resetPose(player.rig);poseDead(player.rig,player.t);
         player.rig.root.position.set(player.x,heightAt(player.x,player.z),player.z);}
+      // ...and whatever she is wearing goes on falling with her
+      updateRigCloth(player.rig,wdt);
     }
     for(const e of enemies){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
