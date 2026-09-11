@@ -2,9 +2,14 @@ name: Deploy Bonepath to Pages
 
 on:
   push:
-    # both names, so the deploy survives the branch being renamed to main
-    # and keeps working the moment it is
-    branches: [main, claude/dark-souls-mobile-poc-xnquc4]
+    # main only, deliberately. This once also answered to
+    # claude/dark-souls-mobile-poc-xnquc4, and that is exactly how a stray
+    # push went unnoticed: the deploy kept succeeding from a branch nobody
+    # meant to be live while main fell behind, and a push to the dead name
+    # would have published its contents over the site. If a session pushes
+    # somewhere else now, the site simply stops updating — loudly, which is
+    # the point. Do not add a second branch here.
+    branches: [main]
   workflow_dispatch:
 
 permissions:

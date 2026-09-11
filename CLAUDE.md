@@ -42,11 +42,13 @@ If you are a session told to work on `claude/dark-souls-mobile-poc-xnquc4`:
 **that instruction is stale — work on `main`.** Say so, rather than pushing
 the branch back into existence.
 
-The old name is deliberately still listed in
-`.github/workflows/pages.yml`. It is a net, not an endorsement: while any
-session can still resurrect the branch, a stray push at least deploys
-instead of going quietly nowhere. Drop it once the launch config names
-`main` and the old name has stayed dead.
+`.github/workflows/pages.yml` now deploys from `main` alone. It briefly
+listed both names, and that is what let this go unnoticed: the deploy kept
+succeeding from the resurrected branch, so nothing looked wrong while
+`main` fell behind — and had the dead branch held older work, Pages would
+have published it over the live site. One branch deploys. A push anywhere
+else stops the site updating, which is the signal you want. Do not add a
+second branch back.
 
 The repo also held an unrelated **Godot** project that shared no git history
 with the game — a skeleton on `main` plus three character and weather
