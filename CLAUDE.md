@@ -456,6 +456,21 @@ Known state of play:
     the chain bows from the knuckle to a claw in the soil. The first pass
     had the first joint negative and the thing was a bundle of sticks
     pointing at the sky.
+  - **HOW HIGH THE SKULL RIDES IS MEASURED, NOT GUESSED** (`SKULL_HIGH`,
+    `SKULL_LOW`, `SKULL_REST`, declared above the class). The rig's root
+    sits at the level of the FACE: the dome is 2.6m above it and — mouth
+    open, head pitched into a bite — the chin is 1.56m BELOW it. The
+    first pass hovered it at `gy+1.02` and buried the whole lower jaw
+    half a metre in the soil; it read as a head coming up out of the
+    ground rather than one floating over it. `SKULL_REST` is HIGHER than
+    `SKULL_LOW`, which looks wrong and is not: by the time it lies down
+    it is pitched a radian and rolled another, so the dome has swung
+    under the root and the rig reaches 2.6m below it. If the rig's
+    proportions change, re-measure — traverse it, apply each mesh's
+    `matrixWorld` to its bounding box, and compare the lowest point to
+    `heightAt`. And the phase-2 STANDOFF is part of the same question:
+    the thing is three metres across, so what it hovers at is also how
+    much of the lens it fills. At 3.4 it blanked the screen.
   - **The light in a socket must stand PROUD of the socket's own sphere.**
     Put the eye at the same place as the dark ball and the ball draws over
     it and the skull has empty eyes. It is Basic and additive so it holds

@@ -1537,10 +1537,12 @@ from it.
   you: a ring seven and a half metres wide that you have to be out of.
   There is nothing to do about the skull until the hands are gone.
 - **The jaw, second.** Both hands down and it comes out of the air, mouth
-  opening as it descends, and settles a metre off the ground. Now it can
-  be hit, and now it fights: it **bites** — the whole skull lunges, mouth
-  first — and it **chews**, dragging itself forward along the ground with
-  the jaw working, which is the one you cannot simply back away from.
+  opening as it descends, and settles with the teeth at about a man's head
+  height and two thirds of a metre of air under the open jaw — still
+  floating, never resting. Now it can be hit, and now it fights: it
+  **bites** — the whole skull lunges, mouth first — and it **chews**,
+  dragging itself forward along the ground with the jaw working, which is
+  the one you cannot simply back away from.
 - **The head, last.** Everything you land goes into the jaw, and when the
   jaw gives it **comes off** — torn away whole, thrown, and left lying in
   the grass. That is what kills it. The skull screams with nothing to

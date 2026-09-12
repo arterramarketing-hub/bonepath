@@ -11650,6 +11650,21 @@ class BoneHand{
       m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='swipe'||this.state==='slam')&&!this.hitDone?0x2e0c06:0x000000);
   }
 }
+/* HOW HIGH THE SKULL RIDES, and it is not a guess. The rig's root sits at
+   the level of the FACE, with the cranium's dome 2.6m above it and — with
+   the mouth wide open and the head pitched into a bite — the chin 1.56m
+   BELOW it. Measured, because the first pass hovered it at gy+1.02 and
+   buried the whole lower jaw half a metre in the soil: it read as a head
+   coming up out of the ground rather than one floating over it.
+     HIGH  while it is warded and keeping its distance, well overhead
+     LOW   once it has come down: the teeth at about a man's head height,
+           with two thirds of a metre of air under the open jaw
+     REST  where it lies when it is finished. Higher than LOW, which
+           looks wrong and is not: by then it is pitched a radian and
+           rolled another, so the DOME has swung down under the root and
+           the rig reaches 2.6m below it instead of 1.6m
+   Anything that changes the rig's proportions has to come back here. */
+const SKULL_HIGH=3.9,SKULL_LOW=2.25,SKULL_REST=2.72;
 /* THE SKULL. It carries the bar, it counts the hands, and it cannot be
    touched until they are gone. */
 class GiantSkull{
@@ -11660,11 +11675,11 @@ class GiantSkull{
     this.radius=1.5;this.maxHp=200;this.hp=200;this.dmg=20;this.marrow=420;
     this.poise=0;this.poiseMax=14;this.chillT=0;this.speed=2.6;this.reach=3.6;
     this.rig=makeSkullRig();scene.add(this.rig.root);this.mats=this.rig.mats;
-    this.flies=true;this.markUp=2.0;
+    this.flies=true;this.markUp=2.9;      // the eye's ring sits over the DOME, not through it
     this.y=heightAt(x,z)-2.2;
     this.state='wake';this.t=0;this.hitDone=false;this.sfxDone=false;this.flashUntil=0;this.cool=2.2;
     this.crumbled=false;this.vx=0;this.vz=0;this.engaged=true;this.untouchable=true;
-    this.hands=[];this.phase=1;this.wardT=0;this.jaw=0;this.eyeHot=1;this.roll=0;this.jawGone=false;this.chewN=-1;
+    this.hands=[];this.phase=1;this.wardT=0;this.jaw=0;this.eyeHot=1;this.roll=0;this.jawGone=false;this.chewN=-1;this.throeY=undefined;
   }
   handsLeft(){return this.hands.filter(h=>h.hp>0).length;}
   handFell(h){
@@ -11682,7 +11697,7 @@ class GiantSkull{
   }
   reset(){
     this.x=this.homeX;this.z=this.homeZ;this.hp=this.maxHp;this.poise=0;
-    this.state='wait';this.t=0;this.y=heightAt(this.x,this.z)+(this.phase===1?3.4:1.02);
+    this.state='wait';this.t=0;this.y=heightAt(this.x,this.z)+(this.phase===1?SKULL_HIGH:SKULL_LOW);
     this.crumbled=false;this.rig.root.visible=true;this.engaged=false;this.untouchable=this.phase===1;
   }
   flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0xffffff);}
@@ -11740,7 +11755,7 @@ class GiantSkull{
     const gy=heightAt(this.x,this.z);
     const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
     const faceP=(k)=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
-    const HIGH=gy+3.4,LOW=gy+1.02;
+    const HIGH=gy+SKULL_HIGH,LOW=gy+SKULL_LOW;
     let wantY=this.phase===1?HIGH+Math.sin(G.time*.9)*.22:LOW;
     let jawWant=.1+Math.sin(G.time*2.3)*.05,pitch=0;
     switch(this.state){
@@ -11768,7 +11783,11 @@ class GiantSkull{
         break;}
       case 'float':{ // it keeps its distance and watches, jaw working
         faceP(this.phase===1?4:6);
-        const l=dist||1,want=this.phase===1?7.5:3.4;
+        // it is three metres across, so what it stands off at is also how
+        // much of the lens it fills: at three and a half it blanked the
+        // screen. Four and a half keeps it looming without blinding you,
+        // and the bite is what closes the rest.
+        const l=dist||1,want=this.phase===1?7.5:4.6;
         const push=(dist-want)*.9*sp;
         this.x+=dx/l*push*dt;this.z+=dz/l*push*dt;
         this.x+=-dz/l*Math.sin(G.time*.5)*1.4*dt;this.z+=dx/l*Math.sin(G.time*.5)*1.4*dt;
@@ -11831,13 +11850,14 @@ class GiantSkull{
         break;}
       case 'throe':{ // and then it goes down, which is the last of it
         const q=Math.min(1,this.t/1.6);
-        this.y=LOW+1.2-(LOW+1.2-(gy+.55))*easeIn(q);
+        if(this.throeY===undefined)this.throeY=this.y;     // from wherever the scream left it, not from a fixed height
+        this.y=this.throeY+(gy+SKULL_REST-this.throeY)*easeIn(q);
         pitch=-.5+q*1.5;this.roll=q*1.1;this.eyeHot=Math.max(0,1-q*1.3);
         if(!this.hitDone&&q>=1){this.hitDone=true;this.die();}
         break;}
       case 'dead':{
         pitch=1.0;this.roll=1.1;this.eyeHot=0;
-        this.y=gy+.55-Math.min(.5,this.t*.25);
+        this.y=gy+SKULL_REST-Math.min(.3,this.t*.16);   // it settles into the grass, it does not sink through it
         if(this.t>3.2&&!this.crumbled){this.crumbled=true;r.root.visible=false;
           boneCollapse(this.x,this.z,2.2);}
         break;}
