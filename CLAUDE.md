@@ -336,7 +336,7 @@ Known state of play:
   upright out of a half-turned body. `ROLLED` is also the only trigger the
   THIEF can reach — the dash profiles set `LAND:99` because he never leaves
   the ground, so a banked cut used to evaporate silently.
-- **`CHAIN_OUT` (.70) is what makes a combo one motion; `SEAM_T` is not.**
+- **`CHAIN_OUT` (.88) is what makes a combo one motion; `SEAM_T` is not.**
   Every pose ends at the carry, so the last third of a swing is the blade
   walking back to rest — waiting for it means two reversals between
   strikes, and no blend over that join can read as one motion. A swing with
@@ -348,6 +348,26 @@ Known state of play:
   entire wind, and cost that blade 18% of the distance its tip travelled.
   **If a weapon's arc ever looks short, check `seamDur` against its wind
   before you touch a pose.**
+  `CHAIN_OUT` started at .70 and that was TOO EARLY — it left before the
+  blade had finished travelling, and a sixth of the greatsword's arc was
+  never drawn. Measured (tip sweep / strike-to-strike, held combo):
+  .70 → 3.52m / .40s, .80 → 4.19m / .45s, **.88 → 4.15m / .50s**, 1.00 →
+  4.12m / .60s. At .88 the swept width IS the uncut swing's and only the
+  dead beat at the very end of the return is gone. Read "the swings are
+  short and too fast, the weight is gone" as this value, not as a pose.
+
+- **The iaido draw closes to the LOCKED foe** (`IAI_REACH`, 18m — the eye
+  only reaches 15). `startIai` sizes `iaiDist` to the foe's distance plus
+  its radius and a stride; the state steps `iaiDist/(DUR*.16)` per second
+  and accumulates `iaiGo`, so the dash is always spent in the same sliver
+  of the animation and a distant foe is crossed FASTER, not later. The
+  window is `p<.5` only as slack for a frame hitch. Unlocked it is the old
+  fixed 4.35m. The line test is SWEPT from the old position to the new, so
+  even a 16m-per-second step cannot skip a body.
+  If you test this, put the pilgrim somewhere the CATHEDRAL PLINTH is not:
+  `constrainCath` pushes him back out of it every frame, and a dash that
+  ends inside the plinth reads as zero distance travelled with every other
+  number looking perfect.
 
 - **The dead frame does not run `updateRigExtras`, and must not.** It
   begins by MIRRORING the arm channels in place, then runs the joint

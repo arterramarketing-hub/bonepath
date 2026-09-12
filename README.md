@@ -163,10 +163,16 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     blade comes back across the saya's mouth, swings into line and
     slides home, the left holding the saya at its mouth, and it clicks
     only when it is in — the body coiled low over it; release and the
-    knight flashes five metres straight through whatever stands in the
-    line, the world slowing for the cut, and stands past them with the
-    blade out — nothing happens to them until the guard clicks home in
-    the sheath, and then they fall in two. Or the **piercing thrust**:
+    knight flashes straight through whatever stands in the line, the
+    world slowing for the cut, and stands past them with the blade out
+    — nothing happens to them until the guard clicks home in the
+    sheath, and then they fall in two. **The draw closes whatever the
+    eye can hold.** With a horror marked the step is cut to the
+    distance and spent in the same sliver of the animation however far
+    that is, so one fifteen metres off is crossed *faster*, not later,
+    and the knight comes to rest a stride past it exactly as he does
+    from three. Unmarked, it is the old fixed five metres straight
+    ahead. Or the **piercing thrust**:
     the blade never goes away — the hold chambers the point level
     beside the right hip with the hips square, already on its line, and
     the release is one motion, a long low lunge of three metres that
@@ -210,7 +216,19 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     died round it) the hands are empty: a charge, a tap, or a tap out
     of a roll CALLS it — it tears free with a low hum and a rush and
     comes back to the hand like a thing pulled on a string, cutting
-    whatever lies between for half. The blade itself is one piece — a
+    whatever lies between for half. **And it always arrives.** The catch
+    used to be a fixed metre while the blade closed at thirty a second —
+    so on a heavy frame it covered a metre and a half and could STEP
+    clean over the hand, land short on the far side, turn, and step back
+    over it again, whirling round a pilgrim with empty hands. It came
+    home on a good frame and not on a bad one, which is why the katana
+    only *sometimes* vanished. The catch is now whatever the blade
+    covers in that frame, the step is clamped so it can never pass the
+    hand, and the last three metres are flown straight at it instead of
+    steered — a homing thing with a turn rate can orbit anything it is
+    faster than. Swept across every frame rate the game allows and every
+    way the hand can move: the worst return was **8.5 seconds** and is
+    now **0.44**, and nothing takes over three. The blade itself is one piece — a
     long thin box bent along its length into the curve, ground thin on
     the edge side and drawn to a point — so the curve reads unbroken,
     and its saya lies back along the left hip with the mouth forward
@@ -937,18 +955,30 @@ there. Waiting for that before starting the next cut means the blade
 again to the wind, and only then forward. No amount of smoothing over that
 join can make two reversals read as one motion.
 
-So once the next cut is asked for, the current one leaves at **seven tenths**
-— past the strike, a little way into the drag, while the blade is still
-going out and has not unwound — and the next picks it up from there. The
-strikes themselves are not one frame faster: the same arc, the same speed,
-the same damage, the same peak. It is the **pause between them** that is
-gone, and it was a third of the time:
+So once the next cut is asked for, the current one leaves **near the end of
+the drag** — the blade still going out, still on its way through, with only
+the dead beat at the very end of the return left unplayed — and the next
+picks it up from there. The strikes themselves are not one frame faster:
+the same arc, the same speed, the same damage, the same peak. It is the
+**pause between them** that is gone.
 
-| | strike to strike, before | after |
+**How near the end matters, and the first answer was wrong.** Cutting out
+at seven tenths halved the wait, but it yanked each swing into the next one
+*before the blade had finished travelling* — a sixth of the greatsword's arc
+was simply never drawn. On the pad that reads exactly as it was described:
+short in the range of motion, too fast, no weight. Swept and measured, tip
+sweep across a held combo and the gap between strikes:
+
+| leave at | greatsword sweep / gap | ultra sweep / gap |
 |---|---|---|
-| **greatsword** | 0.58s | 0.39s |
-| **katana** | 0.46s | 0.30s |
-| **ultra greatsword** | 0.92s | 0.59s |
+| 0.70 | 3.52m / 0.40s — **the arc is cut** | 4.05m / 0.60s |
+| 0.80 | 4.19m / 0.45s | 4.42m / 0.70s |
+| **0.88** | **4.15m / 0.50s** | **4.36m / 0.80s** |
+| 1.00 (the old full tail) | 4.12m / 0.60s | 4.36m / 0.95s |
+
+At **0.88** the whole follow-through is on screen — the swept width is the
+uncut swing's, to within a centimetre — and a sixth of the waiting is still
+gone. The full arc, and the weight back.
 
 There is still a blend across the join, but it is a **join and not a
 blanket** now — five to twelve hundredths of a second, enough to take the
