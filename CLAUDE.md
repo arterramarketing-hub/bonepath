@@ -369,6 +369,46 @@ Known state of play:
   ends inside the plinth reads as zero distance travelled with every other
   number looking perfect.
 
+- **THE WIZARD AND THE WAND** (`armour:'wizard'`, `weapon:'wand'`). The
+  wand is the first thing on the pilgrim that never strikes: every way
+  into a strike (`startAttack`, `startRollAtk`, `startSprintAtk`, a
+  barely-held charge) is redirected to `startCast`, and `execTarget` /
+  `backstabTarget` return null for it, so the tap is ALWAYS a cast. The
+  cast state is `cast`; `castN`/`castBig` say how many and how big.
+  - **`rig.bladeMesh` for the wand is the ROD, never the orb.** The orb
+    is `MeshBasicMaterial` (additive, so it holds its light in the dark)
+    and Basic has no `emissive` — `clearElement`'s
+    `bladeMesh.material.emissive.setHex(0)` would throw on it, and
+    setting one would put the orb out. The element runs up the rod.
+  - **Do not give the wizard an `emissive` floor.** `player.flash(false)`
+    sets EVERY hero material's emissive to 0x000000, so a floor survives
+    exactly until the first blow he takes. A robe has no steel to catch
+    the light and a flat cloth panel under a noon sun renders as a
+    silhouette; the answer is a pale colour on the map plus a cloak short
+    enough (`capeLen:.78`) that most of what the camera sees is the
+    shaded curved body under it. A darker, more "wizardly" indigo puts a
+    featureless black slab in the field. Both dead ends were walked.
+  - The cloak's faces: the cloth's `cape` material is the side the camera
+    BEHIND him sees and `capeLiningColor` is the far side — the gold is
+    the lining. And use `cloth`, not `rag`: rag's weave is tan, and tan
+    multiplied by any indigo comes out mud.
+  - **`rig.oneHand`** is the wand's, and `poseWalk` / `poseRun` read it.
+    An `armed` rig keeps BOTH hands on the grip and neither arm swings,
+    which on a one-handed weapon is a wizard sliding about with his
+    shoulders locked. With the flag the weapon hand is left where the
+    carry put it and the FREE arm swings like an unarmed one's. Set it on
+    any one-handed weapon added later. `poseWandCarry` likewise pins only
+    the right arm — it must not touch `armL`, or it undoes this.
+- **The bubbles (`BUBBLES`, `castBubble`, `updateBubbles`)** are two
+  states and nothing else: `orbit` while `G.lockTarget` is empty, `hunt`
+  while it is not, switching either way mid-flight. Hunting STEERS
+  (`BUB_TURN`, a turn rate) rather than aiming, which is the whole feel;
+  orbiting gives each bubble a LANE — golden angle round the ring, one of
+  three radii and one of three heights — or eight of them stack into one
+  blob at his shoulder. `BUB_MAX` is 8 and hard: a ninth cast recycles
+  the eldest, so a wizard's draw cost is a constant (2 draws each — a
+  sphere and a glow sprite, geometry shared, and NEVER a light).
+  `dropBubbles()` runs in `die()` and `rebuild()`.
 - **The dead frame does not run `updateRigExtras`, and must not.** It
   begins by MIRRORING the arm channels in place, then runs the joint
   springs and the arm IK over them — all three would fight the quaternions

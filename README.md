@@ -50,8 +50,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   the thighs and shins like a skirt as the legs move — over brown
   trousers and knee-high leather boots; no cape), the **thief's
   cloth** (dark quilting, a leather jerkin, wrapped limbs, a deep hood and
-  a short mantle), or the **OG knight** — the first knight as it was, all
-  primitives and a hinged cape. **Charge** — the charged attack for the weapon
+  a short mantle), the **OG knight** — the first knight as it was, all
+  primitives and a hinged cape — or the **wizard's cloak**: no steel
+  anywhere on him. A deep cowl drawn out to a long point with nothing in
+  it but shadow, a pale indigo robe, wrapped forearms, and a short cloak
+  of real simulated cloth lined in warm gold that drags and swings on its
+  own. He stands taller than the knight because there is no armour to
+  shorten him. **Charge** — the charged attack for the weapon
   in hand. The choice is remembered by the browser and the body is remade
   on the spot.
 
@@ -142,6 +147,50 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     swing, landed or not, drags a furrow of torn earth along the arc the
     edge travelled — once per swing, where the arc was, with the dust and
     the thud of the weight landing separate from it.
+  - **the wand** — the one weapon on the pilgrim that does not strike
+    anything. A short crooked rod of black wood, its head split into
+    three claws with a bubble of light standing in them, and a tap
+    **blows another bubble off it**. What the cast leaves behind is the
+    weapon: each bubble is a slow, patient, heat-seeking thing that lives
+    its own life from the moment it leaves the claws, and the wand only
+    ever adds to the swarm. Taps chain as fast as you can make them.
+
+    A bubble has two minds, and the switch between them is the whole
+    idea. **With a horror marked**, it *hunts* — it leaves the wizard
+    slowly, gathers way, and steers after the mark at a fixed turn rate
+    rather than aiming at it, which is what makes it read as heat-seeking
+    and lets a horror that keeps moving pull one wide for a while. It
+    bursts on arrival for 14. **With nothing marked**, it *waits*: it
+    wheels round the wizard at arm's length, bobbing, each one keeping
+    its own lane — the golden angle round the ring, one of three radii
+    and one of three heights — so eight of them read as a swarm and not
+    as one blob at his shoulder. Lose the mark mid-flight and they all
+    come back to the ring; find another and they peel off again from
+    wherever they were going. You do not aim a wizard; you build a cloud
+    and then decide what it is for.
+
+    **Eight is the cap and it is hard.** A ninth cast recycles the eldest
+    rather than growing the swarm, so what a wizard costs the frame never
+    moves: a bubble is one low sphere with an additive film plus one glow
+    sprite — two draws — and no light goes anywhere near it, because a
+    light count that moves recompiles every lit shader in the game.
+    Measured on the field: the wizard's rig is **34 draws cheaper than
+    the knight's**, and a full swarm on top of it is **+16**. They thin
+    out and let go on their own after sixteen seconds, and they go out
+    with him when he dies.
+
+    He carries it in one hand, which is new: every other weapon on the
+    pilgrim is held in two, and an armed rig keeps both hands on the grip
+    and swings neither arm. The wand's rig is flagged one-handed, so the
+    wand hand stays where the carry put it and the free arm swings with
+    the stride the way an unarmed one does.
+
+    Its charges: the **bubble volley** — the wand swept wide and three
+    blown off it at once, fanned so they take three different ways round
+    — or the **great bubble**, one slow heavy thing worth three of the
+    small (42), which takes its time getting there and bursts hard when
+    it arrives. Thor's lightning is on the wand too, as it is on
+    everything.
   - **the katana** — overpowered on purpose. Carried in **chudan**, both
     hands on the grip before the navel and the point levelled at the
     throat, and it fights the way a katana does: **yoko-giri**, the level

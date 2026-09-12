@@ -1245,6 +1245,37 @@ function buildTextures(){
     ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
   });
   texCache.glow.encoding=THREE.LinearEncoding;
+  /* THE BUBBLE's skin, wrapped round a low sphere. Nothing about it is
+     lit — it is a soap film, so what reads is the RIM: dark and open
+     through the middle, banded bright toward the edge of the map where
+     the sphere turns away, one hard specular dot, and a wash of
+     interference colour in bands. Drawn white so a tint can be hung on
+     it per element. */
+  makeTex('bubble',128,(ctx,S)=>{
+    ctx.clearRect(0,0,S,S);
+    // the film: bright at the very edge of the wrap, next to nothing inside
+    const g=ctx.createLinearGradient(0,0,0,S);
+    g.addColorStop(0,'rgba(255,255,255,.92)');
+    g.addColorStop(.16,'rgba(220,240,255,.28)');
+    g.addColorStop(.46,'rgba(180,220,255,.10)');
+    g.addColorStop(.54,'rgba(180,220,255,.10)');
+    g.addColorStop(.84,'rgba(220,240,255,.28)');
+    g.addColorStop(1,'rgba(255,255,255,.92)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+    // interference: soft bands round the shell, the way a film swirls
+    srand(77);
+    for(let i=0;i<7;i++){
+      const y=rr(0,S),h=rr(3,9);
+      ctx.fillStyle='rgba(255,255,255,'+rr(.06,.16).toFixed(3)+')';
+      ctx.fillRect(0,y,S,h);
+    }
+    // the highlight, one hard pixel-blob where the light stands in it
+    ctx.fillStyle='rgba(255,255,255,.95)';
+    ctx.fillRect(S*.28,S*.30,S*.07,S*.07);
+    ctx.fillStyle='rgba(255,255,255,.45)';
+    ctx.fillRect(S*.24,S*.26,S*.16,S*.16);
+  });
+  texCache.bubble.encoding=THREE.LinearEncoding;
 
   /* -- moon disc -- */
   makeTex('moon',128,(ctx,S)=>{
@@ -2421,6 +2452,23 @@ const AudioSys=(()=>{
       noise(t,{peak:.13,att:.008,dec:.16,f0:rr2(280,420),f1:110,type:'bandpass',Q:1.1});
       noise(t+.01,{peak:.07,att:.004,dec:.09,f0:rr2(1800,2600),f1:700,type:'bandpass',Q:2.4});   // the grit
       tone(t,{f:rr2(58,72),f2:34,type:'sine',peak:.12,att:.006,dec:.2});},
+    /* THE WAND. Nothing here is struck or cut: the cast is a film of
+       water BLOWN — a breathy rise with a wobble on it — and the burst
+       is that film letting go, a wet slap with a little chime off the
+       top of it. Both are pitched high and thin, so a wizard's work
+       never sounds like steel. */
+    bubbleCast(big){const t=now();
+      noise(t,{peak:big?.10:.07,att:.06,dec:.22,f0:700,f1:2200,type:'bandpass',Q:3.2});    // the breath into it
+      tone(t,{f:big?300:420,f2:big?820:1150,type:'sine',peak:.09,att:.05,dec:.26});         // the film swelling
+      tone(t+.04,{f:big?600:840,f2:big?1500:2100,type:'triangle',peak:.04,att:.04,dec:.2});
+      for(let i=0;i<3;i++)tone(t+.1+i*.05,{f:rr2(1700,2600),f2:rr2(2400,3400),type:'sine',peak:.025,att:.01,dec:.1});   // its shimmer
+    },
+    bubblePop(){const t=now();
+      noise(t,{peak:.16,att:.001,dec:.055,f0:1600,f1:380,type:'bandpass',Q:1.3});           // the film letting go
+      tone(t,{f:900,f2:180,type:'sine',peak:.13,att:.002,dec:.08});
+      tone(t+.01,{f:rr2(2100,2900),f2:rr2(900,1300),type:'triangle',peak:.05,att:.001,dec:.07});
+      noise(t+.02,{peak:.07,att:.004,dec:.12,f0:420,f1:150});                               // and the water off it
+    },
     // the flying cut: a high, thin whip of air
     airSlash(){const t=now();
       noise(t,{peak:.22,att:.02,dec:.32,f0:3200,f1:900,type:'bandpass',Q:1.6});
@@ -5080,7 +5128,9 @@ function buildHumanoid(o){
     // shadow, a peak folded back, and a short mantle over the shoulders
     head.add(M(GSph(.16*s,7,5),o.headMat,0,.17*s,-.02*s));
     const face=M(GSph(.105*s,6,4),SOCK,0,.19*s,.09*s);face.scale.set(1,1.15,.7);head.add(face);
-    const peak=M(GCone(.12*s,.26*s,6),o.headMat,0,.37*s,-.07*s);peak.rotation.x=.55;head.add(peak);
+    const PK=o.hoodPeak||1;                                        // a wizard's cowl is drawn out to a long point
+    const peak=M(GCone(.12*s,.26*s*PK,6),o.headMat,0,(.37+(PK-1)*.10)*s,(-.07-(PK-1)*.10)*s);
+    peak.rotation.x=.55+(PK-1)*.26;head.add(peak);
     const brow=M(GCyl(.165*s,.14*s,.06*s,7),o.headMat,0,.25*s,.0);head.add(brow);
     torso.add(M(GCyl(.19*s,.36*s,.3*s,7),o.headMat,0,.47*s,0));           // the mantle, up under the hood
   }else if(SC){
@@ -5328,6 +5378,42 @@ function buildHumanoid(o){
       tip.rotation.x=Math.PI;tip.rotation.y=Math.PI/4;tip.scale.z=.6;
       w.add(bl,bl2,tip);
       rig.reach=2.9*s;rig.bladeMesh=bl;
+    }else if(o.weapon==='wand'){
+      /* THE WAND: a short crooked rod of black wood bound at the grip,
+         its head split into three claws, and a bubble of light standing
+         in the claws without touching them. The rod runs DOWN -y from
+         the hand like every blade here, so the carry and the swings
+         reach it the same way — the head is the far end. Nothing on it
+         is lit: the orb is Basic, so it holds its brightness in the
+         dark without a light going anywhere near the shader count. */
+      // the rod's own material, made here and shared with nothing: it is
+      // the wand's "blade", so the imbue glow has somewhere to live and
+      // the element code has an `emissive` to write to. (The ORB must NOT
+      // be the blade mesh — it is Basic and additive so it holds its light
+      // in the dark, and Basic has no emissive to set: clearElement would
+      // throw on it, and setting one would put the orb out.)
+      const woodM=mat('bark',{color:0x2a2430});
+      const rod=M(GCyl(.019*s,.026*s,.5*s,5),woodM,0,-.25*s,0);w.add(rod);
+      for(let i=0;i<2;i++){                                             // the crook: two short joints, each kinked
+        const j=M(GCyl(.016*s,.02*s,.12*s,5),woodM,0,(-.5-i*.1)*s,.012*s*(i%2?1:-1));
+        j.rotation.x=(i%2?.18:-.18);w.add(j);
+      }
+      for(let i=0;i<3;i++)w.add(M(GCyl(.03*s,.03*s,.014*s,6),gripM,0,(-.06-i*.07)*s,0));   // the binding at the grip
+      w.add(M(GSph(.028*s,5,4),gripM,0,.04*s,0));                        // the butt cap
+      const CY=-.76*s;
+      for(const a of[0,2.094,4.189]){                                    // the three claws, opening round the orb
+        const c=M(GBox(.018*s,.17*s,.018*s),woodM,Math.sin(a)*.045*s,CY+.02*s,Math.cos(a)*.045*s);
+        c.rotation.set(Math.cos(a)*.5,0,-Math.sin(a)*.5);w.add(c);
+      }
+      const orb=new THREE.Mesh(GSph(.058*s,7,5),new THREE.MeshBasicMaterial(
+        {map:texCache.bubble,color:0xbfe8ff,transparent:true,opacity:.9,depthWrite:false,
+         blending:THREE.AdditiveBlending,fog:false}));
+      orb.position.y=CY-.09*s;w.add(orb);
+      const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0x9fd8ff,
+        transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending}));
+      halo.scale.set(.34*s,.34*s,1);halo.position.y=CY-.09*s;w.add(halo);
+      rig.wand={orb,halo};rig.oneHand=true;   // the free arm swings: see poseWalk / poseRun
+      rig.reach=1.6*s;rig.bladeMesh=rod;rig.carry=WCARRY;rig.gripLo=-.02;rig.gripHi=.1;
     }else if(o.weapon==='sword'){
       const bl=M(GBox(.07*s,.95*s,.025*s),bladeM,0,-.58*s,0);
       const tip=M(GCone(.045*s,.16*s,4),bladeM,0,-1.12*s,0);
@@ -5407,7 +5493,9 @@ function buildHumanoid(o){
     rig.cloths.push(cl);return cl;
   };
   if(o.cape&&o.clothCape){
-    const COLS=5,ROWS=7,W=.8*s,L=1.42*s;
+    // capeLen stretches the sheet without changing its stitch count, so a
+    // wizard's cloak reaches his heels for the same simulation cost
+    const CL=o.capeLen||1,COLS=5,ROWS=7,W=.8*s*(1+(CL-1)*.45),L=1.42*s*CL;
     rig.cloth=makeCloth({parent:torso,ROWS,COLS,mat:o.cape,liningColor:o.capeLiningColor||0x6a3a3a,backPlane:true,
       rest:(r,c)=>new THREE.Vector3((c-(COLS-1)/2)*(W/(COLS-1)),.5*s-r*(L/(ROWS-1)),-.23*s-r*.015*s-Math.abs(c-2)*.02*s),
       spheres:[{g:body,at:new THREE.Vector3(0,-.02*s,-.02*s),r:.33*s}]});
@@ -5550,6 +5638,67 @@ function poseBowCarry(r){
   r.armL.rotation.set(-.42,0,.14);r.foreL.rotation.set(-.3,0,0);
   r.weapon.rotation.set(.35,0,0);
   if(r.bow)r.bow.nock.visible=false;
+}
+/* THE WAND'S THREE POSES. The wizard has no shoulder carry and no grip
+   for a second hand, so none of the blade poses reach him: the arm leads
+   and the body follows it. What sells the whole weapon is the ORB, which
+   is why all three of these move it — it breathes at rest, swells while
+   the charge gathers, and flares white as the bubble leaves. */
+function wandOrb(r,sc,bright){
+  const W=r.wand;if(!W)return;
+  W.orb.scale.setScalar(sc);
+  W.orb.material.opacity=Math.min(1,.55+.45*bright);
+  W.halo.scale.set(.34*r.s*sc*1.35,.34*r.s*sc*1.35,1);
+  W.halo.material.opacity=Math.min(1,.4+.6*bright);
+}
+/* at rest: the rod low and forward in one fist, the free hand loose, the
+   cowl turned a little down over it, and the light in the claws pulsing
+   slowly like something asleep */
+function poseWandCarry(r,t){
+  const br=.5+.5*Math.sin(t*1.7);
+  // only the WAND arm is pinned. The free arm is left exactly as the walk
+  // or the run wrote it, so he still swings it as he goes — overriding
+  // both arms here made a wizard slide about with his shoulders locked.
+  r.armR.rotation.set(-.30+Math.sin(t*.9)*.03,0,-.10);
+  r.foreR.rotation.set(-.80,0,.06);
+  r.weapon.rotation.set(-1.05,0,.06);
+  r.head.rotation.x-=.07;
+  wandOrb(r,1+br*.07,.35+br*.25);
+}
+/* the charge: the wand drawn BACK and low beside the hip and the cowl
+   dropped over it while the light gathers — the orb swells to half again
+   its size and the body coils down over the hand, so the release has
+   somewhere to come from */
+function poseWandCharge(r,q,t){
+  const e=easeOut(clamp(q,0,1)),sh=Math.sin(t*34)*.012*e;
+  r.torso.rotation.y=-.30*e;r.torso.rotation.x+=.16*e;
+  r.body.rotation.y=-.14*e;
+  r.armR.rotation.set(-.10-.30*e,0,-.10-.34*e);
+  r.foreR.rotation.set(-.80-.62*e,0,.06+.2*e);
+  r.weapon.rotation.set(-1.05+.55*e,0,.06+sh);
+  r.armL.rotation.set(.04-.5*e,0,.13+.3*e);r.foreL.rotation.set(-.34-.7*e,0,0);
+  r.head.rotation.y=-.26*e;r.head.rotation.x-=.16*e;
+  r.legR.rotation.x=.13*e;r.legL.rotation.x=-.13*e;r.kneeL.rotation.x=.2*e;
+  r.body.position.y=r.baseY-.07*e*r.s;
+  wandOrb(r,1+e*.55+sh*6,.4+.6*e);
+}
+/* the cast: the whole arm comes up and OVER from the hip, out past the
+   shoulder, and the bubble is blown off the head at the top of it — the
+   trunk unwinds behind the arm and the free hand sweeps back as the
+   counterweight. q rises to the blow and falls away after it. */
+function poseWandCast(r,q,t){
+  const e=easeOut(clamp(q,0,1));
+  r.torso.rotation.y=.34*e;r.torso.rotation.x-=.10*e;
+  r.body.rotation.y=.16*e;
+  // up and forward: the elbow leads, the forearm opens, the head is thrown out
+  r.armR.rotation.set(-1.62*e-.30*(1-e),.18*e,-.10+.30*e);
+  r.foreR.rotation.set(-.80*(1-e)-.34*e,0,.06);
+  r.weapon.rotation.set(-1.05*(1-e)-1.72*e,0,.06);
+  r.armL.rotation.set(.04+.62*e,0,.13+.26*e);r.foreL.rotation.set(-.34-.42*e,0,0);
+  r.head.rotation.y=.2*e;r.head.rotation.x-=.04*e;
+  r.legR.rotation.x=-.14*e;r.legL.rotation.x=.14*e;r.kneeR.rotation.x=.16*e;
+  r.body.position.y=r.baseY+.03*e*r.s;
+  wandOrb(r,1+e*.45,.4+.6*e);
 }
 /* the draw: side-on to the mark, the bow arm out straight and level, the
    string hand hauled back to the cheek. q = how far the string is drawn */
@@ -5805,6 +5954,10 @@ function poseWalk(r,t,sp,shamble,fwd,lat){
     // so the whole blade bobs and sways instead of hanging frozen
     r.armR.rotation.x+=w*.055;
     r.foreR.rotation.x+=c*.04*sp;
+    // ONE-HANDED (the wand): the weapon hand stays where it is, but the
+    // FREE arm swings like an unarmed one — pinning both of them made a
+    // wizard slide about with his shoulders locked
+    if(r.oneHand){r.armL.rotation.x+=w*.5;r.foreL.rotation.x+=-Math.max(0,-w)*.35;}
   }
   r.body.rotation.y=s*.07*sp;                         // hips swing...
   r.torso.rotation.y=-s*.13*sp;                       // ...shoulders answer
@@ -5835,6 +5988,12 @@ const CARRY={aRx:-1.0,aRz:-.02,fRx:-.25,wx:-2.95,wy:1.4,wz:0,
    point levelled at the enemy's throat */
 const KCARRY={aRx:-.42,aRz:.18,fRx:-1.05,wx:-.25,wy:0,wz:.05,
   aLx:-.38,aLz:.42,fLx:-1.0};
+/* THE WAND AT REST. One hand only — the left hangs — and the rod is not
+   shouldered or levelled but carried low and forward in a loose fist,
+   the crooked head out ahead of the knuckles at about the hip, so the
+   orb is always in shot and always in front of him. */
+const WCARRY={aRx:-.30,aRz:-.10,fRx:-.80,wx:-1.05,wy:0,wz:.06,
+  aLx:0,aLz:.12,fLx:-.34};
 /* swap the greatsword between the back scabbard and the hands */
 function attachWeapon(r,toHand){
   const w=r.weapon,s=r.s;
@@ -6154,7 +6313,8 @@ function poseRun(r,t,fwd,lat){
   // the blade rides low and back, pumping with the stride
   r.armR.rotation.x=C.aRx+.55+s*.08;
   r.foreR.rotation.x=C.fRx-.2+c*.06;
-  r.armL.rotation.x=C.aLx+.3;
+  r.armL.rotation.x=C.aLx+.3+(r.oneHand?-s*.8:0);       // one-handed: the free arm drives the run
+  if(r.oneHand)r.foreL.rotation.x=C.fLx-.5-Math.max(0,-s)*.5;
   r.weapon.rotation.x=C.wx+.35;
   const strike=Math.pow(Math.abs(s),10);
   r.body.position.y=r.baseY+(Math.abs(c)*.1-strike*.05)*r.s;
@@ -6644,9 +6804,44 @@ function updateRigExtras(r,dt){
 /* factory: the cast */
 function makeKnightRig(lo){
   lo=lo||{};
-  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',ultra=lo.weapon==='ultra',thief=lo.armour==='thief',og=lo.armour==='og',sheet=lo.armour==='sheet';
-  const wpn=bow?'bow':kat?'katana':ultra?'ultra':sheet?'sheetsword':'claymore';
-  const r=buildHumanoid(sheet?{
+  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',ultra=lo.weapon==='ultra',wand=lo.weapon==='wand',
+        thief=lo.armour==='thief',og=lo.armour==='og',sheet=lo.armour==='sheet',wiz=lo.armour==='wizard';
+  const wpn=bow?'bow':kat?'katana':wand?'wand':ultra?'ultra':sheet?'sheetsword':'claymore';
+  const r=buildHumanoid(wiz?{
+    /* THE WIZARD: no plate anywhere on him. A deep cowl with nothing in
+       it but shadow, drawn out to a long point; a pale indigo robe,
+       wrapped forearms, and a short cloak of the same simulated cloth
+       the thief wears, lined in warm gold, so it drags and swings on its
+       own. Stands taller than the knight because there is no armour to
+       shorten him. */
+    scale:1,
+    /* A ROBE IS NOT ARMOUR, AND IT HAS NOTHING TO CATCH THE LIGHT. Every
+       other set has steel somewhere to take a highlight; this one is
+       cloth from the cowl down, and a flat panel of cloth under a noon
+       sun is lit edge-on and renders as a silhouette. The FIRST TWO
+       attempts at this are both dead ends, recorded so nobody walks
+       back into them: a darker, more wizardly indigo puts a featureless
+       BLACK SLAB in the field, and an `emissive` floor to lift it out of
+       black is WIPED by the hurt flash — `player.flash(false)` sets
+       every hero material's emissive to 0x000000, so it survives
+       exactly until the first blow he takes. What is left is the
+       honest one: a pale colour on the map, and a cloak short enough
+       that most of what the camera sees is the shaded, curved body
+       under it rather than one flat sheet. */
+    torsoMat:mat('cloth',{color:0xa8a6e8}),headMat:mat('cloth',{color:0x9290dc}),
+    limbMat:mat('cloth',{color:0xc4bcd8}),
+    bladeMat:mat('blade'),gripMat:mat('bark',{color:0x6a5a72}),
+    weapon:wpn,clothMat:mat('bark',{color:0x5c4e66}),
+    chestMat:mat('cloth',{color:0xb0a0e4}),
+    /* the cloak is CLOTH, not rag. Rag's weave is tan, and tan multiplied
+       by any indigo comes out mud — the first attempt at this cloak read
+       as a brown board hung off the shoulder. The faces: `cape` is the
+       one the camera behind him sees, the lining is the far side, which
+       is why the warm gold is the LINING and the indigo is the cloak. */
+    cape:mat('cloth',{color:0xd0ceff}),capeLiningColor:0xc89a4e,
+    legLen:1.2,mirrorArms:true,hood:true,hoodPeak:1.9,noPauldron:true,clothCape:true,
+    capeLen:.78,
+  }:sheet?{
     // the sheet knight, after the eight-view reference: olive plate lamed
     // across the chest under a broad straw pelt, a spiked steel helm with
     // a T of dark, a teal gorget, a leather baldric, a broad knotworked
@@ -6691,7 +6886,7 @@ function makeKnightRig(lo){
     upperMat:mat('mail'),legMat:mat('leather',{color:0x8a7a6a}),leatherMat:mat('leather'),furMat:mat('fur'),
     legLen:1.15,mirrorArms:true,sculpt:true,faraam:true,
   });
-  r.loadout={weapon:bow?'bow':kat?'katana':'sword',armour:sheet?'sheet':thief?'thief':og?'og':'knight'};
+  r.loadout={weapon:bow?'bow':kat?'katana':wand?'wand':'sword',armour:wiz?'wizard':sheet?'sheet':thief?'thief':og?'og':'knight'};
   return r;
 }
 function makeHollowRig(big,caster){
@@ -6927,13 +7122,14 @@ const BS={t:new THREE.Vector3(),h:new THREE.Vector3(),d:new THREE.Vector3(),q:ne
    weapon, armour and the charged attack for each weapon, chosen on the
    pause screen and remembered by the browser */
 const LOADOUT_KEY='bonepath.loadout';
-const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock',katanaCharge:'iai'};
+const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock',katanaCharge:'iai',wandCharge:'volley'};
 try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
-const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana']],
+const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana'],['wand','wand']],
   katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl'],['throw','magic throw'],['thor',"thor's lightning"]],
-  armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight']],
+  wandCharge:[['volley','bubble volley'],['bulwark','great bubble'],['thor',"thor's lightning"]],
+  armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight'],['wizard','wizard cloak']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade'],['thor',"thor's lightning"]],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot'],['bomb','bomb arrow'],['thor',"thor's lightning"]]};
 const HERO_NOTES={double:'two fast cuts, forward and back, and nothing after; a full charge\'s second cut staggers all but the Warden',
@@ -6947,6 +7143,8 @@ const HERO_NOTES={double:'two fast cuts, forward and back, and nothing after; a 
   iai:'the blade walked back into the saya at the hip, then one cut as the body flashes five metres through them; they fall when it clicks home',
   thrust:'the point held back beside the right hip, already on its line; release and a long low lunge drives it straight through whoever stands there — a hard poke that throws them off their feet',
   tiger:'the blade raised high over the head, then driven into the ground: three shock waves heave the earth up in a fan — one straight, one to either side — five metres out, scarring the ground behind them, throwing whatever they cross into the air and taking the legs out from under the small and the medium',
+  volley:'the wand swept in a wide arc and THREE bubbles blown off it at once, fanned out — they find the marked horror by their own three ways round',
+  bulwark:'one great bubble, slow and heavy and worth three of the small: it takes its time getting there and bursts hard when it arrives',
   fowl:'sheathed at the hip, then drawn in one rising diagonal cut and held there — while the air itself keeps cutting: a storm of pale slashes wheels round the still body for most of a second, striking everything within three metres again and again'};
 function boneBurst(x,y,z,color,n,speed){
   for(let i=0;i<n;i++){
@@ -7141,7 +7339,7 @@ const bladeTrail=(()=>{
     update(dt){
       const r=player.rig;
       if(dt<=0)return;
-      if(!r||!r.weapon||player.weapon()==='bow'||player.state==='dead'){samples.length=0;havePrev=false;mesh.visible=false;return;}
+      if(!r||!r.weapon||player.weapon()==='bow'||player.weapon()==='wand'||player.state==='dead'){samples.length=0;havePrev=false;mesh.visible=false;return;}
       extents(r);
       r.root.updateMatrixWorld(true);
       B.set(0,r._trailBase,0);r.weapon.localToWorld(B);T.set(0,r._trailTip,0);r.weapon.localToWorld(T);
@@ -7523,6 +7721,10 @@ const WPN_GLOW={
   // THE KATANA — only the edge really takes it. A thin, bright, restless
   // line that shivers rather than breathes, and next to nothing on the grip
   katana: {beads:6,bead:.22,rate:6.5,warm:.12,puff:.007,hot:.95,mode:'shimmer'},
+  // THE WAND — there is no steel to light, so the element runs up the ROD
+  // instead: a thin restless line of it under the hand, next to nothing on
+  // the binding, and the head's own light is not the element's to give
+  wand:   {beads:3,bead:.16,rate:3.4,warm:.06,puff:.008,hot:1.10,mode:'shimmer'},
   // THE BOW — the limbs hold it and the string carries it, and the whole
   // stave answers the DRAW: banked at rest, fiercest at full stretch
   bow:    {beads:5,bead:.28,rate:2.4,warm:.85,puff:.010,hot:.80,mode:'draw'},
@@ -8060,7 +8262,7 @@ const player={
   // the pilgrim's body is remade from the loadout: same place, same facing
   dropThrown(){if(this.katThrown){const m=this.katThrown.mesh;if(m.parent)m.parent.remove(m);this.katThrown=null;if(this.rig&&this.rig.weapon)this.rig.weapon.visible=true;}},
   rebuild(){
-    this.dropThrown();
+    this.dropThrown();dropBubbles();       // a swarm does not follow him into another loadout
     if(this.rig){scene.remove(this.rig.root);disposeWeaponGlow(this.rig);}
     this.rig=makeKnightRig(LOADOUT);
     this.rig.smoothPose=true;
@@ -8073,7 +8275,7 @@ const player={
     this.rig.heavyBlade=this.ultra();       // ...and so does how far behind the arm it hangs
     buildWeaponGlow(this.rig,LOADOUT.weapon);
     this.rig.weapon.add(this.bladeLight);
-    this.bladeLight.position.set(0,this.weapon()==='bow'?.2:-1.1,0);
+    this.bladeLight.position.set(0,this.weapon()==='bow'?.2:this.weapon()==='wand'?-1.0:-1.1,0);
     if(this.element)this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
     if(this.x!==undefined){this.rig.root.position.set(this.x,heightAt(this.x,this.z),this.z);this.rig.root.rotation.y=this.facing||0;}
     if(this.state!=='free'&&this.state!=='dead'){this.state='free';G.slowMo=1;}
@@ -8233,7 +8435,7 @@ const player={
     AudioSys.heroHurt();G.vibr(25);G.camShake=Math.max(G.camShake,.18);
   },
   die(kx,kz,force,kind){
-    this.hp=0;this.state='dead';this.t=0;this.dropThrown();
+    this.hp=0;this.state='dead';this.t=0;this.dropThrown();dropBubbles();
     if(this.rig)this.rig._spNow=0;   // the cape stops streaming: nothing is running any more
     G.mode='dead';G.deaths++;
     this.crumbled=false;this.melt=false;
@@ -8335,6 +8537,7 @@ const player={
   },
   // a horror with its back to you, close, and you squared up to it
   backstabTarget(){
+    if(this.weapon()==='wand')return null;      // a wizard does not put a wand through a spine
     let best=null,bd=1.8;
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
     for(const e of enemies){
@@ -8350,6 +8553,7 @@ const player={
     return best;
   },
   execTarget(){
+    if(this.weapon()==='wand')return null;      // nor stand over a held horror with one
     let best=null,bd=2.7;
     for(const e of enemies){
       if(e.hp<=0||e.boss||e.mini||e.crow||e.state!=='stagger'||e.untouchable)continue;
@@ -8590,6 +8794,7 @@ const player={
     const startRollAtk=(d)=>{
       if(this.katThrown){startKPull();return;}
       if(this.weapon()==='bow'){startShoot(null);return;}
+      if(this.weapon()==='wand'){startCast(null);return;}     // a wizard has no rolling cut: he casts out of the roll
       this.draw();
       this.state='rollatk';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.queued=false;this.rollAtkQueued=null;
@@ -8599,6 +8804,7 @@ const player={
     };
     // taps chain the combo: slash, backhand, overhead, thrust, and around
     const startAttack=(s)=>{
+      if(this.weapon()==='wand'){startCast(s);return;}        // every way into a strike is a cast, for the wand
       if(this.postRollT<.2){ // fresh out of a roll — the cut rises with you
         startRollAtk(s&&s.sx!==null?swipeWorld(s):null);
         return;
@@ -8685,6 +8891,25 @@ const player={
       this.iaiDist=foe?clamp(Math.hypot(foe.x-this.x,foe.z-this.z)+(foe.radius||.6)+1.2,2.6,IAI_REACH):4.35;
       G.glowFlash=1;
     };
+    /* THE CAST. The wand's tap, and it takes the place of the combo
+       entirely: there is no chain and nothing to queue, because what the
+       cast leaves behind goes on working after it. The arm comes over and
+       a bubble is blown off the wand's head; the bubble does the rest. */
+    const startCast=(s)=>{
+      this.state='cast';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
+      this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
+      this.castN=1;this.castBig=false;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      else if(s&&s.sx!==null)this.facing=swipeWorld(s);
+    };
+    // the charged cast: three at once off a wide sweep, or one great one
+    const startVolley=(kind)=>{
+      this.state='cast';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
+      this.queued=false;this.qDir=null;
+      this.chargeFull=this.chargeT>=.6;
+      this.castN=kind==='bulwark'?1:3;this.castBig=kind==='bulwark';
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+    };
     // a quick shot: nock, draw, loose
     const startShoot=(s)=>{
       this.state='shoot';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.queued=false;this.qDir=null;
@@ -8751,6 +8976,7 @@ const player={
     };
     // the dash cut: a wide low sweep flung straight out of a full sprint
     const startSprintAtk=()=>{
+      if(this.weapon()==='wand'){startCast(null);return;}
       this.draw();
       this.state='sprintatk';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
@@ -8848,6 +9074,7 @@ const player={
           if(ex)startExecute(ex);                // a stunned foe in reach: finish it
           else if(bs)startBackstab(bs);          // one with its back turned: through the spine
           else if(this.weapon()==='bow')startShoot(IN.swipe);
+          else if(this.weapon()==='wand')startCast(IN.swipe);
           else if(this.sprintT>.3)startSprintAtk();   // at full stride the tap becomes the dash cut
           else startAttack(IN.swipe);
         }
@@ -8910,6 +9137,7 @@ const player={
       if(released||this.chargeT>1.8){
         if(this.katThrown)startKPull();                                                    // the blade is away: the charge is the call
         else if(this.weapon()==='bow'){if(this.chargeT>=.3&&LOADOUT.bowCharge==='thor')startThor();else startLoose(this.chargeT<.3?'light':LOADOUT.bowCharge);}
+        else if(this.weapon()==='wand'){if(this.chargeT<.3)startCast(null);else if(LOADOUT.wandCharge==='thor')startThor();else startVolley(LOADOUT.wandCharge);}
         else if(this.chargeT<(this.weapon()==='katana'&&katSheathes()?.5:.3))startAttack(null);   // barely held: it's just a strike (a draw needs its blade home first)
         else if(LOADOUT[chargeKey()]==='thor')startThor();
         else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else if(LOADOUT.katanaCharge==='fowl')startFowl();else if(LOADOUT.katanaCharge==='throw')startKThrow();else startIai();}
@@ -9180,6 +9408,27 @@ const player={
       if(!this.hitDone&&p>=.06){this.hitDone=true;this.fireArrow(this.shotKind);}
       if(p>=1)this.state='free';
     }
+    else if(this.state==='cast'){
+      /* the cast is quick and it does not lock him down: a bubble is
+         blown off the wand at just over halfway, and a tap late in it
+         starts the next, so a wizard can build a swarm as fast as he can
+         tap. He may still turn while he casts — the mark keeps the wand
+         on it — but nothing about the bubble depends on where he ends up:
+         it leaves the wand and then it is its own. */
+      const DUR=this.castBig?.62:.44,p=this.t/DUR;
+      if(foe&&p<.5)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),13*dt);
+      if(!this.hitDone&&p>=.52){
+        this.hitDone=true;
+        const n=this.castN||1;
+        for(let i=0;i<n;i++)castBubble(this,this.castBig,n>1?i:undefined);
+        G.glowFlash=Math.max(G.glowFlash||0,this.castBig?.5:.22);
+      }
+      if(IN.swipe&&IN.swipe.kind==='atk'&&p>.56){this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;}
+      if(p>=1){
+        if(this.queued){const d=this.qDir;startCast(null);if(!foe&&d!==null)this.facing=d;}
+        else this.state='free';
+      }
+    }
     else if(this.state==='spin'){
       const DUR=.95*this.swing(),p=this.t/DUR;
       if(p>.08&&p<.83){
@@ -9422,10 +9671,10 @@ const player={
     // ---- pose ----
     r.armed=this.armed;
     // both hands stay planted on the grip whenever the blade is in play
-    const bow=this.weapon()==='bow',kat=this.weapon()==='katana';
+    const bow=this.weapon()==='bow',kat=this.weapon()==='katana',wnd=this.weapon()==='wand';
     const thorPose=this.state==='thor'||this.state==='kthrow'||this.state==='kpull'||(this.state==='charge'&&(LOADOUT[chargeKey()]==='thor'||(kat&&LOADOUT.katanaCharge==='throw')));   // (one hand to the sky: the other stays off the grip)
     if(this.katThrown)r.armed=false;                                                          // (the blade away: the hands are empty)
-    r.ikLeftArm=!bow&&!thorPose&&!this.katThrown&&!(kat&&((this.state==='charge'&&katSheathes())||this.state==='iai'))&&
+    r.ikLeftArm=!bow&&!wnd&&!thorPose&&!this.katThrown&&!(kat&&((this.state==='charge'&&katSheathes())||this.state==='iai'))&&
       ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab','kthrust','tiger','fowl'].includes(this.state);
     resetPose(r);
     const t=G.time;
@@ -9434,9 +9683,11 @@ const player={
       else if(this.moveAmt>.05)poseWalk(r,this.strideT||t,Math.min(1,this.moveAmt/.78),false,this.relF,this.relL);
       else poseIdle(r,t);
       if(bow)poseBowCarry(r);
+      else if(wnd)poseWandCarry(r,t);
     }
     else if(this.state==='charge'){if(this.katThrown)poseSkyPoint(r,Math.min(1,this.chargeT/.3),t,1);   // (the blade away: the hand held out for it)
       else if(LOADOUT[chargeKey()]==='thor')poseSkyPoint(r,this.chargeT/.6,t,0);else if(bow)poseBowDraw(r,this.chargeT/.6,t);
+      else if(wnd)poseWandCharge(r,Math.min(1,this.chargeT/.6),t);
       else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='throw')poseSkyPoint(r,this.chargeT/.6,t,0);else poseIaiCharge(r,this.chargeT/.6,t);}   // (the draw and the waterfowl both wind in the saya)
       else if(LOADOUT.charge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);
       else if(LOADOUT.charge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);
@@ -9450,6 +9701,8 @@ const player={
     else if(this.state==='fowl')poseFowl(r,Math.min(1,this.t/1.05),t);
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
+    else if(this.state==='cast'){const D=this.castBig?.62:.44,p=Math.min(1,this.t/D);
+      poseWandCast(r,p<.52?p/.52:Math.max(0,1-(p-.52)/.38),t);}
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/(.95*this.swing())));
     else if(this.state==='quake')poseQuakeStab(r,Math.min(1,this.t/1.0));
     else if(this.state==='falling')poseFall(r,this.t);
@@ -10881,6 +11134,153 @@ function arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,through){
     else AudioSys.zapHit();
   }
 }
+/* =========================== THE BUBBLES ===========================
+   The wizard's whole offence, and it behaves like nothing else the
+   pilgrim carries: a cast does not strike, it LEAVES SOMETHING BEHIND.
+   Each bubble is a slow, patient, heat-seeking thing that lives on its
+   own after it is blown, and the wand only ever adds to the swarm.
+
+   Two states, and the switch between them is the entire idea:
+     ORBIT  — nothing is marked, so the bubble waits. It wheels round
+              the wizard at arm's length, bobbing, keeping its place in
+              the ring so a swarm reads as a swarm and not a clump.
+     HUNT   — a horror is marked, so every bubble in the ring peels off
+              after it. It STEERS rather than aims: a fixed turn rate on
+              a slow drift, which is what makes it read as heat-seeking
+              and lets a running horror out-turn one for a while.
+   Lose the mark and they come back to the ring; find another and they
+   leave again, mid-flight, whichever way they were going.
+
+   Costs, because there can be eight of them: a bubble is a low sphere
+   with an additive skin plus one glow sprite — two draws — and the
+   geometry and the wand's own texture are shared. NO LIGHTS: a light
+   count that moves recompiles every lit shader in the game. Eight is
+   the cap and it is hard; a ninth cast RECYCLES the oldest rather than
+   growing the swarm, so the draw cost of a wizard is a constant. */
+const BUBBLES=[];
+const BUB_MAX=8;                     // the hard cap: the swarm's draw cost never moves
+const BUB_LIFE=16;                   // how long one keeps until it thins out and lets go
+const BUB_SPD=4.6, BUB_TURN=2.3;     // metres a second, and radians a second of steering
+const BUB_ORB_R=1.95, BUB_ORB_W=1.25; // the ring's radius, and how fast it wheels
+let _bubGeo=null,_bubSeq=0;
+function bubbleAt(x,y,z,col,sc){
+  if(!_bubGeo)_bubGeo=GSph(.26,7,5);
+  const m=new THREE.Mesh(_bubGeo,new THREE.MeshBasicMaterial({map:texCache.bubble,
+    color:col,transparent:true,opacity:.72,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
+  m.scale.setScalar(sc);m.position.set(x,y,z);scene.add(m);
+  const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:col,
+    transparent:true,opacity:.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+  gl.scale.set(.9*sc,.9*sc,1);m.add(gl);
+  return m;
+}
+function bubbleColour(){
+  const el=player.element;
+  return el&&ELEMENTS[el]?ELEMENTS[el].hue:0x9fd8ff;
+}
+/* blow one off the wand's head. `slot` fans a volley out round the ring
+   so three cast together do not sit on top of each other. */
+function castBubble(P,big,slot){
+  const r=P.rig,col=bubbleColour();
+  // where the orb actually is this frame, so it grows out of the wand
+  let ox=P.x,oy=heightAt(P.x,P.z)+1.25,oz=P.z;
+  if(r&&r.wand){r.root.updateMatrixWorld(true);
+    const wp=r.wand.orb.getWorldPosition(new THREE.Vector3());
+    if(isFinite(wp.x)){ox=wp.x;oy=wp.y;oz=wp.z;}}
+  const sc=big?1.9:1;
+  // every bubble gets its own LANE in the ring — the golden angle round it,
+  // and one of three radii and heights — so eight of them wheel as a swarm
+  // instead of stacking into one blob at the pilgrim's shoulder
+  const seq=_bubSeq++;
+  const fan=slot!==undefined?(slot-1)*.5:0;                  // a volley leaves fanned, then converges
+  const b={m:bubbleAt(ox,oy,oz,col,sc),state:'orbit',t:0,life:0,big:!!big,sc,
+    dx:Math.sin(P.facing+fan),dy:0,dz:Math.cos(P.facing+fan),
+    ph:seq*2.3999,lane:seq%3,bob:(seq%5)*1.257,
+    dmg:big?42:14,col};
+  if(BUBBLES.length>=BUB_MAX)popBubble(BUBBLES[0],true);   // the ninth recycles the eldest: the cost is a constant
+  BUBBLES.push(b);
+  AudioSys.bubbleCast(big);G.vibr(big?18:8);
+  return b;
+}
+function popBubble(b,quiet){
+  const i=BUBBLES.indexOf(b);if(i>=0)BUBBLES.splice(i,1);
+  const m=b.m;scene.remove(m);
+  if(m.material)m.material.dispose();
+  m.traverse(o=>{if(o.isSprite&&o.material)o.material.dispose();});
+  if(!quiet)AudioSys.bubblePop();
+}
+/* the burst: a ring of the bubble's own colour and a scatter of motes.
+   No quake, no hitstop — eight of these a fight would shake the screen
+   to pieces. */
+function bubbleBurst(x,y,z,col,big){
+  const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:col,
+    transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
+  const s0=big?1.1:.6;
+  f.scale.set(s0,s0,1);f.position.set(x,y,z);scene.add(f);
+  let t=0;effects.push({update(dt){t+=dt;const p=t/(big?.3:.2);
+    f.material.opacity=.95*(1-p);f.scale.setScalar(s0*(1+p*(big?3.4:2.2)));
+    if(p>=1){scene.remove(f);f.material.dispose();return false;}return true;}});
+  sparkBurst(x,y,z,big?14:7);
+}
+function bubbleTargetY(e){
+  return (e.crow||e.kind==='angel')&&e.y!==undefined?e.y+(e.crow?0:.5)
+       :heightAt(e.x,e.z)+(e.boss?1.9:e.big?1.35:1.05);
+}
+function updateBubbles(dt){
+  if(!BUBBLES.length)return;
+  const P=player;
+  // the mark is the ONLY thing that sends them: no mark, no hunt. The eye
+  // reaches fifteen metres and takes anything live, so in practice a
+  // swarm leaves the ring the moment a horror is worth hitting.
+  const t=G.lockTarget;
+  const foe=t&&!t.objective&&t.hp>0&&t.state!=='dormant'&&!t.untouchable&&enemies.indexOf(t)>=0?t:null;
+  const gy0=heightAt(P.x,P.z);
+  for(let i=BUBBLES.length-1;i>=0;i--){
+    const b=BUBBLES[i],m=b.m,p=m.position;
+    b.life+=dt;b.t+=dt;b.bob+=dt*2.4;
+    if(!isFinite(p.x)||!isFinite(p.y)||!isFinite(p.z)){popBubble(b,true);continue;}
+    if(b.life>BUB_LIFE){                                   // it thins out and lets go where it is
+      m.material.opacity=Math.max(0,.72*(1-(b.life-BUB_LIFE)/.6));
+      if(b.life>BUB_LIFE+.6){bubbleBurst(p.x,p.y,p.z,b.col,false);popBubble(b);continue;}
+    }
+    if(foe){
+      if(b.state!=='hunt'){b.state='hunt';b.t=0;}
+      const ty=bubbleTargetY(foe);
+      let tx=foe.x-p.x,tyy=ty-p.y,tz=foe.z-p.z;
+      const d=Math.hypot(tx,tyy,tz)||1e-4;tx/=d;tyy/=d;tz/=d;
+      // STEER, do not aim: the heading turns at a fixed rate toward the
+      // mark, so a bubble arcs in and a moving horror can pull it wide
+      const k=Math.min(1,BUB_TURN*dt);
+      b.dx+=(tx-b.dx)*k;b.dy+=(tyy-b.dy)*k;b.dz+=(tz-b.dz)*k;
+      const L=Math.hypot(b.dx,b.dy,b.dz)||1;b.dx/=L;b.dy/=L;b.dz/=L;
+      const sp=BUB_SPD*(b.big?.72:1)*Math.min(1,.35+b.t*2.2);   // it leaves the ring slowly and gathers way
+      p.x+=b.dx*sp*dt;p.y+=b.dy*sp*dt;p.z+=b.dz*sp*dt;
+      if(d<foe.radius+.45*b.sc){                            // and it arrives
+        const el=P.element;
+        let dmg=b.dmg+(el?4:0);
+        foe.takeHit(dmg,foe.boss?1:b.big?99:2,p.x,p.z,b.big?1.3:.35,{dx:b.dx,dz:b.dz,up:b.big?1.1:.25});
+        AudioSys.hit();bubbleBurst(p.x,p.y,p.z,b.col,b.big);
+        if(el==='fire')fireBite(foe);else if(el==='ice'){AudioSys.iceHit();foe.chillT=12;}
+        if(b.big)G.camShake=Math.max(G.camShake,.3);
+        popBubble(b);continue;
+      }
+    }else{
+      // ORBIT: back into the ring and wheel there, waiting for a mark
+      if(b.state!=='orbit'){b.state='orbit';b.t=0;}
+      b.ph+=BUB_ORB_W*dt;
+      const rr=BUB_ORB_R*(b.big?1.3:1)*(.78+b.lane*.22);
+      const tx=P.x+Math.sin(b.ph)*rr,tz=P.z+Math.cos(b.ph)*rr,
+            ty=gy0+1.0+b.lane*.34+Math.sin(b.bob)*.14;
+      const k=Math.min(1,5.5*dt);                           // it slides back into its place rather than snapping there
+      p.x+=(tx-p.x)*k;p.y+=(ty-p.y)*k;p.z+=(tz-p.z)*k;
+      b.dx=Math.cos(b.ph);b.dy=0;b.dz=-Math.sin(b.ph);       // (already going the way the ring turns, so the peel-off is smooth)
+    }
+    // the skin breathes and the whole thing rolls as it goes
+    const br=1+Math.sin(b.bob*1.6)*.07;
+    m.scale.setScalar(b.sc*br);
+    m.rotation.y+=dt*1.1;m.rotation.x+=dt*.5;
+  }
+}
+function dropBubbles(){for(let i=BUBBLES.length-1;i>=0;i--)popBubble(BUBBLES[i],true);}
 /* the flying cut: nothing but the swift of the blade, a crescent of pale
    arcs that races on ahead of the knight and cuts whatever it crosses */
 function airSlash(x,z,facing,dmg,full){
@@ -11980,9 +12380,10 @@ function renderHero(){
   }
   if(heroRig)heroScene.remove(heroRig.root);
   heroRig=makeKnightRig(LOADOUT);
-  heroRig.armed=true;heroRig.ikLeftArm=LOADOUT.weapon!=='bow';
+  heroRig.armed=true;heroRig.ikLeftArm=LOADOUT.weapon!=='bow'&&LOADOUT.weapon!=='wand';
   resetPose(heroRig);poseIdle(heroRig,0);
   if(LOADOUT.weapon==='bow')poseBowCarry(heroRig);
+  else if(LOADOUT.weapon==='wand')poseWandCarry(heroRig,0);
   heroRig.root.rotation.y=.6;heroScene.add(heroRig.root);
   updateRigExtras(heroRig,.016);
   if(heroRig.cloths&&heroRig.cloths.length)for(let i=0;i<80;i++)stepCloth(heroRig,1/60);   // the cloth settles before the portrait
@@ -11995,7 +12396,7 @@ function renderHero(){
   ctx.putImageData(img,0,0);
 }
 function loadoutLabel(k){const v=LOADOUT[k];return (HERO_OPTS[k].find(o=>o[0]===v)||HERO_OPTS[k][0])[1];}
-function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon==='katana'?'katanaCharge':'charge';}
+function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon==='katana'?'katanaCharge':LOADOUT.weapon==='wand'?'wandCharge':'charge';}
 // which katana specials wind in the saya (and so need the blade home before they fire)
 function katSheathes(){return LOADOUT.katanaCharge==='iai'||LOADOUT.katanaCharge==='fowl';}
 function cycleLoadout(k,d){
@@ -12009,7 +12410,9 @@ function fillHero(){
   $('selArmour').textContent=loadoutLabel('armour');
   $('selCharge').textContent=loadoutLabel(chargeKey());
   $('selNote').textContent=HERO_NOTES[LOADOUT[chargeKey()]]||'';
-  $('heroTap').textContent=LOADOUT.weapon==='bow'?'tap — loose an arrow · hold still, release — the charged shot':'tap — strike · hold still, release — the charged attack';
+  $('heroTap').textContent=LOADOUT.weapon==='bow'?'tap — loose an arrow · hold still, release — the charged shot'
+    :LOADOUT.weapon==='wand'?'tap — blow a bubble · hold still, release — the charged cast'
+    :'tap — strike · hold still, release — the charged attack';
   try{renderHero();}catch(e){}
 }
 document.querySelectorAll('#pause .arrow:not(.fld)').forEach(el=>el.addEventListener('pointerdown',e=>{
@@ -12129,6 +12532,7 @@ function frame(now){
          Math.abs(player.x)<HW&&player.z<HL-2.5&&player.z>-HL)startBossFight();
       // the Warden shoulders through the pews as it comes
       if(G.bossActive&&boss.hp>0)trampleBreakables(boss.x,boss.z,boss.radius+.3);
+      updateBubbles(wdt);
       if(player.katThrown)updateKatThrow(player,wdt);
       // and the braces: empty hands are only ever the thrown blade's doing
       else if(player.rig&&player.rig.weapon&&!player.rig.weapon.visible)player.rig.weapon.visible=true;
@@ -12222,7 +12626,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
