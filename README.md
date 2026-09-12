@@ -14,6 +14,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Desktop**: just open `index.html`. WASD to move (hold R to sprint) —
   J/Space strike (repeat for the combo), hold L and release for the
   charged double slash, K/Shift roll, E interact, Z/C orbit camera, Esc pause.
+  In first person (see *First person*, below) the first click takes the
+  mouse: mouse look, left button fire, right button aim, R reload, Q and
+  1–3 swap, F zoom, Shift sprint, Space dodge.
 - **Pause** — the **II** button top-right (or Esc) freezes the field and
   shows the run's stats — marrow, horrors felled, host remaining,
   deaths, time, the state of the two mini-bosses, the Warden and the
@@ -58,7 +61,10 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   own. He stands taller than the knight because there is no armour to
   shorten him. **Charge** — the charged attack for the weapon
   in hand. The choice is remembered by the browser and the body is remade
-  on the spot.
+  on the spot. **The view** — over the shoulder, or **first person**,
+  which is the same field or path played as a shooter: see *First
+  person*, below. In first person the weapon selector cycles the guns
+  instead.
 
 ## Controls (touch)
 
@@ -449,6 +455,98 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   it until you move again. The moonbeam over the nave does the pointing
 
 No flask. No stamina. Only nerve.
+
+## First person
+
+Not a third way to begin — a **switch inside either world**. The
+**3RD / 1ST** button beside the pause button (or *the view* on the pause
+screen) moves the eye into the helm mid-run, without a reload: the
+pilgrim's body is hidden, the blade is taken out of his hands, the whole
+of the right thumb becomes the look, and what he carries instead is a
+gun. The world, the host, the marrow, the hours, the weather, the motes
+and the hexes of the path are exactly what they were; the roll, the
+stagger, the knockdown and the fall over the rim all still run
+underneath, and the camera rides them (the roll dips, a knockdown lays
+it over). Death is watched from outside, as it always was: the body comes
+back into view and the follow camera takes the fall. The choice is
+remembered by the browser, and `?pov=1` on the URL asks for it.
+
+**The buttons are laid out the way a phone shooter lays them.** A
+**trigger under each thumb** — one on the left above the stick, one
+large on the bottom right — so the left can fire while the right goes on
+aiming, or the other way round. To the right-hand trigger's left and
+above it: **aim** (a tap toggles the sights, a long hold releases them on
+the way up), **reload**, and **dodge** (the roll, by button: a flick would
+be a look now). The **weapon bar** at the bottom centre carries the gun's
+name and its magazine over its reserve; tap it to swap. A **zoom** button
+appears only when the sniper is in its scope. The pause button and the
+hearts are where they were; there is no lock-on and no finishing mark.
+
+**Three guns and no more.** Every shot is a **ray**, not a projectile: it
+leaves the eye through the crosshair, opened by the current spread, and
+is tested first against every live horror's **head and body** — a sphere
+each, taken off the rig's own skull and trunk, plus one for the hips —
+and then walked out through the world to whatever it would have met on
+the way: the soil, the cathedral's stone, a trunk, a gravestone, a pew,
+the bell (three rounds call the Bell-Called, the same as three blows).
+The nearest thing takes the round. A body flinches and bleeds or chips
+where it was hit, the soil takes a scar, stone throws sparks.
+
+| | magazine · reserve | damage (body / head) | rate | the feel |
+|---|---|---|---|---|
+| **golden eagle** | 7 · 35 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in two, a brute in four, a headshot doubles it. It climbs, and the sights hold half of it down |
+| **UMP45** | 25 · 100 | 12 / 22 | eleven a second, held | the spray. Each one a scratch; the bloom opens as it runs and the sights close it |
+| **bone sniper** | 5 · 15 | 96 / 220 | one, then the bolt | one shot, one body. Its sights are a **scope** — the glass takes the screen, the viewmodel goes away — with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+
+The **spread** is the crosshair: it draws in on the sights, opens as you
+walk (wider at a sprint) and blooms with every shot, decaying back.
+Aiming narrows the field of view and slows the look with it. Every gun
+**kicks** — the muzzle climbs on the viewmodel, and the eye with it, a
+little to one side. A **telling shot** (one in twelve) does half again;
+the reaper's mark doubles every round on anything but the Warden; and an
+imbued element rides the rounds — fire bites and can take, frost holds
+them where they stand, lightning adds to the damage — exactly as an arrow
+carries them.
+
+**The hit marker.** Four ticks flash on the crosshair when a round lands
+— white for a body, gold for the head, red and longer for a kill — with
+a tick of sound under each, and the phone buzzes. A miss shows nothing.
+
+**Reloading.** The magazine runs down on the weapon bar; at zero the gun
+clicks and reloads on its own if there is a reserve to reload from
+(the sniper waits to be asked). The reload is the viewmodel: the gun
+drops and rolls, the magazine falls out of the grip and is driven home,
+the action is racked — three sounds at the three moments — and the
+rounds move from reserve to magazine only when it is all done. A swap
+mid-reload abandons it. The sniper's bolt is worked after every shot,
+the handle lifting and the bolt coming back and going home, and the next
+round waits on it.
+
+**Ammunition is dropped.** The horrors have to feed the guns, so in
+first person about half of them leave a **box of rounds** where they
+fall — a brass cartridge on an olive box, inside a tan glow, the same
+kind of drop as the motes and sharing their patch of ground (six may lie
+out at once rather than four). Walking into it feeds every gun, the one
+in hand twice over (14 / 50 / 6 rounds a box, doubled for the one you
+are holding). The field's death and return refills the magazines and
+tops the reserve back up to what he set out with; on the path, as ever,
+death is the end.
+
+**The field shows itself to a gun.** A host that lies under the soil
+until you are ten metres off gives a rifle nothing to look at, so in
+first person about half of it climbs out early — from thirty-odd metres
+— and **paces its ground** the way the path's patrols do, coming only
+when you are close, or when it is shot. The ambushes stay down; that is
+what they are for. So the sniper has patrols to watch through the glass,
+and a shot that does not kill still brings the thing.
+
+**Under the hood.** The viewmodel is three low-poly guns hung off the
+camera itself (the camera is in the scene for it) and drawn in the PSX
+frame with everything else, so they wobble and dither like the world;
+they bob with the stride, sway against the look, kick on fire, drop for
+a reload, and swing low at a sprint. The muzzle flash is a sprite and a
+flare of the pilgrim's own halo — never a light. Guns, the eye's height
+and every timing live in `GUNS` and `FPS`, beside the camera code.
 
 ## Marrow
 

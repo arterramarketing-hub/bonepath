@@ -63,7 +63,7 @@
   #pause .arrow:active{opacity:1;}
   #pause .sel b{font-weight:normal;color:#e6c97a;min-width:104px;text-align:center;font-size:12px;}
   #pause .note{font-size:11px;opacity:.7;line-height:1.4;margin-top:6px;min-height:2.8em;}
-  #pause .btn2,#fpsNote .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
+  #pause .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
   #pause .btn2:active{background:rgba(200,190,160,.15);}
   #pause .btn2.sm{padding:4px 10px;font-size:10px;margin-left:8px;}
   #pause #seedIn{width:112px;background:rgba(0,0,0,.35);border:1px solid rgba(200,190,160,.35);color:#e6c97a;font:inherit;font-size:12px;padding:3px 6px;text-align:center;}
@@ -170,14 +170,65 @@
     text-transform:uppercase;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:rgba(6,7,8,.5);}
   #modes .mode.on{border-color:var(--ember-hi);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.25);}
   #modes .mode:active{background:rgba(200,190,160,.15);}
-  #modes .mode.soon{opacity:.55;border-style:dashed;}
-  #fpsNote{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;background:rgba(4,5,6,.86);color:var(--bone);font-family:Georgia,'Times New Roman',serif;}
-  #fpsNote.on{display:flex;}
-  #fpsNote .panel{width:min(92vw,640px);max-height:88vh;overflow:auto;padding:20px 26px;border:1px solid rgba(200,190,160,.28);background:rgba(8,9,10,.8);font-size:13px;line-height:1.6;}
-  #fpsNote h2{margin:0 0 6px;font-weight:normal;letter-spacing:.42em;text-transform:uppercase;font-size:clamp(16px,3.4vw,24px);text-align:center;}
-  #fpsNote .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
-  #fpsNote p{margin:8px 0;}
-  #fpsNote .btns{display:flex;justify-content:center;margin-top:14px;}
+  /* ---- first person: the shooter's controls and its HUD ----
+     laid out the way a phone shooter lays them: a trigger under EACH
+     thumb, the sights / reload / dodge in a cluster to the right of the
+     right-hand trigger, and the weapon bar at the bottom centre */
+  #povBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(58px + env(safe-area-inset-right));
+    z-index:9;width:44px;height:38px;border:1px solid rgba(200,190,160,.35);border-radius:4px;
+    background:rgba(6,7,8,.55);color:var(--bone);font:11px/36px Georgia,serif;text-align:center;
+    letter-spacing:.14em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
+  #povBtn.on{display:block;}
+  #fpsCtl{display:none;}
+  #fpsCtl.on{display:block;}
+  #fpsCtl .btn{width:52px;height:52px;}
+  #fpsCtl .btn span.g{font-size:18px;}
+  #fpsCtl .btn span.t{font-size:7px;}
+  #fbFireR{right:calc(22px + env(safe-area-inset-right));bottom:calc(84px + env(safe-area-inset-bottom));width:78px;height:78px;
+    border-color:rgba(200,190,160,.5);}
+  #fbFireR span.g,#fbFireL span.g{font-size:26px;}
+  #fbFireL{left:calc(26px + env(safe-area-inset-left));bottom:calc(196px + env(safe-area-inset-bottom));width:60px;height:60px;}
+  #fbAds{right:calc(114px + env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));width:56px;height:56px;}
+  #fbAds.lit{border-color:var(--ember-hi);color:var(--ember-hi);box-shadow:inset 0 0 12px rgba(208,118,43,.35),0 0 10px rgba(208,118,43,.25);}
+  #fbReload{right:calc(116px + env(safe-area-inset-right));bottom:calc(78px + env(safe-area-inset-bottom));width:50px;height:50px;}
+  #fbReload.dim{opacity:.4;}
+  #fbRoll{right:calc(34px + env(safe-area-inset-right));bottom:calc(178px + env(safe-area-inset-bottom));width:52px;height:52px;}
+  #fbZoom{right:calc(184px + env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));width:46px;height:46px;display:none;}
+  #fbSwap{left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:228px;height:42px;border-radius:4px;
+    flex-direction:row;justify-content:space-between;padding:0 12px;letter-spacing:.1em;white-space:nowrap;}
+  #fbSwap .wn{font-size:9px;letter-spacing:.24em;color:var(--bone-dim);text-transform:uppercase;}
+  #fbSwap .wa{font-variant-numeric:tabular-nums;color:var(--bone);font-size:12px;}
+  #fbSwap .wa b{font-weight:normal;font-size:20px;color:#e8dcc0;}
+  #fbSwap.low .wa b{color:var(--blood);}
+  #fbSwap.rl .wa b{opacity:.45;}
+  /* the crosshair opens with the spread (--gap), the marker flashes on a hit
+     (white; gold for the head; red and longer for a kill), and the scope is
+     the sniper's sights: a hole in the dark with the reticle over it */
+  #xhair{position:absolute;left:50%;top:50%;width:0;height:0;display:none;--gap:6px;}
+  #xhair i{position:absolute;background:#f2ecd6;outline:1px solid rgba(0,0,0,.8);box-shadow:0 0 3px rgba(0,0,0,.6);}
+  #xhair .u{width:2px;height:9px;left:-1px;top:calc(-9px - var(--gap));}
+  #xhair .d{width:2px;height:9px;left:-1px;top:var(--gap);}
+  #xhair .l{height:2px;width:9px;top:-1px;left:calc(-9px - var(--gap));}
+  #xhair .r{height:2px;width:9px;top:-1px;left:var(--gap);}
+  #xhair .c{width:2px;height:2px;left:-1px;top:-1px;}
+  #hitmark{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0;}
+  #hitmark i{position:absolute;left:0;top:-1px;width:12px;height:2px;background:#fff;box-shadow:0 0 2px #000;transform-origin:0 50%;}
+  #hitmark i:nth-child(1){transform:rotate(45deg) translateX(8px);}
+  #hitmark i:nth-child(2){transform:rotate(135deg) translateX(8px);}
+  #hitmark i:nth-child(3){transform:rotate(225deg) translateX(8px);}
+  #hitmark i:nth-child(4){transform:rotate(315deg) translateX(8px);}
+  #hitmark.on{opacity:1;}
+  #hitmark.head i{background:#f0c860;}
+  #hitmark.kill i{background:#e0322a;width:15px;}
+  #scope{position:absolute;inset:0;display:none;--r:min(41vh,41vw);
+    background:radial-gradient(circle at 50% 50%, transparent 0, transparent calc(var(--r) - 1px), rgba(2,2,3,.96) var(--r));}
+  #scope.on{display:block;}
+  #scope .hl{position:absolute;left:0;right:0;top:50%;height:1px;margin-top:-.5px;background:rgba(6,6,6,.9);}
+  #scope .vl{position:absolute;top:0;bottom:0;left:50%;width:1px;margin-left:-.5px;background:rgba(6,6,6,.9);}
+  #scope .ring{position:absolute;left:50%;top:50%;width:calc(var(--r) * 2);height:calc(var(--r) * 2);transform:translate(-50%,-50%);
+    border-radius:50%;border:3px solid #050505;box-shadow:inset 0 0 46px rgba(0,0,0,.85);}
+  #scope .mag{position:absolute;left:50%;top:calc(50% - var(--r) + 14px);transform:translateX(-50%);
+    font-size:11px;letter-spacing:.3em;color:var(--bone-dim);text-shadow:0 1px 2px #000;}
   /* the frame's own measure, off unless asked for in the testing menu */
   #perf{position:fixed;bottom:10px;left:12px;z-index:14;display:none;pointer-events:none;
     font-family:Georgia,'Times New Roman',serif;font-size:11px;letter-spacing:.14em;
@@ -213,6 +264,9 @@
 
 <div id="hud">
   <div id="hpwrap"></div>
+  <div id="xhair"><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i><i class="c"></i></div>
+  <div id="hitmark"><i></i><i></i><i></i><i></i></div>
+  <div id="scope"><div class="ring"></div><div class="hl"></div><div class="vl"></div><div class="mag" id="scopeMag">4&times;</div></div>
   <div id="marrow"><span class="lbl">marrow</span><span id="marrowN">0</span></div>
   <div id="bossbar">
     <div id="bossname">GRAVEWARDEN OF THE BONE PATH</div>
@@ -223,9 +277,19 @@
 <div id="controls">
   <div id="stickBase"></div><div id="stickNub"></div>
   <div id="swipeHint">tap &mdash; strike &nbsp; hold still, release &mdash; charged attack &nbsp; flick &mdash; roll<br>stick far &mdash; sprint (tap mid-sprint: running thrust) &nbsp; hold &amp; drag &mdash; camera<br>a stunned foe with the blade mark: tap &mdash; finish it</div>
+  <div id="fpsCtl">
+    <div class="btn" id="fbFireL"><span class="g">&#9678;</span></div>
+    <div class="btn" id="fbFireR"><span class="g">&#9678;</span></div>
+    <div class="btn" id="fbAds"><span class="g">&#8982;</span><span class="t">aim</span></div>
+    <div class="btn" id="fbReload"><span class="g">&#8635;</span><span class="t">reload</span></div>
+    <div class="btn" id="fbRoll"><span class="g">&#8623;</span><span class="t">dodge</span></div>
+    <div class="btn" id="fbZoom"><span class="g">&#9673;</span><span class="t">zoom</span></div>
+    <div class="btn" id="fbSwap"><span class="wn" id="fbGunName">golden eagle</span><span class="wa"><b id="fbMag">7</b> <span id="fbRes">/ 35</span></span></div>
+  </div>
 </div>
 <div id="prompt"></div>
 <div id="pauseBtn">II</div>
+<div id="povBtn">3RD</div>
 <div id="pause"><div class="panel">
   <h2>Paused</h2><div class="sub">the marrow remembers</div>
   <div class="cols">
@@ -235,6 +299,7 @@
       <div class="sel"><span>weapon</span><div class="pick"><div class="arrow" data-k="weapon" data-d="-1">&lsaquo;</div><b id="selWeapon">greatsword</b><div class="arrow" data-k="weapon" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>armour</span><div class="pick"><div class="arrow" data-k="armour" data-d="-1">&lsaquo;</div><b id="selArmour">knight plate</b><div class="arrow" data-k="armour" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>charge</span><div class="pick"><div class="arrow" data-k="charge" data-d="-1">&lsaquo;</div><b id="selCharge">double slash</b><div class="arrow" data-k="charge" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>the view</span><div class="pick"><div class="arrow" data-k="pov" data-d="-1">&lsaquo;</div><b id="selPov">over the shoulder</b><div class="arrow" data-k="pov" data-d="1">&rsaquo;</div></div></div>
       <div class="note" id="selNote"></div>
     </div>
     <div class="col">
@@ -270,6 +335,7 @@
       <div><span class="k">the katana</span> — cuts a horror below half its life clean in two where it lands</div>
       <div><span class="k">hold &amp; drag</span> — turn the camera · walk into a mote — take it</div>
       <div><span class="k">time a swing into theirs</span> — clash: sparks, and they reel</div>
+      <div><span class="k">first person</span> — the 3RD / 1ST switch by the pause button (or the view above): guns for blades · a trigger under each thumb · aim · reload · dodge · tap the bar to swap · a scope and a zoom on the sniper</div>
     </div>
     <div class="col">
       <h3>Keyboard</h3>
@@ -279,6 +345,7 @@
       <div><span class="k">K</span> or <span class="k">Shift</span> — roll · J in the roll — rolling cut</div>
       <div><span class="k">E</span> — claim the altar · <span class="k">Z / C</span> — turn the camera</div>
       <div><span class="k">Esc</span> — pause</div>
+      <div><span class="k">first person</span> — click to take the mouse · <span class="k">LMB / J</span> fire · <span class="k">RMB / L</span> aim · <span class="k">R</span> reload · <span class="k">Q, 1–3</span> swap · <span class="k">F</span> zoom · <span class="k">Shift</span> sprint · <span class="k">Space</span> dodge</div>
       <h3>The path</h3>
       <div>harvest 1000 marrow from the sleeping host · climb the stair · walk the nave to the altar · fell the Warden · claim it</div>
     </div>
@@ -294,25 +361,19 @@
   <h1>Bonepath</h1>
   <div class="sub">the marrow remembers</div>
   <div class="rule"></div>
-  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div><div class="mode soon" id="modeFps">fps mode</div></div>
+  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div></div>
   <div id="begin">touch a way to begin</div>
   <div class="hint" id="titleHint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
     tap &mdash; strike &middot; keep tapping &mdash; the combo climbs &middot; flick any way &mdash; roll that way<br>
     survive the bonefield &middot; harvest 1000 marrow to open the cathedral<br>
     no rest, no fires &mdash; only what the fallen shed: fire, lightning, frost, and life<br>
-    no flask, no stamina, only nerve &middot; best in landscape
+    no flask, no stamina, only nerve &middot; best in landscape<br>
+    first person &mdash; the 3RD / 1ST switch by the pause button: the guns come out and the blade goes away
   </div>
 </div>
 
 <div id="perf"></div>
-<div id="fpsNote"><div class="panel">
-  <h2>FPS Mode</h2><div class="sub">not yet walked &middot; a note for what it will be</div>
-  <p>A first-person way through the same field and the same path: the view from behind the pilgrim's own eyes, as in a first-person shooter, and in the pilgrim's hand not a blade but a <b>revolver</b> &mdash; six rounds, a reload, and nothing else.</p>
-  <p>The controls stay what they are: the left thumb moves, the right thumb drags to look, a tap fires, a hold aims down the sights, a flick still rolls. The horrors, the eye's tell, the marrow, the hours and the weather, the hexes of the path &mdash; all of it stays; only the eye moves into the helm and the weapon changes.</p>
-  <p>It is a placeholder for now. The plan for building it is kept in the repository at <b>docs/FPS_MODE_PLAN.md</b>.</p>
-  <div class="btns"><div class="btn2" id="fpsClose">Close</div></div>
-</div></div>
 
 <div id="victory">
   <h2>The Warden Falls</h2>
@@ -1128,6 +1189,15 @@ function buildTextures(){
         if(j<4&&i>1&&i<4){x.fillStyle='#ff9c7a';x.fillRect(ox+i*px,oy+j*px,px,px);}   // the glint
         else if(j>9){x.fillStyle='#8e1c14';x.fillRect(ox+i*px,oy+j*px,px,px);}        // the tail, in shadow
       }
+    });
+    // AMMUNITION: a brass round standing on its box — the first-person drop
+    const AM=['....33......','...3333.....','...3333.....','...3333.....','...3333.....','...4444.....','...4444.....','.1111111111.','.1222222221.','.1252525221.','.1222222221.','.1252525221.','.1111111111.'];
+    makeTex('orbAmmo',64,(x,S)=>{
+      x.clearRect(0,0,S,S);
+      const px=4,ox=(S-12*px)/2,oy=(S-13*px)/2;
+      x.fillStyle='rgba(20,16,8,.85)';const OL=1.6;
+      for(let j=0;j<AM.length;j++)for(let i=0;i<12;i++){if(AM[j][i]==='.')continue;x.fillRect(ox+i*px-OL,oy+j*px-OL,px+OL*2,px+OL*2);}
+      pix(x,S,AM,{'1':'#2e2a1a','2':'#5c5a34','3':'#e6b94c','4':'#9a7a2c','5':'#d8c27a'},ox,oy,px);
     });
     /* THE THREE ELEMENTS, as balls of the thing itself. Each is a lit
        sphere first — a bright shoulder up and to the left, a dark
@@ -2046,6 +2116,27 @@ const AudioSys=(()=>{
   }
   return {
     bossMusic,musicStart,setMusic,layersStart,setThreat,setHeart,
+    /* THE GUNS (first person). A report is a crack, a body under it and a
+       tail: the eagle's is wide and slow, the UMP's is the same thing cut
+       short so eleven of them a second stay separate, and the rifle's is
+       the whole field being told. All of it goes through the same grimy
+       chain as everything else, so nothing comes out clean. */
+    gun(kind){if(!ac)return;const t=now();
+      if(kind==='sniper'){noise(t,{peak:.72,att:.001,dec:.22,f0:4200,f1:260});tone(t,{f:150,f2:28,type:'sawtooth',peak:.36,att:.003,dec:.6});
+        noise(t+.04,{peak:.3,att:.03,dec:1.1,f0:500,f1:60});tone(t+.01,{f:2400,f2:700,type:'square',peak:.05,att:.001,dec:.08});return;}
+      if(kind==='ump'){noise(t,{peak:.42,att:.001,dec:.06,f0:3600,f1:600});tone(t,{f:240,f2:60,type:'sawtooth',peak:.16,att:.002,dec:.1});
+        noise(t+.01,{peak:.12,att:.01,dec:.16,f0:900,f1:200});return;}
+      noise(t,{peak:.58,att:.001,dec:.11,f0:4400,f1:420});tone(t,{f:190,f2:40,type:'sawtooth',peak:.3,att:.003,dec:.32});
+      noise(t+.02,{peak:.22,att:.02,dec:.38,f0:1000,f1:120});tone(t+.005,{f:3000,f2:900,type:'square',peak:.04,att:.001,dec:.05});},
+    gunEmpty(){if(!ac)return;const t=now();noise(t,{peak:.1,att:.001,dec:.03,f0:2600,f1:1200,type:'bandpass',Q:3});tone(t,{f:1500,f2:900,type:'square',peak:.05,att:.001,dec:.035});},
+    // the reload in three sounds: the magazine out, the magazine home, and the action racked
+    magOut(){if(!ac)return;const t=now();noise(t,{peak:.16,att:.002,dec:.07,f0:1800,f1:500,type:'bandpass',Q:1.4});tone(t,{f:340,f2:150,type:'square',peak:.04,att:.002,dec:.08});},
+    magIn(){if(!ac)return;const t=now();noise(t,{peak:.24,att:.001,dec:.05,f0:2400,f1:900,type:'bandpass',Q:1.6});tone(t,{f:520,f2:240,type:'square',peak:.06,att:.001,dec:.06});},
+    rack(){if(!ac)return;const t=now();noise(t,{peak:.2,att:.001,dec:.035,f0:3000,f1:1400,type:'bandpass',Q:2});noise(t+.07,{peak:.17,att:.001,dec:.04,f0:2300,f1:1000,type:'bandpass',Q:2});tone(t+.07,{f:900,f2:500,type:'square',peak:.04,att:.001,dec:.05});},
+    bolt(){if(!ac)return;const t=now();for(let i=0;i<3;i++){noise(t+i*.09,{peak:.18-i*.03,att:.001,dec:.04,f0:2200-i*300,f1:900,type:'bandpass',Q:2});tone(t+i*.09,{f:700-i*120,f2:400,type:'square',peak:.045,att:.001,dec:.05});}},
+    // the marker's tick: a hit, and a kill's lower second note
+    hitmark(kill){if(!ac)return;const t=now();tone(t,{f:kill?1500:1250,f2:kill?900:1100,type:'square',peak:.075,att:.001,dec:.06});if(kill)tone(t+.05,{f:760,f2:520,type:'square',peak:.07,att:.001,dec:.1});},
+    ammoPick(){if(!ac)return;const t=now();for(let i=0;i<3;i++){noise(t+i*.07,{peak:.14,att:.001,dec:.05,f0:3200,f1:1600,type:'bandpass',Q:4});tone(t+i*.07,{f:1900+i*300,f2:1400,type:'triangle',peak:.05,att:.002,dec:.08});}},
     // Thor's call: the charge climbing off the blade — a fizzing electric crackle, a buzz under it, a rising whine
     thorZap(){if(!ac)return;const t=now();
       for(let i=0;i<9;i++)noise(t+i*.045+Math.random()*.012,{peak:.3,att:.002,dec:.035,f0:rr2(2200,6000),f1:rr2(1500,3000),type:'bandpass',Q:6});
@@ -2622,6 +2713,12 @@ const Input=(()=>{
     chargeRelease:false,  // ...and let go this frame
     interactPressed:false,
     anyPressed:false,
+    /* first person: the triggers (a press this frame, and whether one is
+       still held for the automatic), the sights (a tap toggles, a long
+       hold releases), the reload, the swap, the zoom, and a gun asked for
+       by number */
+    firePressed:false,fireHeld:false,adsTap:false,adsRelease:false,adsHeld:false,
+    reloadPressed:false,swapPressed:false,zoomPressed:false,pickGun:-1,
   };
   const keys={};
   let stickId=null,camId=null,gesture=null;
@@ -2632,10 +2729,11 @@ const Input=(()=>{
   const SWIPE_DIST=26,SWIPE_MS=220; // a flick: fast and short
   const HOLD_MS=240;                // held past this: a still finger charges, a moving one turns the camera
   let touchCharge=false;
+  let fpsMode=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0;   // (first person)
 
   function bindBtn(el,down,up){
     el.addEventListener('pointerdown',e=>{
-      e.preventDefault();el.setPointerCapture(e.pointerId);
+      e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(err){}   // (a capture that cannot be taken is not a reason to drop the press)
       el.classList.add('pressed');st.anyPressed=true;down&&down();
     });
     const release=e=>{el.classList.remove('pressed');up&&up();};
@@ -2643,6 +2741,19 @@ const Input=(()=>{
     el.addEventListener('pointercancel',release);
   }
   $('prompt').addEventListener('pointerdown',e=>{e.preventDefault();st.interactPressed=true;});
+  /* THE SHOOTER'S BUTTONS. Two triggers, one under each thumb, so the
+     left can fire while the right goes on looking; the sights, which a
+     tap toggles and a long hold releases on the way up; the reload; the
+     dodge (the roll, by button — a flick would be a look now); the zoom
+     (the sniper's scope only); and the weapon bar. */
+  {const fb=(id,down,up)=>{const el=$(id);if(el)bindBtn(el,down,up);};
+    const fireDown=()=>{st.firePressed=true;touchFireN++;},fireUp=()=>{touchFireN=Math.max(0,touchFireN-1);};
+    fb('fbFireL',fireDown,fireUp);fb('fbFireR',fireDown,fireUp);
+    fb('fbAds',()=>{adsDownT=performance.now();st.adsTap=true;},()=>{if(performance.now()-adsDownT>320)st.adsRelease=true;});
+    fb('fbReload',()=>{st.reloadPressed=true;});
+    fb('fbRoll',()=>{st.swipe={kind:'dodge',atype:null,sx:null,sy:null};});
+    fb('fbZoom',()=>{st.zoomPressed=true;});
+    fb('fbSwap',()=>{st.swapPressed=true;});}
 
   /* a flick in ANY direction is a dodge roll that way;
      a tap is the sword — repeated taps chain the combo */
@@ -2658,6 +2769,12 @@ const Input=(()=>{
     e.preventDefault();st.anyPressed=true;
     try{ctl.setPointerCapture(e.pointerId);}catch(err){}
     reapStale();                       // a thumb that never said goodbye is not still holding the stick
+    if(fpsMode&&e.pointerType==='mouse'){
+      // desktop, first person: the mouse is the look (taken on the first click), its buttons the trigger and the sights
+      if(document.pointerLockElement!==ctl){try{const r=ctl.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(err){}}
+      if(e.button===0){st.firePressed=true;mouseFire=true;}else if(e.button===2)mouseAds=true;
+      return;
+    }
     /* AND THE LEFT HALF IS ALWAYS THE STICK. Whatever went wrong, a fresh
        touch on the left re-seats it — so even a lock the four releases
        above never caught is one tap away from being over, and the player
@@ -2673,7 +2790,7 @@ const Input=(()=>{
       // right-side gesture: undecided until it's a flick or a hold
       camId=e.pointerId;camHeld=ctl.hasPointerCapture(e.pointerId);
       gesture={t0:performance.now(),x0:e.clientX,y0:e.clientY,
-               lx:e.clientX,ly:e.clientY,mode:'pending',maxD:0};
+               lx:e.clientX,ly:e.clientY,mode:fpsMode?'cam':'pending',maxD:0};   // (first person: the whole thumb is the look, at once)
     }
   });
   ctl.addEventListener('pointermove',e=>{
@@ -2735,8 +2852,9 @@ const Input=(()=>{
     if(stickId!==null&&stickHeld&&!ctl.hasPointerCapture(stickId))dropStick();
     if(camId!==null&&camHeld&&!ctl.hasPointerCapture(camId))dropCam();
   }
-  function releaseAll(){dropStick();dropCam();for(const k in keys)keys[k]=false;touchCharge=false;}
+  function releaseAll(){dropStick();dropCam();for(const k in keys)keys[k]=false;touchCharge=false;mouseFire=false;mouseAds=false;touchFireN=0;}
   function endPtr(e){
+    if(e.pointerType==='mouse'){if(e.button===0)mouseFire=false;if(e.button===2)mouseAds=false;}
     if(e.pointerId===stickId)dropStick();
     if(e.pointerId===camId){
       // a fast flick can end before any move crossed the threshold
@@ -2762,12 +2880,24 @@ const Input=(()=>{
   addEventListener('blur',releaseAll);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAll();});
   addEventListener('contextmenu',e=>e.preventDefault());
+  document.addEventListener('mousemove',e=>{if(fpsMode&&document.pointerLockElement===ctl){st.camDX+=e.movementX;st.camDY+=e.movementY;}});
+  function setFps(on){fpsMode=!!on;mouseFire=false;mouseAds=false;touchFireN=0;
+    if(!on&&document.pointerLockElement===ctl&&document.exitPointerLock)document.exitPointerLock();}
 
   // keyboard fallback for desktop testing
   addEventListener('keydown',e=>{
     if(e.repeat)return;keys[e.code]=true;st.anyPressed=true;
-    if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};
-    if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
+    if(fpsMode){   // first person: J fires, Space dodges, Shift sprints, R reloads, Q and the numbers swap, F zooms
+      if(e.code==='KeyJ')st.firePressed=true;
+      if(e.code==='KeyK'||e.code==='Space')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
+      if(e.code==='KeyR')st.reloadPressed=true;
+      if(e.code==='KeyQ')st.swapPressed=true;
+      if(e.code==='KeyF')st.zoomPressed=true;
+      if(e.code==='Digit1'||e.code==='Digit2'||e.code==='Digit3')st.pickGun=+e.code.slice(5)-1;
+    }else{
+      if(e.code==='KeyJ'||e.code==='Space')st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};
+      if(e.code==='KeyK'||e.code==='ShiftLeft')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
+    }
     if(e.code==='KeyE')st.interactPressed=true;
     if(e.code==='Escape')st.pausePressed=true;
   });
@@ -2786,22 +2916,25 @@ const Input=(()=>{
     if(keys.KeyA||keys.ArrowLeft)kx-=1;
     if(keys.KeyD||keys.ArrowRight)kx+=1;
     // keys walk unless R is held — the stick sprints past ~3/4 deflection
-    if(kx||kz){const l=Math.hypot(kx,kz)/(keys.KeyR?1:.62);st.mx=kx/l;st.mz=kz/l;}
+    if(kx||kz){const l=Math.hypot(kx,kz)/((fpsMode?keys.ShiftLeft:keys.KeyR)?1:.62);st.mx=kx/l;st.mz=kz/l;}
     else if(stickId===null){st.mx=0;st.mz=0;}
     // a still finger that never moved gets no pointermove: settle it here
     if(gesture&&gesture.mode==='pending'&&performance.now()-gesture.t0>HOLD_MS){
       const g=gesture;settleHold(g,g.lx,g.ly);
     }
-    st.chargeHeld=touchCharge||!!keys.KeyL;
+    st.chargeHeld=touchCharge||(!fpsMode&&!!keys.KeyL);
+    st.fireHeld=touchFireN>0||mouseFire||(fpsMode&&!!keys.KeyJ);
+    st.adsHeld=mouseAds||(fpsMode&&!!keys.KeyL);
     if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
   }
   function consume(){
     st.swipe=null;st.chargeRelease=false;st.pausePressed=false;
     st.interactPressed=false;
+    st.firePressed=false;st.adsTap=false;st.adsRelease=false;st.reloadPressed=false;st.swapPressed=false;st.zoomPressed=false;st.pickGun=-1;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
-  return {st,poll,consume,releaseAll};
+  return {st,poll,consume,releaseAll,setFps};
 })();
 const IN=Input.st;
 /* ---------------- level geometry & walkable space ----------------
@@ -7864,6 +7997,7 @@ const ELEMENTS={
      pilgrim, and it is in this table only so the drop, its glow and its
      motes can be looked up the same way everything else is. */
   skull:{hue:0xe6e2d2,lite:0xcfd6d8,em:0,msg:'the mark of the reaper'},
+  ammo:{hue:0xd9c27a,lite:0xc9a84a,em:0,msg:''},   // drop only: rounds for the guns, and only while the eye is in the helm
 };
 function elemBurst(kind,x,y,z){
   const pal=kind==='fire'?[0xff8c2a,0xff5f1a,0xffc46a]:
@@ -8286,8 +8420,8 @@ function dropCleanup(d){
    same thing; now the glow carries you to it and the face tells you what
    it is once you are close enough to care. */
 const DROP_FACE={fire:'orbFire',lightning:'orbBolt',ice:'orbIce',
-                 health:'orbHeart',skull:'orbSkull'};
-const DROP_ICON_S={health:.48,skull:.48,fire:.44,lightning:.44,ice:.44};
+                 health:'orbHeart',skull:'orbSkull',ammo:'orbAmmo'};
+const DROP_ICON_S={health:.48,skull:.48,fire:.44,lightning:.44,ice:.44,ammo:.46};
 function spawnElemDrop(x,z,kind){
   // the reaper's mark is rare, and never asked for: it simply turns up
   kind=kind||(Math.random()<.06?'skull':['fire','lightning','ice'][(Math.random()*3)|0]);
@@ -8319,7 +8453,7 @@ function spawnElemDrop(x,z,kind){
     });
   }
   elemDrops.push(d);
-  if(elemDrops.length>4)dropCleanup(elemDrops.shift());
+  if(elemDrops.length>(FPS.on?6:4))dropCleanup(elemDrops.shift());   // (the guns' rounds share the ground with the motes: a little more room for them)
 }
 function updateElemDrops(dt){
   for(let i=elemDrops.length-1;i>=0;i--){
@@ -8364,6 +8498,11 @@ function updateElemDrops(dt){
       if(d.icon)d.icon.material.rotation=Math.sin(d.t*.7)*.12;
       if(Math.random()<dt*1.6)
         elemFleck('skull',d.x+rr3(-.2,.2),d.s.position.y+rr3(-.1,.25),d.z+rr3(-.2,.2));
+    }else if(d.kind==='ammo'){
+      // a box of rounds: it sits there. A slow bob, a slower turn of the face, and no fire
+      d.s.position.set(d.x,d.gy+.76+Math.sin(d.t*1.8)*.06,d.z);
+      d.s.material.rotation=0;pu=1+Math.sin(d.t*2.4)*.05;
+      if(d.icon)d.icon.material.rotation=Math.sin(d.t*1.1)*.1;
     }else{
       // health: a living heartbeat — lub-dub, warm motes drifting up
       const ph=(d.t*1.4)%1;
@@ -8390,6 +8529,7 @@ function updateElemDrops(dt){
         toast('the marrow mends you');
         boneBurst(player.x,1.2,player.z,0xd0762b,7,1);
       }else if(d.kind==='skull')player.takeMark();
+      else if(d.kind==='ammo')gunAmmoPick();
       else player.setElement(d.kind);
     }
   }
@@ -8413,6 +8553,12 @@ const G={
   marrowDrop:null,
   vibr(ms){try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}},
 };
+/* FIRST PERSON — the switch and everything it carries (see the FIRST
+   PERSON section, below the camera). Declared here, beside G, because the
+   pilgrim's own rebuild asks it whether to hide the body, and that runs at
+   boot. */
+const FPS={on:false,pitch:0,ads:0,adsOn:false,zoom:0,gun:0,ammo:{},bob:0,kick:0,swayX:0,swayY:0,sprintVm:0,
+  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.42};   // (the eye: where the third-person gaze and the bow's loose already put the head)
 
 /* ---------------- the player ---------------- */
 const player={
@@ -8476,6 +8622,7 @@ const player={
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
     heroifyObject(this.rig.root);                 // the hero draws crisp, on its own layer
+    if(FPS.on&&this.state!=='dead'){this.rig.root.visible=false;FPS.hidRig=true;}   // (the eye is inside it)
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
     dressSnow(this.rig);this.snowCling=this.snowCling||0;this.snowCoat=0;this.snowBoot=0;
@@ -8541,6 +8688,7 @@ const player={
     this.clearElement(); // death lets the element go
     this.clearMark();    // and the mark with it
     G.lockTarget=null;
+    fpsRespawn();        // the magazines, if he is carrying any
   },
   /* THE MARK OF THE REAPER. A white skull turns over the pilgrim's head,
      and while it does, anything the edge touches is already dead. It is
@@ -8949,6 +9097,7 @@ const player={
     // that has just fallen, but the blade won't be
     const foe=G.lockTarget&&!G.lockTarget.objective&&G.lockTarget.hp>0?G.lockTarget:null;
     this.t+=dt;
+    if(FPS.on&&this.state!=='dead')this.facing=wrapA(G.camYaw+Math.PI);   // first person: the body faces where the eye looks, always
     this.seamT=Math.max(0,(this.seamT||0)-dt);
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
     this.postRollT+=dt;
@@ -9251,7 +9400,7 @@ const player={
       if(mAmt>0){this.x+=mvx*this.spd*dt;this.z+=mvz*this.spd*dt;}
       else if(this.spd>.05){this.x+=(this.moveX||0)*this.spd*dt;this.z+=(this.moveZ||0)*this.spd*dt;}   // the last stride's carry as it stops
       this.strideT=(this.strideT||0)+dt*(this.spd/4.3);    // the walk cycle's clock runs with the ground covered, so the feet match the pace
-      if(mAmt>0){
+      if(mAmt>0&&!FPS.on){   // (in first person the heading never turns the body: the eye does)
         const heading=Math.atan2(mvx,mvz);
         if(foe){
           // LOCKED: the body stays on the foe — walking, and sprinting toward
@@ -9270,7 +9419,7 @@ const player={
           const rate=(4+10*Math.min(1,mAmt))*(diff<.26?.35:1);
           this.facing=angLerp(this.facing,heading,rate*dt);}
       }else this.runAway=false;
-      if(IN.chargeHeld){startCharge();return this.post(dt);}
+      if(IN.chargeHeld&&!FPS.on){startCharge();return this.post(dt);}
       // footfalls ride the ACTUAL heel strikes of the walk cycle
       const heel=this.rig._heel||0;
       if(heel>.45&&!this._heelOn){
@@ -9296,7 +9445,8 @@ const player={
       // block pushback drift
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
-      if(IN.swipe){
+      if(IN.swipe&&FPS.on){if(IN.swipe.kind==='dodge')startDodge(IN.swipe);}   // (first person: the trigger is elsewhere; only the dodge comes in this way)
+      else if(IN.swipe){
         if(IN.swipe.kind==='atk'&&this.katThrown)startKPull();   // the blade is away: a tap calls it home
         else if(IN.swipe.kind==='atk'){
           const ex=this.execTarget(),bs=ex?null:this.backstabTarget();
@@ -10118,7 +10268,7 @@ class Enemy{
     }
   }
   reset(){
-    endRagdoll(this);this.lastHit=null;this.sliced=false;this.noRag=false;
+    endRagdoll(this);this.lastHit=null;this.sliced=false;this.noRag=false;this.roseToPace=false;
     if(this.arrows){for(const a of this.arrows)if(a.parent)a.parent.remove(a);this.arrows=null;}
     this.x=this.homeX;this.z=this.homeZ;
     this.hp=this.maxHp;this.poise=0;this.phase2=false;
@@ -10222,6 +10372,7 @@ class Enemy{
       if(r<.3)spawnElemDrop(this.x,this.z);
       else if(r<.52)spawnElemDrop(this.x,this.z,'health');
     }
+    if(FPS.on&&!this.boss&&Math.random()<.5)spawnElemDrop(this.x+rr3(-.9,.9),this.z+rr3(-.9,.9),'ammo');   // and, with a gun in the field, what a gun needs
     boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
     if(this.boss)onBossDead();
     // the body falls the way the blow sent it — or folds where it stood
@@ -10275,6 +10426,15 @@ class Enemy{
       case 'frozen':break;                                   // (held: nothing moves)
       case 'dormant':
         if(!this.boss&&dist<this.aggroR&&G.mode==='play')this.wake();
+        /* WITH A GUN IN HAND THE FIELD SHOWS ITSELF. A host that lies under
+           the soil until you are ten metres off gives a rifle nothing to
+           look at, so about half of it climbs out early — from thirty-odd
+           metres — and PACES its ground instead of coming, the way the
+           path's patrols do. It comes when you are close, or when it is
+           shot. The ambushes stay down: that is what they are for. */
+        else if(FPS.on&&!this.boss&&!this.ambush&&G.mode==='play'&&dist<36&&dist>this.aggroR+3){
+          if(this.paceRoll===undefined)this.paceRoll=Math.random()<.55;
+          if(this.paceRoll){this.wake();this.roseToPace=true;}}
         break;
       case 'rise':
         // poseRise drives the climb out of the soil
@@ -10290,7 +10450,7 @@ class Enemy{
           if(q>=1){scene.remove(this.mound);this.mound.geometry.dispose();this.mound=null;
             paintScar(this.x,this.z,Math.random()*TAU,1.9,2.1,true);}   // the spoil stays
         }
-        if(this.t>=(this.boss?1.1:2.6)){this.rig.root.position.y=0;this.state='chase';}
+        if(this.t>=(this.boss?1.1:2.6)){this.rig.root.position.y=0;if(this.roseToPace){this.roseToPace=false;this.patrol();}else this.state='chase';}
         break;
       case 'patrol':{
         // a short beat back and forth about its post, a pause at each end; the prey in reach and it comes
@@ -10617,6 +10777,7 @@ class Crow{
     boneBurst(this.x,this.y,this.z,0x23232c,12,2.6);
     if(Math.random()<.4)
       spawnElemDrop(this.x,this.z,Math.random()<.5?'health':undefined);
+      if(FPS.on&&Math.random()<.5)spawnElemDrop(this.x+rr3(-.8,.8),this.z+rr3(-.8,.8),'ammo');
   }
   update(dt){
     const P=player;
@@ -12350,6 +12511,7 @@ function splitEnemy(e,facing,cut,sharp){
   }});
 }
 function updateExecMark(){
+  if(FPS.on){execMark.visible=false;return;}   // (a gun finishes nothing by hand)
   const e=G.mode==='play'&&(player.state==='free'||player.state==='attack')?player.execTarget():null;
   if(e){
     if(!execMark.visible){AudioSys.parryTick();G.vibr(12);}
@@ -12798,6 +12960,8 @@ function lockScore(e){
 }
 const LOCK_LEAVE=1.5;   // seconds of running from the locked horror before the eye lets it go
 function updateLock(){
+  // first person: the crosshair is the eye. Nothing is ever locked
+  if(FPS.on){G.lockTarget=null;G.lockOff=false;G.lockAwayT=0;G.lockDeadAt=undefined;lockMarker.visible=false;return;}
   // the eye holds the CLOSEST live horror, with a little stickiness so
   // two circling enemies don't make it flicker
   const cands=lockCands(),t=G.lockTarget;
@@ -12850,6 +13014,440 @@ function updateLock(){
     lockMarker.material.rotation=G.time*2;
     lockMarker.material.opacity=c.state==='scatter'?.45:1;   // a heap of bones is held, but quietly
   }
+}
+
+/* =========================== FIRST PERSON ===========================
+   Not a mode: a WAY OF PLAYING either world. The switch by the pause
+   button (or on the pause screen) moves the eye into the helm, hides the
+   pilgrim's body, and takes the blade out of his hands — what he carries
+   instead is a gun, and the whole of the right thumb is given over to
+   looking. The buttons are laid out the way a phone shooter lays them:
+   a trigger under EACH thumb (fire with the left while the right keeps
+   aiming, or the other way round), the sights, the reload and the dodge
+   in a cluster to the right, and the weapon bar at the bottom centre
+   that you tap to swap. The world, the host, the marrow, the hours and
+   the drops are all exactly what they were; only the horrors now drop
+   ammunition too, because they have to.
+
+   Three guns and no more:
+     the GOLDEN EAGLE — a hand cannon. Seven in the magazine, each one a
+       hollow's worth, two to a brute; a headshot doubles it. Slow, and
+       it climbs.
+     the UMP45 — the spray. Twenty-five rounds at eleven a second, each
+       a scratch; the bloom opens as it runs and the sights close it.
+     the BONE SNIPER — one shot, one body, from anywhere the fog allows.
+       Its sights are a SCOPE (the glass takes the screen, the viewmodel
+       goes away) with two magnifications on the zoom button. From the
+       hip it is a stick that goes off.
+
+   THE SHOT IS A RAY. No projectile: the ray leaves the camera through
+   the crosshair, opened by the current spread, and is tested against
+   every live horror's head and body spheres first (analytic), then
+   walked out through the world to the first thing it would have hit
+   before that — the soil, a wall of the cathedral, a trunk, a
+   gravestone, a pew, the bell. Whatever comes first takes it. A hit
+   flashes the marker on the crosshair (white; red for a kill), and a
+   miss leaves a mark on whatever stopped it.
+
+   Two rules carried from the rest of the game: NEVER a new light (the
+   muzzle flash is a sprite and a flare of the pilgrim's own halo), and
+   the body's own states still run underneath — the roll, the stagger,
+   the knockdown, the fall over the rim — the camera simply rides them. */
+const GUNS=[
+  {key:'deagle',name:'golden eagle',mag:7,reserve:35,dmg:34,head:2,rof:.36,auto:false,
+    sp:{hip:.026,ads:.007,walk:.018,shot:.05},kick:.16,poise:2.2,kb:1.3,reload:1.5,adsFov:50,adsSpeed:9,range:60,pick:14,
+    note:'a hand cannon in gold: seven rounds, each a hollow\'s worth and two to a brute; the head takes double. it climbs, and the sights hold it down'},
+  {key:'ump',name:'ump45',mag:25,reserve:100,dmg:12,head:1.8,rof:.088,auto:true,
+    sp:{hip:.034,ads:.011,walk:.024,shot:.011},kick:.05,poise:.6,kb:.4,reload:1.9,adsFov:48,adsSpeed:11,range:52,pick:50,
+    note:'the spray: twenty-five at eleven a second, each one a scratch. hold the trigger; the bloom opens as it runs and the sights close it'},
+  {key:'sniper',name:'bone sniper',mag:5,reserve:15,dmg:96,head:2.3,rof:1.25,auto:false,bolt:true,scope:true,
+    sp:{hip:.11,ads:.0012,walk:.05,shot:.02},kick:.3,poise:7,kb:2.4,reload:2.6,adsFov:[18,7],adsSpeed:6,range:130,pick:6,
+    note:'one shot, one body, from wherever the fog lets you see. the sights are a scope with two magnifications on the zoom button; from the hip it is a stick that goes off'},
+];
+const GUN_NOTE_HUD='fire (either thumb) — shoot · aim — down the sights · reload · dodge · tap the bar — swap';
+function gunOf(){return GUNS[FPS.gun]||GUNS[0];}
+function gunAmmo(g){g=g||gunOf();return FPS.ammo[g.key]||(FPS.ammo[g.key]={mag:g.mag,res:g.reserve});}
+for(const g of GUNS)gunAmmo(g);
+try{FPS.gun=clamp(parseInt(localStorage.getItem('bp_gun')||'0',10)||0,0,GUNS.length-1);}catch(e){}
+
+/* ---- the viewmodel: three guns hung off the camera, one showing ---- */
+const vmMat=(hex,extra)=>lam(Object.assign({color:new THREE.Color(hex).convertSRGBToLinear()},extra||{}));
+const vmBox=(w,h,d,m,x,y,z)=>{const me=new THREE.Mesh(GBox(w,h,d),m);me.position.set(x,y,z);return me;};
+const vmCyl=(r,h,seg,m,x,y,z,rt)=>{const me=new THREE.Mesh(GCyl(rt===undefined?r:rt,r,h,seg),m);me.position.set(x,y,z);me.rotation.x=Math.PI/2;return me;};
+function buildViewmodel(){
+  if(FPS.vm)return;
+  scene.add(camera);                                   // (a child of the camera has to have the camera in the scene)
+  const vm=new THREE.Group();vm.guns={};camera.add(vm);
+  const gold=vmMat(0xc9a13a,{emissive:new THREE.Color(0x2a1c04)}),dark=vmMat(0x2a2622),steel=vmMat(0x8a8478),
+        gun=vmMat(0x2b2d2f),gunD=vmMat(0x1a1b1d),grey=vmMat(0x4a4c4e),wood=vmMat(0x4a3222),glove=vmMat(0x5b5148),sleeve=vmMat(0x4b4f52);
+  const hands=(g,gx,gy,gz)=>{   // the right hand on the grip, the forearm running back toward the shoulder
+    g.add(vmBox(.05,.062,.058,glove,gx,gy,gz));
+    const fa=vmBox(.056,.05,.2,sleeve,gx+.015,gy-.06,gz+.12);fa.rotation.x=.55;g.add(fa);};
+  const flash=(g,x,y,z)=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffd27a,transparent:true,opacity:.95,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
+    s.position.set(x,y,z);s.scale.set(.16,.16,1);s.visible=false;s.renderOrder=8;g.add(s);return s;};
+  { // THE GOLDEN EAGLE
+    const g=new THREE.Group();
+    g.add(vmBox(.048,.05,.25,gold,0,.06,-.03));          // the slide
+    g.add(vmBox(.044,.038,.19,gold,0,.018,-.005));        // the frame under it
+    const grip=vmBox(.036,.11,.05,dark,0,-.05,.06);grip.rotation.x=.28;g.add(grip);
+    const mag=vmBox(.026,.1,.038,steel,0,-.062,.062);mag.rotation.x=.28;g.add(mag);   // the magazine, inside the grip (it drops on a reload)
+    g.add(vmBox(.03,.01,.06,gold,0,-.02,.01));            // the trigger guard
+    g.add(vmBox(.008,.02,.006,dark,0,-.012,0));           // the trigger
+    g.add(vmCyl(.013,.03,8,dark,0,.06,-.165));            // the muzzle
+    g.add(vmBox(.012,.02,.014,dark,0,.075,.1));           // the hammer
+    g.add(vmBox(.006,.012,.008,dark,0,.091,-.145));       // front sight
+    g.add(vmBox(.02,.01,.008,dark,0,.09,.09));            // rear sight
+    hands(g,0,-.06,.07);
+    g.mag=mag;g.magY=mag.position.y;g.flash=flash(g,0,.06,-.2);
+    g.hip=[.2,-.2,-.48];g.ads=[0,-.078,-.42];g.hipRy=-.08;g.scale.setScalar(.85);
+    vm.add(g);vm.guns.deagle=g;
+  }
+  { // THE UMP45
+    const g=new THREE.Group();
+    g.add(vmBox(.058,.07,.34,gun,0,.03,-.02));            // the receiver
+    g.add(vmBox(.05,.06,.14,gunD,0,.02,-.2));             // the handguard
+    g.add(vmCyl(.011,.08,8,grey,0,.045,-.31));            // the barrel
+    g.add(vmBox(.006,.02,.008,gunD,0,.075,-.26));         // front post
+    g.add(vmBox(.024,.02,.01,gunD,0,.075,.06));           // hooded rear sight
+    const mag=vmBox(.03,.17,.05,gunD,0,-.07,-.13);mag.rotation.x=-.12;g.add(mag);   // the magazine
+    const grip=vmBox(.036,.1,.045,gunD,0,-.06,.08);grip.rotation.x=.3;g.add(grip);
+    g.add(vmBox(.02,.04,.2,gun,0,.03,.26));               // the folding stock, out
+    g.add(vmBox(.03,.07,.02,gunD,0,.03,.36));             // ...and its plate
+    g.add(vmBox(.008,.008,.04,grey,-.034,.055,-.1));      // the charging handle
+    hands(g,0,-.065,.09);
+    g.add(vmBox(.048,.05,.05,glove,-.01,-.02,-.2));       // the left hand, on the handguard
+    g.mag=mag;g.magY=mag.position.y;g.flash=flash(g,0,.045,-.36);
+    g.hip=[.18,-.21,-.46];g.ads=[0,-.064,-.44];g.hipRy=-.1;g.scale.setScalar(.85);
+    vm.add(g);vm.guns.ump=g;
+  }
+  { // THE BONE SNIPER
+    const g=new THREE.Group();
+    g.add(vmCyl(.016,.62,8,steel,0,.05,-.42,.012));       // the barrel, tapering
+    g.add(vmBox(.05,.06,.22,gun,0,.045,-.04));            // the receiver
+    g.add(vmBox(.05,.075,.32,wood,0,.02,.2));             // the stock
+    g.add(vmBox(.045,.05,.16,wood,0,.07,.22));            // the cheek rest
+    g.add(vmBox(.055,.1,.03,gunD,0,.02,.37));             // the butt plate
+    g.add(vmBox(.052,.055,.3,wood,0,.015,-.24));          // the fore-end
+    g.add(vmBox(.02,.02,.03,gunD,0,.085,-.08));g.add(vmBox(.02,.02,.03,gunD,0,.085,.02));   // scope mounts
+    g.add(vmCyl(.024,.24,10,gunD,0,.11,-.03));            // the scope tube
+    g.add(vmCyl(.032,.06,10,gunD,0,.11,-.17,.026));       // the objective bell
+    g.add(vmCyl(.028,.04,10,gunD,0,.11,.1,.024));         // the ocular
+    g.add(vmCyl(.021,.004,10,vmMat(0x3a5a70,{emissive:new THREE.Color(0x0c1a26)}),0,.11,-.201));   // the glass
+    const bolt=new THREE.Group();bolt.position.set(.03,.06,.03);
+    const bh=vmBox(.06,.01,.01,steel,.03,0,0);bolt.add(bh);bolt.add(vmBox(.016,.016,.016,gunD,.062,0,0));g.add(bolt);   // the bolt handle, out to the right
+    g.add(vmBox(.03,.06,.07,gunD,0,-.01,-.04));           // the magazine, short
+    g.add(vmBox(.03,.012,.06,gunD,0,-.03,.02));           // the trigger guard
+    hands(g,0,-.04,.08);
+    g.add(vmBox(.048,.05,.05,glove,-.005,-.02,-.26));     // the left hand under the fore-end
+    g.bolt=bolt;g.boltZ=bolt.position.z;g.flash=flash(g,0,.05,-.74);
+    g.hip=[.17,-.19,-.42];g.ads=[0,-.094,-.30];g.hipRy=-.1;g.scale.setScalar(.85);
+    vm.add(g);vm.guns.sniper=g;
+  }
+  FPS.vm=vm;
+}
+const _gv1=new THREE.Vector3(),_gv2=new THREE.Vector3(),_gv3=new THREE.Vector3(),_gv4=new THREE.Vector3();
+function muzzleWorld(){const V=FPS.vm&&FPS.vm.guns[gunOf().key];if(!V||!FPS.vm.visible)return _gv1.copy(camera.position);camera.updateMatrixWorld(true);return V.flash.getWorldPosition(_gv1);}
+
+/* ---- the ray ---- */
+function raySphere(o,d,s){
+  const lx=s.x-o.x,ly=s.y-o.y,lz=s.z-o.z;
+  const tc=lx*d.x+ly*d.y+lz*d.z;if(tc<0)return null;
+  const d2=lx*lx+ly*ly+lz*lz-tc*tc,r2=s.r*s.r;if(d2>r2)return null;
+  return tc-Math.sqrt(r2-d2);
+}
+// a horror the eye can settle a shot on: up, alive, whole, and not behind a wall
+function shootable(e){
+  return e.hp>0&&e.state!=='dormant'&&e.state!=='scatter'&&e.state!=='dead'&&!e.untouchable
+    &&!(e.state==='rise'&&e.t<1.1)&&lockReach(e);
+}
+// where the thing IS: its skull, and its body — a sphere each, off the rig's own bones
+function gunSpheres(e){
+  const out=[],s=(e.rig&&e.rig.s)||1;
+  if(e.rig&&e.rig.head&&!e.severedHead){
+    const p=e.rig.head.getWorldPosition(_gv2);
+    out.push({x:p.x,y:p.y+.05*s,z:p.z,r:(e.boss?.34:e.big?.29:.21)*s+.03,head:true});
+  }
+  if(e.rig&&e.rig.torso){
+    const p=e.rig.torso.getWorldPosition(_gv3);
+    out.push({x:p.x,y:p.y,z:p.z,r:(e.radius||.4)+.22,head:false});
+    out.push({x:e.x,y:heightAt(e.x,e.z)+.55*s,z:e.z,r:(e.radius||.4)+.12,head:false});   // the hips and legs
+  }else{
+    const y=foeY(e)+(e.markUp!==undefined?e.markUp*.55:e.crow?.28:.9);
+    out.push({x:e.x,y,z:e.z,r:(e.radius||.5)+(e.markUp!==undefined?.55:.28),head:false});
+  }
+  return out;
+}
+/* THE RAY, WALKED OUT. The horrors are tested analytically first and the
+   nearest kept; then the world is asked what stands in front of that —
+   the soil (stepped, the ground is a mesh and nothing else will do), the
+   cathedral's own stone (`camStone`, the same shell the camera walks
+   against), and every round obstacle and breakable by the closest
+   approach of the ray to it. Whatever is nearest wins the bullet. */
+function hitscan(o,d,range){
+  let best=null,bt=range;
+  for(const e of enemies){
+    if(!shootable(e))continue;
+    for(const s of gunSpheres(e)){const t=raySphere(o,d,s);if(t!==null&&t>.05&&t<bt){bt=t;best={kind:'enemy',e,s,t};}}
+  }
+  const dl=Math.hypot(d.x,d.z)||1e-6,ux=d.x/dl,uz=d.z/dl;   // the ray's ground plan
+  const along=(x,z)=>((x-o.x)*ux+(z-o.z)*uz)/dl;            // 3D distance along the ray at which the plan passes nearest (x,z)
+  const across=(x,z)=>Math.abs((x-o.x)*uz-(z-o.z)*ux);
+  const yAt=(t)=>o.y+d.y*t;
+  for(const ob of obstacles){
+    if(ob.seg){ // a wall segment: where the plan crosses the line
+      const ex=ob.bx-ob.ax,ez=ob.bz-ob.az,den=ux*ez-uz*ex;if(Math.abs(den)<1e-6)continue;
+      const wx=ob.ax-o.x,wz=ob.az-o.z,t2=(wx*ez-wz*ex)/den,u=(wx*uz-wz*ux)/den;
+      if(u<0||u>1||t2<0)continue;const t=t2/dl;if(t>=bt)continue;
+      const cx=ob.ax+ex*u,cz=ob.az+ez*u;if(yAt(t)>heightAt(cx,cz)+2.4)continue;
+      bt=t;best={kind:'stone',o:ob,t};continue;}
+    if(ob.r<.22)continue;
+    const t=along(ob.x,ob.z);if(t<0||t>=bt)continue;
+    if(across(ob.x,ob.z)>ob.r)continue;
+    if(yAt(t)>heightAt(ob.x,ob.z)+(ob.tree?5.5:1.4))continue;
+    bt=t;best={kind:ob.tree?'tree':'stone',o:ob,t};
+  }
+  for(const b of breakables){
+    const r=Math.max(b.hw||.4,b.hd||.4)+.05,t=along(b.x,b.z);if(t<0||t>=bt)continue;
+    if(across(b.x,b.z)>r)continue;
+    if(yAt(t)>heightAt(b.x,b.z)+(b.tough?2.6:1.5))continue;
+    bt=t;best={kind:'break',b,t};
+  }
+  { // the soil, and the cathedral's stone: stepped
+    const step=.35,n=Math.ceil(bt/step);
+    for(let i=1;i<=n;i++){
+      const t=Math.min(bt,i*step),px=o.x+d.x*t,py=yAt(t),pz=o.z+d.z*t;
+      if(py<heightAt(px,pz)){bt=t;best={kind:'ground',t};break;}
+      const cz=cathZ(pz);
+      if(cz<1e8&&py<PH+9&&camStone(px,pz-cz)){bt=t;best={kind:'wall',t};break;}
+    }
+  }
+  const t=best?best.t:range;
+  const point=new THREE.Vector3(o.x+d.x*t,o.y+d.y*t,o.z+d.z*t);
+  return Object.assign({kind:'air',t,point},best||{});
+}
+// the ray out of the eye, opened by the spread
+function gunRay(spread){
+  camera.getWorldDirection(_gv4);
+  const rx=Math.cos(G.camYaw),rz=-Math.sin(G.camYaw);          // screen-right in the world (see the stick's mapping)
+  const a=Math.random()*TAU,m=spread*Math.sqrt(Math.random());
+  const sx=Math.cos(a)*m,sy=Math.sin(a)*m;
+  _gv4.x+=rx*sx;_gv4.z+=rz*sx;_gv4.y+=sy;
+  return _gv4.normalize().clone();
+}
+/* the tracer: a line from the muzzle to whatever the round met, gone in a
+   twentieth of a second — the eye reads the direction, not the line */
+function tracer(a,b,g){
+  if(!isFinite(a.x)||!isFinite(b.x))return;
+  const geo=new THREE.BufferGeometry().setFromPoints([a.clone(),b.clone()]);
+  const m=new THREE.LineBasicMaterial({color:g.key==='sniper'?0xfff4d8:0xffd9a0,transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false});
+  const line=new THREE.Line(geo,m);scene.add(line);
+  const life=g.key==='sniper'?.09:.05;let t=0;
+  effects.push({update(dt){t+=dt;m.opacity=.75*Math.max(0,1-t/life);if(t>life){scene.remove(line);geo.dispose();m.dispose();return false;}return true;}});
+}
+function hitMark(kill,head){FPS.hitT=.16;if(kill)FPS.killT=.32;FPS.hitHead=!!head;AudioSys.hitmark(kill);G.vibr(kill?[10,20,25]:8);}
+function gunHit(g,hit,dir){
+  const e=hit.e,head=!!hit.s.head,p=hit.point;
+  let dmg=g.dmg*(head?g.head:1);
+  const el=player.element;
+  if(el==='lightning')dmg*=1.2;
+  if(Math.random()<.08)dmg*=1.5;                         // a telling shot
+  if(player.reaperT>0&&!e.boss)dmg*=2;                   // the mark leans on the round
+  dmg=Math.round(dmg);
+  gore(e,p.x,p.y,p.z,head?9:5,head?1.2:.8);
+  if(head&&!(e.rig&&e.rig.skeletal))bloodDecal(e.x+rr3(-.3,.3),e.z+rr3(-.3,.3),.3);
+  if(e.state==='patrol'){e.state='chase';e.t=0;}         // shot at, it comes
+  const hv={dx:dir.x,dz:dir.z,up:head?1.1:.5};
+  e.takeHit(dmg,g.poise*(head?2:1),player.x,player.z,g.kb,hv);
+  if(el){elemBurst(el,p.x,p.y,p.z);
+    if(el==='fire')fireBite(e);else if(el==='ice'){AudioSys.iceHit();e.chillT=6;}else AudioSys.zapHit();}
+  hitMark(e.hp<=0,head);
+}
+function fireGun(){
+  const g=gunOf(),A=gunAmmo(g);
+  A.mag--;FPS.shotT=g.rof;FPS.kick=1;FPS.flashT=.05;FPS.boltT=g.bolt?0:99;
+  FPS.spread+=g.sp.shot;
+  // the climb: up, and a little to one side; the sights hold half of it
+  FPS.pitch=clamp(FPS.pitch+g.kick*.09*(1-.5*FPS.ads),-1.25,1.25);
+  G.camYaw+=rr3(-1,1)*g.kick*.03*(1-.5*FPS.ads);
+  AudioSys.gun(g.key);G.vibr(g.key==='sniper'?40:g.key==='ump'?7:18);
+  G.camShake=Math.max(G.camShake,g.kick*.8);G.glowFlash=Math.max(G.glowFlash||0,.45);
+  const mp=muzzleWorld().clone();
+  boneBurst(mp.x+rr3(-.05,.05),mp.y-.05,mp.z+rr3(-.05,.05),0xc9a34a,1,1.4);   // the casing
+  smokePuff(mp.x,mp.y+.02,mp.z,1);
+  const o=camera.position,d=gunRay(FPS.spread);
+  const hit=hitscan(o,d,g.range);FPS.lastHit=hit.kind;   // (the kind is kept for the probes)
+  tracer(mp,hit.point,g);
+  const p=hit.point;
+  if(hit.kind==='enemy')gunHit(g,hit,d);
+  else if(hit.kind==='ground'){boneBurst(p.x,p.y+.05,p.z,snowDeep()?0xdfe8f2:0x5a4c38,4,1.6);paintScar(p.x,p.z,Math.random()*TAU,.16,.16,true);}
+  else if(hit.kind==='wall'||hit.kind==='stone'){sparkBurst(p.x,p.y,p.z,hit.kind==='wall'?8:5);AudioSys.clang(hit.kind==='wall'?'wall':'stone');}
+  else if(hit.kind==='tree'){boneBurst(p.x,p.y,p.z,0x5a4326,5,1.8);AudioSys.woodKnock();}
+  else if(hit.kind==='break'){strikeBreakables(p.x,p.z,d.x,d.z,.45,Math.PI,false);}
+  if(A.mag<=0&&A.res>0&&!g.bolt)startReload();          // an empty magazine goes on its own
+}
+function startReload(){
+  const g=gunOf(),A=gunAmmo(g);
+  if(FPS.reloading||A.mag>=g.mag||A.res<=0)return;
+  FPS.reloading=true;FPS.reloadT=0;FPS.rlStage=0;AudioSys.magOut();
+}
+function gunSwapped(){
+  FPS.reloading=false;FPS.shotT=Math.max(FPS.shotT,.4);FPS.zoom=0;FPS.kick=Math.max(FPS.kick,.6);FPS.boltT=99;
+  try{localStorage.setItem('bp_gun',String(FPS.gun));}catch(e){}
+  if(FPS.on)AudioSys.rack();
+}
+function cycleGun(d){FPS.gun=(FPS.gun+d+GUNS.length)%GUNS.length;gunSwapped();}
+// an ammunition drop taken: every gun is fed, the one in hand most
+function gunAmmoPick(){
+  for(const g of GUNS){const A=gunAmmo(g);A.res+=g.pick*(g===gunOf()?2:1);}
+  AudioSys.ammoPick();G.vibr(15);toast('ammunition taken');
+}
+// back from the dead: the magazines are full again and the reserve is at least what he set out with
+function fpsRespawn(){
+  for(const g of GUNS){const A=gunAmmo(g);A.mag=g.mag;A.res=Math.max(A.res,g.reserve);}
+  FPS.reloading=false;FPS.pitch=0;FPS.ads=0;FPS.adsOn=false;FPS.zoom=0;
+}
+/* the body is hidden while the eye is in it, and shown the moment he dies
+   — the death is watched from outside, the way it always was. Only the
+   two transitions are written, so the melt can hide the corpse for good
+   without this putting it back. */
+function syncFpsRig(){
+  const r=player.rig;if(!r)return;
+  const hide=FPS.on&&player.state!=='dead'&&G.mode!=='dead';
+  if(hide){if(r.root.visible||!FPS.hidRig){r.root.visible=false;FPS.hidRig=true;}}
+  else if(FPS.hidRig){r.root.visible=true;FPS.hidRig=false;G.camPitch=.34;camIdle=9;}
+}
+function updateFps(dt){
+  const P=player,g=gunOf(),A=gunAmmo(g);
+  const canAim=P.state==='free'||P.state==='hurt';
+  if(IN.adsTap)FPS.adsOn=!FPS.adsOn;
+  if(IN.adsRelease)FPS.adsOn=false;
+  if(P.sprinting&&P.moveAmt>.5)FPS.adsOn=false;         // a sprint comes off the sights
+  const wantAds=(FPS.adsOn||IN.adsHeld)&&canAim&&!FPS.reloading;
+  FPS.ads=lerp(FPS.ads,wantAds?1:0,Math.min(1,g.adsSpeed*dt));
+  if(FPS.ads<.01)FPS.ads=0;
+  const fov=g.scope?lerp(68,g.adsFov[FPS.zoom]||g.adsFov[0],FPS.ads):lerp(68,g.adsFov,FPS.ads);
+  if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
+  // the spread: the sights close it, walking opens it, and every shot blooms it
+  const mv=Math.min(1,P.moveAmt),base=lerp(g.sp.hip,g.sp.ads,FPS.ads)+g.sp.walk*mv*(1-.7*FPS.ads)*(P.sprinting?1.8:1);
+  FPS.spread=Math.max(base,FPS.spread-dt*(g.auto?.09:.16));
+  FPS.shotT=Math.max(0,FPS.shotT-dt);FPS.hitT-=dt;FPS.killT-=dt;FPS.flashT-=dt;FPS.boltT+=dt;
+  if(FPS.reloading){
+    FPS.reloadT+=dt;const u=FPS.reloadT/g.reload;
+    if(FPS.rlStage<1&&u>.48){FPS.rlStage=1;AudioSys.magIn();}
+    if(FPS.rlStage<2&&u>.82){FPS.rlStage=2;if(g.bolt)AudioSys.bolt();else AudioSys.rack();}
+    if(u>=1){const take=Math.min(g.mag-A.mag,A.res);A.mag+=take;A.res-=take;FPS.reloading=false;}
+  }
+  if(IN.reloadPressed)startReload();
+  if(IN.swapPressed)cycleGun(1);
+  if(IN.pickGun>=0&&IN.pickGun<GUNS.length&&IN.pickGun!==FPS.gun){FPS.gun=IN.pickGun;gunSwapped();}
+  if(IN.zoomPressed&&g.scope)FPS.zoom=FPS.zoom?0:1;
+  const busy=!(P.state==='free'||P.state==='hurt'||(P.state==='roll'&&P.t>rollProf().ROLLED))||G.mode!=='play';
+  const wantFire=g.auto?IN.fireHeld:IN.firePressed;
+  if(wantFire&&!busy&&!FPS.reloading&&FPS.shotT<=0&&!(g.bolt&&FPS.boltT<.85)){
+    if(A.mag>0)fireGun();
+    else{AudioSys.gunEmpty();FPS.shotT=.28;if(A.res>0)startReload();}
+  }
+  updateViewmodel(dt);
+}
+function updateViewmodel(dt){
+  const vm=FPS.vm;if(!vm)return;
+  const g=gunOf(),V=vm.guns[g.key],P=player;
+  for(const k in vm.guns)vm.guns[k].visible=k===g.key;
+  const ads=FPS.ads,mv=Math.min(1,P.moveAmt);
+  FPS.bob+=dt*(P.sprinting?11:8)*Math.min(1,(P.spd||0)/4.3);
+  const bobX=Math.sin(FPS.bob)*.014*mv*(1-.8*ads),bobY=Math.abs(Math.cos(FPS.bob))*.010*mv*(1-.8*ads);
+  FPS.swayX=lerp(FPS.swayX,clamp(-IN.camDX*.0009,-.04,.04)*(1-.7*ads),Math.min(1,8*dt));
+  FPS.swayY=lerp(FPS.swayY,clamp(IN.camDY*.0009,-.03,.03)*(1-.7*ads),Math.min(1,8*dt));
+  FPS.kick=Math.max(0,FPS.kick-dt*(g.auto?14:6));
+  const k=FPS.kick*g.kick;
+  FPS.sprintVm=lerp(FPS.sprintVm,P.sprinting&&mv>.5?1:0,Math.min(1,6*dt));
+  const sr=FPS.sprintVm;
+  let rl=0;if(FPS.reloading)rl=Math.sin(Math.PI*Math.min(1,FPS.reloadT/g.reload));
+  const hurt=P.state==='hurt'?Math.sin(Math.PI*Math.min(1,P.t/(P.hurtDur||.38)))*.12:0;
+  const H=V.hip,A=V.ads;
+  vm.position.set(lerp(H[0],A[0],ads)+bobX+FPS.swayX+sr*.06,
+                  lerp(H[1],A[1],ads)+bobY+FPS.swayY-rl*.10-sr*.09-hurt*.4,
+                  lerp(H[2],A[2],ads)+k*.9+rl*.03+sr*.05);
+  vm.rotation.set(-k*1.5+rl*.55+sr*.35+hurt,lerp(V.hipRy,0,ads)+FPS.swayX*2.5-sr*.5,rl*.4+sr*.3+FPS.swayX*.8);
+  if(V.mag){const u=FPS.reloading?FPS.reloadT/g.reload:0,out=u<=0?0:u<.5?Math.min(1,u/.2):Math.max(0,(1-u)/.35);
+    V.mag.position.y=V.magY-out*.16;V.mag.rotation.z=out*.35;}
+  if(V.bolt){const u=clamp(FPS.boltT/.8,0,1),lift=Math.sin(u*Math.PI);   // the handle lifts, the bolt comes back, and goes home
+    V.bolt.rotation.z=-1.1*Math.min(1,lift*1.4);V.bolt.position.z=V.boltZ+.05*Math.sin(Math.min(1,u*1.2)*Math.PI);}
+  V.flash.visible=FPS.flashT>0;
+  if(V.flash.visible){const s=(g.key==='sniper'?.26:g.key==='ump'?.13:.2)*(.8+Math.random()*.5);V.flash.scale.set(s,s,1);V.flash.material.rotation=Math.random()*TAU;}
+  vm.visible=FPS.on&&!(g.scope&&ads>.85)&&P.state!=='dead'&&G.mode!=='dead';
+}
+/* the first-person camera: the eye at the top of the pilgrim, and the
+   body's own states carried in it — the roll dips it, a fall takes it
+   down, the knockdown lays it over. The world's clamps are the pilgrim's
+   own, so nothing here need hold the lens inside anything. */
+function updateFpsCamera(dt){
+  const P=player;
+  const sens=.0034*(camera.fov/68);
+  G.camYaw-=IN.camDX*sens;FPS.pitch=clamp(FPS.pitch-IN.camDY*sens,-1.25,1.25);
+  const hP=heightAt(P.x,P.z)-snowSink(P.x,P.z);
+  let ey=FPS.eyeY;
+  if(P.state==='roll'){const R=rollProf();ey-=.5*Math.sin(Math.PI*clamp(P.t/R.DUR,0,1))*(isThief()?.4:1);ey+=P.rollAir||0;}
+  else if(P.state==='falling')ey+=P.fallY;
+  else if(P.state==='floored'){const F=FLOOR;ey-=.95*(P.t<F.LAND?P.t/F.LAND:P.t<F.RISE+.3?1:Math.max(0,1-(P.t-F.RISE-.3)/(F.DUR-F.RISE-.3)));}
+  else if(P.state==='hurt')ey-=.08*Math.sin(Math.PI*Math.min(1,P.t/(P.hurtDur||.38)));
+  ey+=Math.abs(Math.cos(FPS.bob))*.022*Math.min(1,P.moveAmt)*(1-.6*FPS.ads);
+  camera.position.set(P.x,hP+ey,P.z);
+  if(G.camShake>0){G.camShake=Math.max(0,G.camShake-dt*1.6);
+    camera.position.x+=(Math.random()-.5)*G.camShake*.1;camera.position.y+=(Math.random()-.5)*G.camShake*.1;}
+  const roll=(P.state==='floored'?.6*Math.min(1,P.t/FLOOR.LAND)*(P.t<FLOOR.RISE+.3?1:Math.max(0,1-(P.t-FLOOR.RISE-.3)/(FLOOR.DUR-FLOOR.RISE-.3))):0)+FPS.swayX*.5;
+  camera.rotation.order='YXZ';
+  camera.rotation.set(FPS.pitch,G.camYaw,roll);
+  lookX=P.x;lookY=hP+ey;lookZ=P.z;                        // so the third-person gaze picks up from here, not from wherever it last was
+}
+/* ---- the HUD: crosshair, hit marker, scope, ammunition ---- */
+const FHUD={gap:-1,ammo:'',name:'',mark:'',scope:false,zoom:-1,low:false,rl:false,dim:false,lit:false,zoomOn:false};
+function updateFpsHud(){
+  const g=gunOf(),A=gunAmmo(g),P=player,dead=P.state==='dead'||G.mode!=='play';
+  const xh=$('xhair'),hm=$('hitmark'),sc=$('scope');
+  const scoped=!!g.scope&&FPS.ads>.85&&!dead;
+  if(scoped!==FHUD.scope){FHUD.scope=scoped;sc.classList.toggle('on',scoped);}
+  if(scoped){const zl=FPS.zoom?'8×':'4×';if(FHUD.zoom!==FPS.zoom){FHUD.zoom=FPS.zoom;$('scopeMag').textContent=zl;}}
+  const f=innerHeight/(2*Math.tan(camera.fov*Math.PI/360));
+  const gap=scoped||dead?-1:Math.round(clamp(Math.tan(FPS.spread)*f+3,3,110));
+  if(gap!==FHUD.gap){FHUD.gap=gap;xh.style.display=gap<0?'none':'block';if(gap>=0)xh.style.setProperty('--gap',gap+'px');}
+  const mark=FPS.hitT>0?(FPS.killT>0?'on kill':FPS.hitHead?'on head':'on'):'';
+  if(mark!==FHUD.mark){FHUD.mark=mark;hm.className=mark;}
+  const ammo=A.mag+'|'+A.res;
+  if(ammo!==FHUD.ammo){FHUD.ammo=ammo;$('fbMag').textContent=A.mag;$('fbRes').textContent='/ '+A.res;}
+  if(g.name!==FHUD.name){FHUD.name=g.name;$('fbGunName').textContent=g.name;}
+  const low=A.mag===0;if(low!==FHUD.low){FHUD.low=low;$('fbSwap').classList.toggle('low',low);}
+  if(FPS.reloading!==FHUD.rl){FHUD.rl=FPS.reloading;$('fbSwap').classList.toggle('rl',FPS.reloading);}
+  const dim=A.mag>=g.mag||A.res<=0;if(dim!==FHUD.dim){FHUD.dim=dim;$('fbReload').classList.toggle('dim',dim);}
+  const lit=FPS.adsOn;if(lit!==FHUD.lit){FHUD.lit=lit;$('fbAds').classList.toggle('lit',lit);}
+  const zo=!!g.scope&&FPS.ads>.5;if(zo!==FHUD.zoomOn){FHUD.zoomOn=zo;$('fbZoom').style.display=zo?'flex':'none';}
+}
+/* THE SWITCH. Either way, mid-run, without a reload of the page: the
+   body is remade for nothing, the world is not touched. Going in, the
+   blade's business is dropped wherever it was; coming out, the eye is
+   handed back to the follow camera at its resting pitch. */
+function setPov(on){
+  on=!!on;FPS.on=on;
+  try{localStorage.setItem('bp_pov',on?'1':'0');}catch(e){}
+  Input.setFps(on);
+  $('fpsCtl').classList.toggle('on',on);$('hud').classList.toggle('fps',on);
+  const pb=$('povBtn');if(pb)pb.textContent=on?'1ST':'3RD';
+  if(on){
+    buildViewmodel();FPS.vm.visible=true;FPS.ads=0;FPS.adsOn=false;FPS.zoom=0;
+    const P=player;
+    if(P.state!=='free'&&P.state!=='dead'&&P.state!=='roll'&&P.state!=='hurt'&&P.state!=='floored'&&P.state!=='falling'){
+      P.state='free';P.t=0;G.slowMo=1;P.dropThrown();dropBubbles();}
+    G.lockTarget=null;$('swipeHint').style.opacity=0;
+    camera.rotation.order='YXZ';FPS.pitch=0;
+  }else{
+    if(FPS.vm)FPS.vm.visible=false;
+    if(Math.abs(camera.fov-68)>.01){camera.fov=68;camera.updateProjectionMatrix();}
+    G.camPitch=.34;$('scope').classList.remove('on');$('hitmark').className='';$('xhair').style.display='none';
+    FHUD.scope=false;FHUD.mark='';FHUD.gap=-1;
+    if(player.rig&&FPS.hidRig){player.rig.root.visible=true;FPS.hidRig=false;}
+  }
+  gunSwapped();
+  if(G.paused)fillHero();
 }
 
 /* ---------------- HUD & messaging ---------------- */
@@ -12957,7 +13555,7 @@ function makeGrain(){
 function begin(){
   if(G.mode!=='title')return;
   AudioSys.start();AudioSys.layersStart();   // no theme: wind, the three layers, and the Warden's drone
-  G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');
+  G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');$('povBtn').classList.add('on');
   $('title').style.display='none';
   $('hud').style.display='block';
   $('fade').style.opacity=0;
@@ -12970,10 +13568,8 @@ function gotoMode(m){const u=new URL(location.href);if(m)u.searchParams.set('mod
 $('modeField').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(PATH.on)gotoMode('');else begin();});
 $('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on)gotoMode('path');else begin();});
 $('title').addEventListener('pointerdown',begin);   // (a touch anywhere else begins the way the page is set to)
-// FPS mode: a placeholder — the button opens a note on what it will be, and starts nothing
-$('modeFps').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();$('fpsNote').classList.add('on');});
-$('fpsClose').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();$('fpsNote').classList.remove('on');});
-$('fpsNote').addEventListener('pointerdown',e=>{e.stopPropagation();});
+// first person is not a third way: it is a switch inside either, by the pause button
+$('povBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(G.mode==='play'&&!G.paused)setPov(!FPS.on);});
 
 buildTextures();
 buildWorld();
@@ -12992,6 +13588,11 @@ lockMarker=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
 lockMarker.scale.set(.34,.34,1);lockMarker.visible=false;
 scene.add(lockMarker);
 resize();
+{ // the view he last played in, remembered by the browser; the URL can ask for it too (?pov=1)
+  let pov=false;try{pov=localStorage.getItem('bp_pov')==='1';}catch(e){}
+  const q=new URL(location.href).searchParams.get('pov');if(q!==null)pov=q==='1';
+  if(pov)setPov(true);
+}
 
 // the pilgrim carries their own light: a soft warm halo, souls-fashion,
 // that breathes gently and pools on the ground around them
@@ -13206,17 +13807,21 @@ function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon===
 // which katana specials wind in the saya (and so need the blade home before they fire)
 function katSheathes(){return LOADOUT.katanaCharge==='iai'||LOADOUT.katanaCharge==='fowl';}
 function cycleLoadout(k,d){
+  if(k==='pov'){setPov(!FPS.on);return;}                 // (setPov refills the panel itself)
+  if(k==='weapon'&&FPS.on){cycleGun(d);fillHero();return;}   // in first person the weapon is a gun
   if(k==='charge')k=chargeKey();
   const list=HERO_OPTS[k];let i=list.findIndex(o=>o[0]===LOADOUT[k]);
   i=(i+d+list.length)%list.length;LOADOUT[k]=list[i][0];saveLoadout();
   player.rebuild();fillHero();
 }
 function fillHero(){
-  $('selWeapon').textContent=loadoutLabel('weapon');
+  $('selWeapon').textContent=FPS.on?gunOf().name:loadoutLabel('weapon');
   $('selArmour').textContent=loadoutLabel('armour');
-  $('selCharge').textContent=loadoutLabel(chargeKey());
-  $('selNote').textContent=HERO_NOTES[LOADOUT[chargeKey()]]||'';
-  $('heroTap').textContent=LOADOUT.weapon==='bow'?'tap — loose an arrow · hold still, release — the charged shot'
+  $('selCharge').textContent=FPS.on?'—':loadoutLabel(chargeKey());
+  if($('selPov'))$('selPov').textContent=FPS.on?'first person':'over the shoulder';
+  $('selNote').textContent=FPS.on?gunOf().note:(HERO_NOTES[LOADOUT[chargeKey()]]||'');
+  $('heroTap').textContent=FPS.on?GUN_NOTE_HUD
+    :LOADOUT.weapon==='bow'?'tap — loose an arrow · hold still, release — the charged shot'
     :LOADOUT.weapon==='wand'?'tap — blow a bubble · hold still, release — the charged cast'
     :'tap — strike · hold still, release — the charged attack';
   try{renderHero();}catch(e){}
@@ -13328,6 +13933,7 @@ function frame(now){
     if(G.mode==='play'){
       if(IN.swipe)$('swipeHint').style.opacity=0;
       player.update(wdt);
+      if(FPS.on)updateFps(wdt);                                // the gun: the trigger, the sights, the reload
       bladeTrail.update(wdt);                                 // the blade's ribbon, off the rig as posed this frame
       // enough marrow held calls the cathedral open
       if(!G.cathedralOpen&&player.marrow>=G.marrowGoal)openCathedral();
@@ -13374,6 +13980,8 @@ function frame(now){
     updatePuddles(wdt);
     updateInteract();
     updateHUD();
+    syncFpsRig();
+    if(FPS.on)updateFpsHud();
   }
   for(let i=effects.length-1;i>=0;i--)if(!effects[i].update(wdt))effects.splice(i,1);
   if(player.state!=='execute'&&player.state!=='iai')G.slowMo=1;
@@ -13418,7 +14026,7 @@ function frame(now){
       l.haze.material.opacity=.1+.06*l.intensity;}
   }
   updateWeaponGlow();
-  updateCamera(dt);
+  if(FPS.on&&G.mode==='play'&&player.state!=='dead')updateFpsCamera(dt);else updateCamera(dt);
 
   grainT+=dt;
   if(grainT>.09){grainT=0;
@@ -13432,7 +14040,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,setPov,fireGun,hitscan,gunSpheres,cycleGun,gunAmmo,startReload,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

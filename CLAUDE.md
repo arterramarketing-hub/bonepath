@@ -10,8 +10,8 @@ server. Open it in a browser and it runs.
 
 **One line of `index.html` is the inlined three.js r128 bundle — a single
 minified 603 KB line.** It will swamp every grep you run. Do not trust a
-line number for it: any edit above it moves it (it was 325, and is 333 at
-the time of writing). Find it, then filter it out:
+line number for it: any edit above it moves it (it was 325, then 333, and
+is 391 at the time of writing). Find it, then filter it out:
 
 ```sh
 BUNDLE=$(awk 'length($0)>5000 {print NR}' index.html)
@@ -521,6 +521,53 @@ Known state of play:
   at the cliff top, and the tabard drew as one teal streak the whole depth
   of the fall (measured: 19.97m at three seconds, exactly the fall).
   `ragFree` sets `rig.noFloorCloth`; a rebuild clears it.
+
+- **FIRST PERSON is a switch, not a mode** (`setPov`, `FPS`, `GUNS`,
+  the section headed FIRST PERSON just above `updateHUD`). It lives inside
+  the field and the path alike; the old title-screen "fps mode" button and
+  its note are gone. Traps, in the order they bit:
+  1. `const FPS` is declared beside `G`, ABOVE `player`, because
+     `player.rebuild()` (run from `init()` at boot) asks `FPS.on` whether to
+     hide the body. The module itself sits below the camera code, and
+     `fpsRespawn()` (called from `respawn()`, also at boot) is a function
+     DECLARATION reaching `GUNS` — fine only because the module's line is
+     above `player.init()`. Do not move either.
+  2. **The eye is at 1.42 m** (`FPS.eyeY`), where the third-person gaze
+     and the bow's loose already put the head. It was 1.58 and every level
+     shot passed clean over a hollow's skull (its head sphere tops out at
+     ~1.67; its body at ~1.52).
+  3. The viewmodel is a child of `camera`, so `buildViewmodel` does
+     `scene.add(camera)` — nothing else in the game ever put it there.
+     Its materials are `lam()` (Lambert has no `flatShading` in r128;
+     passing it only logs a warning).
+  4. **Hiding the body is two transitions, not a per-frame rule**
+     (`syncFpsRig`): hidden while alive in first person, shown once on
+     death. A per-frame "visible while dead" would fight `meltHero`, which
+     hides the corpse for good when the melt finishes.
+  5. `gunRay`'s screen-right is `(cos yaw, -sin yaw)` — the same mapping
+     the stick uses (the note at the top of `player.update`). Forward is
+     `(-sin yaw, -cos yaw)`, so the body's facing is `camYaw + π`, set at
+     the top of `player.update` every living frame in first person.
+  6. `hitscan` tests the horrors' spheres analytically FIRST and then only
+     walks the ray as far as the nearest of them; obstacles, wall segments
+     and breakables are closest-approach tests, the soil and `camStone`
+     are stepped. The muzzle flash is a sprite plus `G.glowFlash` — NEVER
+     a light (see LPOOL).
+  7. The right-thumb gesture is born in mode `cam` when `Input.setFps` is
+     on — there is no flick and no tap on that side in first person; the
+     dodge is a button, and it writes the same `st.swipe` a flick would.
+     `bindBtn` wraps `setPointerCapture` in a try, because a synthetic
+     PointerEvent throws there and used to abort the press.
+  8. Keys are remapped by `fpsMode` inside `Input`: R reloads (it was
+     sprint), Shift sprints (it was roll), Space dodges (it was strike), J
+     fires, L aims, Q/1–3 swap, F zooms. The mouse is taken with pointer
+     lock on the first click of `#controls`.
+  9. Dormant hollows within 36 m rise early and `patrol()` when the eye is
+     in the helm (`roseToPace`, half of them by `paceRoll`, never an
+     ambush or the boss); `gunHit` turns a pacing one to `chase`, since
+     `takeHit` alone only wakes the dormant.
+  10. The `ammo` drop is in `ELEMENTS`/`DROP_FACE` so `spawnElemDrop`
+      needs no special case; the drop cap is 6 in first person, 4 otherwise.
 
 ## Conventions
 
