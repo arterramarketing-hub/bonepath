@@ -746,9 +746,25 @@ them the seed decides:
   dark, no water; two posts, a crossbar, a bucket on its rope) and a small **town sign** (a post
   under two metres and a board a metre wide with the village's name,
   readable from the road: Ashmere, Gallowmoor, Hollowfen, Wrenhallow,
-  Carrowdene, Blackwold, Sallow Cross or Marrowgate), each beside a road
-  in its own wedge. The sign breaks like a pew: two blows and the board
-  is knocked off whole to tumble away while the post snaps in two.
+  Carrowdene, Blackwold, Sallow Cross or Marrowgate), and a **fallen
+  bell** — three landmarks, each beside a road in its own wedge. The
+  sign breaks like a pew: two blows and the board is knocked off whole
+  to tumble away while the post snaps in two.
+
+  **The bell is the only thing in the field that answers back.** A great
+  bronze bell lying on its side in the wet grass where it came down, sunk
+  a third of the way into the soil, with a crack running the height of it,
+  the rotted oak headstock still bolted to the crown, the iron yoke
+  snapped in two beside it, a broken length of the wheel's rim in the
+  grass and the clapper loose in the mouth. The tower it hung in is not
+  in this world and never was.
+
+  Strike it and it **tolls** — not a bell rung but a bell struck where it
+  lies, the whole mass of it let go at once, and each of the three blows
+  is deeper and longer than the last. Nothing you swing changes that
+  count: the ultra greatsword, which ends a gravestone in one hit, still
+  only gets a toll out of the bell. On the third, the ground under it
+  splits.
 - **the testing menu** — under *The field (testing)* on the pause
   screen: the **hour** and the **weather** can be stepped through live
   (the sky's lights, the dome, the sun or moon, the fog and its range,
@@ -841,6 +857,27 @@ The **spawn moved too** — it stood seven and a half metres from the lip,
 three seconds of walking backwards out of the opening shot. Thirteen and a
 half now. And the eye follows the hips down as she goes over, so you see
 what you walked off instead of a pair of boots leaving the frame.
+
+**And the hexagon was only half of it.** The camera rides behind her, so
+standing a stride outside a cathedral's wall puts it INSIDE that wall — a
+metre of solid ashlar between the lens and everything else, which is the
+same blank screen the rim used to give. It reaches both ways: inside the
+nave against the north wall, the camera is out in the graveyard looking at
+the back of the stone. Nothing guarded it anywhere except the Warden's
+fight, which clamps the camera into the nave — so it bit on the **path**,
+where every tile can carry a cathedral, and on the field once the Warden
+was dead and the nave was just a room again.
+
+There are no special cases and no phases in the fix: walk the line from
+her head out to where the camera wants to be, and stop at the first stone.
+Coming out of the door, through the door, along a wall, up the stair — all
+the same question, asked of the same predicate. Measured by standing the
+pilgrim at every legal spot on a grid round a cathedral and letting the
+camera settle from eight headings: **42 of 648 placements on the field
+parked the camera inside the stone, and 52 of 648 on the path. Both are
+zero now.** The path camera is also held inside the tiles that have
+actually been built, so it can never hang out over a stretch of the
+corridor that has been torn down behind her.
 
 ## The path — survival
 
@@ -1315,6 +1352,62 @@ Warden's bar while it hunts you.
   you in a cloud of rot). Poison ticks your life away for seconds and
   can't be rolled off — only outlasted. Fell it for 200 marrow and a
   mote of life; its belly bursts when it dies, so step back.
+
+## The Bell-Called
+
+**What the bell calls is fought from the outside in, and in that order or
+not at all.** It was buried in three pieces and it comes up in three: a
+skull the size of a cart, floating, with a light standing well back in
+each socket — and its two hands, which were put under the soil apart
+from it.
+
+- **The hands, first.** Two of them, each its own body with its own life
+  (130 apiece). They do not walk, they *scuttle* — the palm rides on an
+  arch of five fingers, each pair of them out of step with the next,
+  claws planted in the soil. Two moves, and both of them put you on the
+  ground: the **sweep**, where the hand pitches back onto its wrist and
+  then scythes across its whole front, and the **slam**, where it rears
+  up on its fingertips and comes down flat, throwing out a ring and
+  gouging the field. Kill one and the other **remembers it was two** —
+  half again as fast, and it stops waiting between swings.
+- **While either hand lives, the skull is warded.** The blade rings off
+  it — the bell struck again — and does nothing at all. It keeps its
+  distance up there, jaw chattering, and screams the bell's own note at
+  you: a ring seven and a half metres wide that you have to be out of.
+  There is nothing to do about the skull until the hands are gone.
+- **The jaw, second.** Both hands down and it comes out of the air, mouth
+  opening as it descends, and settles a metre off the ground. Now it can
+  be hit, and now it fights: it **bites** — the whole skull lunges, mouth
+  first — and it **chews**, dragging itself forward along the ground with
+  the jaw working, which is the one you cannot simply back away from.
+- **The head, last.** Everything you land goes into the jaw, and when the
+  jaw gives it **comes off** — torn away whole, thrown, and left lying in
+  the grass. That is what kills it. The skull screams with nothing to
+  scream with, rolls over, the light goes out of the sockets, and it
+  crumbles. 420 marrow, the mark of the reaper, and a mote of life.
+
+Its bar is the **whole fight**, not the skull: it drains as the hands go
+and again as the jaw gives, so it reads from the first blow rather than
+sitting full until the hands are dead. Die to it and every piece of it
+goes back to the hole it came out of and waits there — the bell called it
+to that spot, and it does not follow you to the bonfire.
+
+## Taken off your feet
+
+**A knockdown, which the game did not have until something the size of a
+cart swung at it.** A hand's sweep or slam, or the skull's bite, does not
+stagger the pilgrim — it throws him. Four beats: the **throw** (still in
+the air, going over backward with his arms out and nothing under him),
+the **landing**, a beat flat on his back with the wind out of him, and
+the **rise** — over onto the hip, one hand planted, the trunk hauled up
+over a bent knee, and last of all the head.
+
+The rise is where the punishment is: three quarters of a second in which
+nothing can be done and which cannot be cancelled or rolled out of. He is
+**invulnerable** from the landing to the end of it — being floored twice
+in a row by two hands working in turn is not a fight, it is a wall — and
+a blow that would kill him kills him outright instead, so this never
+becomes a way of surviving something lethal.
 
 ## The loop
 

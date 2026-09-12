@@ -1276,6 +1276,30 @@ function buildTextures(){
     ctx.fillRect(S*.24,S*.26,S*.16,S*.16);
   });
   texCache.bubble.encoding=THREE.LinearEncoding;
+  /* BRONZE, a century in the wet grass: a warm dark metal under a crust
+     of verdigris that has run down it in streaks, pitted all over, with
+     the faint horizontal banding of the mould still on it. */
+  makeTex('bronze',256,(ctx,S)=>{
+    ctx.fillStyle='#6e5a34';ctx.fillRect(0,0,S,S);
+    srand(419);
+    for(let i=0;i<340;i++){                                   // the cast's grain
+      ctx.fillStyle=`rgba(${(120+rr(-26,26))|0},${(98+rr(-22,22))|0},${(54+rr(-18,18))|0},.5)`;
+      ctx.fillRect(rr(0,S),rr(0,S),rr(2,9),rr(2,7));
+    }
+    for(let y=0;y<S;y+=17){                                    // the mould's banding
+      ctx.fillStyle='rgba(36,28,14,.22)';ctx.fillRect(0,y,S,2);
+      ctx.fillStyle='rgba(168,140,80,.14)';ctx.fillRect(0,y+2,S,2);
+    }
+    for(let i=0;i<26;i++){                                     // verdigris, running down
+      const x=rr(0,S),w=rr(4,22);
+      ctx.fillStyle=`rgba(${(78+rr(-14,14))|0},${(128+rr(-16,16))|0},${(104+rr(-14,14))|0},${rr(.2,.5).toFixed(2)})`;
+      ctx.fillRect(x,rr(0,S*.5),w,rr(S*.3,S*.8));
+    }
+    for(let i=0;i<180;i++){                                    // and the pitting
+      ctx.fillStyle=`rgba(28,22,12,${rr(.2,.55).toFixed(2)})`;
+      ctx.beginPath();ctx.arc(rr(0,S),rr(0,S),rr(.8,2.6),0,TAU);ctx.fill();
+    }
+  });
 
   /* -- moon disc -- */
   makeTex('moon',128,(ctx,S)=>{
@@ -2452,6 +2476,50 @@ const AudioSys=(()=>{
       noise(t,{peak:.13,att:.008,dec:.16,f0:rr2(280,420),f1:110,type:'bandpass',Q:1.1});
       noise(t+.01,{peak:.07,att:.004,dec:.09,f0:rr2(1800,2600),f1:700,type:'bandpass',Q:2.4});   // the grit
       tone(t,{f:rr2(58,72),f2:34,type:'sine',peak:.12,att:.006,dec:.2});},
+    /* THE BELL IN THE GRASS. Not a bell RUNG — a bell STRUCK where it
+       lies, which is a different sound: no swing, no doubling, just the
+       whole mass of it let go at once. A hard bronze crack off the top,
+       the hum-note and its minor third under it (which is what makes a
+       bell sound like grief and not like a gong), and a tail that goes on
+       for six seconds. Each of the three blows is DEEPER and longer than
+       the last, so the third arrives as an answer rather than a note. */
+    bellToll(n){const t=now();const d=n||0;
+      const f0=(112-d*13)*1;                                             // the hum drops a tone each time
+      noise(t,{peak:.34,att:.001,dec:.05,f0:2600,f1:900,type:'bandpass',Q:1.1});     // the strike
+      noise(t,{peak:.2,att:.002,dec:.16,f0:520,f1:150});
+      // the partials of a bell: hum, prime, minor third, fifth, nominal
+      [[1,.30,5.4+d*1.4],[2,.22,4.4+d*1.2],[2.4,.17,3.6+d*1],[3,.10,2.6],[4.1,.07,1.9],[5.4,.04,1.3]]
+        .forEach(([r,p,dc])=>tone(t,{f:f0*r,f2:f0*r*.995,type:'sine',peak:p,att:.004,dec:dc}));
+      tone(t+.02,{f:f0*.5,f2:f0*.497,type:'sine',peak:.18,att:.02,dec:6+d*1.6});     // and the weight of it, under everything
+      for(let i=0;i<4;i++)noise(t+.3+i*.55,{peak:.03,att:.2,dec:.9,f0:rr2(300,700),f1:200,type:'bandpass',Q:2});  // the bronze breathing as it dies
+    },
+    /* THE BELL-CALLED. The skull's voice is not a roar: it is the bell
+       again, played through a throat — a bronze shriek with the toll's
+       own partials buried in it, and the chatter of a jaw over the top. */
+    skullShriek(){const t=now();
+      noise(t,{peak:.3,att:.03,dec:.5,f0:900,f1:2800,type:'bandpass',Q:1.5});
+      noise(t+.06,{peak:.2,att:.08,dec:.7,f0:2400,f1:700,type:'bandpass',Q:2.2});
+      [1,2.4,3.02,4.2].forEach((r,i)=>tone(t,{f:150*r,f2:150*r*1.08,type:'sawtooth',peak:.11/(i*.7+1),att:.04,dec:1.1}));
+      tone(t,{f:64,f2:40,type:'sine',peak:.3,att:.02,dec:1.3});
+      for(let i=0;i<9;i++)noise(t+.12+i*.045,{peak:.05,att:.002,dec:.03,f0:rr2(1400,2600),f1:800,type:'bandpass',Q:6});  // the jaw
+    },
+    // a hand of bone walking on its fingers: dry ticks, close together
+    boneScuttle(){const t=now();
+      for(let i=0;i<3;i++)noise(t+i*.035,{peak:.05,att:.001,dec:.035,f0:rr2(1500,2800),f1:900,type:'bandpass',Q:7});
+      tone(t,{f:rr2(140,190),f2:90,type:'sine',peak:.035,att:.002,dec:.07});},
+    // a hand slamming flat: a deep flat whump with grit thrown out of it
+    handCrush(){const t=now();
+      tone(t,{f:74,f2:34,type:'sine',peak:.4,att:.003,dec:.4});
+      noise(t,{peak:.3,att:.002,dec:.12,f0:900,f1:200});
+      noise(t+.03,{peak:.14,att:.02,dec:.4,f0:300,f1:90});
+      for(let i=0;i<5;i++)noise(t+.06+i*.05,{peak:.06,att:.004,dec:.07,f0:rr2(1200,2400),f1:600,type:'bandpass',Q:4});},
+    // and the jaw coming off: a great bone wrenched, then dropped
+    jawSnap(){const t=now();
+      noise(t,{peak:.3,att:.001,dec:.09,f0:1900,f1:420,type:'bandpass',Q:1.4});
+      tone(t,{f:320,f2:70,type:'triangle',peak:.26,att:.002,dec:.3});
+      tone(t+.01,{f:1100,f2:260,type:'sine',peak:.12,att:.001,dec:.16});
+      noise(t+.28,{peak:.2,att:.004,dec:.3,f0:500,f1:120});
+      tone(t+.3,{f:96,f2:44,type:'sine',peak:.26,att:.006,dec:.5});},
     /* THE WAND. Nothing here is struck or cut: the cast is a film of
        water BLOWN — a breathy rise with a wobble on it — and the burst
        is that film letting go, a wet slap with a little chime off the
@@ -2747,6 +2815,11 @@ const IN=Input.st;
    A flagstone ring road circles the cathedral, with straight roads
    running out to each quarter. A pillar of moonlight stands over the
    cathedral so it can be found through the murk. */
+/* IS THIS THING'S BODY OFF THE SOIL? A crow, the Fallen One on its rise,
+   and anything else that sets `flies` carry their own `y` and must be
+   shot at, bubbled at and looked at THERE and not at the dirt beneath.
+   One predicate, asked by the bow, the wand, the eye and the camera. */
+function aloft(e){return !!e&&e.y!==undefined&&(e.crow||e.kind==='angel'||e.flies);}
 const HEX_R=68;                       // hexagon circumradius (4x the area)
 const HEX_AP=HEX_R*Math.cos(Math.PI/6); // apothem (edge distance)
 const CATH_R=10;                      // (legacy: the old round nave's radius)
@@ -2823,7 +2896,7 @@ function seedRun(){
   }
   // the landmarks: the well and the town sign, in two different wedges (never the south)
   const order=RUN.wedges.map(w=>w.i).filter(i=>i!==1);for(let i=order.length-1;i>0;i--){const j=(rnd()*(i+1))|0;[order[i],order[j]]=[order[j],order[i]];}
-  RUN.landmarkWedges=[order[0],order[1]];
+  RUN.landmarkWedges=[order[0],order[1],order[2]];
   // a rare turn: one wedge's whole host burns red
   RUN.rare=rnd()<.1?'redhost':null;RUN.rareWedge=RUN.rare?pick(RUN.wedges).i:-1;
 }
@@ -2853,6 +2926,20 @@ const cathDist=(x,z)=>rectSD(x,z-cathZ(z),HW+WALLT,HL+WALLT);   // from the oute
 const inStairsL=(x,zl)=>{const az=PATH.on?Math.abs(zl):zl;return Math.abs(x)<STAIR_W&&az>PL-.5&&az<PL+STAIR_L+.5;};   // (on the path the stair is at both ends)
 const inStairs=(x,z)=>inStairsL(x,z-cathZ(z));
 function pushOutOfCath(p,m){const cz=cathZ(p.z);if(cz>1e8)return;p.z-=cz;pushOutOf(p,HW+WALLT,HL+WALLT,m);p.z+=cz;}
+/* IS THIS POINT INSIDE THE CATHEDRAL'S STONE? In the building's own frame:
+   the shell is the wall band between the nave and the outer face, with the
+   PORTAL cut out of it — the south face on the field, both ends on the
+   path, where the stair is at both. Only the camera asks; the bodies are
+   held by `constrainCath`, which is a different question (it keeps them
+   off the plinth's rim as well). A hand's width of slack on the nave side
+   so the lens never grazes the inside face. */
+const CAM_DOOR=2.6;
+function camStone(x,zl){
+  if(Math.abs(x)>HW+WALLT||Math.abs(zl)>HL+WALLT)return false;      // clear of the building
+  if(Math.abs(x)<HW-.3&&Math.abs(zl)<HL-.3)return false;            // in the nave
+  if(Math.abs(x)<CAM_DOOR&&(PATH.on?Math.abs(zl):zl)>HL-.4)return false;   // the portal stands open
+  return true;
+}
 /* the path's ground: the same rolling swells as the field's, run on
    without the field's rim, flat against any cathedral's plinth, with the
    tiles' own shapes on top */
@@ -3234,7 +3321,14 @@ function strikeBreakables(x,z,fx,fz,reach,arc,oneShot){
     if(d>reach)continue;
     const ang=d<.05?0:Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
     if(ang>arc)continue;
-    b.hp-=oneShot?99:1;hitAny=true;                       // the ultra greatsword does not chip a gravestone, it ends it
+    /* `tough` things do not care how heavy the blow was: the bell is
+       three strikes whatever is swung at it, because three is the point
+       of it, and the ultra greatsword would otherwise call the thing in
+       one hit. And a thing with its own `onHit` sounds and dresses its
+       own blow — the generic splinter burst is thrown at the PEWS' height
+       in the nave, which is wrong out in the field. */
+    b.hp-=(oneShot&&!b.tough)?99:1;hitAny=true;
+    if(b.onHit){b.onHit(b,cx,cz);continue;}
     boneBurst(cx,PH+.7,cz,0x5a4326,6,2);
     if(b.hp<=0)breakPew(b);else{if(b.kind==='grave')AudioSys.clang('stone');else AudioSys.woodKnock();}
   }
@@ -3683,6 +3777,50 @@ function buildWorld(){
       const board=new THREE.Mesh(new THREE.BoxGeometry(1.0,.38,.07),bm);board.position.set(0,1.62,0);board.rotation.y=Math.atan2(Math.cos(ra),Math.sin(ra));sg.add(board);
       addObstacle(x,z,.2);RUN.landmarkSpots.push([x,z]);
       breakables.push({g:sg,x,z,hw:.5,hd:.5,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'sign',mat:bm,post:M.bark,ry:board.rotation.y});}   // two blows and the board comes off the post
+  }
+
+  /* THE FALLEN BELL — the third landmark, and the only one that answers
+     back. The tower it hung in is not in this world and never was; the
+     bell is, lying on its side in the wet grass where it came down,
+     half-sunk, its lip driven into the soil and a crack running the
+     height of it. The oak headstock is still bolted to the crown and
+     rotted through; the iron yoke lies snapped beside it and the clapper
+     in the mouth, loose.
+     Strike it and it TOLLS. Three tolls and something comes. */
+  if(!PATH.on){const w=RUN.wedges[RUN.landmarkWedges[2]],p=roadside(w);
+    if(p){const[x,z]=p,gy=heightAt(x,z);
+      /* (`M` in this scope is the world's MATERIAL map, not the global
+         mesh helper — everything the world builds goes through it — so a
+         local one is made here rather than shadowing anything.) */
+      const put=(g,m,px,py,pz)=>{const o=new THREE.Mesh(g,m);o.position.set(px||0,py||0,pz||0);return o;};
+      const bm=mat('bronze'),bmIn=mat('bronze',{side:THREE.BackSide,color:new THREE.Color(0x5a4a2c).convertSRGBToLinear()});
+      const bg=new THREE.Group();bg.position.set(x,gy,z);bg.rotation.y=rnd()*TAU;world.add(bg);
+      // the bell, on its side: its axis lies along the group's x, the
+      // mouth toward +x, and the whole thing sunk a third into the soil
+      const bell=new THREE.Group();bell.position.set(0,.84,0);bell.rotation.z=Math.PI/2;bell.rotation.x=.12;bg.add(bell);
+      const WAIST=[[0,0],[.62,.06],[.78,.2],[.86,.44],[.92,.76],[1.0,1.02],[1.16,1.16],[1.2,1.3],[1.04,1.34],[.3,1.36],[.26,1.5],[0,1.52]];
+      const prof=WAIST.map(([r,h])=>[r,h-.76]);                       // the crown at one end, the lip at the other
+      bell.add(put(lathe(prof,12),bm,0,0,0));                          // the outside
+      bell.add(put(lathe(prof.map(([r,h])=>[Math.max(.02,r-.055),h]),12),bmIn,0,0,0));   // and the inside, in shadow
+      {const cr=put(GBox(.1,1.05,2.5),bmIn,0,-.06,0);cr.rotation.set(.06,0,.03);bell.add(cr);}   // THE CRACK: a wedge of dark straight up the side
+      bell.add(put(GCyl(.07,.07,.34,6),M.iron,0,.86,0));               // the crown staple
+      const clap=put(GSph(.17,6,5),M.iron,0,-.3,0);clap.scale.set(1,1.3,1);bell.add(clap);
+      bell.add(put(GCyl(.035,.035,.62,5),M.iron,0,.14,0));             // its shank, hanging in the mouth
+      // the headstock: a great beam of oak, split and grey
+      const hs=new THREE.Group();hs.position.set(0,1.02,0);hs.rotation.y=.08;bg.add(hs);
+      hs.add(put(GBox(2.1,.34,.4),M.bark,0,0,0));
+      for(const sd of[1,-1])hs.add(put(GBox(.1,.5,.44),M.iron,sd*.62,-.1,0));   // the straps that held it
+      // the yoke, snapped in two, and a broken length of the wheel's rim
+      {const ya=put(GCyl(.09,.09,1.3,5),M.iron,1.5,.16,.5);ya.rotation.set(.1,.3,1.48);bg.add(ya);
+       const yb=put(GCyl(.08,.08,.9,5),M.iron,1.9,.12,-.7);yb.rotation.set(.2,-.6,1.52);bg.add(yb);
+       const rim=new THREE.Mesh(new THREE.TorusGeometry(.9,.05,4,10,2.1),M.bark);
+       rim.position.set(-1.7,.2,.6);rim.rotation.set(1.4,.5,.2);bg.add(rim);}
+      // and the grass round the lip, pushed down where it landed
+      addObstacle(x,z,1.5,true);RUN.landmarkSpots.push([x,z]);
+      RUN.bell={x,z,g:bg,bell,tolls:0,called:false};
+      breakables.push({g:bg,x,z,hw:1.5,hd:1.5,hp:3,obs:obstacles[obstacles.length-1],parent:world,
+        kind:'bell',tough:true,onHit:bellStruck});
+    }
   }
 
   /* THE SKY AND ITS LIGHT — by the hour the seed chose. Night is the
@@ -4896,6 +5034,15 @@ function GSph(r,ws,hs){const k='s'+r+'|'+ws+'|'+hs;
 function GCone(r,h,seg){const k='k'+r+'|'+h+'|'+seg;
   return geoCache[k]||(geoCache[k]=new THREE.ConeGeometry(r,h,seg));}
 function M(geo,m,x,y,z){const me=new THREE.Mesh(geo,m);me.position.set(x||0,y||0,z||0);return me;}
+/* a turned profile, at world scale. buildHumanoid has its own GLathe that
+   multiplies by the rig's scale and is local to it; this is the same turn
+   for anything built in the world (the bell). A lathe's faces point
+   outward only when its profile CLIMBS, so one written top-down is
+   turned over first. */
+function lathe(pts,seg){
+  if(pts[pts.length-1][1]<pts[0][1])pts=pts.slice().reverse();
+  return new THREE.LatheGeometry(pts.map(([x,y])=>new THREE.Vector2(x,y)),seg||12);
+}
 /* ---------------- the low-poly kit: lofted, faceted hulls ----------------
    The sheet's knight is a hand-built mesh: every part is a hull of 6-12
    sided rings, flat-shaded, painted in patches. These build exactly that:
@@ -6510,6 +6657,49 @@ function poseKnockdown(r,p){
   r.head.rotation.x=.55*k;                            // head strains up
   if(rise>0&&rise<1)r.torso.rotation.x+=.6*rise*(1-rise); // shoves itself upright
 }
+/* THE KNOCKDOWN, in seconds: he is in the air until AIR, lands, lies
+   flat until RISE, and is on his feet at DUR. The rise is deliberately
+   the longest leg of it. */
+const FLOOR={AIR:.22,LAND:.28,RISE:.52,DUR:1.12};
+function poseFloored(r,t){
+  const F=FLOOR;
+  if(t<F.LAND){
+    // THE THROW: off his feet, tumbling backward, arms out and nothing
+    // under him — the trunk goes over before the legs know about it
+    const q=easeOut(t/F.LAND);
+    r.body.position.y=r.baseY*(1-.52*q);
+    r.torso.rotation.x=-1.05*q;r.head.rotation.x=.35*q;
+    r.armR.rotation.set(-2.1*q,0,-.7*q);r.foreR.rotation.x=-.5*q;
+    r.armL.rotation.set(-2.0*q,0,.8*q);r.foreL.rotation.x=-.45*q;
+    r.legR.rotation.x=1.1*q;r.kneeR.rotation.x=-.5*q;
+    r.legL.rotation.x=.6*q;r.kneeL.rotation.x=-.9*q;
+    r.root.rotation.x=-1.0*q;
+  }else if(t<F.RISE){
+    // FLAT. A shudder through him as the wind comes back, and nothing else.
+    const j=Math.sin((t-F.LAND)*34)*.05*Math.max(0,1-(t-F.LAND)/.2);
+    r.body.position.y=r.baseY*.46;
+    r.torso.rotation.x=-1.05+j;r.head.rotation.x=.42;
+    r.armR.rotation.set(-2.15,0,-.78);r.foreR.rotation.x=-.42+j;
+    r.armL.rotation.set(-2.05,0,.86);r.foreL.rotation.x=-.4;
+    r.legR.rotation.x=1.15;r.kneeR.rotation.x=-.55;
+    r.legL.rotation.x=.62;r.kneeL.rotation.x=-.95;
+    r.root.rotation.x=-1.05;
+  }else{
+    // THE RISE: over onto the hip, one hand planted, the trunk hauled up
+    // over a bent knee, and last of all the head
+    const q=easeInOut(clamp((t-F.RISE)/(F.DUR-F.RISE),0,1));
+    r.body.position.y=r.baseY*(.46+.54*q);
+    r.torso.rotation.x=-1.05*(1-q)+.34*(1-q)*q*4;
+    r.head.rotation.x=.42*(1-q)-.1*q;
+    r.armR.rotation.set(-2.15*(1-q)-.4*q,0,-.78*(1-q));r.foreR.rotation.x=-.42*(1-q)-.9*q;
+    r.armL.rotation.set(-2.05*(1-q)+.5*q,0,.86*(1-q));r.foreL.rotation.x=-.4*(1-q)-.6*q;
+    r.legR.rotation.x=1.15*(1-q)-.5*q;r.kneeR.rotation.x=-.55*(1-q)+1.2*q*(1-q)*2;
+    r.legL.rotation.x=.62*(1-q);r.kneeL.rotation.x=-.95*(1-q)+.7*q*(1-q)*2;
+    r.root.rotation.x=-1.05*(1-q);
+    r.body.rotation.z=.18*Math.sin(q*Math.PI);
+  }
+  r._spNow=1.4;
+}
 function poseStagger(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
   r.torso.rotation.x-=.5*q;r.head.rotation.x-=.35*q;
@@ -7335,7 +7525,21 @@ const bladeTrail=(()=>{
   return {
     hit(){flash=1;},
     get mesh(){return mesh;},
-    tip(){const r=player.rig;if(!r||!r.weapon)return new THREE.Vector3(player.x,heightAt(player.x,player.z)+2,player.z);extents(r);r.root.updateMatrixWorld(true);const v=new THREE.Vector3(0,r._trailTip,0);r.weapon.localToWorld(v);return v;},
+    /* WHERE THE POINT OF THE BLADE IS, and it must always be SOMEWHERE.
+       This is read by thorStrike (which draws a bolt from it) and by the
+       katana's throw, and a non-finite answer here does not fail loudly —
+       it builds a Line whose first vertex is NaN, which takes that
+       geometry's bounding sphere to NaN and makes three.js print
+       "Computed radius is NaN" from inside frustum culling, every frame,
+       for as long as the effect lives. The rig can hand back nonsense: it
+       is posed by a ragdoll on the frame she dies, and the melt drives the
+       root's scale to a fiftieth, so the matrix it is read through is not
+       always sound. The fallback is the same one a missing rig gets. */
+    tip(){const r=player.rig;
+      const fb=()=>new THREE.Vector3(player.x,heightAt(player.x,player.z)+2,player.z);
+      if(!r||!r.weapon)return fb();
+      extents(r);r.root.updateMatrixWorld(true);const v=new THREE.Vector3(0,r._trailTip,0);r.weapon.localToWorld(v);
+      return (isFinite(v.x)&&isFinite(v.y)&&isFinite(v.z))?v:fb();},
     update(dt){
       const r=player.rig;
       if(dt<=0)return;
@@ -7804,6 +8008,7 @@ function elemFleck(kind,x,y,z){ // one mote drifting off the imbued blade
 }
 function boltArc(x1,y1,z1,x2,y2,z2){
   // a jagged white-hot thread between two points
+  if(!isFinite(x1+y1+z1+x2+y2+z2))return;
   const pts=[],N=7;
   for(let i=0;i<=N;i++){
     const t=i/N,mid=i>0&&i<N;
@@ -7857,6 +8062,9 @@ function thorStrike(P,foe,full){
   for(const e of near){const ey=e.crow?e.y:heightAt(e.x,e.z)+1.3;boltArc(tx,ty,tz,e.x,ey,e.z);elemBurst('lightning',e.x,ey,e.z);hold(e,Math.round(dmg/2));}
 }
 function boltLine(pts,life){
+  // and the belt: one bad point poisons the whole geometry, so it never
+  // reaches the scene (see bladeTrail.tip for what produced them)
+  for(const p of pts)if(!isFinite(p.x)||!isFinite(p.y)||!isFinite(p.z))return;
   const g=new THREE.BufferGeometry().setFromPoints(pts);
   const m=new THREE.LineBasicMaterial({color:0xf4f8ff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false});
   const line=new THREE.Line(g,m);scene.add(line);
@@ -8306,7 +8514,7 @@ const player={
     const foe=G.lockTarget&&!G.lockTarget.objective&&G.lockTarget.hp>0?G.lockTarget:null;
     if(foe){
       const d=Math.hypot(foe.x-this.x,foe.z-this.z);
-      const ty=(foe.crow||foe.kind==='angel')&&foe.y!==undefined?foe.y+.4
+      const ty=aloft(foe)?foe.y+.4
               :heightAt(foe.x,foe.z)+(foe.boss?2.0:foe.big?1.5:1.1);
       const tof=Math.max(.08,d/spd);                    // time of flight at this speed (never zero: that is a NaN in the loose)
       vy=(ty-y0)/tof+.5*ARROW_G*tof;                    // the lift that lands it there
@@ -8382,7 +8590,7 @@ const player={
     if(!on&&this.rig)this.rig.snowAt=-1;   // nor the snow he is wearing
   },
   // the roll's window, and the whole of the finishing cut: nothing touches the executioner
-  iframes(){const R=rollProf();return (this.state==='roll'&&this.t>R.IF0&&this.t<R.IF1)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8);},
+  iframes(){const R=rollProf();return (this.state==='roll'&&this.t>R.IF0&&this.t<R.IF1)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8)||(this.state==='floored'&&this.t>FLOOR.LAND);},
   takeHit(dmg,fx,fz,heavy,kind){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
@@ -8422,6 +8630,27 @@ const player={
          down into a green pool and sink into the field.
      Everything but the poison is the hollows' own ragdoll, kicked
      differently. */
+  /* TAKEN OFF HIS FEET. Not a stagger — a KNOCKDOWN, which the game did
+     not have until something the size of a cart swung at it. He is thrown
+     along the line of the blow, lands on his back, lies there a beat, and
+     then gets up; and the getting up is the cost of it, because it is
+     three quarters of a second in which he can do nothing at all.
+     He is INVULNERABLE from the landing to the end of the rise — being
+     floored twice by two hands in a row is not a fight, it is a wall —
+     and a blow that would kill him kills him outright instead, so this
+     never becomes a way of surviving something lethal. */
+  floored(fx,fz,dmg){
+    if(this.state==='dead'||G.mode!=='play')return;
+    if(this.iframes()||this.state==='floored')return;
+    const res=this.takeHit(dmg,fx,fz,false,'bone');
+    if(res==='dead'||res==='iframe'||res==='immune')return;
+    const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
+    this.state='floored';this.t=0;
+    this.vx=dx/l*8.5;this.vz=dz/l*8.5;
+    this.floorDir=Math.atan2(dx,dz);this.thudDone=false;
+    this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
+    AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.55);G.vibr([70,40,110]);
+  },
   /* He has walked off the world. No blow, no blood — the ground simply
      stopped, and for a moment he is a man in the air with his arms out. */
   stepOff(){
@@ -9635,6 +9864,20 @@ const player={
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(this.t>=(this.hurtDur||.38))this.state='free';
     }
+    /* FLOORED. Four beats and the last one is the point: the THROW (still
+       in the air, tumbling along the blow), the LANDING, a beat flat on
+       his back, and the RISE — a roll onto the hip, a hand down, and up.
+       The rise is where the punishment is; nothing can be done during it
+       and it cannot be cancelled, which is why one hand of the Bell-Called
+       is survivable and two working together is not. */
+    else if(this.state==='floored'){
+      this.x+=this.vx*dt;this.z+=this.vz*dt;
+      this.vx*=Math.pow(.09,dt);this.vz*=Math.pow(.09,dt);
+      if(this.t>=FLOOR.DUR){this.state='free';this.t=0;}
+      else if(this.t>=FLOOR.LAND&&!this.thudDone){this.thudDone=true;
+        AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.3);
+        boneBurst(this.x,heightAt(this.x,this.z)+.2,this.z,0x4a463a,7,1.8);}
+    }
     /* OFF THE EDGE, AND STILL HIMSELF FOR A MOMENT. He carries the stride
        that took him over, drops, and reaches — and only when he is well
        below the lip and plainly past saving does he go limp and the
@@ -9765,6 +10008,7 @@ const player={
     else if(this.state==='attack'){if(kat)poseKatana(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);else poseLight(r,Math.min(1,this.t/(this.atkDur||.68)),this.combo);}
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/(.44*this.swing())));
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
+    else if(this.state==='floored')poseFloored(r,this.t);
     else if(this.state==='dead')poseDead(r,this.t);
 
     /* the snow he is wearing: a crust packed onto the boots for as long as
@@ -9781,6 +10025,10 @@ const player={
       +(this.state==='roll'?this.rollAir||0:0)
       +(this.state==='falling'?this.fallY:0),this.z);
     r.root.rotation.y=this.facing;
+    // the root's PITCH belongs to whichever pose is using it — the fall
+    // and the knockdown both lay him over — and to nothing else, so it is
+    // put back every other frame rather than left where they finished
+    if(this.state!=='floored'&&this.state!=='falling')r.root.rotation.x=0;
     // the backstab: whatever the pose says, the blade is aimed from the
     // hand straight at the spine, so it goes in through the middle of the
     // back and out the chest
@@ -10885,6 +11133,524 @@ class GraveGhoul{
   }
 }
 
+/* ======================= THE BELL-CALLED =======================
+   The fallen bell is the only thing in the field that answers back.
+   Strike it and it TOLLS — deeper each time, the whole mass of it let go
+   at once. THREE tolls and the ground under it splits, and what the tower
+   used to call comes up through the crack: a skull the size of a cart,
+   and its two hands, which were buried separately.
+
+   It is fought from the outside in, and in that order or not at all:
+     THE HANDS. Two of them, each its own body with its own life. They
+       scuttle on their fingers, they rear and SWEEP, and a sweep takes
+       the pilgrim off his feet and puts him on the ground. While either
+       hand still lives the skull is WARDED — the blade rings off it like
+       a blow on a bell — so there is nothing to do but kill the hands.
+       Kill one and the other remembers it was two: it moves faster and
+       stops waiting between swings.
+     THE JAW. Both hands gone, the skull comes down out of the air, and
+       the mouth is what is left of it. Everything you have goes into the
+       jaw now; it bites, and it drags forward chewing.
+     THE HEAD, last. Break the jaw and it comes off — and the skull goes
+       down after it, which is the only thing that was ever going to put
+       it down. */
+function makeBoneHandRig(){
+  const s=1.7,rig={s,fingers:[],mats:[]};
+  const bone=mat('bone'),dark=lam({color:0x0a0a0c});
+  const root=new THREE.Group();rig.root=root;
+  const body=new THREE.Group();body.position.y=.56*s;root.add(body);rig.body=body;rig.baseY=.56*s;
+  // the palm: a slab of carpals, broader at the knuckles, tilted forward
+  const palm=new THREE.Group();body.add(palm);rig.palm=palm;
+  const p1=M(GBox(.62*s,.15*s,.5*s),bone,0,0,0);palm.add(p1);
+  palm.add(M(GBox(.5*s,.13*s,.2*s),bone,0,.03*s,-.3*s));                  // the wrist's carpal block
+  for(let i=0;i<4;i++)palm.add(M(GBox(.1*s,.1*s,.46*s),bone,(-.23+i*.155)*s,.07*s,.06*s));   // the metacarpals, standing proud
+  // the wrist STUMP: the arm was not cut off, it was pulled apart, so two
+  // broken spurs of bone come out the back of it and nothing else
+  {const st=M(GCyl(.17*s,.2*s,.3*s,7),bone,0,.02*s,-.5*s);st.rotation.x=Math.PI/2;palm.add(st);
+   palm.add(M(GSph(.19*s,6,5),dark,0,.02*s,-.62*s));                      // the marrow, black
+   for(const[ox,oz,ln,tl] of[[-.07,-.86,.5,.3],[.08,-.78,.34,-.22]]){
+     const sp=M(GCyl(.035*s,.055*s,ln*s,5),bone,ox*s,.02*s,oz*s);sp.rotation.set(Math.PI/2+tl*.4,0,tl);palm.add(sp);}}
+  // four fingers and a thumb, each a chain of groups so they can walk and curl
+  const finger=(x,z,len,n,thick)=>{
+    const js=[];let parent=palm,py=.07*s,pz=z*s;
+    for(let k=0;k<n;k++){
+      const g=new THREE.Group();g.position.set(k?0:x*s,k?0:py,k?(len*s*.98):pz);parent.add(g);
+      const seg=len*(1-k*.16);
+      g.add(M(GCyl(thick*s*(1-k*.13),thick*s*(1-k*.2),seg*s,5),bone,0,0,seg*s/2));
+      g.add(M(GSph(thick*1.08*s*(1-k*.15),5,4),bone,0,0,0));               // the knuckle
+      if(k===n-1){const cl=M(GCone(thick*.9*s,.22*s,5),bone,0,0,(seg+.1)*s);cl.rotation.x=Math.PI/2;g.add(cl);}   // and a claw on the end
+      js.push(g);parent=g;py=0;pz=0;
+    }
+    return js;};
+  for(let i=0;i<4;i++)rig.fingers.push(finger(-.23+i*.155,.26,.46-Math.abs(i-1.4)*.045,3,.055));
+  rig.thumb=finger(-.34,.02,.4,2,.066);
+  rig.thumb[0].rotation.y=1.1;
+  for(const o of[bone,dark])rig.mats.push(o);
+  return rig;
+}
+function makeSkullRig(){
+  const s=2.6,rig={s,mats:[]};
+  const bone=mat('bone'),dark=lam({color:0x07070a});
+  const root=new THREE.Group();rig.root=root;
+  const body=new THREE.Group();root.add(body);rig.body=body;rig.baseY=0;
+  // the cranium, turned from a profile and squashed: long front to back
+  const CR=[[0,.86],[.3,.82],[.5,.7],[.6,.46],[.62,.18],[.58,-.06],[.44,-.2],[.2,-.26],[0,-.27]];
+  const cran=M(lathe(CR.map(([r,h])=>[r*s,h*s]),12),bone,0,0,0);
+  cran.scale.set(1,1,1.22);body.add(cran);
+  body.add(M(GBox(1.06*s,.16*s,.34*s),bone,0,.3*s,.52*s));                 // the brow ridge, heavy
+  body.add(M(GBox(.9*s,.5*s,.3*s),bone,0,-.02*s,.56*s));                   // the face plate
+  // the sockets: black, and deep, with a light standing well back in them
+  rig.eyes=[];
+  for(const sd of[1,-1]){
+    const soc=M(GSph(.2*s,7,6),dark,sd*.27*s,.14*s,.6*s);soc.scale.set(1,1.1,.8);body.add(soc);
+    body.add(M(GBox(.06*s,.24*s,.1*s),bone,sd*.46*s,.1*s,.62*s));          // the orbit's outer wall
+    /* THE LIGHT IN THE SOCKET. It has to stand a little way PROUD of the
+       socket's own sphere: put it at the same place and the black ball
+       draws over it and the skull has empty eyes — which is what the
+       first pass looked like. Additive and unlit, so it holds its
+       brightness at dusk and in the dark without a light going anywhere
+       near the shader count. */
+    const e=new THREE.Mesh(GSph(.1*s,6,5),new THREE.MeshBasicMaterial(
+      {color:0xc8ff9a,fog:false,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
+    e.position.set(sd*.27*s,.14*s,.74*s);body.add(e);
+    const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0x9ae06a,
+      transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending}));
+    gl.scale.set(.72*s,.72*s,1);gl.position.set(sd*.27*s,.14*s,.8*s);body.add(gl);
+    rig.eyes.push({e,gl});
+  }
+  body.add(M(GCone(.13*s,.3*s,5),dark,0,-.06*s,.68*s));                    // the nasal hole
+  for(const sd of[1,-1]){const zy=M(GBox(.12*s,.1*s,.5*s),bone,sd*.5*s,-.04*s,.34*s);zy.rotation.y=sd*.18;body.add(zy);}   // the cheek arches
+  // the upper teeth, in the maxilla
+  const up=new THREE.Group();up.position.set(0,-.26*s,.52*s);body.add(up);
+  up.add(M(GBox(.76*s,.14*s,.3*s),bone,0,0,0));
+  for(let i=0;i<7;i++)up.add(M(GBox(.07*s,.16*s,.09*s),bone,(-.3+i*.1)*s,-.13*s,.07*s));
+  // THE JAW, on its own hinge at the back of the cranium — it opens, it
+  // chatters, and in the end it comes off
+  const jaw=new THREE.Group();jaw.position.set(0,-.12*s,-.06*s);body.add(jaw);rig.jaw=jaw;
+  const ja=M(GBox(.78*s,.16*s,.72*s),bone,0,-.24*s,.4*s);jaw.add(ja);
+  jaw.add(M(GBox(.62*s,.14*s,.2*s),bone,0,-.28*s,.74*s));                  // the chin
+  for(const sd of[1,-1])jaw.add(M(GBox(.13*s,.46*s,.16*s),bone,sd*.36*s,-.04*s,.06*s));   // the rami, up to the hinge
+  for(let i=0;i<7;i++)jaw.add(M(GBox(.07*s,.16*s,.09*s),bone,(-.3+i*.1)*s,-.13*s,.68*s));  // and the lower teeth
+  rig.jawParts=[ja];
+  root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&!rig.mats.includes(o.material))rig.mats.push(o.material);});
+  return rig;
+}
+/* ONE OF THE TWO HANDS. Its own body, its own life, its own death — the
+   skull only knows how many of them are left. */
+class BoneHand{
+  constructor(x,z,side,skull){
+    this.kind='hand';this.name='A HAND OF THE BELL-CALLED';
+    this.big=true;this.boss=false;this.mini=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.side=side;this.skull=skull;this.facing=0;
+    this.radius=.85;this.maxHp=130;this.hp=130;this.dmg=16;this.marrow=90;
+    this.poise=0;this.poiseMax=9;this.chillT=0;this.speed=3.1;this.reach=2.9;
+    this.rig=makeBoneHandRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.state='rise';this.t=0;this.hitDone=false;this.flashUntil=0;this.cool=1.2;
+    this.crumbled=false;this.vx=0;this.vz=0;this.engaged=true;this.untouchable=true;
+    this.walk=Math.random()*TAU;this.tick=0;this.rear=0;this.lift=0;
+  }
+  /* HE DIED AND CAME BACK, so the fight is set again — but it does not
+     FOLLOW him to the bonfire. Every summoned thing here goes back to the
+     hole it came out of and waits there, the way the Fallen One does; the
+     bell called it to that spot and that is where it belongs. */
+  reset(){this.hp=this.maxHp;this.state='wait';this.t=0;this.poise=0;
+    this.untouchable=false;this.crumbled=false;this.engaged=false;this.cool=1;}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0xffffff);}
+  scatter(){}
+  takeHit(dmg,poise,fx,fz,kb){
+    if(this.hp<=0||this.untouchable)return;
+    this.hp-=dmg;this.flash();
+    boneBurst(this.x,heightAt(this.x,this.z)+.5,this.z,0xcfc4a3,6,2.1);
+    if(this.hp<=0){this.die();return;}
+    this.poise+=poise;
+    if(this.poise>=this.poiseMax&&this.state!=='slam'){
+      this.poise=0;this.state='stagger';this.t=0;this.hitDone=false;
+      const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
+      this.vx=dx/l*kb*2.6;this.vz=dz/l*kb*2.6;AudioSys.boneScuttle();
+    }
+  }
+  die(){
+    this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
+    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);
+    const gy=heightAt(this.x,this.z);
+    boneBurst(this.x,gy+.5,this.z,0xcfc4a3,22,3.2);scatterBones(this.x,this.z,0,0,2.4,false);
+    if(this.skull)this.skull.handFell(this);
+  }
+  begin(a){this.state=a;this.t=0;this.hitDone=false;}
+  update(dt){
+    const P=player,r=this.rig;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);
+    const sp=this.chillT>0?0:1;
+    const gy=heightAt(this.x,this.z);
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
+    const faceP=(k)=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
+    // ALONE, IT REMEMBERS IT WAS TWO: the survivor moves half again as
+    // fast and stops waiting between swings
+    const solo=this.skull&&this.skull.handsLeft()===1;
+    this.rear=Math.max(0,this.rear-dt*3);this.lift=Math.max(0,this.lift-dt*3);
+    let curl=0;
+    switch(this.state){
+      case 'rise':{ // it comes up out of the soil fingers first
+        const q=Math.min(1,this.t/1.05);
+        this.lift=0;curl=1-q;
+        r.root.position.y=gy-1.5+1.5*easeOut(q);
+        if(this.t>.6)this.untouchable=false;
+        if(!this.hitDone&&this.t>.08){this.hitDone=true;
+          boneBurst(this.x,gy+.2,this.z,0x4a463a,14,2.6);AudioSys.slam();G.camShake=Math.max(G.camShake,.3);}
+        if(q>=1)this.begin('stalk');
+        break;}
+      case 'wait':{ // back at its hole, and still, until he comes near again
+        const hx=this.homeX-this.x,hz=this.homeZ-this.z,hl=Math.hypot(hx,hz);
+        if(hl>.4){this.x+=hx/hl*Math.min(hl*4,4.2)*dt;this.z+=hz/hl*Math.min(hl*4,4.2)*dt;
+          this.facing=Math.atan2(hx,hz);this.walk+=dt*5;}
+        else curl=.75;
+        if(dist<14&&G.mode==='play'){this.begin('stalk');this.engaged=true;this.cool=.7;}
+        break;}
+      case 'stalk':{
+        faceP(6);
+        const l=dist||1;
+        const v=this.speed*(solo?1.5:1)*sp;
+        if(dist>2.0){this.x+=dx/l*v*dt;this.z+=dz/l*v*dt;this.walk+=dt*v*2.6;}
+        else{const side=Math.sin(G.time*.8+this.side)>0?1:-1;   // circles at close range, never still
+          this.x+=-dz/l*side*1.5*dt;this.z+=dx/l*side*1.5*dt;this.walk+=dt*3.4;}
+        this.tick-=dt;if(this.tick<=0){this.tick=solo?.22:.32;AudioSys.boneScuttle();}
+        this.cool-=dt*(solo?1.7:1);
+        if(this.cool<=0&&G.mode==='play'){
+          if(dist<3.2)this.begin(Math.random()<.62?'swipe':'slam');
+          else if(dist<7)this.begin('slam');
+          else this.cool=.4;
+        }
+        break;}
+      case 'swipe':{ // it rears onto its wrist, then SWEEPS, and you go over
+        const WD=.46,SW=.2;
+        if(this.t<WD){faceP(4);this.rear=easeOut(this.t/WD);curl=.2;
+          if(!this.sfxDone&&this.t>.05){this.sfxDone=true;AudioSys.windup();}}
+        else if(this.t<WD+SW){
+          this.rear=1;curl=0;
+          if(!this.hitDone){this.hitDone=true;this.sfxDone=false;
+            AudioSys.swing(null,'bone');G.camShake=Math.max(G.camShake,.22);
+            const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+            const hx=this.x+fx*1.5,hz=this.z+fz*1.5;
+            boneBurst(hx,gy+.5,hz,0x4a463a,8,2.2);
+            // a sweep across the whole front: wide, and it FLOORS him
+            if(Math.hypot(P.x-hx,P.z-hz)<2.5)P.floored(this.x,this.z,this.dmg);
+          }
+          this.x+=Math.sin(this.facing)*5.2*dt;this.z+=Math.cos(this.facing)*5.2*dt;
+        }else if(this.t>=WD+SW+.34){this.begin('stalk');this.cool=solo?.35:.85;}
+        break;}
+      case 'slam':{ // up on its fingertips, high, and down flat
+        const UP=.6,DN=.16;
+        if(this.t<UP){faceP(3.4);this.lift=easeOut(this.t/UP);curl=.35;
+          if(!this.sfxDone&&this.t>.06){this.sfxDone=true;AudioSys.windup();}
+          const l=dist||1;if(dist>1.6){this.x+=dx/l*2.2*sp*dt;this.z+=dz/l*2.2*sp*dt;}}
+        else if(this.t<UP+DN){this.lift=1-(this.t-UP)/DN;}
+        else{
+          this.lift=0;
+          if(!this.hitDone){this.hitDone=true;this.sfxDone=false;
+            AudioSys.handCrush();G.camShake=Math.max(G.camShake,.5);G.vibr([50,30,70]);
+            shockRing(this.x,this.z,0xcfc4a3,3.0,.45);boneBurst(this.x,gy+.2,this.z,0x4a463a,16,2.8);
+            paintScar(this.x,this.z,Math.random()*TAU,.8,1.0,true);
+            if(Math.hypot(P.x-this.x,P.z-this.z)<2.9)P.floored(this.x,this.z,this.dmg+4);
+          }
+          if(this.t>=UP+DN+.46){this.begin('stalk');this.cool=solo?.4:1.0;}
+        }
+        break;}
+      case 'stagger':{
+        curl=.5;
+        this.x+=this.vx*dt;this.z+=this.vz*dt;
+        this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+        if(this.t>=.55){this.begin('stalk');this.cool=.5;}
+        break;}
+      case 'dead':{
+        curl=1;
+        r.root.position.y=gy-Math.min(1.6,this.t*.9);
+        if(this.t>1.9&&!this.crumbled){this.crumbled=true;r.root.visible=false;}
+        break;}
+    }
+    if(this.state!=='dead'&&this.state!=='rise'){
+      const pr={x:this.x,z:this.z};pushOut(pr,this.radius);constrain(pr,G.bossActive);
+      this.x=pr.x;this.z=pr.z;
+      r.root.position.y=gy;
+    }
+    r.root.position.x=this.x;r.root.position.z=this.z;
+    r.root.rotation.y=this.facing;
+    // THE WALK IS THE FINGERS. Nothing else moves it: the palm rides on
+    // five legs, each pair out of step with the next, and the whole hand
+    // pitches back onto its wrist to strike.
+    r.palm.rotation.x=-this.rear*1.15+this.lift*.5;
+    r.body.position.y=r.baseY+this.rear*.42*r.s+this.lift*.95*r.s;
+    for(let i=0;i<4;i++){
+      const ph=this.walk+i*1.35,step=Math.max(0,Math.sin(ph));
+      const c=curl*1.1+this.rear*.5;
+      /* A HAND WALKS ON AN ARCH. Positive rotation.x tips a finger DOWN
+         (R_x takes +z toward -y), so every joint is positive and the
+         chain bows over from the knuckle to a claw planted on the soil;
+         the STEP straightens one finger at a time and lifts it forward.
+         The first pass had the first joint negative, which splayed all
+         five upward and made the thing a bundle of sticks. */
+      r.fingers[i][0].rotation.x=.62-step*.42+c*.5;
+      r.fingers[i][1].rotation.x=.66+step*.2+c*.8;
+      r.fingers[i][2].rotation.x=.58-step*.3+c*.7;
+      r.fingers[i][0].rotation.y=(i-1.5)*.14;
+    }
+    {const step=Math.max(0,Math.sin(this.walk+2.2)),c=curl*1.1;
+     r.thumb[0].rotation.x=.5-step*.35+c*.5;r.thumb[1].rotation.x=.62+step*.2+c*.8;}
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0x6e1410);}
+    if(G.time>=this.flashUntil)for(const m of this.mats)if(m.emissive)
+      m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='swipe'||this.state==='slam')&&!this.hitDone?0x2e0c06:0x000000);
+  }
+}
+/* THE SKULL. It carries the bar, it counts the hands, and it cannot be
+   touched until they are gone. */
+class GiantSkull{
+  constructor(x,z){
+    this.kind='skull';this.mini=true;this.name='THE BELL-CALLED';
+    this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;
+    this.radius=1.5;this.maxHp=200;this.hp=200;this.dmg=20;this.marrow=420;
+    this.poise=0;this.poiseMax=14;this.chillT=0;this.speed=2.6;this.reach=3.6;
+    this.rig=makeSkullRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.flies=true;this.markUp=2.0;
+    this.y=heightAt(x,z)-2.2;
+    this.state='wake';this.t=0;this.hitDone=false;this.sfxDone=false;this.flashUntil=0;this.cool=2.2;
+    this.crumbled=false;this.vx=0;this.vz=0;this.engaged=true;this.untouchable=true;
+    this.hands=[];this.phase=1;this.wardT=0;this.jaw=0;this.eyeHot=1;this.roll=0;this.jawGone=false;this.chewN=-1;
+  }
+  handsLeft(){return this.hands.filter(h=>h.hp>0).length;}
+  handFell(h){
+    if(this.handsLeft()>0){bannerShow('ONE HAND IS STILL','the other has not finished');AudioSys.bellToll(1);return;}
+    // both gone: it comes down, and the mouth is all that is left of it
+    this.phase=2;this.state='gape';this.t=0;this.untouchable=false;this.gapeY=this.y;this.sfxDone=false;
+    AudioSys.bellToll(2);AudioSys.skullShriek();G.camShake=Math.max(G.camShake,.7);G.hitstop=Math.max(G.hitstop,.15);
+    bannerShow('IT COMES DOWN','break the jaw');
+  }
+  /* the bar is the whole FIGHT, not the skull: it drains as the hands go,
+     then again as the jaw gives. Read by updateHUD in place of hp/maxHp. */
+  get barFrac(){
+    const hh=this.hands.reduce((a,h)=>a+Math.max(0,h.hp),0),hm=this.hands.reduce((a,h)=>a+h.maxHp,0)||1;
+    return clamp((hh/hm*.55)+(Math.max(0,this.hp)/this.maxHp*.45),0,1);
+  }
+  reset(){
+    this.x=this.homeX;this.z=this.homeZ;this.hp=this.maxHp;this.poise=0;
+    this.state='wait';this.t=0;this.y=heightAt(this.x,this.z)+(this.phase===1?3.4:1.02);
+    this.crumbled=false;this.rig.root.visible=true;this.engaged=false;this.untouchable=this.phase===1;
+  }
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0xffffff);}
+  scatter(){}
+  takeHit(dmg,poise,fx,fz,kb){
+    if(this.hp<=0)return;
+    if(this.phase===1||this.handsLeft()>0){
+      // WARDED. The blade rings off it — a bell struck again — and does
+      // nothing at all while a hand of it is still above the soil.
+      if(this.wardT<=0){this.wardT=1.1;AudioSys.clang('stone');AudioSys.bellToll(0);
+        sparkBurst(this.x,this.y,this.z,10);G.camShake=Math.max(G.camShake,.12);
+        toast('warded — kill its hands');}
+      return;
+    }
+    this.hp-=dmg;this.flash();
+    boneBurst(this.x,this.y-.3,this.z,0xcfc4a3,7,2.2);
+    if(this.hp<=0){this.jawOff();return;}
+    this.poise+=poise;
+    if(this.poise>=this.poiseMax&&this.state!=='jawoff'&&this.state!=='throe'){
+      this.poise=0;this.state='stagger';this.t=0;this.hitDone=false;AudioSys.skullShriek();
+    }
+  }
+  /* THE JAW COMES OFF, and that is what kills it. It is torn away whole,
+     thrown, and lands in the grass; the skull screams with nothing to
+     scream with, rolls over, and the light goes out of it. */
+  jawOff(){
+    if(this.jawGone)return;
+    this.jawGone=true;this.hp=1;this.phase=3;this.state='jawoff';this.t=0;this.hitDone=false;
+    const r=this.rig,jaw=r.jaw;
+    r.root.updateMatrixWorld(true);
+    const wp=jaw.getWorldPosition(new THREE.Vector3()),wq=jaw.getWorldQuaternion(new THREE.Quaternion());
+    jaw.parent.remove(jaw);
+    jaw.traverse(o=>{if(o.isMesh){o.material=o.material.clone();if(o.material.emissive)o.material.emissive.setHex(0x000000);}});
+    jaw.position.copy(wp);jaw.quaternion.copy(wq);scene.add(jaw);
+    const a=this.facing+rr3(-.7,.7);
+    loosePiece(jaw,.2,Math.sin(a)*4.2,Math.cos(a)*4.2,4.4,false);
+    AudioSys.jawSnap();AudioSys.skullShriek();
+    G.camShake=Math.max(G.camShake,1.0);G.hitstop=Math.max(G.hitstop,.26);G.vibr([90,50,140]);
+    boneBurst(this.x,this.y-.5,this.z,0xcfc4a3,24,3.4);sparkBurst(this.x,this.y-.4,this.z,14);
+    bannerShow('ITS JAW IS OFF','');
+  }
+  die(){
+    this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
+    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    AudioSys.bellToll(3);G.hitstop=.34;G.camShake=.9;
+    setTimeout(()=>bannerShow('THE BELL-CALLED IS QUIET','nothing will call it again'),700);
+    spawnElemDrop(this.x,this.z,'skull');spawnElemDrop(this.x+rr3(-1.4,1.4),this.z+rr3(-1.4,1.4),'health');
+    boneBurst(this.x,this.y,this.z,0xcfc4a3,26,3.2);
+  }
+  begin(a){this.state=a;this.t=0;this.hitDone=false;this.sfxDone=false;}
+  update(dt){
+    const P=player,r=this.rig;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);this.wardT=Math.max(0,this.wardT-dt);
+    const sp=this.chillT>0?0:1;
+    const gy=heightAt(this.x,this.z);
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
+    const faceP=(k)=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
+    const HIGH=gy+3.4,LOW=gy+1.02;
+    let wantY=this.phase===1?HIGH+Math.sin(G.time*.9)*.22:LOW;
+    let jawWant=.1+Math.sin(G.time*2.3)*.05,pitch=0;
+    switch(this.state){
+      case 'wake':{ // up out of the split ground, turning as it rises
+        const q=easeOut(Math.min(1,this.t/2.8));
+        this.y=gy-2.2+(HIGH-(gy-2.2))*q;
+        this.roll=(1-q)*1.4;jawWant=.1+q*.5;faceP(2.4);
+        if(!this.sfxDone&&this.t>.2){this.sfxDone=true;AudioSys.skullShriek();}
+        if(this.t>=2.8){this.begin('float');this.cool=1.4;}
+        break;}
+      case 'gape':{ // the hands are gone: it comes down, mouth opening
+        const q=easeInOut(Math.min(1,this.t/1.8));
+        this.y=this.gapeY+(LOW-this.gapeY)*q;
+        jawWant=.1+q*.95;pitch=q*.22;this.roll=Math.sin(this.t*5)*.07*(1-q);
+        this.eyeHot=1+q*.8;faceP(2.4);
+        if(!this.sfxDone&&this.t>.9){this.sfxDone=true;AudioSys.skullShriek();
+          G.camShake=Math.max(G.camShake,.5);shockRing(this.x,this.z,0x9ae06a,4.5,.5);}
+        if(this.t>=1.8){this.eyeHot=1;this.begin('float');this.cool=.9;}
+        break;}
+      case 'wait':{ // hanging over its own hole, waiting to be come back to
+        const hx=this.homeX-this.x,hz=this.homeZ-this.z,hl=Math.hypot(hx,hz);
+        if(hl>.5){this.x+=hx/hl*5*dt;this.z+=hz/hl*5*dt;this.facing=Math.atan2(hx,hz);}
+        jawWant=.06;
+        if(dist<15&&G.mode==='play'){this.begin('float');this.engaged=true;this.cool=1.2;}
+        break;}
+      case 'float':{ // it keeps its distance and watches, jaw working
+        faceP(this.phase===1?4:6);
+        const l=dist||1,want=this.phase===1?7.5:3.4;
+        const push=(dist-want)*.9*sp;
+        this.x+=dx/l*push*dt;this.z+=dz/l*push*dt;
+        this.x+=-dz/l*Math.sin(G.time*.5)*1.4*dt;this.z+=dx/l*Math.sin(G.time*.5)*1.4*dt;
+        jawWant=.18+Math.sin(G.time*5.5)*.14;                        // the chatter
+        this.cool-=dt;
+        if(dist>34){this.begin('wait');this.engaged=false;break;}
+        if(this.cool<=0&&G.mode==='play'){
+          if(this.phase===1)this.begin('shriek');
+          else this.begin(dist<4.6?'bite':'chomp');
+        }
+        break;}
+      case 'shriek':{ // it screams the bell's own note: a ring that throws you
+        const WD=.85;
+        pitch=-.2*easeOut(Math.min(1,this.t/WD));
+        jawWant=.2+easeOut(Math.min(1,this.t/WD))*.85;
+        if(this.t<WD)faceP(3);
+        if(!this.hitDone&&this.t>=WD){this.hitDone=true;
+          AudioSys.skullShriek();AudioSys.bellToll(1);
+          G.camShake=Math.max(G.camShake,.6);G.vibr([40,30,90]);
+          shockRing(this.x,this.z,0x9ae06a,7.5,.6);
+          for(let i=0;i<14;i++)elemFleck('poison',this.x+rr3(-1,1),this.y+rr3(-.6,.6),this.z+rr3(-1,1));
+          if(dist<7.5)P.takeHit(this.dmg-6,this.x,this.z,false,'bone');
+        }
+        if(this.t>=WD+.75){this.begin('float');this.cool=2.0+Math.random()*.8;}
+        break;}
+      case 'bite':{ // the whole skull lunges, mouth first
+        const WD=.5,BT=.22;
+        if(this.t<WD){faceP(5);jawWant=.2+easeOut(this.t/WD)*1.0;pitch=.12;
+          if(!this.sfxDone&&this.t>.05){this.sfxDone=true;AudioSys.windup();}}
+        else if(this.t<WD+BT){
+          jawWant=.14;pitch=.3;
+          this.x+=Math.sin(this.facing)*9*dt;this.z+=Math.cos(this.facing)*9*dt;
+          if(!this.hitDone){this.hitDone=true;
+            AudioSys.swing(null,'bone');AudioSys.jawSnap();
+            const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
+            if(Math.hypot(P.x-(this.x+fx*1.4),P.z-(this.z+fz*1.4))<2.3)P.floored(this.x,this.z,this.dmg);
+          }
+        }else{jawWant=.3;if(this.t>=WD+BT+.55){this.begin('float');this.cool=1.0+Math.random()*.6;}}
+        break;}
+      case 'chomp':{ // it drags itself forward along the ground, chewing
+        const RUN=1.5;
+        if(this.t<RUN){
+          faceP(2.2);
+          const l=dist||1;
+          this.x+=dx/l*5.4*sp*dt;this.z+=dz/l*5.4*sp*dt;
+          jawWant=.2+Math.abs(Math.sin(this.t*16))*.9;pitch=.18;
+          if(Math.floor(this.t*8)!==this.chewN){this.chewN=Math.floor(this.t*8);AudioSys.jawSnap();
+            boneBurst(this.x+Math.sin(this.facing)*1.2,gy+.1,this.z+Math.cos(this.facing)*1.2,0x4a463a,4,1.6);}
+          if(dist<2.2&&!this.hitDone){this.hitDone=true;P.floored(this.x,this.z,this.dmg-4);}
+        }else if(this.t>=RUN+.6){this.begin('float');this.cool=1.3+Math.random()*.5;}
+        break;}
+      case 'stagger':{
+        jawWant=.7;pitch=-.16;this.roll=Math.sin(this.t*22)*.1;
+        if(this.t>=.7){this.roll=0;this.begin('float');this.cool=.5;}
+        break;}
+      case 'jawoff':{ // held in the air, screaming, while the jaw lands
+        this.y+=(LOW+1.2-this.y)*Math.min(1,5*dt);
+        pitch=-.5;this.roll=Math.sin(this.t*17)*.18;this.eyeHot=1+Math.sin(this.t*30)*.5;
+        if(this.t>=1.5){this.begin('throe');}
+        break;}
+      case 'throe':{ // and then it goes down, which is the last of it
+        const q=Math.min(1,this.t/1.6);
+        this.y=LOW+1.2-(LOW+1.2-(gy+.55))*easeIn(q);
+        pitch=-.5+q*1.5;this.roll=q*1.1;this.eyeHot=Math.max(0,1-q*1.3);
+        if(!this.hitDone&&q>=1){this.hitDone=true;this.die();}
+        break;}
+      case 'dead':{
+        pitch=1.0;this.roll=1.1;this.eyeHot=0;
+        this.y=gy+.55-Math.min(.5,this.t*.25);
+        if(this.t>3.2&&!this.crumbled){this.crumbled=true;r.root.visible=false;
+          boneCollapse(this.x,this.z,2.2);}
+        break;}
+    }
+    if(this.state!=='wake'&&this.state!=='gape'&&this.state!=='jawoff'&&this.state!=='throe'&&this.state!=='dead')
+      this.y+=(wantY-this.y)*Math.min(1,4*dt);
+    if(this.state!=='dead'){
+      const pr={x:this.x,z:this.z};constrain(pr,G.bossActive);this.x=pr.x;this.z=pr.z;
+    }
+    r.root.position.set(this.x,this.y,this.z);
+    r.root.rotation.set(pitch,this.facing,this.roll);
+    this.jaw+=(jawWant-this.jaw)*Math.min(1,14*dt);
+    if(r.jaw&&r.jaw.parent)r.jaw.rotation.x=-this.jaw;
+    // the light in the sockets: banked while it watches, white when it screams
+    for(const{e,gl}of r.eyes){
+      const h=this.eyeHot*(.7+.3*Math.sin(G.time*3.1));
+      e.material.color.setRGB(.55*h+.2*h*h,.95*h,.4*h);
+      gl.material.opacity=.25+.65*clamp(h,0,1);
+      gl.scale.setScalar(.72*r.s*(.85+.35*clamp(h,0,1.4)));
+    }
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0x6e1410);}
+    if(G.time>=this.flashUntil)for(const m of this.mats)if(m.emissive)
+      m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='shriek'||this.state==='bite')&&!this.hitDone?0x2e0c06:0x000000);
+  }
+}
+/* the bell is struck. Three, and then the ground gives. */
+function bellStruck(b,cx,cz){
+  const B=RUN.bell;
+  if(!B)return;
+  B.tolls++;
+  AudioSys.bellToll(B.tolls-1);
+  G.camShake=Math.max(G.camShake,.18+B.tolls*.12);G.vibr([30,20,60]);
+  // the bronze rings visibly: the whole thing shivers for a moment
+  B.ring=.5;
+  sparkBurst(cx,heightAt(cx,cz)+1.1,cz,5+B.tolls*3);
+  for(let i=0;i<3+B.tolls*3;i++)elemFleck('lightning',cx+rr3(-.9,.9),heightAt(cx,cz)+rr3(.3,1.6),cz+rr3(-.9,.9));
+  if(B.tolls===1)toast('the bronze answers');
+  else if(B.tolls===2)toast('something under the field answers with it');
+  if(B.tolls>=3&&!B.called){B.called=true;b.hp=99;summonBellHorror(B.x,B.z);}
+  else b.hp=Math.max(1,3-B.tolls);
+}
+function summonBellHorror(x,z){
+  const gy=heightAt(x,z);
+  bannerShow('THE BELL-CALLED','it was buried in three pieces');
+  G.camShake=Math.max(G.camShake,.9);G.hitstop=Math.max(G.hitstop,.2);
+  AudioSys.quake();
+  // the ground opens: a scar under the bell and two more where the hands were
+  for(let i=0;i<5;i++)paintScar(x+rr3(-2,2),z+rr3(-2,2),Math.random()*TAU,1.1,1.3,true);
+  boneBurst(x,gy+.3,z,0x4a463a,24,3.4);smokePuff(x,gy+.6,z,7);
+  const sk=new GiantSkull(x,z);enemies.push(sk);
+  const a=Math.atan2(player.x-x,player.z-z);
+  for(const side of[1,-1]){
+    const hx=x+Math.cos(a)*side*3.4+Math.sin(a)*1.6,hz=z-Math.sin(a)*side*3.4+Math.cos(a)*1.6;
+    const p={x:hx,z:hz};constrain(p,false);
+    if(cathDist(p.x,p.z)<3)pushOutOfCath(p,3);
+    const h=new BoneHand(p.x,p.z,side,sk);enemies.push(h);sk.hands.push(h);
+    paintScar(p.x,p.z,Math.random()*TAU,.9,1.1,true);
+    boneBurst(p.x,heightAt(p.x,p.z)+.2,p.z,0x4a463a,12,2.4);
+  }
+  return sk;
+}
+
 /* the finishing cut halves a body: two clones of the rig, each clipped
    to one side of the blade's plane, fall apart from each other, then
    fade into the soil */
@@ -11058,7 +11824,7 @@ function shootArrow(x,y,z,dx,dz,spd,dmg,kind,vy0){
     for(const e of enemies){
       if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||hitSet.has(e))continue;
       // where its BODY is, which for a thing in the air is not the soil
-      const ey=(e.crow||e.kind==='angel')&&e.y!==undefined?e.y+(e.crow?0:.5):heightAt(e.x,e.z)+1.1;
+      const ey=aloft(e)?e.y+(e.crow?0:.5):heightAt(e.x,e.z)+1.1;
       const tol=e.boss?2.0:e.big?1.6:1.3;
       // the shaft is falling: it counts as level with the body anywhere
       // across this step, not only where the step began
@@ -11222,7 +11988,7 @@ function bubbleBurst(x,y,z,col,big){
   sparkBurst(x,y,z,big?14:7);
 }
 function bubbleTargetY(e){
-  return (e.crow||e.kind==='angel')&&e.y!==undefined?e.y+(e.crow?0:.5)
+  return aloft(e)?e.y+(e.crow?0:.5)
        :heightAt(e.x,e.z)+(e.boss?1.9:e.big?1.35:1.05);
 }
 function updateBubbles(dt){
@@ -11901,12 +12667,48 @@ function updateCamera(dt){
        enough in that it is always over ground that exists. At the rim it
        simply comes in close over the shoulder, the way a camera does
        against a wall. */
-    if(PATH.on)cx=clamp(cx,-20.5,20.5);        // the path is a corridor, not a hexagon: only its shorn sides
+    if(PATH.on){
+      cx=clamp(cx,-20.5,20.5);                 // the path is a corridor, not a hexagon: only its shorn sides
+      // ...and never out over a tile that has not been built (or has been
+      // torn down behind her): there is no ground mesh out there at all,
+      // only the analytic height, so the camera would hang over nothing
+      let z0=-1e9,z1=1e9;
+      for(const t of PATH.tiles)if(t&&!t.dead){if(t.z0>z0)z0=t.z0;if(t.z1<z1)z1=t.z1;}
+      if(z0>-1e8)cz=clamp(cz,z1+2,z0-2);
+    }
     else{
       const m=HEX_AP-2.6;
       for(let i=0;i<6;i++){
         const n=HEXN[i],d=cx*n.x+cz*n.z;
         if(d>m){cx-=(d-m)*n.x;cz-=(d-m)*n.z;}
+      }
+    }
+  }
+  /* AND OUT OF THE CATHEDRAL'S STONE. The hexagon was only half of it.
+     The camera rides BEHIND her, so standing a stride outside a wall puts
+     it INSIDE that wall — a metre of solid ashlar between the lens and
+     everything else, which is the same blank screen the rim used to give.
+     It reaches both ways: inside the nave against the north wall, the
+     camera is out in the graveyard looking at the back of the stone.
+     Nothing guarded this anywhere except the Warden's fight, which clamps
+     the camera into the nave — so it bit on the PATH, where every tile
+     can carry a cathedral, and on the field once the Warden was dead and
+     the nave was just a room again.
+     No special cases and no phases: walk the line from her head out to
+     where the camera wants to be, and stop at the first stone. Coming out
+     of the door, through the door, along a wall, up the stair — they are
+     all the same question, asked of the same predicate. */
+  {
+    const cc=PATH.on?cathZ(player.z):0;
+    if(cc<1e8){
+      const hx=player.x,hz=player.z-cc,tx=cx,tz=cz-cc;
+      const dx=tx-hx,dz=tz-hz,L=Math.hypot(dx,dz);
+      if(L>.05){
+        const n=Math.min(24,Math.max(2,Math.ceil(L/.3)));
+        let u=1;
+        for(let i=1;i<=n;i++){const k=i/n;
+          if(camStone(hx+dx*k,hz+dz*k)){u=(i-1)/n*.92;break;}}
+        if(u<1){cx=hx+dx*u;cz=cc+hz+dz*u;}
       }
     }
   }
@@ -11966,8 +12768,9 @@ function lockReach(e){
    never lost; it simply pointed at dirt while the thing that mattered was
    over your head. Anything that flies carries its own y, and both the
    mark and the gaze ask for it. */
-function foeY(e){return (e.crow||e.kind==='angel')&&e.y!==undefined?e.y:heightAt(e.x,e.z);}
+function foeY(e){return aloft(e)?e.y:heightAt(e.x,e.z);}
 function markY(e){
+  if(e.markUp!==undefined)return foeY(e)+e.markUp;              // (a thing that names its own height: a giant, a floating skull)
   if(e.state==='scatter')return heightAt(e.x,e.z)+.55;          // a heap of bones: low, where the heap is
   if(e.crow)return e.y+.7;
   if(e.kind==='angel')return e.y+1.5;
@@ -12060,7 +12863,10 @@ function updateHUD(){
     const mb=enemies.find(e=>e.mini&&e.hp>0&&e.engaged);
     const bb=$('bossbar');
     if(mb){bb.style.display='block';$('bossname').textContent=mb.name;
-      $('bossfill').style.width=clamp(mb.hp/mb.maxHp*100,0,100)+'%';}
+      // a thing fought in pieces offers its own reading: the Bell-Called's
+      // bar is its hands AND its jaw, so it drains from the first blow
+      const f=mb.barFrac!==undefined?mb.barFrac:mb.hp/mb.maxHp;
+      $('bossfill').style.width=clamp(f*100,0,100)+'%';}
     else if(bb.style.display==='block')bb.style.display='none';
   }
 }
@@ -12626,7 +13432,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

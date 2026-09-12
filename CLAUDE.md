@@ -426,6 +426,69 @@ Known state of play:
   positions stay put; do not "fix" it by clamping the scale.
   `_spNow` is zeroed in `die()` or the cape streams out behind a corpse.
 
+- **THE BELL AND THE BELL-CALLED.** `RUN.bell` is the prop (a third
+  landmark wedge — `RUN.landmarkWedges` now holds three). It is a
+  `breakables` entry with two flags nothing else uses: **`tough`** makes
+  `strikeBreakables` ignore `oneShot`, because the ultra greatsword would
+  otherwise call the thing in one hit and three tolls is the whole point;
+  and **`onHit`** lets it sound and dress its own blow, because the
+  generic splinter burst is thrown at `PH+.7` — the PEWS' height in the
+  nave — which is wrong out in the field. `bellStruck` counts the tolls
+  and `summonBellHorror` does the rest.
+  - Three entities, not one: `GiantSkull` (`mini:true`, carries the bar)
+    and two `BoneHand`s (`mini:false`, so they do NOT take the bar). The
+    skull owns them in `this.hands` and asks `handsLeft()`.
+  - **The skull is WARDED, not `untouchable`, while a hand lives.**
+    `untouchable` would also drop it out of `lockCands` and off the eye,
+    which reads as a bug; a ward that rings and does nothing reads as a
+    rule. Do not swap them.
+  - **`barFrac`** is an optional getter `updateHUD` prefers over
+    `hp/maxHp`. Anything fought in pieces should offer one, or its bar
+    sits full while you are killing the parts.
+  - `rig.oneHand`'s cousin here is **`flies`**: one flag, read by
+    `aloft(e)`, which the bow, the wand's bubbles, the eye's mark and the
+    camera's gaze all ask instead of each testing `crow||angel` for
+    themselves. A floating thing that does not set it gets shot at the
+    dirt under it. **`markUp`** puts the eye's ring at a giant's own
+    height rather than a brute's.
+  - **A HAND WALKS ON AN ARCH.** Positive `rotation.x` tips a finger DOWN
+    (R_x takes +z toward -y), so every joint of a finger is POSITIVE and
+    the chain bows from the knuckle to a claw in the soil. The first pass
+    had the first joint negative and the thing was a bundle of sticks
+    pointing at the sky.
+  - **The light in a socket must stand PROUD of the socket's own sphere.**
+    Put the eye at the same place as the dark ball and the ball draws over
+    it and the skull has empty eyes. It is Basic and additive so it holds
+    its brightness in the dark — and so it must never be a `bladeMesh` or
+    anything else that writes `emissive` (see the wand's orb).
+  - Everything summoned goes back to its hole on `reset()` (a `wait`
+    state, the Fallen One's pattern) rather than following the pilgrim to
+    the bonfire, and clears `engaged` so the bar goes away with it.
+- **`player.floored(fx,fz,dmg)`** is the knockdown, and it is the only
+  thing in the game that takes the pilgrim off his feet. `FLOOR`
+  (`AIR/LAND/RISE/DUR`, beside `poseStagger`) is the timing; `poseFloored`
+  is the pose; `iframes()` covers it from `LAND` to the end, and it
+  refuses to start if `takeHit` came back `dead`/`iframe`/`immune`, so it
+  is never a way of surviving something lethal. The RISE is the cost and
+  must stay the longest leg — two hands working in turn would otherwise
+  be a wall rather than a fight.
+  It writes `root.rotation.x`, which nothing else for the living hero
+  does except `poseFall` — so the root's pitch is put back to 0 every
+  frame he is in neither state, right after `root.rotation.y=this.facing`.
+- **The "Computed radius is NaN" console flood was `thorStrike`'s bolt.**
+  Trapped by patching `BufferGeometry.computeBoundingSphere` and reading
+  the stack: a 15-vertex position-only `Line` called from
+  `Frustum.intersectsObject` — which is `boltLine`'s `base`
+  (6 + 8 + 1 points) and nothing else in the game. One non-finite point
+  takes that geometry's bounding sphere to NaN and three.js then prints
+  from inside frustum culling, every frame, for as long as the effect
+  lives. The producer was never reproduced — the likeliest is
+  `bladeTrail.tip()` read through a rig the ragdoll or the melt has just
+  posed — so the guard is at the two boundaries where a bad point does
+  damage: `tip()` falls back to the pilgrim's own chest when its answer
+  is not finite, and `boltLine`/`boltArc` refuse to build a geometry from
+  one. If it ever comes back, patch `computeBoundingSphere` again and
+  read the vertex count: it names the producer exactly.
 - **The camera is clamped inside the world, and it has to be.** It rides
   BEHIND the pilgrim, so at the rim it ends up outside the hexagon where
   the ground mesh has fallen away — but `heightAt` out there still answers
@@ -436,6 +499,21 @@ Known state of play:
   two must stay separate: the path is a corridor whose z runs far past the
   hexagon, so applying the hex planes there would drag the camera off the
   pilgrim entirely.
+  **AND THE HEXAGON WAS ONLY HALF OF IT.** The same blank screen came
+  back in path/survival, and the cause was the CATHEDRAL: the camera
+  rides behind her, so a stride outside a wall puts it inside that metre
+  of ashlar, and inside the nave against the north wall it is out in the
+  graveyard looking at the back of the stone. Only the Warden's fight
+  guarded it (`G.bossActive` clamps the camera into the nave), so it bit
+  on the path — where every tile can carry a cathedral — and on the field
+  once the Warden was dead. The fix is `camStone(x,zl)` (the wall shell in
+  the building's own frame, with the portal cut out — the south face on
+  the field, BOTH ends on the path) plus a walk along the line from her
+  head to the wanted camera spot, stopping at the first stone. No phases
+  and no special cases: the door, the stair and the wall are one question.
+  Measured over 648 legal placements × 8 headings: field 42 → 0, path
+  52 → 0. The path camera's z is also held inside the tiles that exist,
+  or it hangs over a stretch that has been torn down.
 - **A body that has gone over the brink has no floor for its CLOTH
   either.** `stepSheet` takes its floor from `root.position.y`, and the
   ragdoll keeps the root planted on the ground while the hips fall — so
