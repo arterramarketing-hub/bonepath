@@ -22,8 +22,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   deaths, time, the state of the two mini-bosses, the Warden and the
   cathedral — with the full touch and keyboard control lists, and **the
   pilgrim**: a lit portrait of your knight with three selectors under it.
-  **Weapon** — the greatsword, the ultra greatsword, the longbow, or the
-  katana. **Armour** —
+  **Weapon** — the greatsword, the ultra greatsword, the longbow, the
+  katana, the wand — or one of the six guns (see *First person*), which
+  he carries over the shoulder in either view. **Armour** —
   **sheet knight** (hand-modelled low-poly, after an eight-view
   reference sheet: every part is a hull of six-to-twelve-sided rings
   lofted into flat-shaded facets and painted in patches — a bascinet
@@ -457,14 +458,21 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 
 No flask. No stamina. Only nerve.
 
-## First person
+## First person, and the guns
 
-Not a third way to begin — a **switch inside either world**. The
-**3RD / 1ST** button beside the pause button (or *the view* on the pause
-screen) moves the eye into the helm mid-run, without a reload: the
-pilgrim's body is hidden, the blade is taken out of his hands, the whole
-of the right thumb becomes the look, and what he carries instead is a
-gun. The world, the host, the marrow, the hours, the weather, the motes
+Two things that used to be one. **The view** is a switch inside either
+world: the **3RD / 1ST** button beside the pause button (or *the view* on
+the pause screen) moves the eye into the helm mid-run, without a reload —
+the pilgrim's body is hidden, the whole of the right thumb becomes the
+look, and the buttons come up the way a phone shooter lays them. **The
+weapon** is the loadout's, as it always was — and the loadout now holds
+six guns beside the blades. So a **gun is carried in third person** too,
+over the shoulder at the chest, the eye's mark doing the aiming and the
+tap the firing (a held thumb runs the automatics); and a **greatsword is
+swung from behind the eyes** in first, its arc drawn across the screen by
+the same clock the real swing runs on — the bow and the wand too, the
+shaft leaving along the eye's pitch. Either view, either kind.
+The world, the host, the marrow, the hours, the weather, the motes
 and the hexes of the path are exactly what they were; the roll, the
 stagger, the knockdown and the fall over the rim all still run
 underneath, and the camera rides them (the roll dips, a knockdown lays
@@ -487,21 +495,45 @@ name and its magazine over its reserve; tap it to swap. A **zoom** button
 appears only when the sniper is in its scope. The pause button and the
 hearts are where they were; there is no lock-on and no finishing mark.
 
-**Three guns and no more.** Every shot is a **ray**, not a projectile: it
-leaves the eye through the crosshair, opened by the current spread, and
-is tested first against every live horror's **head and body** — a sphere
-each, taken off the rig's own skull and trunk, plus one for the hips —
-and then walked out through the world to whatever it would have met on
-the way: the soil, the cathedral's stone, a trunk, a gravestone, a pew,
-the bell (three rounds call the Bell-Called, the same as three blows).
-The nearest thing takes the round. A body flinches and bleeds or chips
-where it was hit, the soil takes a scar, stone throws sparks.
+**Six guns, by calibre** — because the calibre is what a round does.
+Reserves are kept **by calibre**, so the eagle and the rifle draw on one
+pool of .50, and a dropped box is a box of one calibre. Every shot but
+the rocket is a **ray**, not a projectile: it leaves the eye through the
+crosshair, opened by the current spread, and is tested first against
+every live horror's **skull, trunk, hips and limbs** — a sphere each,
+taken off the rig's own bones; the skull and the limbs win over the trunk
+they stand in front of — and then walked out through the world to
+whatever it would have met on the way: the soil, the cathedral's stone, a
+trunk, a gravestone, a pew, the bell (three rounds call the Bell-Called,
+the same as three blows). The nearest thing takes the round.
 
-| | magazine · reserve | damage (body / head) | rate | the feel |
-|---|---|---|---|---|
-| **golden eagle** | 7 · 35 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in two, a brute in four, a headshot doubles it. It climbs, and the sights hold half of it down |
-| **UMP45** | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; the bloom opens as it runs and it walks up a little and settles fast |
-| **bone sniper** | 5 · 15 | 96 / 220 | one, then the bolt | one shot, one body. Its sights are a **scope** — the glass takes the screen, the viewmodel goes away — with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+| | calibre | magazine · start | damage (body / head) | rate | the feel |
+|---|---|---|---|---|---|
+| **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in two, a brute in four; **a head under it comes off**. It climbs hard, and the sights hold half of it down |
+| **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast |
+| **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: four to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Carry-handle aperture and a post on a triangular base |
+| **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
+| **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+| **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
+
+**What a round leaves.** A body flinches and bleeds (or chips, if it is
+bone) where it was hit, and keeps a **wound** — a small mark attached to
+the bone the round went into, riding the horror through every pose and
+its fall (six a body, forty in the field). The world keeps the mark too:
+a real raycast against the meshes around the hit says exactly where and
+on which face, and a **bullet hole** is punched onto that surface —
+a wall, a trunk, a gravestone, a pew, the bell, the cathedral's bake,
+whatever texture it wears; eighty holes in one buffer and one draw,
+recycled oldest-first. The soil takes a scar in the paint; stone throws
+sparks; wood knocks.
+
+**Heads and limbs.** A headshot multiplies the damage by the gun's own
+factor, and under a **strong enough calibre — .50 and 5.56 — the head
+comes off**: the game's own dismemberment, the skull thrown along the
+line of the round and the body falling headless after it. A round in an
+**arm or a leg** may take the limb (a strong calibre, or the shotgun
+within six metres), and the horror fights on without it. Rockets take
+the whole body.
 
 **From the hip there is a cone; on the sights there is none.** The
 crosshair is the hip's and it is honest: its gap *is* the cone the next
@@ -522,12 +554,13 @@ imbued element rides the rounds — fire bites and can take, frost holds
 them where they stand, lightning adds to the damage — exactly as an arrow
 carries them.
 
-**Attachments.** Where the blade had its charged attack, the pause
+**Attachments.** Where the blade has its charged attack, the pause
 screen's third row is what sits on the gun's **rail** — one per gun,
-remembered by the browser. **Iron sights**: each gun's own, and drawn as
-such now — the eagle a blade up front with a white dot on its face and a
-notch at the back with a dot either side; the UMP a post under a hood in
-a square aperture. The sight line is computed from the sight itself, so
+remembered by the browser, in either view. **Iron sights**: each gun's
+own, and drawn as such — the eagle a blade up front with a white dot on
+its face and a notch at the back with a dot either side; the UMP a post
+under a hood in a square aperture; the M4 its carry handle's aperture; the
+SPAS a post and a notch on the rib; the RPG a folding ladder. The sight line is computed from the sight itself, so
 the top of the blade is the point of aim, exactly. **Red dot**: a framed
 window of glass on the rail with one point of light in it; the field
 stays open, and the eye is on the mark a shade faster. **ACOG**: a short
@@ -555,11 +588,12 @@ round waits on it.
 first person about half of them leave a **box of rounds** where they
 fall — a brass cartridge on an olive box, inside a tan glow, the same
 kind of drop as the motes and sharing their patch of ground (six may lie
-out at once rather than four). Walking into it feeds every gun, the one
-in hand twice over (14 / 50 / 6 rounds a box, doubled for the one you
-are holding). The field's death and return refills the magazines and
-tops the reserve back up to what he set out with; on the path, as ever,
-death is the end.
+out at once rather than four). A box is **one calibre** — the one in
+your hands half the time, otherwise any — and walking into it adds that
+calibre's own measure (40 of 9mm, 30 of 5.56, 10 of .50, 8 shells, one
+rocket), doubled when it is the calibre you are holding. The field's
+death and return refills the magazines and tops every reserve back up to
+what he set out with; on the path, as ever, death is the end.
 
 **The field shows itself to a gun.** A host that lies under the soil
 until you are ten metres off gives a rifle nothing to look at, so in

@@ -587,6 +587,43 @@ Known state of play:
   14. The UMP is `suppressed`: `AudioSys.gun('ump')` is a thump with no
       crack, the flash sprite is a third the size, and the halo flare is a
       quarter. Do not give it the eagle's report back.
+  15. **The view and the weapon are separate now.** `FPS.on` is the eye's
+      place; `gunHeld()` (`isGunKey(LOADOUT.weapon)`) is what is in the
+      hands. `GUNS` holds six and `HERO_OPTS.weapon` lists them beside
+      the blades. `updateGun` runs in EITHER view when a gun is held (in
+      third person the tap is the trigger, `chargeHeld` the automatic's,
+      and `gunAimBase` aims at the eye's mark); `updateBladeVm` runs in
+      first person with a blade (a clone of `rig.weapon` MINUS ITS LIGHT
+      — cloning a PointLight would add a light and recompile every shader).
+      `Input.setBlade` tells the input a blade is behind the eyes, so the
+      triggers become strikes and the aim button charges.
+  16. `buildGunModel` is a function DECLARATION and touches neither `GUNS`
+      nor `FPS`: `makeKnightRig` calls it at boot when a saved loadout
+      holds a gun, long before the module's consts exist. `isGunKey` is a
+      declaration for the same reason. The rig's gun is the same model
+      turned `rotation.x=-π/2, z=π` (barrel down the hand's -y, the way a
+      blade hangs) — measured: muzzle 1.16 m ahead, sights up.
+  17. **The gun materials are SHARED** (`gunMats()`) between the rig, the
+      viewmodel and the pause portrait, and `player.flash` sets every hero
+      emissive — so no gun material carries an emissive floor (the gold had
+      one; it was wiped by the first blow and the portrait went red).
+  18. Reserves are BY CALIBRE (`FPS.res[cal]`, `CALIBRES`); a magazine is
+      the gun's own (`FPS.ammo[key].mag`). `resOf`/`setRes`, never the
+      object directly.
+  19. `hitscan` asks each horror's spheres in ORDER — head, then a limb,
+      then the trunk — and the first the ray passes through takes it; the
+      trunk's sphere is generous and wraps the others, so a nearest-t rule
+      never reached a skull or an arm. `popHead`/`popLimb` park hp at 999
+      across `severLimb` (which kills at zero and would double-count the
+      marrow); `severLimb` takes `armR` now as well as `armL`.
+  20. Holes are one buffer (`HOLES`, 80 quads, `punchHole`) placed by a
+      Raycaster over `world`'s meshes minus the soil (`surfaceHit`);
+      wounds (`woundEnemy`) are quads ATTACHED to the bone they struck,
+      capped six a body and forty in all, and `clearWounds` runs in the
+      hollows' `reset`. The rocket (`fireRocket`) marches `hitscan` a step
+      a frame and `rocketBurst` throws a killed small humanoid into
+      `scatterBones` with `crumbled` set, the katana-slice path, so
+      `pruneFallen` buries it.
 
 ## Conventions
 

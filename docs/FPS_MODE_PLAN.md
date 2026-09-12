@@ -14,7 +14,8 @@ input additions inside `Input`. Working notes and traps are in `CLAUDE.md`.
 | planned | built |
 |---|---|
 | a mode of its own on the title screen | a toggle inside the field and the path; the title button and its note are gone |
-| a revolver, six rounds, nothing else | three guns: the golden eagle (a hand cannon), the UMP45 (full auto), the bone sniper (a scope with two magnifications) |
+| the guns only behind the eyes | the view and the weapon are separate: a gun is carried in third person too, and a blade is swung from behind the eyes |
+| a revolver, six rounds, nothing else | six guns by calibre: the golden eagle and the bone sniper (.50), the M4A1 (5.56), the UMP45 (9mm, suppressed), the SPAS-12 (12 gauge), the RPG-4 (rockets); iron sights, a red dot or an ACOG on each rail |
 | infinite ammunition, or marrow buys rounds (open question) | finite magazines and reserves; the horrors drop boxes of rounds in first person; the field's death refills |
 | tap fires, hold aims, flick rolls | phone-shooter buttons: a trigger under each thumb, aim (tap toggles, hold releases), reload, dodge, zoom, and the weapon bar to swap |
 | lock-on off, the crosshair aims | as planned; the finishing mark is off too |
