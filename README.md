@@ -64,7 +64,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   on the spot. **The view** — over the shoulder, or **first person**,
   which is the same field or path played as a shooter: see *First
   person*, below. In first person the weapon selector cycles the guns
-  instead.
+  instead, and the charge row becomes the **attachment** on the gun's
+  rail.
 
 ## Controls (touch)
 
@@ -474,7 +475,11 @@ remembered by the browser, and `?pov=1` on the URL asks for it.
 **The buttons are laid out the way a phone shooter lays them.** A
 **trigger under each thumb** — one on the left above the stick, one
 large on the bottom right — so the left can fire while the right goes on
-aiming, or the other way round. To the right-hand trigger's left and
+aiming, or the other way round. **The right trigger is a stick as well:**
+pressed, it fires; dragged, it turns the eye, the button riding under the
+thumb the way the left stick's nub rides and going home when it is let
+go — so one thumb can walk and the other can hip-fire and track at once.
+To the right-hand trigger's left and
 above it: **aim** (a tap toggles the sights, a long hold releases them on
 the way up), **reload**, and **dodge** (the roll, by button: a flick would
 be a look now). The **weapon bar** at the bottom centre carries the gun's
@@ -495,18 +500,42 @@ where it was hit, the soil takes a scar, stone throws sparks.
 | | magazine · reserve | damage (body / head) | rate | the feel |
 |---|---|---|---|---|
 | **golden eagle** | 7 · 35 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in two, a brute in four, a headshot doubles it. It climbs, and the sights hold half of it down |
-| **UMP45** | 25 · 100 | 12 / 22 | eleven a second, held | the spray. Each one a scratch; the bloom opens as it runs and the sights close it |
+| **UMP45** | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; the bloom opens as it runs and it walks up a little and settles fast |
 | **bone sniper** | 5 · 15 | 96 / 220 | one, then the bolt | one shot, one body. Its sights are a **scope** — the glass takes the screen, the viewmodel goes away — with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
 
-The **spread** is the crosshair: it draws in on the sights, opens as you
-walk (wider at a sprint) and blooms with every shot, decaying back.
-Aiming narrows the field of view and slows the look with it. Every gun
-**kicks** — the muzzle climbs on the viewmodel, and the eye with it, a
-little to one side. A **telling shot** (one in twelve) does half again;
+**From the hip there is a cone; on the sights there is none.** The
+crosshair is the hip's and it is honest: its gap *is* the cone the next
+round can leave through — each gun's own at rest, wider walking, wider
+still at a sprint, blooming with every shot and closing back. Bring the
+sights up and the crosshair goes, the cone goes with it, and the round
+goes **exactly where the sight is** — whatever the gun is doing on the
+screen. Every gun has its own **sway** (a slow breath at the hip, the
+walk's bob, a lag behind the look) and its own **recoil**: the muzzle
+climbs on the viewmodel and jumps back, and the *eye* climbs with it, a
+little to one side, so the sight is somewhere else for the next round; a
+share of the climb settles back on its own, the rest you pull down. The
+sway and the bob are held off entirely while the sights are up, which is
+what keeps them true. Aiming narrows the field of view and slows the look
+with it. A **telling shot** (one in twelve) does half again;
 the reaper's mark doubles every round on anything but the Warden; and an
 imbued element rides the rounds — fire bites and can take, frost holds
 them where they stand, lightning adds to the damage — exactly as an arrow
 carries them.
+
+**Attachments.** Where the blade had its charged attack, the pause
+screen's third row is what sits on the gun's **rail** — one per gun,
+remembered by the browser. **Iron sights**: each gun's own, and drawn as
+such now — the eagle a blade up front with a white dot on its face and a
+notch at the back with a dot either side; the UMP a post under a hood in
+a square aperture. The sight line is computed from the sight itself, so
+the top of the blade is the point of aim, exactly. **Red dot**: a framed
+window of glass on the rail with one point of light in it; the field
+stays open, and the eye is on the mark a shade faster. **ACOG**: a short
+scope on the rail; the field closes to a third, a red chevron sits with
+its point on the mark, and the gun leaves the picture while you are in
+the glass. The sniper's own scope is its iron option (four and eight
+times, the zoom button); give it a dot or an ACOG and it becomes a rifle
+you can fight close with.
 
 **The hit marker.** Four ticks flash on the crosshair when a round lands
 — white for a body, gold for the head, red and longer for a kill — with

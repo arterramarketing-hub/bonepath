@@ -568,6 +568,25 @@ Known state of play:
      `takeHit` alone only wakes the dormant.
   10. The `ammo` drop is in `ELEMENTS`/`DROP_FACE` so `spawnElemDrop`
       needs no special case; the drop cap is 6 in first person, 4 otherwise.
+  11. **The ADS position is computed, never hand-tuned.** `applyAttachment`
+      sets each gun's `ads` from `sightH[att] * scale`, so the sight line
+      sits at the screen's centre exactly; the hip position is the only
+      free number. Every viewmodel motion (bob, idle sway, look-lag) is
+      scaled by `(1-ads)` so the sight is true when it is up. The hurt
+      flinch is the one thing that still dips it, on purpose.
+  12. **The cone is the hip's** (`coneNow`: `spread*(1-ads)`, 0 past
+      `ads>.9`); on the sights the ray is the camera's forward and nothing
+      else, and the crosshair is hidden past `ads>.8`. Recoil moves the
+      EYE (`FPS.pitch`, `G.camYaw`) plus a settling share (`FPS.recP`);
+      the viewmodel's kick is cosmetic. `gunRay` reads the camera matrix
+      from the LAST update, so the kick applied in `fireGun` never bends
+      the shot that caused it.
+  13. The right trigger (`#fbFireR`) has its own pointer handling, not
+      `bindBtn`: its drag feeds `camDX/camDY` and translates the button.
+      The left trigger is a plain `bindBtn`.
+  14. The UMP is `suppressed`: `AudioSys.gun('ump')` is a thump with no
+      crack, the flash sprite is a third the size, and the halo flare is a
+      quarter. Do not give it the eagle's report back.
 
 ## Conventions
 
