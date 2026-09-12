@@ -722,11 +722,32 @@ painted backdrop — but an invisible wall stood a metre inside the drop and
 you simply could not reach it, which made the most dramatic feature of the
 whole field a place where you bumped into air.
 
-The wall is a **cliff** now. Cross the lip — the last stride before the old
-wall stood — and you go over it: no blow, no blood, the same ragdoll every
-other death uses, thrown outward and then let off the world entirely, with
-no ground under any part of it and no wall to catch it. It turns over once
-and keeps going down into the dark the field sits on.
+The wall is a **cliff** now — and you have to actually walk off it. The
+first pass did not: it killed you for coming *within* a metre and a bit of
+the edge, while the old wall was still holding you nine tenths of a metre
+inside that, so you died standing on flat grass with solid ground under
+both boots, having never left it. That is a circle drawn near a cliff, not
+a cliff.
+
+The game asks the ground now. `heightAt` answers everywhere with the soil
+the field *would* have and does not know the world ends; the ground **mesh**
+does, and the surface it draws is read the same way the card reads it. You
+can stand on the very lip. You can walk the rim. It is only when the ground
+has dropped further beneath your boots than a step down — which happens
+about a fifth of a metre past the last of it, out on the slope into
+nothing — that you go over. A metre further out than the old line, and on
+the right side of it.
+
+And you go over **on your feet**. For four tenths of a second he is still
+himself: the stride that took him out carries on, the trunk pitches back as
+the hips drop out from under it, both arms come up and open, the leading
+leg still out over nothing. Only when he is two and a half metres below the
+lip and plainly past saving does he go limp — the same ragdoll every other
+death uses, thrown outward and then let off the world entirely, with no
+ground under any part of it and no wall to catch it. It turns over once and
+keeps going down into the dark the field sits on. Dying *on* the edge and
+dying *off* it look nothing alike, and the difference is those four tenths
+of a second.
 
 **And so do the horrors** — but only when they are not standing on their own
 feet. One walking the rim of its own accord is held back the way it always

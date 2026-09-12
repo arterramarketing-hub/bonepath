@@ -261,13 +261,30 @@ Known state of play:
   you add a joint to `SMOOTH_JOINTS` it is carried automatically; if you
   measure the seam, measure the target step, not the rendered output — the
   springs hide most of it either way.
-- **`overBrink(p)` is the hexagon's cliff, and the lip sits INSIDE the
-  clamp.** `constrain` still pulls everything back to `HEX_AP-.9`, so a
-  thing that has crossed the lip (`HEX_AP-BRINK`, BRINK 1.15) is pinned at
-  the edge — which is where you want it standing when the ground stops
-  being under it. It returns -9 for the path and the boss arena: neither is
-  a cliff. `ragFree(rag)` is what actually lets a body off the world (all
-  particles in `noFloor`, `noWall` so `rag.sub` skips `constrain`).
+- **THE PILGRIM AND THE HORRORS GO OVER THE RIM BY TWO DIFFERENT RULES,
+  on purpose.** He WALKS, so it has to be physical: `groundGone(p)` reads
+  the ground mesh's own surface (`groundSurfaceY`, the mesh's vertex rule
+  bilinear over its 1.5m cells, which is exactly what the card draws) and
+  answers how far it has fallen away beneath a point. Past `FALL_STEP`
+  (.45m, deeper than a step down) he is on the slope into nothing and
+  `stepOff()` runs. `constrain(p,arenaOnly,offEdge)` — the hero passes
+  `offEdge` so the rim does not hold him back; the wide value there is only
+  a backstop against wandering into forever. **`groundGone` returns 0
+  inside the lip unconditionally, and must**: the plinth and the stair are
+  their own geometry standing on the soil, so `heightAt` there answers with
+  the stone while the mesh underneath is still the field — subtract them on
+  the cathedral steps and you get the plinth's height, which pitches the
+  pilgrim off the world for climbing it.
+  A horror is THROWN, and its ragdoll particles are clamped by `constrain`
+  anyway, so it still uses `overBrink(p)` (lip `HEX_AP-BRINK`, BRINK 1.15,
+  inside the `HEX_AP-.9` clamp): being pinned at the rim while flying
+  outward IS the event. Do not "unify" these without giving the ragdoll a
+  way past the clamp first.
+  `overBrink` returns -9 for the path and the boss arena; `groundGone`
+  returns 0. Neither is a cliff. `ragFree(rag)` is what actually lets a
+  body off the world (all particles in `noFloor`, `noWall` so `rag.sub`
+  skips `constrain`, and `rig.noFloorCloth` so the cloth has no floor
+  either).
 - **Arrows are ballistic now** (`ARROW_G`), and `fireArrow` solves the
   launch angle at the LOCKED target's real height, then clamps it. The
   clamp is the bow's range: past it the shaft falls short, which is the

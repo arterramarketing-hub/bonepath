@@ -2888,6 +2888,46 @@ function overBrink(p){
   }
   return e;
 }
+/* WHAT IS ACTUALLY UNDER HIS BOOTS.
+   `heightAt` answers everywhere with the soil the field WOULD have; it
+   does not know the world ends. The ground MESH does — past HEX_AP-.3
+   every one of its vertices is dropped away into nothing, and between two
+   vertices the card draws the ramp between them. Read that same surface
+   the same way the card reads it, and "the ground has gone out from under
+   him" stops being a circle drawn near the rim and becomes a thing the
+   game can actually ask.
+   This is why the first pass was wrong. It killed you for being WITHIN a
+   metre and a bit of the edge, while `constrain` was still holding you
+   nine tenths of a metre inside it — so you died standing on grass, with
+   solid ground under both feet, having never left it. */
+const HEX_LIP=HEX_AP-.3;                         // where the mesh begins to fall
+function hexVertY(x,z){
+  let ex=0;
+  for(let i=0;i<6;i++){const n=HEXN[i];const d=x*n.x+z*n.z-HEX_LIP;if(d>ex)ex=d;}
+  return ex>0?-(ex*1.1+ex*ex*.5):groundAt(x,z);
+}
+function groundSurfaceY(x,z){                    // bilinear across the mesh's own cell
+  const gx=Math.floor((x+75)/GCELL)*GCELL-75,gz=Math.floor((z+75)/GCELL)*GCELL-75;
+  const fx=(x-gx)/GCELL,fz=(z-gz)/GCELL;
+  const a=hexVertY(gx,gz),b=hexVertY(gx+GCELL,gz),c=hexVertY(gx,gz+GCELL),d=hexVertY(gx+GCELL,gz+GCELL);
+  return (a*(1-fx)+b*fx)*(1-fz)+(c*(1-fx)+d*fx)*fz;
+}
+/* How far the ground has fallen away beneath a point. Zero while it is
+   solid — and INSIDE the rim it is always zero, whatever the numbers say.
+   The plinth and the stair are their own geometry standing on the soil, so
+   `heightAt` there answers with the stone while the ground mesh underneath
+   is still the field: subtract one from the other on the cathedral steps
+   and you get the height of the plinth, which would have pitched the
+   pilgrim off the world for climbing it. Only out past the rim does the
+   ground actually stop. */
+function groundGone(p){
+  if(PATH.on||G.bossActive)return 0;
+  let ex=0;
+  for(let i=0;i<6;i++){const n=HEXN[i];const d=p.x*n.x+p.z*n.z-HEX_LIP;if(d>ex)ex=d;}
+  if(ex<=0)return 0;
+  return heightAt(p.x,p.z)-groundSurfaceY(p.x,p.z);
+}
+const FALL_STEP=.45;      // deeper than a step down: below this he is still standing on something
 // which way is OUT from here: the normal of the nearest hex face
 function brinkOut(p){
   let best=HEXN[0],bd=-1e9;
@@ -2908,17 +2948,22 @@ function ragFree(rag){
 
 /* clamp into the hexagon; the cathedral ring blocks until it opens
    (then only the door corridor lets you through) */
-function constrain(p,arenaOnly){
+function constrain(p,arenaOnly,offEdge){
   if(arenaOnly){keepInside(p,HW,HL,.5);return;}          // the boss fight holds you in the nave
   if(PATH.on){
     p.x=clamp(p.x,-25,25);if(p.z>57)p.z=57;             // the path's shorn sides, and its beginning
     const cz=cathZ(p.z);if(cz>1e8)return;
     p.z-=cz;constrainCath(p);p.z+=cz;return;              // the cathedral's rim and walls, in that cathedral's own frame
   }
+  /* The rim holds everything back a little short of the drop — except
+     whatever is ALLOWED OVER IT, which walks out to where the ground
+     genuinely ends and then keeps going until nothing is holding it up.
+     The wide value is only a backstop against wandering into forever; the
+     fall takes over long before it. */
   for(let i=0;i<6;i++){
     const a=Math.PI/6+i*Math.PI/3;
     const nx=Math.cos(a),nz=Math.sin(a);
-    const dd=p.x*nx+p.z*nz,ap=HEX_AP-.9;
+    const dd=p.x*nx+p.z*nz,ap=offEdge?HEX_AP+1.6:HEX_AP-.9;
     if(dd>ap){p.x-=(dd-ap)*nx;p.z-=(dd-ap)*nz;}
   }
   constrainCath(p);
@@ -5962,6 +6007,23 @@ function poseQuakeStab(r,p){
     r.kneeR.rotation.x=1.70*(1-e);r.kneeL.rotation.x=1.40*(1-e);
   }
 }
+/* THE STEP THAT FOUND NOTHING. The trailing foot is still behind him and
+   the leading one has gone through where the ground was: the trunk pitches
+   back as the hips drop out from under it, both arms come up and open, and
+   the knees pull in. Not a fall pose — the half-second BEFORE the fall,
+   which is the part that says he walked off rather than died standing. */
+function poseFall(r,t){
+  const q=Math.min(1,t/.34),e=easeOut(q),C=(r.carry||CARRY);
+  r.torso.rotation.x+=-.5*e;
+  r.head.rotation.x=-.35*e;
+  r.armR.rotation.x=C.aRx+(-2.1-C.aRx)*e;r.armR.rotation.z=C.aRz-.55*e;
+  r.armL.rotation.x=C.aLx+(-2.3-C.aLx)*e;r.armL.rotation.z=C.aLz+.6*e;
+  r.foreR.rotation.x=C.fRx-.5*e;r.foreL.rotation.x=C.fLx-.6*e;
+  r.weapon.rotation.x=C.wx+.35*e;r.weapon.rotation.z=C.wz-.3*e;
+  r.legR.rotation.x=.75*e;r.kneeR.rotation.x=-1.15*e;      // the leading leg, still out over nothing
+  r.legL.rotation.x=-.55*e;r.kneeL.rotation.x=-.8*e;       // the trailing one folding up after it
+  r.body.position.y=r.baseY-.1*e*r.s;
+}
 function poseHeavy(r,p){
   const wind=.52,hitT=.72,C=(r.carry||CARRY);
   if(p<wind){const q=easeInOut(p/wind);
@@ -7932,6 +7994,7 @@ const player={
   element:null,elementT:0,elemTrailT:0,
   reaperT:0,mark:null,markIc:null,
   seamT:0,seamDur:SEAM_T,
+  fallY:0,fallVy:0,
   snowCling:0,snowCoat:0,snowBoot:0,
   rollDX:0,rollDZ:1,hurtGrace:0,vx:0,vz:0,moveAmt:0,moveX:0,moveZ:1,stepT:0,
   postRollT:9,rollAtkQueued:null,
@@ -8035,6 +8098,7 @@ const player={
     // he is built again from nothing rather than patched back together
     this.melt=false;this.severedArm=false;this.severedLeg=false;this.severedHead=false;
     this.snowCling=0;this.snowCoat=0;this.snowBoot=0;
+    this.fallY=0;this.fallVy=0;
     if(this.rig){this.rig.root.scale.set(1,1,1);this.rig.root.visible=true;}
     this.x=G.checkpoint.x;this.z=G.checkpoint.z;
     this.rebuild();
@@ -8136,12 +8200,17 @@ const player={
          down into a green pool and sink into the field.
      Everything but the poison is the hollows' own ragdoll, kicked
      differently. */
-  // over the edge of the world: no blow, no blood, just the ground ending
-  plunge(){
-    if(this.state==='dead'||G.mode!=='play')return;
+  /* He has walked off the world. No blow, no blood — the ground simply
+     stopped, and for a moment he is a man in the air with his arms out. */
+  stepOff(){
+    if(this.state==='falling'||this.state==='dead'||G.mode!=='play')return;
     const o=brinkOut(this);
-    AudioSys.heroHurt();
-    this.die(o.x,o.z,1,'fall');
+    this.state='falling';this.t=0;this.fallVy=-1.1;this.fallY=0;
+    this.sprintT=0;this.sprinting=false;this.queued=false;this.qDir=null;
+    this.rollAtkQueued=null;this.dashGhost=0;if(this.rig)dashGhost(this.rig,0);
+    // the stride that took him over carries on, and the last of it is his own
+    this.vx=(this.vx||0)*.4+o.x*2.2;this.vz=(this.vz||0)*.4+o.z*2.2;
+    AudioSys.heroHurt();G.vibr(25);G.camShake=Math.max(G.camShake,.18);
   },
   die(kx,kz,force,kind){
     this.hp=0;this.state='dead';this.t=0;this.dropThrown();
@@ -9290,12 +9359,31 @@ const player={
       this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
       if(this.t>=(this.hurtDur||.38))this.state='free';
     }
+    /* OFF THE EDGE, AND STILL HIMSELF FOR A MOMENT. He carries the stride
+       that took him over, drops, and reaches — and only when he is well
+       below the lip and plainly past saving does he go limp and the
+       ragdoll take him. Dying ON the edge and dying OFF it look nothing
+       alike, and the difference is these four tenths of a second. */
+    else if(this.state==='falling'){
+      this.fallVy-=24*dt;this.fallY+=this.fallVy*dt;
+      this.x+=this.vx*dt;this.z+=this.vz*dt;
+      this.vx*=Math.pow(.55,dt);this.vz*=Math.pow(.55,dt);
+      if(this.t>=.42||this.fallY<-2.4){
+        const o=brinkOut(this);
+        this.die(o.x,o.z,1,'fall');
+        return this.post(dt);
+      }
+    }
 
-    // the brink: one stride too far and there is nothing under him
-    if(this.state!=='dead'&&overBrink(this)>0)this.plunge();
+    /* THE GROUND RUNS OUT. Not a line near the edge — the edge. He walks
+       until the surface the card is drawing has dropped further beneath
+       his boots than a step down, which only happens once he is past the
+       last of it and standing on the slope into nothing. Then he goes
+       over, and he is still on his feet while he does. */
+    if(this.state!=='dead'&&this.state!=='falling'&&groundGone(this)>FALL_STEP)this.stepOff();
     // spatial constraints
-    if(this.state!=='dead'){
-      constrain(this,G.bossActive);
+    if(this.state!=='dead'&&this.state!=='falling'){
+      constrain(this,G.bossActive,true);   // (the rim does not hold HIM back: it is a cliff, not a wall)
       pushOut(this,.35);
       if(this.state!=='iai')for(const e of enemies){ // soft body-block against living enemies
         if(e.hp<=0||(e.state==='dormant'||e.untouchable)||e.state==='scatter'||e.crow)continue;
@@ -9337,6 +9425,7 @@ const player={
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/(.95*this.swing())));
     else if(this.state==='quake')poseQuakeStab(r,Math.min(1,this.t/1.0));
+    else if(this.state==='falling')poseFall(r,this.t);
     else if(this.state==='recoil')poseRecoil(r,Math.min(1,this.t/.42));
     else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
       if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
@@ -9408,7 +9497,9 @@ const player={
      this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.95,Math.min(1,5*dt));
      wearSnow(r,this.snowCoat,this.snowBoot,bloodState());
      snowCuffs(r,cathDist(this.x,this.z)<4.5?0:this.snowBoot);}
-    r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z)+(this.state==='roll'?this.rollAir||0:0),this.z);
+    r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z)
+      +(this.state==='roll'?this.rollAir||0:0)
+      +(this.state==='falling'?this.fallY:0),this.z);
     r.root.rotation.y=this.facing;
     // the backstab: whatever the pose says, the blade is aimed from the
     // hand straight at the spine, so it goes in through the middle of the
@@ -11405,7 +11496,9 @@ function updateCamera(dt){
      yourself was a pair of boots leaving the bottom of the frame. It
      follows the hips down instead — most of the way, so the lip stays in
      shot and you can see what you walked off. */
-  if(player.rag&&player.state==='dead'){
+  if(player.state==='falling'){
+    ly=hP+1.35+player.fallY*.8;
+  }else if(player.rag&&player.state==='dead'){
     const py=player.rag.P[player.rag.pelvis].p.y;
     if(py<hP-.5)ly=hP+1.35+(py-(hP+1.35))*.8;
   }
@@ -12085,7 +12178,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
