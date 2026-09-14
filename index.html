@@ -8206,9 +8206,15 @@ function throwBone(x,z,tx,tz,dmg){
    Fallen horrors sometimes shed a mote of the power that moved them.
    Walk into it and the blade takes the element for a while. */
 const ELEMENTS={
-  fire:{hue:0xff6a12,lite:0xff5c0a,em:0x8a2408,msg:'the blade takes fire'},
-  lightning:{hue:0xffeaa0,lite:0xffd76a,em:0x8a7a22,msg:'the blade takes lightning'},
-  ice:{hue:0x9fe4ff,lite:0x6fc4ea,em:0x1e5a6e,msg:'the blade takes frost'},
+  /* `steel` is what the WEAPON does when it takes the element, and since
+     the glow came off the blade it is nearly all of it: a shade laid over
+     the steel's own map, which is bright, so an emissive alone was washing
+     out to "a slightly pale blade" and fire could not be told from frost
+     at a glance. A multiplier over the map cannot blow past one and go
+     black the way a colour driven over 1.2 does — see the grade. */
+  fire:{hue:0xff6a12,lite:0xff5c0a,em:0x8a2408,steel:0xff8440,msg:'the blade takes fire'},
+  lightning:{hue:0xffeaa0,lite:0xffd76a,em:0x8a7a22,steel:0xffe066,msg:'the blade takes lightning'},
+  ice:{hue:0x9fe4ff,lite:0x6fc4ea,em:0x1e5a6e,steel:0x7cc8ee,msg:'the blade takes frost'},
   health:{hue:0xf03a4e,lite:0xc22e3c,em:0,msg:''}, // drop only — never imbues
   poison:{hue:0x6fbf2e,lite:0x4a9a1c,em:0x1f4a0c,msg:''}, // the unburied's rot — effects only
   /* THE MARK OF THE REAPER. Not an element — it never touches the blade's
@@ -8247,98 +8253,27 @@ function elemBurst(kind,x,y,z){
   }
 }
 /* ================= THE IMBUED WEAPON =================
-   It used to be one round sprite hung off the blade's point light: a ball
-   of colour near the hand, the same ball for a longbow as for a slab of a
-   greatsword. Now the WEAPON lights, and it lights as ITSELF.
+   AN ELEMENT TINTS THE STEEL AND DOES NOTHING ELSE TO IT. What it does to
+   what you hit is unchanged — the burn, the arc, the frost, all of it is
+   in the hit, not on the weapon.
 
-   Every mesh the weapon group is built from is copied twice, each copy a
-   CHILD of the part it copies — so it inherits that part's transform
-   exactly and follows every joint of every swing with nothing of its own
-   to keep in step. The first copy is the geometry unchanged, drawn
-   additive: the steel burns in the element's colour, in its own outline,
-   a slab where a slab is and a curve where a curve is. The second is the
-   same geometry pushed out along its own normals once, at build, and
-   turned inside out — a fringe of light standing just off the silhouette.
-   Only the blade parts get the fringe; the grip and the guard take the
-   burn alone. Both are hidden until an element is taken, so an unlit
-   weapon costs nothing.
+   There was a whole lighting rig here once: every mesh of the weapon
+   copied twice as additive children (the burn over the steel, a fringe
+   puffed along its own normals standing off the silhouette), a chain of
+   soft beads strung down its longest axis, and a coloured point light at
+   the grip. In third person it was handsome. BEHIND THE EYES IT WAS A
+   DISASTER: the viewmodel hangs half a metre off the lens, so a fringe
+   and six beads and a light at that range are not a glowing sword, they
+   are a coloured fog over the whole screen — you could not see what you
+   were fighting. Hiding it in first person alone was not the answer
+   either; the ask was the simpler thing, and the simpler thing is better:
+   the blade's own EMISSIVE carries the element, so the steel blooms in
+   the element's colour, in both views, and costs nothing.
 
-   And a chain of soft beads is strung down the weapon's longest axis in
-   place of the one ball, so the bloom is the shape of the thing too.
-
-   Each weapon takes the element its own way — how hot, how wide, how the
-   light moves, and how much of it reaches the grip: */
-const WPN_GLOW={
-  // THE GREATSWORD — a broad straight blade takes it whole: an even heat
-  // the length of it, breathing slow, the fringe wide
-  sword:  {beads:5,bead:.36,rate:2.0,warm:.40,puff:.014,hot:1.00,mode:'breathe'},
-  // THE ULTRA — too much iron to light at once. The heat CRAWLS up the
-  // slab from the guard to the point and starts again, slow and heavy
-  ultra:  {beads:6,bead:.52,rate:.90,warm:.30,puff:.020,hot:1.15,mode:'crawl'},
-  // THE KATANA — only the edge really takes it. A thin, bright, restless
-  // line that shivers rather than breathes, and next to nothing on the grip
-  katana: {beads:6,bead:.22,rate:6.5,warm:.12,puff:.007,hot:.95,mode:'shimmer'},
-  // THE WAND — there is no steel to light, so the element runs up the ROD
-  // instead: a thin restless line of it under the hand, next to nothing on
-  // the binding, and the head's own light is not the element's to give
-  wand:   {beads:3,bead:.16,rate:3.4,warm:.06,puff:.008,hot:1.10,mode:'shimmer'},
-  // THE BOW — the limbs hold it and the string carries it, and the whole
-  // stave answers the DRAW: banked at rest, fiercest at full stretch
-  bow:    {beads:5,bead:.28,rate:2.4,warm:.85,puff:.010,hot:.80,mode:'draw'},
-};
-// the fringe geometry: every vertex pushed out along its own normal, once
-function puffGeo(geo,amt){
-  const g=geo.clone(),P=g.attributes.position,N=g.attributes.normal;
-  if(!N)return g;
-  for(let i=0;i<P.count;i++)P.setXYZ(i,P.getX(i)+N.getX(i)*amt,P.getY(i)+N.getY(i)*amt,P.getZ(i)+N.getZ(i)*amt);
-  P.needsUpdate=true;g.computeBoundingSphere();return g;
-}
-/* hang the two copies on every part of the weapon, and measure the weapon
-   in its own frame so the beads know where its length runs */
-function buildWeaponGlow(rig,key){
-  const W=WPN_GLOW[key]||WPN_GLOW.sword;
-  if(!rig||!rig.weapon)return;
-  const bladeM=rig.bladeMesh&&rig.bladeMesh.material;
-  const addM=(side)=>new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,
-    depthWrite:false,blending:THREE.AdditiveBlending,fog:false,side:side||THREE.FrontSide});
-  const burn=addM(),warm=addM(),fringe=addM(THREE.BackSide);   // the blade, the grip and guard, and the fringe off the edge
-  const src=[],geos=[];
-  rig.weapon.traverse(o=>{if(o.isMesh&&o.geometry)src.push(o);});
-  // the weapon measured in the WEAPON's frame, not the world's: every part
-  // carried back through the hand and the arm it hangs off
-  rig.root.updateMatrixWorld(true);
-  const inv=new THREE.Matrix4().copy(rig.weapon.matrixWorld).invert();
-  const box=new THREE.Box3(),tmp=new THREE.Box3(),mx=new THREE.Matrix4();
-  for(const m of src){
-    if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();
-    mx.multiplyMatrices(inv,m.matrixWorld);
-    tmp.copy(m.geometry.boundingBox).applyMatrix4(mx);box.union(tmp);
-    const hot=bladeM&&m.material===bladeM;
-    const b=new THREE.Mesh(m.geometry,hot?burn:warm);b.renderOrder=3;b.visible=false;m.add(b);
-    if(hot){const pg=puffGeo(m.geometry,W.puff);geos.push(pg);
-      const f=new THREE.Mesh(pg,fringe);f.renderOrder=2;f.visible=false;m.add(f);}
-  }
-  // the beads run down whichever way the weapon is longest
-  const lo=box.min,hi=box.max,sp=hi.clone().sub(lo);
-  const ax=sp.x>sp.y&&sp.x>sp.z?'x':sp.z>sp.y?'z':'y';
-  // ...and each bead is weighted by how far it is from the HAND (the
-  // weapon group's own origin): the blade end burns, the grip barely does.
-  // On a bow, where the hand is halfway along, both limbs burn and the
-  // handle between them stays dim — which is exactly right
-  const pts=[],wgt=[],reach=Math.max(.001,Math.max(Math.abs(lo[ax]),Math.abs(hi[ax])));
-  for(let i=0;i<W.beads;i++){
-    const t=W.beads===1?.5:i/(W.beads-1);
-    const v=lo.clone().lerp(hi,.5);v[ax]=lo[ax]+(hi[ax]-lo[ax])*t;
-    pts.push(v);wgt.push(lerp(W.warm,1,Math.min(1,Math.abs(v[ax])/(reach*.45))));
-  }
-  rig.glow={cfg:W,burn,warm,fringe,pts,wgt,geos,on:false};
-}
-function disposeWeaponGlow(rig){
-  if(!rig||!rig.glow)return;
-  rig.glow.burn.dispose();rig.glow.warm.dispose();rig.glow.fringe.dispose();
-  for(const g of rig.glow.geos)g.dispose();
-  rig.glow=null;
-}
+   `bladeLight` is kept — at zero, for ever. Three.js recompiles every lit
+   shader the moment the scene's count of lights changes, so the light
+   stays in the scene and simply never burns. Do not delete it, and do not
+   give it an intensity. */
 function elemFleck(kind,x,y,z){ // one mote drifting off the imbued blade
   const E=ELEMENTS[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
@@ -8797,7 +8732,7 @@ const player={
   mats:[],
   init(){
     // an imbued element lights the blade from within
-    this.bladeLight=new THREE.PointLight(0xffffff,0,2.2,2); // blade-only: keeps the pool warm
+    this.bladeLight=new THREE.PointLight(0xffffff,0,2.2,2); // never burns: it is in the scene only to hold the light count steady (see THE IMBUED WEAPON)
     this.rebuild();
     this.respawn();
   },
@@ -8836,7 +8771,7 @@ const player={
   dropThrown(){if(this.katThrown){const m=this.katThrown.mesh;if(m.parent)m.parent.remove(m);this.katThrown=null;if(this.rig&&this.rig.weapon)this.rig.weapon.visible=true;}},
   rebuild(){
     this.dropThrown();dropBubbles();       // a swarm does not follow him into another loadout
-    if(this.rig){scene.remove(this.rig.root);disposeWeaponGlow(this.rig);}
+    if(this.rig)scene.remove(this.rig.root);
     this.rig=makeKnightRig(LOADOUT);
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
@@ -8847,10 +8782,9 @@ const player={
     dressSnow(this.rig);this.snowCling=this.snowCling||0;this.snowCoat=0;this.snowBoot=0;
     AudioSys.setBlade(LOADOUT.weapon);      // the swing's voice follows the steel
     this.rig.heavyBlade=this.ultra();       // ...and so does how far behind the arm it hangs
-    buildWeaponGlow(this.rig,LOADOUT.weapon);
     this.rig.weapon.add(this.bladeLight);
     this.bladeLight.position.set(0,this.weapon()==='bow'?.2:this.weapon()==='wand'?-1.0:-1.1,0);
-    if(this.element)this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);
+    if(this.element){this.rig.bladeMesh.material.emissive.setHex(ELEMENTS[this.element].em);this.tintBlade(ELEMENTS[this.element].steel);}
     if(this.x!==undefined){this.rig.root.position.set(this.x,heightAt(this.x,this.z),this.z);this.rig.root.rotation.y=this.facing||0;}
     if(this.state!=='free'&&this.state!=='dead'){this.state='free';G.slowMo=1;}
   },
@@ -8937,16 +8871,37 @@ const player={
     if(this.mark){this.mark.visible=false;this.markIc.visible=false;}
     if(!this.element&&this.bladeLight)this.bladeLight.intensity=0;
   },
+  /* the weapon's whole answer to an element: a shade over its steel and a
+     bloom under it. The base colour is remembered ON the material the
+     first time it is asked for, so a rebuild while imbued cannot bake the
+     tint in — and a gun is left alone, because its materials are SHARED
+     with the viewmodel and the pause portrait (see gunMats). */
+  tintBlade(hex){
+    const r=this.rig,m=r&&r.bladeMesh&&r.bladeMesh.material;
+    if(!m||!m.color||r.gun)return;
+    if(m.userData.baseCol===undefined)m.userData.baseCol=m.color.getHex();
+    const c=hex===null?m.userData.baseCol:hex;
+    m.color.setHex(c);
+    /* AND THE WARDROBE'S IDEA OF THE STEEL'S OWN COLOUR WITH IT. The
+       weapon is in `rig.snowDress` (at share zero — no snow settles on
+       it), and `wearSnow` writes every dressed material back to the base
+       it recorded. It only runs when the snow or the wound state changes,
+       so this is easy to miss and was: the blade lit correctly and then
+       went plain steel again the next time it snowed, or the next time
+       the pilgrim bled, or on the frame after any rebuild. */
+    if(r.snowDress)for(const e of r.snowDress)if(e.m===m)e.base.setHex(c);
+  },
   setElement(kind){
     this.element=kind;this.elementT=22;
     const E=ELEMENTS[kind];
-    this.rig.bladeMesh.material.emissive.setHex(E.em);
-    this.bladeLight.color.setHex(E.lite);this.bladeLight.intensity=.55;
+    this.rig.bladeMesh.material.emissive.setHex(E.em);   // the bloom...
+    this.tintBlade(E.steel);                             // ...and the shade over the steel it lifts
     AudioSys.elemPickup(kind);G.vibr(30);
     toast(E.msg);
   },
   clearElement(){
     this.element=null;this.elementT=0;
+    this.tintBlade(null);
     if(this.rig&&this.rig.bladeMesh)this.rig.bladeMesh.material.emissive.setHex(0x000000);
     if(this.bladeLight)this.bladeLight.intensity=0;
   },
@@ -9336,9 +9291,10 @@ const player={
     if(this.element){
       this.elementT-=dt;
       if(this.elementT<=0){this.clearElement();toast('the blade cools');}
-      else{
-        this.bladeLight.intensity=
-          this.elementT<3?.2+.35*Math.abs(Math.sin(G.time*9)):.55;
+      else if(!FPS.on){
+        // the motes come off the steel — but never behind the eyes, where
+        // the weapon's own frame sits ON the lens and every one of them
+        // would burst across the middle of the picture
         this.elemTrailT-=dt;
         if(this.elemTrailT<=0){
           this.elemTrailT=.09;
@@ -9364,7 +9320,6 @@ const player={
         this.mark.material.opacity=.8*gut;
         this.markIc.material.opacity=.95*gut;
         this.markIc.material.rotation=Math.sin(G.time*.9)*.14;
-        if(!this.element){this.bladeLight.color.setHex(0xcfd6d8);this.bladeLight.intensity=.22*gut;}
         if(Math.random()<dt*2)
           elemFleck('skull',this.x+rr3(-.3,.3),my+rr3(-.3,.15),this.z+rr3(-.3,.3));
       }
@@ -14333,6 +14288,33 @@ function updateViewmodel(dt){
    by the same clock the real swing runs on — `t/atkDur` — so the cut lands
    on the frame the game says it does. Nothing here strikes: the rig under
    the camera, invisible, does the striking as it always has. */
+/* HOW BIG A WEAPON IS ON THE SCREEN, which is a question the rig cannot
+   answer. The viewmodel was the pilgrim's own weapon at its own size hung
+   half a metre off the lens, and a greatsword at that range is not a
+   weapon you are carrying, it is a wall: measured, the sword's bounding
+   box covered 0.77 of the screen's width and TWO POINT ONE of its height,
+   the ultra 1.17 by 3.12 — a third of each was off the top of the picture
+   and the grip ran out of the bottom corner.
+   So each blade is carried at its own scale now, in Minecraft's
+   proportion: the whole weapon inside the lower-right quadrant, pointing
+   up and across, about half the screen's height and no more, with all of
+   it visible — the point, the guard and the pommel, which is what makes
+   it read as a held object rather than as scenery.
+   `mo` scales the SWING'S TRAVEL with it. A small weapon thrown the full
+   distance the big one used to travel looks like it has come off in your
+   hand; the rotations are left alone, because a rotation reads the same
+   at any size and the rotation is what tells you the cut landed. */
+const VM_BLADE={
+  sword: {s:.30,mo:.55,px:.30,py:-.30,pz:-.62,rx:2.30,ry:.35,rz:-.35},
+  ultra: {s:.22,mo:.60,px:.32,py:-.30,pz:-.66,rx:2.30,ry:.35,rz:-.35},
+  katana:{s:.24,mo:.55,px:.31,py:-.24,pz:-.60,rx:2.30,ry:.35,rz:-.35},
+  // the bow is held out rather than carried at the hip, so it keeps more
+  // of its size — but not all of it: at its own it was taller than the
+  // screen, both tips off the picture, which is a stave and not a bow
+  bow:   {s:.38,mo:.90,px:.26,py:-.34,pz:-.62,rx:Math.PI/2,ry:.25,rz:-.50},
+  wand:  {s:.55,mo:.80,px:.26,py:-.30,pz:-.54,rx:2.00,ry:.20,rz:-.20},
+};
+function vmBladeCfg(){return VM_BLADE[LOADOUT.weapon]||VM_BLADE.sword;}
 function ensureBladeVm(){
   const P=player;if(!P.rig||!P.rig.weapon)return null;
   if(FPS.vmBlade&&FPS.vmBladeFor===LOADOUT.weapon&&FPS.vmBladeRig===P.rig)return FPS.vmBlade;
@@ -14341,6 +14323,16 @@ function ensureBladeVm(){
   const c=P.rig.weapon.clone(true);
   const drop=[];c.traverse(o=>{if(o.isLight||o.isPointLight)drop.push(o);});for(const o of drop)if(o.parent)o.parent.remove(o);
   c.position.set(0,0,0);c.rotation.set(0,0,0);c.quaternion.identity();
+  c.scale.setScalar(vmBladeCfg().s);      // the grip stays where the hand is; the weapon shrinks toward it
+  /* AND ANYTHING ON IT THAT BURNS IS TURNED DOWN. The wand's orb is an
+     additive ball — handsome at arm's length on the rig, a white hole
+     burned in the middle of the picture when it is half a metre off the
+     lens. The material is CLONED first: it is shared with the pilgrim's
+     own weapon, and dimming it in place would put the orb out in third
+     person too. (`Material.clone()` drops `onBeforeCompile`, so the copy
+     no longer wobbles with psx() — on a sphere this size, invisible.) */
+  c.traverse(o=>{const m=o.material;
+    if(m&&m.blending===THREE.AdditiveBlending){o.material=m.clone();o.material.opacity=(m.opacity===undefined?1:m.opacity)*.35;}});
   const h=new THREE.Group();h.add(c);camera.add(h);
   FPS.vmBlade=h;FPS.vmBladeFor=LOADOUT.weapon;FPS.vmBladeRig=P.rig;
   return h;
@@ -14355,11 +14347,11 @@ function updateBladeVm(dt){
   FPS.bob+=dt*(P.sprinting?11:8)*Math.min(1,(P.spd||0)/4.3);
   const bobX=Math.sin(FPS.bob)*.02*mv,bobY=Math.abs(Math.cos(FPS.bob))*.014*mv;
   FPS.swayX=lerp(FPS.swayX,clamp(-IN.camDX*.0012,-.06,.06),Math.min(1,8*dt));
-  // the carry: the grip low and right, the blade standing up and leaning in across the eye
-  // (the weapon's own -y is its length: rotated 2.3 about x it stands up and leans forward over the eye)
-  let px=.32+bobX,py=-.42+bobY,pz=-.55,rx=2.3,ry=.35,rz=-.35;
-  if(w==='bow'){px=-.1+bobX;py=-.25+bobY;pz=-.55;rx=Math.PI/2;ry=0;rz=0;}      // the bow held out, its limbs up and down, the string toward the eye
-  else if(w==='wand'){px=.24+bobX;py=-.36+bobY;pz=-.5;rx=2.0;ry=.2;rz=-.2;}
+  // the carry: the grip low and right, the blade standing up and leaning in
+  // across the eye (the weapon's own -y is its length: rotated 2.3 about x
+  // it stands up and leans forward), each weapon at its own size — VM_BLADE
+  const C=vmBladeCfg(),MO=C.mo;
+  let px=C.px+bobX,py=C.py+bobY,pz=C.pz,rx=C.rx,ry=C.ry,rz=C.rz;
   const dur=P.atkDur||.68;
   let p=-1,dir=1,over=false,thrust=false;
   if(st==='attack'){p=clamp(P.t/dur,0,1);dir=(P.combo%2===0)?1:-1;over=P.combo===2;thrust=P.combo===3;}
@@ -14369,13 +14361,13 @@ function updateBladeVm(dt){
   else if(st==='spin'||st==='fowl'||st==='tiger'){p=clamp((P.t*2.2)%1,0,1);dir=1;}
   else if(st==='backstab'||st==='quake'){p=clamp(P.t/1.0,0,1);thrust=true;}
   else if(st==='shoot'||st==='loose'||st==='cast'){p=clamp(P.t/.46,0,1);thrust=true;}
-  if(st==='charge'){const c=Math.min(1,P.chargeT/.6);px+=.1*c;pz+=.12*c;rx-=.4*c;ry+=.5*c;}   // drawn back, wound
+  if(st==='charge'){const c=Math.min(1,P.chargeT/.6);px+=.1*c*MO;pz+=.12*c*MO;rx-=.4*c;ry+=.5*c;}   // drawn back, wound
   if(p>=0){
     const wind=clamp(p/.4,0,1),strike=clamp((p-.4)/.28,0,1),rec=clamp((p-.68)/.32,0,1);
     const e=strike*strike*(3-2*strike);
-    if(thrust){pz+=-.12*wind+(-.5)*e+.6*rec*e;px-=.12*e;rx+=1.2*wind*(1-e)+.3;}
-    else if(over){py+=.25*wind-.6*e+.3*rec;rx+=.7*wind-2.2*e+1.4*rec;pz-=.15*e;}
-    else{const d=dir;px+=d*(.18*wind-.75*e+.5*rec);ry+=d*(.6*wind-2.2*e+1.6*rec);rz+=d*(.3*wind-1.0*e+.7*rec);py+=.08*wind-.12*e;}
+    if(thrust){pz+=(-.12*wind+(-.5)*e+.6*rec*e)*MO;px-=.12*e*MO;rx+=1.2*wind*(1-e)+.3;}
+    else if(over){py+=(.25*wind-.6*e+.3*rec)*MO;rx+=.7*wind-2.2*e+1.4*rec;pz-=.15*e*MO;}
+    else{const d=dir;px+=d*(.18*wind-.75*e+.5*rec)*MO;ry+=d*(.6*wind-2.2*e+1.6*rec);rz+=d*(.3*wind-1.0*e+.7*rec);py+=(.08*wind-.12*e)*MO;}
   }
   if(w==='bow'&&(st==='charge'||st==='shoot'||st==='loose'||st==='backstab'||st==='execute')){pz-=.1;px+=.08;}
   h.position.set(px+FPS.swayX,py,pz);h.rotation.set(rx,ry+FPS.swayX*2,rz);
@@ -14727,7 +14719,6 @@ const CHAIN_OUT=.88;
 const IAI_REACH=18;
 const heroLight=new THREE.PointLight(0xd9b072,2.3,17,1.7);
 scene.add(heroLight);
-const bladeHazes=[];for(let i=0;i<6;i++){const h=addHaze(0,-50,0,0xffffff,.4,.2);h.visible=false;bladeHazes.push(h);}
 /* THE MELT. The rot has been in him for a while by the time it finishes the
    job, so there is no fall to it: the knees go first, then he simply loses
    his shape — the whole body squats down into the ground and out at the
@@ -14752,50 +14743,6 @@ function meltHero(dt){
   if(k>=1&&r.root.visible){r.root.visible=false;elemBurst('poison',p.x,gy+.2,p.z);}
 }
 const _bv=new THREE.Vector3();
-/* the imbued weapon, once a frame: the burn over the steel, the fringe off
-   its edge, and the beads strung down its length — each weapon moving the
-   light its own way (see WPN_GLOW). The blade light's own guttering, as the
-   element burns down, carries all three without a second clock. */
-function updateWeaponGlow(){
-  const rig=player.rig,gl=rig&&rig.glow;
-  if(!gl)return;
-  const lit=!!player.element&&player.bladeLight.intensity>0;
-  if(lit!==gl.on){gl.on=lit;rig.weapon.traverse(o=>{if(o.material===gl.burn||o.material===gl.warm||o.material===gl.fringe)o.visible=lit;});}
-  for(const h of bladeHazes)h.visible=false;
-  if(!lit)return;
-  const W=gl.cfg,E=ELEMENTS[player.element],t=G.time,life=player.bladeLight.intensity/.55;
-  // how bright the thing is as a whole, and where along it the light sits
-  let body,at;
-  switch(W.mode){
-    case 'crawl':{                                  // the heat climbs the slab, reaches the point, and starts again
-      const ph=(t*W.rate*.35)%1;
-      body=.62+.38*Math.max(0,1-Math.abs(.55-ph)*2);
-      at=(i)=>.30+.90*Math.max(0,1-Math.abs(i/(W.beads-1)-ph)*3.2);break;}
-    case 'shimmer':{                                // the edge never settles
-      body=.72+.28*Math.sin(t*W.rate);
-      at=(i)=>.55+.45*Math.sin(t*W.rate+i*1.9);break;}
-    case 'draw':{                                   // the stave answers the string
-      const d=player.state==='charge'?Math.min(1,player.chargeT/.7):0;
-      body=.35+.65*d;at=()=>body;break;}
-    default:                                        // breathe
-      body=.78+.22*Math.sin(t*W.rate);at=()=>body;
-  }
-  gl.burn.color.setHex(E.hue);gl.warm.color.setHex(E.hue);gl.fringe.color.setHex(E.hue);
-  gl.burn.opacity=.30*W.hot*body*life;
-  gl.warm.opacity=.30*W.hot*W.warm*body*life;       // the grip takes only what the weapon lets down to it
-  gl.fringe.opacity=.22*W.hot*body*life;
-  const mw=rig.weapon.matrixWorld;
-  for(let i=0;i<gl.pts.length&&i<bladeHazes.length;i++){
-    const h=bladeHazes[i];
-    _bv.copy(gl.pts[i]).applyMatrix4(mw);
-    h.position.copy(_bv);
-    h.material.color.setHex(E.hue);
-    h.scale.set(W.bead,W.bead,1);
-    h.material.opacity=Math.max(0,(.10+.24*life)*at(i)*gl.wgt[i]);
-    h.visible=true;
-  }
-}
-
 let last=performance.now(),grainT=0;
 /* ---------------- the pause ---------------- */
 function fmtTime(s){s=Math.max(0,s|0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
@@ -15076,7 +15023,6 @@ function frame(now){
     if(l.haze.visible){l.haze.position.copy(l.position);l.haze.material.color.copy(l.color);
       l.haze.material.opacity=.1+.06*l.intensity;}
   }
-  updateWeaponGlow();
   if(CUT.on)updateCut(dt);
   else if(FPS.on&&G.mode==='play'&&player.state!=='dead')updateFpsCamera(dt);else updateCamera(dt);
 

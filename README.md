@@ -472,6 +472,24 @@ tap the firing (a held thumb runs the automatics); and a **greatsword is
 swung from behind the eyes** in first, its arc drawn across the screen by
 the same clock the real swing runs on — the bow and the wand too, the
 shaft leaving along the eye's pitch. Either view, either kind.
+
+**And a blade behind the eyes is carried at Minecraft's proportion.** It
+was the pilgrim's own weapon at its own size hung half a metre off the
+lens, which is not a weapon you are carrying, it is a wall: measured, the
+greatsword covered 0.77 of the screen's width and **2.13 of its height**,
+the ultra 1.17 by 3.12, with a third of the blade off the top of the
+picture and the grip running out of the bottom corner. Each weapon now
+has its own scale and its own carry — the whole thing inside the lower
+right, pointing up and across, about half the screen's height and no
+more, every part of it visible: point, guard and pommel. That is what
+makes it read as a held object rather than as scenery. The swing's
+*travel* is scaled down with it (a small weapon thrown the distance the
+big one used to travel looks like it has come off in your hand) while the
+rotations are left alone, because a rotation reads the same at any size
+and it is the rotation that tells you the cut landed. Anything on the
+weapon that burns is turned down in the copy as well — the wand's orb is
+a handsome additive ball at arm's length and a hole burned in the middle
+of the picture at half a metre.
 The world, the host, the marrow, the hours, the weather, the motes
 and the hexes of the path are exactly what they were; the roll, the
 stagger, the knockdown and the fall over the rim all still run
@@ -1463,23 +1481,28 @@ glow is a haze sprite and not a light: three.js recompiles every lit shader
 in the scene the moment the count of lights changes, and a host of six going
 up one after another would recompile the world six times.)
 
-**An imbued weapon lights as itself.** It used to be one round sprite hung
-off the blade's point light — a ball of colour near the hand, the same ball
-for a longbow as for a slab of a greatsword. Now every mesh the weapon is
-built from is copied twice, each copy a *child* of the part it copies, so
-it inherits that part's transform exactly and follows every joint of every
-swing with nothing of its own to keep in step. The first copy is the
-geometry unchanged, drawn additive: the steel burns in the element's colour,
-in its own outline — a slab where a slab is, a curve where a curve is. The
-second is the same geometry pushed out along its own normals once, at
-build, and turned inside out: a fringe of light standing just off the
-silhouette. Only the blade parts take the fringe; the grip and the guard
-get the burn alone, and only as much of it as the weapon lets down to them.
-A chain of soft beads is strung down the weapon's longest axis in place of
-the one ball, each weighted by how far it is from the *hand* — so on a bow,
-where the hand is halfway along, both limbs burn and the handle between them
-stays dim. All of it is hidden until an element is taken: an unlit weapon
-costs nothing.
+**An imbued weapon takes the element as a SHADE, and that is all it
+takes.** What the element does to what you hit is untouched — the burn,
+the arc, the freeze, all of it is in the hit. On the weapon it is a
+colour: the steel's own map tinted (hot orange, a pale gold, a cold
+blue) with the blade's emissive lifting it, so what is in your hands is
+readable at a glance in either view and from across the field.
+
+There was a whole lighting rig here before, and it is worth recording why
+it went. Every mesh of the weapon was copied twice, each copy a child of
+the part it copied: one drawn additive over the steel, one puffed along
+its own normals and turned inside out as a fringe standing off the
+silhouette, with a chain of soft beads strung down the weapon's longest
+axis and a coloured point light at the grip. In third person it was
+handsome. **Behind the eyes it was a disaster.** The viewmodel hangs half
+a metre off the lens, so a fringe, six beads and a light at that range
+are not a glowing sword — they are a coloured fog over the whole screen,
+and you cannot see what you are fighting. Hiding it in first person alone
+would have left two different weapons in one game; a tint costs nothing,
+reads better, and is the same object in both views. The motes still come
+off the steel in third person, and are held back in first, where the
+weapon's own frame sits on the lens and every one of them would burst
+across the middle of the picture.
 
 **And each weapon takes it its own way:**
 

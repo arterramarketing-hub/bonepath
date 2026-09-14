@@ -166,11 +166,30 @@ Known state of play:
   so the tint cannot leak into a pauldron cut from the same steel — and
   `Material.clone()` drops `onBeforeCompile`, so `psx()` must be reapplied
   or that part silently stops wobbling.
-- The imbued weapon's glow (`buildWeaponGlow`, near `ELEMENTS`) hangs two
-  additive copies on every part of the weapon. They are `visible=false`
-  until an element is taken, so an unlit weapon costs nothing; while lit it
-  is roughly 20-30 extra draws on one small object. `player.rebuild()` must
-  call `disposeWeaponGlow` first or the puffed fringe geometry leaks.
+- **The imbued weapon's glow is GONE and must not come back.** There was a
+  whole rig (`buildWeaponGlow`: two additive copies per weapon mesh, a
+  puffed fringe, six haze beads down its length, and `bladeLight` at the
+  grip). In third person it was handsome; behind the eyes it was a
+  coloured fog over the entire screen, because the viewmodel hangs half a
+  metre off the lens. An element is a SHADE on the steel now
+  (`player.tintBlade` + the blade's emissive, `ELEMENTS[k].steel` and
+  `.em`) and nothing else. What the element does to what you HIT is
+  untouched.
+  `bladeLight` stays in the scene at intensity 0 for ever — three.js
+  recompiles every lit shader when the light count changes, so the light
+  is kept and simply never burns. Do not delete it and do not give it an
+  intensity.
+  **`tintBlade` must also write the new colour into `rig.snowDress`'s
+  recorded `base`.** The weapon is dressed (at share zero, so no snow
+  settles on it) and `wearSnow` writes every dressed material back to the
+  base it recorded — it only runs when the snow or the wound state
+  changes, so the bug is invisible until it snows, or the pilgrim bleeds,
+  or anything rebuilds the rig, and then the blade quietly goes plain
+  steel. A gun is skipped outright: `gunMats()` are SHARED with the
+  viewmodel and the pause portrait.
+  The motes (`elemFleck` off the blade) are held back in first person for
+  the same reason the glow went: they spawn at the weapon's own frame,
+  which is on the lens.
 - What dominates now is the **character rigs**: every hollow, and the hero,
   is assembled from dozens of small meshes, each animated on its own
   transform. That is the next real win and the hardest, since instancing
@@ -773,6 +792,22 @@ Known state of play:
   which quotes rounds-to-kill. Marrow is NOT tied to it — the templates'
   costs and the cathedral's gate are unchanged, so the field takes longer
   to clear but opens at the same point.
+
+- **A BLADE VIEWMODEL IS CARRIED AT ITS OWN SCALE** (`VM_BLADE`, beside
+  `ensureBladeVm`). The viewmodel is a clone of the pilgrim's real weapon,
+  and at its real size half a metre off the lens a greatsword covered 0.77
+  of the screen's width and **2.13 of its height** (the ultra 1.17 x 3.12)
+  — measured by projecting the clone's world bounding box through the
+  camera, which is how to check this. Each weapon now carries its own
+  `s` (scale), its carry position and rotation, and `mo`, which scales the
+  swing's TRANSLATION with the weapon; the rotations are deliberately left
+  alone, because a rotation reads the same at any size and the rotation is
+  what says the cut landed. Sword/ultra/katana now measure about 0.19 x
+  0.45 of the screen, in the lower right, whole.
+  Additive materials in the clone are cloned and dimmed (the wand's orb
+  burns a hole in the middle of the picture otherwise) — cloned because
+  the material is SHARED with the rig, and `Material.clone()` drops
+  `onBeforeCompile`, so that copy no longer wobbles with `psx()`.
 
 ## Conventions
 
