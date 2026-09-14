@@ -509,9 +509,9 @@ the same as three blows). The nearest thing takes the round.
 
 | | calibre | magazine · start | damage (body / head) | rate | the feel |
 |---|---|---|---|---|---|
-| **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in two, a brute in four; **a head under it comes off**. It climbs hard, and the sights hold half of it down |
+| **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down |
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast |
-| **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: four to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Carry-handle aperture and a post on a triangular base |
+| **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Carry-handle aperture and a post on a triangular base |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
 | **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
 | **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
@@ -626,7 +626,8 @@ and every timing live in `GUNS` and `FPS`, beside the camera code.
 ## Marrow
 
 Some of the host burns hotter: **red-boned** hollows, throwers and
-brutes, one in seven or so, with three times the life and worth double
+brutes, one in seven or so, with a bit over twice the life and worth
+double
 — and a red one blasted apart by a telling blow scatters RED bones on
 the path, and crawls back together out of them.
 
@@ -1345,19 +1346,56 @@ scaled with it. The ground covered is tuned to stay near what the old roll
 covered — a leap that also doubled the dodge's reach would be a balance
 change wearing an animation's clothes.
 
+## What the host is worth killing
+
+A hollow was four swings of the greatsword and a bone-thrower three, and
+at four swings a hollow is a **door you open** rather than a thing you
+fight — no room for it to answer, no reason to read what it is doing,
+nothing lost by walking into its reach. A hollow is **five swings** now
+and a thrower **four**; the ultra greatsword takes a hollow in three
+arcs, the katana still opens one in two because cutting a thing in half
+below its middle is what that blade is for, and the brute is left exactly
+where it was, because the gap between a hollow and a brute was never the
+complaint.
+
+The rifles move with them: the eagle takes a hollow in three rounds and
+the M4 in six. **The bone sniper still takes one in a single shot** — its
+body damage and a hollow's life are the same number on purpose, because
+that rifle's whole claim is one shot, one body. Raise one and the other
+has to move with it.
+
+A **red-boned** horror carries a bit over twice a plain one's life rather
+than three times it, which leaves it almost exactly where it stood before
+the host got tougher. Left at three, a red hollow would be sixteen swings
+of the greatsword — not a harder fight, only the same fight held down for
+twice as long.
+
 ## Life, in hearts
 
 Life is **seven hearts**, drawn at boot like everything else in the game —
 whole, half, and the empty socket left when it is gone — nearest-filtered
-and blown up, with no bar and no gradient anywhere in it. The shape is
-**heraldic and not the fat round one off a playing card**: narrow lobes, a
-deep cleft between them, shoulders that pull in almost at once, and a long
-tapered tail down to a point. Ten pixels across by fourteen down — ten
-because an even width is the only one with a true centre line, and a half
-heart has to split on it. The cleft runs **four rows down**, not two: a
-shallow notch reads as a dent, and what makes the shape gothic rather than
-cute is how far the two lobes are driven apart before they meet. The row is only rebuilt when the count of halves actually
-changes, so watching it costs nothing.
+and blown up, with no bar and no gradient anywhere in it.
+
+The shape was heraldic once: narrow lobes, a cleft driven four rows deep,
+a long tail down to a point. At eighteen pixels in the corner of a phone
+it did not read as a heart at all — it read as a **spade**, or a tooth: a
+dark chunk with a notch cut in the top. A life counter has to be
+recognised at a glance, out of the corner of the eye, while something is
+swinging at you, so the shape is the **round one** now — wide lobes, a
+shallow cleft, shoulders that carry the width all the way out before they
+draw in to the point. **Fourteen across by thirteen down**, even, because
+a half heart splits down a true centre line and an odd width has no half.
+
+Its tones are painted rather than derived — a glint on the upper-left
+lobe, a lit face, the body, the shadow, the underside, with the light
+upper-left throughout — and **the empty socket is that same map read
+backwards**. A hollow is concave, so what catches the light in one is the
+far wall, which is exactly where a full heart is darkest; inverted, the
+empty container reads as something *carved out* of the frame rather than
+as a black heart-shaped hole, and its rim is dim iron rather than black so
+you can still count your containers against a dark field. The row is only
+rebuilt when the count of halves actually changes, so watching it costs
+nothing.
 
 **Every blow in the field is a whole number of halves.** A hollow's swing
 takes **one heart**; a caster's bolt or a thrown bone, **half**; the
@@ -1390,7 +1428,8 @@ beats like a heart.
 different colour, so four of them lying in a nave read as four of the
 same thing. Now a small painted sprite sits *inside* the glow, lit from
 behind by it: the health mote is **the heart off the corner of the
-screen**, the same heraldic shape at the same proportions, so what mends
+screen** — the same pixel map, the same light, one tone brighter across
+the board because that one is lit from inside its own glow, so what mends
 you looks like what it mends; fire is a molten ball with tongues licking
 up off its shoulders, lightning a dark amber one with a white fork
 standing on it, frost a pale one under a six-armed barbed flake. The

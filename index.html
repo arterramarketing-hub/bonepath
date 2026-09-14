@@ -79,10 +79,10 @@
     padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
             calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));}
   #hpwrap{position:absolute;top:calc(12px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));
-    display:flex;flex-wrap:wrap;gap:3px;max-width:min(52vw,280px);}
+    display:flex;flex-wrap:wrap;gap:3px;max-width:min(62vw,300px);}
   /* the hearts: one sprite drawn at boot like everything else, three faces
      of it, nearest-filtered and blown up — no bar, no gradient, no easing */
-  .hrt{width:18px;height:24px;background-size:100% 100%;image-rendering:pixelated;
+  .hrt{width:21px;height:20px;background-size:100% 100%;image-rendering:pixelated;
     filter:drop-shadow(0 1px 0 rgba(0,0,0,.7));}
   #marrow{position:absolute;right:calc(16px + env(safe-area-inset-right));
     bottom:calc(14px + env(safe-area-inset-bottom));text-align:right;
@@ -1182,39 +1182,64 @@ function buildTextures(){
     }
   });
 
-  /* -- THE HEARTS. A nine-by-eight pixel heart, drawn once in three faces
-        — whole, half, and the empty socket left when it is gone — and
-        handed to the HUD as an image. Nothing about it is a bar. -- */
+  /* -- THE HEART. ONE SHAPE AND ONE SHADING, and both the row in the
+        corner and the drop that floats in the field are cut from it. The
+        first pass was a heraldic one — narrow lobes, a deep slot between
+        them, a long tail — and at eighteen pixels on a phone it did not
+        read as a heart at all: it read as a spade, or a tooth, a dark
+        chunk with a notch cut in the top. A heart has to be recognised in
+        the corner of the eye, at a glance, while something is swinging at
+        you, so it is the round one now — wide lobes, a shallow cleft, the
+        shoulders carrying the width all the way out before they draw in
+        to a point.
+
+        FOURTEEN WIDE, and even, because a half heart splits down a true
+        centre line; an odd width has no half and the join sits a pixel to
+        one side of the middle for ever.
+
+        The tones are PAINTED, not derived from a rule — `g` the glint on
+        the upper-left lobe, `b` the lit face, `m` the body, `d` the
+        shadow, `k` the underside. The light is upper-left throughout.
+        And the EMPTY socket is this same map read BACKWARDS: a hollow is
+        concave, so what catches the light in a hollow is the far wall,
+        which is exactly where the full heart is darkest. That inversion
+        is the whole trick — an empty container reads as something carved
+        out rather than as a black heart-shaped hole. -- */
+  const HEART_PX=[
+    '..bbm....mmd..',
+    '.bggbm..mmmdd.',
+    '.bggbmmmmmmdd.',
+    'bbbbmmmmmmmddk',
+    'bbbmmmmmmmmddk',
+    'mmbmmmmmmmdddk',
+    '.mbmmmmmmmddk.',
+    '.mmmmmmmmdddk.',
+    '..mmmmmmmddk..',
+    '...dmmmmddk...',
+    '....ddmmdk....',
+    '.....dddk.....',
+    '......kk......'];
+  const HEART_PAL={g:'#f0a184',b:'#d9503a',m:'#ae2f24',d:'#7c1a17',k:'#4a0e0f'};
   {
-    /* TEN WIDE, and it has to be. The first one was nine, which has no
-       half: filling four columns of nine put the join a pixel left of the
-       middle, so every half heart sat slightly wrong and there was no
-       arrangement of pixels that could fix it. An even width has a true
-       centre line, and half of it is exactly half of it. */
-    /* GOTHIC. Not the fat round one off a playing card — the heraldic
-       shape: narrow lobes, a deep cleft between them, shoulders that pull
-       in almost at once, and a long tapered tail running down to a point.
-       Still ten across, because an even width is the only one with a true
-       half. */
-    const HRT=['.11....11.','.111..111.','1111..1111','1111..1111','1111111111','1111111111','1111111111','.11111111.','.11111111.','..111111..','..111111..','...1111...','....11....','....11....'];
-    const W=10,H=14;
+    const W=14,H=HEART_PX.length;
+    // the socket: the same letters, the light swapped end for end
+    const HOLLOW={g:'#171b19',b:'#191e1c',m:'#232a26',d:'#48514a',k:'#5e675d'};
     const face=(mode)=>{
       const c=document.createElement('canvas');c.width=W+2;c.height=H+2;
       const x=c.getContext('2d');
       const put=(px,py,col)=>{x.fillStyle=col;x.fillRect(px,py,1,1);};
-      // the outline first: every empty cell touching a filled one goes black
+      // the outline first: every empty cell touching a filled one is
+      // dark for a heart that is there, dim iron for one that is not —
+      // so an empty container is still legible against a dark field
+      const ol=mode===0?'#4b5147':'#0a0c0b';
       for(let j=0;j<H;j++)for(let i=0;i<W;i++){
-        if(HRT[j][i]!=='1')continue;
-        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)put(i+1+dx,j+1+dy,'#0a0c0b');
+        if(HEART_PX[j][i]==='.')continue;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)put(i+1+dx,j+1+dy,ol);
       }
       for(let j=0;j<H;j++)for(let i=0;i<W;i++){
-        if(HRT[j][i]!=='1')continue;
-        const full=mode===2||(mode===1&&i<W/2);       // five of ten: the true half
-        // a lit top-left, a body, a darker underside — and a hollow socket
-        // a glint on the upper-left lobe, the body, and the tail in shadow
-        const lit=j<3&&i>1&&i<4;
-        put(i+1,j+1,full?(lit?'#e4705c':j>10?'#6a1212':j>6?'#8f1f1b':'#c23a2a')
-                        :(j>10?'#141816':j>6?'#1a1f1c':'#2b322d'));
+        const t=HEART_PX[j][i];if(t==='.')continue;
+        const full=mode===2||(mode===1&&i<W/2);        // seven of fourteen: the true half
+        put(i+1,j+1,(full?HEART_PAL:HOLLOW)[t]);
       }
       return c.toDataURL();
     };
@@ -1268,26 +1293,25 @@ function buildTextures(){
         x.fillStyle=c;x.fillRect(ox+i*px,oy+j*px,px,px);
       }
     };
-    // THE HEART, the same heraldic shape the hearts in the corner are
-    const HD=['.11....11.','.111..111.','1111..1111','1111..1111','1111111111','1111111111','1111111111','.11111111.','.11111111.','..111111..','..111111..','...1111...','....11....','....11....'];
+    /* THE HEART THE FIELD DROPS IS THE HEART IN THE CORNER — the same
+       `HEART_PX` map, the same light, one tone brighter across the board
+       because this one is lit from inside its own glow. If the two ever
+       drift apart, a player has to learn the same object twice. */
+    const HD=HEART_PX,HDW=14,HDH=HD.length;
+    const DROP_PAL={g:'#ffc0a2',b:'#f06a4a',m:'#d8452f',d:'#a3221a',k:'#6d1210'};
     makeTex('orbHeart',64,(x,S)=>{
       x.clearRect(0,0,S,S);
-      const px=4,ox=(S-10*px)/2,oy=(S-14*px)/2;
+      const px=4,ox=(S-HDW*px)/2,oy=(S-HDH*px)/2;
       /* An outline, so the shape holds against its own glow — but only a
          pixel and a half of one. A full cell of dark around every filled
-         cell closed the two-cell cleft entirely, and the heart read as a
-         cup with a notch cut in it. */
+         cell closed the cleft between the lobes entirely, and the heart
+         read as a cup with a notch cut in it. */
       x.fillStyle='rgba(28,6,8,.85)';const OL=1.6;
-      for(let j=0;j<HD.length;j++)for(let i=0;i<10;i++){
-        if(HD[j][i]!=='1')continue;
+      for(let j=0;j<HDH;j++)for(let i=0;i<HDW;i++){
+        if(HD[j][i]==='.')continue;
         x.fillRect(ox+i*px-OL,oy+j*px-OL,px+OL*2,px+OL*2);
       }
-      pix(x,S,HD,{'1':'#d8452f'},ox,oy,px);
-      for(let j=0;j<HD.length;j++)for(let i=0;i<10;i++){
-        if(HD[j][i]!=='1')continue;
-        if(j<4&&i>1&&i<4){x.fillStyle='#ff9c7a';x.fillRect(ox+i*px,oy+j*px,px,px);}   // the glint
-        else if(j>9){x.fillStyle='#8e1c14';x.fillRect(ox+i*px,oy+j*px,px,px);}        // the tail, in shadow
-      }
+      pix(x,S,HD,DROP_PAL,ox,oy,px);
     });
     /* WHAT A ROUND LEAVES. A hole in the world: a dark irregular blot with a
        paler chipped rim, on transparent, so it sits on any texture. A wound:
@@ -10434,7 +10458,17 @@ class Enemy{
     this.big=kind==='big';this.boss=kind==='boss';this.caster=kind==='caster';
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=opts.facing||Math.PI;
     this.radius=this.boss?.8:this.big?.55:.4;
-    this.maxHp=this.boss?380:this.big?140:this.caster?52:64;
+    /* WHAT A HOLLOW IS WORTH KILLING. It was 64 and a thrower 52, which
+       is four swings of the greatsword and three — and at four swings a
+       hollow is a door you open rather than a thing you fight: no room
+       for it to answer, no reason to read it, nothing lost by walking
+       into its reach. They are 85 and 70 now, five swings and four, and
+       the brute is left where it was because the gap between a hollow and
+       a brute was never the complaint. The sniper's 96 is deliberate: a
+       .50 through the body of a hollow still takes it, exactly, and that
+       rifle's whole claim is one shot one body — if you raise this number
+       again, raise that one with it. */
+    this.maxHp=this.boss?380:this.big?140:this.caster?70:85;
     this.hp=this.maxHp;
     this.speed=this.boss?2.7:this.big?2.1:this.caster?2.3:2.5;
     // in halves of a heart: a hollow one, a brute two, a caster a half,
@@ -10450,11 +10484,14 @@ class Enemy{
     this.heavyHitter=this.boss||this.big;
     this.rig=this.boss?makeWardenRig():makeHollowRig(this.big,this.caster);
     this.reach=this.boss?3.4:this.big?2.4:2.15;
-    // some of the host burns hotter: red-boned, three times the life, worth double
+    // some of the host burns hotter: red-boned, worth double the marrow —
+    // and twice the life, not three times: a red hollow at the old
+    // multiplier would now be 285, which is not a harder fight, it is the
+    // same fight held down for twice as long
     this.red=!this.boss&&(opts.red||Math.random()<.14);
     if(this.red){
       this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material=o.material.clone();o.material.color.setHex(0xd23c3c);}});
-      this.maxHp*=3;this.hp=this.maxHp;this.marrow=Math.round(this.marrow*2);
+      this.maxHp=Math.round(this.maxHp*2.2);this.hp=this.maxHp;this.marrow=Math.round(this.marrow*2);
     }
     scene.add(this.rig.root);
     this.mats=[];

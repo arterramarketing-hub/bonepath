@@ -213,8 +213,26 @@ Known state of play:
   second-hit ignition never counts. `setAblaze` hangs sprites on the rig and
   a HAZE sprite for the glow (never a light: light-count changes recompile
   every lit shader). `dowseFlames` must run on death and on tile recycling.
-- The heart bitmap is TEN pixels wide, not nine. An odd width has no true
-  half, and the join sat a pixel left of centre.
+- **The heart bitmap is `HEART_PX`, one map shared by the HUD row and the
+  drop's face** (both inside `buildTextures`, so the const is declared at
+  that function's scope, above both blocks). FOURTEEN wide, and even: an
+  odd width has no true half and the join sits a pixel off centre for
+  ever. The first shape was heraldic — narrow lobes, a cleft four rows
+  deep, a long tail — and at eighteen pixels in the corner of a phone it
+  read as a SPADE or a tooth, not a heart. It is the round one now: wide
+  lobes, a shallow cleft, the width carried out to the shoulders. A life
+  counter is read out of the corner of the eye while something is swinging
+  at you; legibility beats period flavour here.
+  The tones are PAINTED into the map (`g` glint, `b` lit face, `m` body,
+  `d` shadow, `k` underside), not derived from a rule, and **the empty
+  socket is the same map read BACKWARDS** — a hollow is concave, so the
+  light falls on its far wall, which is where a full heart is darkest.
+  Without that inversion an empty container is just a black heart-shaped
+  hole. Its outline is dim iron rather than black, so you can count your
+  containers against a dark field.
+  If you change the shape, change it once: the drop's `orbHeart` reads the
+  same map (one tone brighter, because it is lit from inside its own glow)
+  and the two must never drift apart.
 - Chained swings enter at `ATK_ENTRY` (.21) via `player.chainIn()`, never by
   `t=0`. Every event in an attack — whoosh, lunge, hit, pose — is read off
   `t/atkDur`, so moving the start moves all of them together and nothing can
@@ -741,6 +759,20 @@ Known state of play:
   LOWER second clack a beat behind — the falling pair. `hitMark` carries
   `head` through to it and to `FPS.hitHead`, which is what colours the
   ticks gold.
+
+- **A HOLLOW IS 85 AND A THROWER 70** (`Enemy`'s constructor), five swings
+  of the greatsword and four. They were 64 and 52 — four swings and three
+  — and at four a hollow is a door you open rather than a thing you fight.
+  The brute is untouched at 140: the gap between a hollow and a brute was
+  never the problem. Three things are tied to that 85 and must move with
+  it: **the bone sniper's 96 body damage** (its claim is one shot one
+  body, and a hollow's life is deliberately just under it), the red-boned
+  multiplier (2.2, not 3 — at three a red hollow is sixteen greatsword
+  swings, which is the same fight held down twice as long, and it is
+  `Math.round`ed or hp lands on a fraction), and the README's gun table,
+  which quotes rounds-to-kill. Marrow is NOT tied to it — the templates'
+  costs and the cathedral's gate are unchanged, so the field takes longer
+  to clear but opens at the same point.
 
 ## Conventions
 
