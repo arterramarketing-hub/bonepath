@@ -153,14 +153,32 @@
   #cine.on .bar{height:11.5vh;}
   #cine .catch{position:absolute;inset:0;}
   #cine.on .catch{pointer-events:auto;}
-  #cineT{position:absolute;left:0;right:0;bottom:15.5vh;text-align:center;
-    opacity:0;transform:translateY(10px);transition:opacity .9s,transform .9s;}
-  #cineT.on{opacity:1;transform:none;}
-  #cineT .big{font-size:clamp(20px,5.2vw,44px);letter-spacing:.42em;text-transform:uppercase;
-    color:var(--bone);text-shadow:0 0 26px rgba(208,118,43,.55),0 2px 5px #000;}
-  #cineT .rule{width:200px;height:1px;margin:11px auto;
-    background:linear-gradient(90deg,transparent,var(--bone-dim),transparent);}
-  #cineT .sm{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--bone-dim);}
+  /* THE NAME CARD, in the shape every boss introduction has used since
+     the Nintendo 64: the EPITHET above in small letters — what the thing
+     is — and the NAME below it, large. The two arrive separately: the
+     epithet fades up first, then the name lands letter by letter on the
+     sting, each one dropping in from a little above with its glow
+     blooming and settling. */
+  #cineVig{position:absolute;inset:0;opacity:0;transition:opacity 1.1s;
+    background:radial-gradient(ellipse 68% 58% at 50% 44%,transparent 30%,rgba(0,0,0,.62) 100%);}
+  #cine.named #cineVig{opacity:1;}
+  #cineT{position:absolute;left:0;right:0;bottom:14vh;text-align:center;}
+  #cineT .ep{font-size:clamp(9px,2vw,13px);letter-spacing:.46em;text-transform:uppercase;
+    color:var(--bone-dim);text-shadow:0 1px 3px #000;
+    opacity:0;transform:translateY(6px);transition:opacity .8s,transform .8s;}
+  #cineT.ep-on .ep{opacity:1;transform:none;}
+  #cineT .rule{width:0;height:1px;margin:9px auto 12px;opacity:0;
+    background:linear-gradient(90deg,transparent,var(--bone-dim),transparent);
+    transition:width .9s cubic-bezier(.2,0,.1,1),opacity .9s;}
+  #cineT.ep-on .rule{width:min(62vw,460px);opacity:.9;}
+  #cineT .big{font-size:clamp(26px,7.4vw,62px);letter-spacing:.2em;text-transform:uppercase;
+    color:var(--bone);line-height:1.05;}
+  #cineT .big i{display:inline-block;font-style:normal;white-space:pre;
+    opacity:0;transform:translateY(-16px) scale(1.5);
+    text-shadow:0 0 40px rgba(255,226,170,.95),0 0 14px rgba(208,118,43,.8),0 3px 6px #000;
+    transition:opacity .26s ease-out,transform .3s cubic-bezier(.2,1.5,.4,1),text-shadow .9s ease-out .3s;}
+  #cineT .big i.in{opacity:1;transform:none;
+    text-shadow:0 0 26px rgba(208,118,43,.5),0 2px 6px #000;}
   #cineSkip{position:absolute;right:16px;bottom:calc(11.5vh + 12px);
     font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--bone-dim);
     opacity:0;transition:opacity .6s;}
@@ -405,8 +423,9 @@
 </div></div>
 
 <div id="cine">
+  <div id="cineVig"></div>
   <div class="bar t"></div><div class="bar b"></div>
-  <div id="cineT"><div class="big" id="cineBig"></div><div class="rule"></div><div class="sm" id="cineSm"></div></div>
+  <div id="cineT"><div class="ep" id="cineSm"></div><div class="rule"></div><div class="big" id="cineBig"></div></div>
   <div id="cineSkip">tap to skip</div>
   <div class="catch" id="cineCatch"></div>
 </div>
@@ -2787,6 +2806,19 @@ const AudioSys=(()=>{
     poisoned(){const t=now();
       tone(t,{f:520,f2:380,type:'sine',peak:.06,att:.02,dec:.35});
       noise(t,{peak:.05,att:.05,dec:.3,f0:900,f1:400,type:'bandpass',Q:2});},
+    /* THE NAME LANDING. The one sound a boss introduction cannot do
+       without: a low stab with a fifth and an octave stacked on it, a
+       swell of noise coming up UNDER the hit rather than after it, and a
+       long metal shimmer left ringing over the card while it holds. */
+    nameSting(){const t=now();
+      noise(t-.001,{peak:.16,att:.22,dec:.5,f0:300,f1:2600,type:'bandpass',Q:1.1});   // the swell into it
+      [1,1.5,2,3].forEach((r,i)=>{
+        tone(t+.2,{f:58*r,f2:58*r*.995,type:i<2?'sawtooth':'triangle',peak:.26/(i*.8+1),att:.004,dec:1.5+i*.3});});
+      tone(t+.2,{f:29,f2:24,type:'sine',peak:.34,att:.006,dec:2.0});                  // and the weight under it
+      noise(t+.2,{peak:.3,att:.002,dec:.45,f0:1800,f1:400,type:'bandpass',Q:.9});      // the hit
+      noise(t+.21,{peak:.12,att:.01,dec:2.4,f0:5200,f1:3000,type:'bandpass',Q:1.6});   // the metal left ringing
+      [1.0,1.498,2.0,2.66,3.99].forEach((r,i)=>tone(t+.22,{f:440*r,f2:440*r*.999,type:'sine',peak:.035/(i+1),att:.02,dec:2.6}));
+    },
     victory(){const t=now();
       [220,277,330,440,554,659].forEach((f,i)=>{
         tone(t+i*.2,{f,f2:f,type:'triangle',peak:.1,dec:1.8});
@@ -12904,10 +12936,9 @@ function startBossFight(){
   G.bossActive=true;
   boss.state='rise';boss.t=0;boss.rig.root.position.y=heightAt(boss.x,boss.z);
   trampleBreakables(boss.x,boss.z,2.5);
-  AudioSys.bossMusic(1);
-  // the bar and the roar belong to the introduction now, not to a timer
+  // the bar, the roar AND the theme all belong to the introduction now:
+  // it plays over nothing at all, and the drums come in under the name
   cutWarden();
-  setTimeout(()=>{AudioSys.roar();G.camShake=.5;G.vibr([60,40,120]);},900);
 }
 function onBossDead(){
   G.bossDead=true;G.bossActive=false;
@@ -13081,7 +13112,18 @@ function updateCamera(dt){
    world space. `title` on a shot raises the name card. Anything can be
    skipped with a tap, which runs the last shot's final frame and hands
    control straight back. */
-const CUT={on:false,shots:null,i:0,t:0,e:null,name:'',sub:'',then:null,titled:false,out:0,base:0,hold:null};
+const CUT={on:false,shots:null,i:0,t:0,e:null,name:'',sub:'',then:null,titled:false,epped:false,
+  out:0,base:0,hold:null,letterTO:null};
+/* the name, one letter at a time. Fast enough to read as a single landing
+   and slow enough that the eye sees it happen: the sting is struck on the
+   first letter and the whole word is in within a third of a second. */
+function cutNameIn(){
+  const E=cutEl();E.box.classList.add('named');E.t.classList.add('ep-on');
+  AudioSys.nameSting();G.camShake=Math.max(G.camShake,.34);G.vibr([30,40,90]);
+  CUT.letterTO=[];
+  const L=E.big.children;
+  for(let i=0;i<L.length;i++)CUT.letterTO.push(setTimeout(()=>L[i].classList.add('in'),i*42));
+}
 const cutEl=()=>({box:$('cine'),big:$('cineBig'),sm:$('cineSm'),t:$('cineT')});
 /* how high the middle of a thing is: a flier carries its own y, everything
    else stands on the soil */
@@ -13099,7 +13141,11 @@ function cutY(e){return (e&&aloft(e)?e.y:heightAt(e?e.x:0,e?e.z:0));}
      l  look height above the thing's middle */
 function cutOrbit(o){
   return (p,e,base)=>{
-    const q=easeInOut(p),cx=e?e.x:0,cz=e?e.z:0,gy=heightAt(cx,cz),cy=cutY(e);
+    /* the shot's own easing: `out` for a move that arrives and settles,
+       `in` for one that GATHERS — a slow creep that becomes a rush at the
+       end, which is what a lunge at the lens is made of */
+    const q=o.e==='in'?easeIn(p):o.e==='out'?easeOut(p):easeInOut(p);
+    const cx=e?e.x:0,cz=e?e.z:0,gy=heightAt(cx,cz),cy=cutY(e);
     const a=base+lerp(o.a0,o.a1===undefined?o.a0:o.a1,q),
           r=lerp(o.r0,o.r1===undefined?o.r0:o.r1,q),
           y=lerp(o.y0,o.y1===undefined?o.y0:o.y1,q),
@@ -13129,15 +13175,20 @@ function cutHold(){
 function cutPlay(e,shots,name,sub,then,extra){
   if(CUT.on||G.mode!=='play')return false;
   CUT.on=true;CUT.shots=shots;CUT.i=0;CUT.t=0;CUT.e=e;CUT.name=name||'';CUT.sub=sub||'';
-  CUT.then=then||null;CUT.titled=false;CUT.out=0;
+  CUT.then=then||null;CUT.titled=false;CUT.epped=false;CUT.out=0;
   // one bearing for the whole scene, taken now: every shot is written as
   // an offset from it, and the pilgrim does not move while it runs
   CUT.base=e?Math.atan2(player.x-e.x,player.z-e.z):0;
   CUT.hold=[e].concat(extra||[]).filter(o=>o&&o.x!==undefined).map(o=>({o,x:o.x,z:o.z}));
   for(const sh of shots)sh.fxDone=false;
   const E=cutEl();
-  E.big.textContent=CUT.name;E.sm.textContent=CUT.sub;
-  E.t.classList.remove('on');E.box.classList.add('on');
+  /* the name is built out of one span PER LETTER so they can be dropped in
+     one after another rather than faded in together. A space keeps its own
+     span (white-space:pre) or the words run into each other. */
+  E.big.innerHTML='';
+  for(const ch of CUT.name){const i=document.createElement('i');i.textContent=ch;E.big.appendChild(i);}
+  E.sm.textContent=CUT.sub;
+  E.t.classList.remove('ep-on');E.box.classList.remove('named');E.box.classList.add('on');
   document.body.classList.add('cine');
   Input.releaseAll();Input.consume();
   player.state='free';player.t=0;player.vx=0;player.vz=0;player.moveAmt=0;
@@ -13148,7 +13199,9 @@ function cutEnd(){
   if(!CUT.on)return;
   CUT.on=false;CUT.shots=null;CUT.e=null;CUT.hold=null;
   const E=cutEl();
-  E.box.classList.remove('on');E.t.classList.remove('on');
+  E.box.classList.remove('on');E.box.classList.remove('named');E.t.classList.remove('ep-on');
+  for(const i of E.big.children)i.classList.remove('in');
+  if(CUT.letterTO){for(const h of CUT.letterTO)clearTimeout(h);CUT.letterTO=null;}
   document.body.classList.remove('cine');
   Input.releaseAll();Input.consume();
   camSnap();                                    // a hard cut back, not a five-metre glide
@@ -13174,7 +13227,11 @@ function updateCut(dt){
   while(sh&&CUT.t>=sh.d){CUT.t-=sh.d;CUT.i++;sh=S[CUT.i];}
   if(!sh){cutEnd();return;}
   const p=clamp(CUT.t/sh.d,0,1),e=CUT.e;
-  if(sh.title&&!CUT.titled){CUT.titled=true;cutEl().t.classList.add('on');}
+  /* THE CARD ARRIVES IN TWO PIECES. `epithet` on a shot raises the small
+     line and draws the rule under it; `title` lands the NAME, letter by
+     letter on the sting, with the picture darkening round it. */
+  if(sh.epithet&&!CUT.epped){CUT.epped=true;cutEl().t.classList.add('ep-on');}
+  if(sh.title&&!CUT.titled){CUT.titled=true;cutNameIn();}
   if(sh.fx&&!sh.fxDone){sh.fxDone=true;sh.fx(e);}
   const v=sh.at(p,e,CUT.base);
   CUT_EYE.set(v[0],v[1],v[2]);CUT_LK.set(v[3],v[4],v[5]);
@@ -13205,60 +13262,76 @@ function updateCut(dt){
 }
 
 /* ---- the four introductions ----
-   Every one is the same three beats: FAR (where it is coming from), ROUND
-   (a move that shows the whole of it), CLOSE (its face, and the name).
-   Only the Bell-Called takes four, because it is three things. */
-/* THE WARDEN. Already climbing out of the flags when this starts, and the
-   nave is a box eleven metres wide — so the first two shots are kept well
-   inside the walls and the last goes behind the pilgrim, which is the
-   only way its height reads as height. */
+   All of them are cut to the same grammar, which is the one every boss
+   introduction has used since the Nintendo 64:
+
+     1 THE PLACE   a slow low move across the ground it is coming out of,
+                   before there is anything to look at
+     2 THE RISE    the eye at its feet, CRANING UP its whole length while
+                   it stands — the one shot that says how big a thing is
+     3 THE ROAR    close on the head, its voice, and the lens rushing it
+                   (`e:'in'` — a move that gathers and then lunges)
+     4 THE NAME    pull back off the shout to a held frame, the picture
+                   darkens, the epithet fades up, and then the NAME lands
+                   letter by letter on the sting
+
+   Beats 3 and 4 are one move split in two: the push in and the settle
+   back out of it. `fx` fires once, at the top of its shot. */
+/* THE GRAVEWARDEN. Already climbing out of the flags when this starts,
+   and the nave is a box eleven metres wide, so every shot is kept well
+   inside the walls. */
 function cutWarden(){
   cutPlay(boss,[
-    {d:1.7,at:cutOrbit({a0:1.0,a1:.55,r0:6.2,r1:5.0,y0:.45,y1:1.1,l0:.4,l1:2.0})},
-    {d:1.9,at:cutOrbit({a0:.4,a1:.22,r0:4.6,r1:4.0,y0:.6,y1:4.2,l0:1.0,l1:3.6})},
-    /* and the name, from the floor. This was an over-the-shoulder shot at
-       first — the pilgrim in the foreground and the Warden beyond him,
-       for scale — and it does not work: the fight starts the moment he
-       steps through the door and the Warden is thirty-six metres away at
-       the altar end, so the frame was an empty nave with a speck in it.
-       Height reads from BELOW instead: the eye on the flags, looking up
-       at the horns. */
-    {d:2.4,title:1,at:cutOrbit({a0:.22,a1:-.06,r0:5.4,r1:3.8,y0:.45,y1:.75,l0:3.0,l1:3.7})},
-  ],'GRAVEWARDEN','of the bonefield',()=>{
+    {d:1.6,at:cutOrbit({a0:1.05,a1:.62,r0:6.6,r1:5.4,y0:.4,y1:.55,l0:-.2,l1:.9,e:'out'})},
+    {d:2.0,at:cutOrbit({a0:.44,a1:.24,r0:4.8,r1:4.2,y0:.5,y1:3.9,l0:.8,l1:3.4})},
+    {d:1.5,at:cutOrbit({a0:.24,a1:.1,r0:6.0,r1:2.6,y0:1.4,y1:2.6,l0:3.2,l1:3.7,e:'in'}),
+      fx:()=>{AudioSys.roar();G.camShake=Math.max(G.camShake,.75);G.vibr([70,40,130]);}},
+    {d:2.8,epithet:1,title:1,at:cutOrbit({a0:.16,a1:-.04,r0:4.6,r1:5.4,y0:.6,y1:.8,l0:3.4,l1:3.2,e:'out'})},
+  ],'GRAVEWARDEN','sworn keeper of the bone path',()=>{
+    AudioSys.bossMusic(1);
     $('bossbar').style.display='block';$('bossname').textContent='GRAVEWARDEN OF THE BONE PATH';
     $('bossfill').style.width='100%';
   });
 }
 /* THE FALLEN ONE. It takes 2.6 seconds to come down sixteen metres, so
-   the first shot is spent under it with the eye tilted into the sky. */
+   the first beat is spent under it with the eye in the sky — the place it
+   is coming out of is the sky. */
 function cutAngel(e){
   cutPlay(e,[
-    {d:1.5,at:cutOrbit({a0:.3,r0:5.2,y0:.5,y1:.7,l0:-1.4,l1:-.2})},
-    {d:1.8,at:cutOrbit({a0:1.45,a1:.35,r0:6.4,r1:4.4,y0:2.2,y1:1.3,l0:.2,l1:.9})},
-    // (back far enough, and looking high enough, that the neck and the
-    //  cracked halo are in the frame: at three metres it was chest and wings)
-    {d:2.3,title:1,at:cutOrbit({a0:.3,a1:-.14,r0:4.6,r1:4.0,y0:2.4,y1:2.7,l0:1.9,l1:2.1})},
-  ],'THE FALLEN ONE','its halo is cracked');
+    {d:1.6,at:cutOrbit({a0:.34,r0:5.4,y0:.45,y1:.75,l0:-2.2,l1:-.4,e:'out'})},
+    {d:1.9,at:cutOrbit({a0:1.4,a1:.4,r0:6.4,r1:4.6,y0:.5,y1:2.6,l0:-.6,l1:1.8})},
+    {d:1.4,at:cutOrbit({a0:.34,a1:.12,r0:5.4,r1:2.4,y0:2.4,y1:2.6,l0:1.9,l1:2.1,e:'in'}),
+      fx:()=>{AudioSys.screech();G.camShake=Math.max(G.camShake,.7);G.vibr([60,30,110]);}},
+    // (far enough back, and high enough in the look, that the neck and the
+    //  cracked halo are both in the card: at four metres the halo was out)
+    {d:2.7,epithet:1,title:1,at:cutOrbit({a0:.2,a1:-.08,r0:5.0,r1:5.8,y0:2.7,y1:3.0,l0:2.3,l1:2.2,e:'out'})},
+  ],'THE FALLEN ONE','carrion seraph, its halo cracked');
 }
 /* THE UNBURIED. It claws up through the soil over 1.3 seconds, so the
-   camera opens down in the grass, level with the ground about to give. */
+   first beat opens down in the grass, level with the ground about to give. */
 function cutGhoul(e){
   cutPlay(e,[
-    {d:1.3,at:cutOrbit({a0:.45,r0:3.8,y0:.3,y1:.5,l0:.1,l1:1.1})},
-    {d:1.7,at:cutOrbit({a0:1.3,a1:.35,r0:4.4,r1:3.4,y0:.9,y1:2.0,l0:1.0,l1:1.5})},
-    {d:2.2,title:1,at:cutOrbit({a0:.3,a1:-.1,r0:3.1,r1:2.7,y0:2.2,y1:2.0,l0:1.7,l1:1.6})},
-  ],'THE UNBURIED','it was put under this row');
+    {d:1.4,at:cutOrbit({a0:.5,a1:.38,r0:4.2,r1:3.6,y0:.28,y1:.4,l0:-.2,l1:.7,e:'out'})},
+    {d:1.8,at:cutOrbit({a0:1.25,a1:.4,r0:4.4,r1:3.4,y0:.5,y1:2.2,l0:.6,l1:1.5})},
+    {d:1.3,at:cutOrbit({a0:.4,a1:.14,r0:4.6,r1:2.0,y0:2.0,y1:2.1,l0:1.6,l1:1.7,e:'in'}),
+      fx:()=>{AudioSys.retch();AudioSys.sob(true);G.camShake=Math.max(G.camShake,.6);G.vibr([50,30,90]);}},
+    {d:2.6,epithet:1,title:1,at:cutOrbit({a0:.22,a1:-.06,r0:3.4,r1:4.0,y0:2.1,y1:2.2,l0:1.6,l1:1.5,e:'out'})},
+  ],'THE UNBURIED','rot-swollen thing of the grave rows');
 }
-/* THE BELL-CALLED. Three things out of three holes, so a shot each and
-   then the skull, with the eye craning up as fast as it rises. */
+/* THE BELL-CALLED. Three things out of three holes, so the PLACE beat is
+   spent on the bell and each hand gets a moment of its own before the
+   skull takes the crane. Five shots, and it earns them. */
 function cutBell(sk,hands){
   const h0=()=>hands[0],h1=()=>hands[1];
   cutPlay(sk,[
-    {d:1.5,at:cutOrbit({a0:.35,r0:7.0,r1:6.2,y0:2.4,y1:1.2,l0:-2.6,l1:-2.2})},   // the bell, and the ground going under it
-    {d:1.4,at:cutOrbitOn(h0,{a0:.5,a1:.1,r0:3.4,r1:2.9,y0:1.4,y1:.9,l0:.5,l1:.6})},
-    {d:1.4,at:cutOrbitOn(h1,{a0:-.5,a1:-.1,r0:3.4,r1:2.9,y0:.8,y1:1.3,l0:.6,l1:.7})},
-    {d:2.6,title:1,at:cutOrbit({a0:.2,a1:-.05,r0:9.0,r1:7.6,y0:1.0,y1:4.2,l0:0,l1:.2})},
-  ],'THE BELL-CALLED','it was buried in three pieces',null,hands);
+    {d:1.5,at:cutOrbit({a0:.4,a1:.28,r0:7.4,r1:6.2,y0:2.2,y1:1.0,l0:-3.0,l1:-2.4,e:'out'})},
+    {d:1.2,at:cutOrbitOn(h0,{a0:.55,a1:.14,r0:3.6,r1:2.8,y0:1.5,y1:.85,l0:.4,l1:.6,e:'out'})},
+    {d:1.2,at:cutOrbitOn(h1,{a0:-.55,a1:-.14,r0:3.6,r1:2.8,y0:.7,y1:1.3,l0:.6,l1:.7,e:'out'})},
+    {d:2.0,at:cutOrbit({a0:.3,a1:.16,r0:9.4,r1:7.2,y0:.7,y1:4.4,l0:-1.4,l1:.2})},
+    {d:1.4,at:cutOrbit({a0:.16,a1:.06,r0:11.0,r1:5.0,y0:4.0,y1:3.6,l0:.2,l1:.3,e:'in'}),
+      fx:()=>{AudioSys.skullShriek();AudioSys.bellToll(2);G.camShake=Math.max(G.camShake,.8);G.vibr([70,40,120]);}},
+    {d:2.8,epithet:1,title:1,at:cutOrbit({a0:.1,a1:-.06,r0:7.6,r1:8.6,y0:3.4,y1:3.2,l0:.3,l1:.2,e:'out'})},
+  ],'THE BELL-CALLED','buried in three pieces',null,hands);
 }
 
 /* ---------------- lock-on: the eye never closes ----------------
@@ -14842,7 +14915,8 @@ function frame(now){
     if(RUN.fog)scene.background.copy(RUN.fog).lerp(WX_WHITE,f*.8);}
   gradeMat.uniforms.uExpo.value=(worldLights.expo||1.04)*(1+.06*G.naveDim);
   AudioSys.setSpace(G.naveDim);
-  AudioSys.setMusic(G.bossActive||G.mode==='victory'?0:G.mode==='dead'?.35:1);
+  // an introduction plays over SILENCE and the theme arrives with the name
+  AudioSys.setMusic(CUT.on?0:G.bossActive||G.mode==='victory'?0:G.mode==='dead'?.35:1);
   { // the threat layer follows what is hunting you; the heart follows your life
     let th=0;
     if(G.mode==='play'&&!G.bossActive&&!CUT.on)for(const e of enemies){

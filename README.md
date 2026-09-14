@@ -1507,30 +1507,46 @@ holds its fire for the length of its own scene (the Warden was swinging a
 greatsword through its own title card), but the rest of the host goes on
 about its business behind the camera.
 
-Each one is the same three beats — **far**, where it is coming from;
-**round**, a move that shows the whole of it; **close**, its face and the
-name — and only the Bell-Called takes four, because it is three things. A
-shot is a length and a camera, and its bearing is measured from *the line
-the pilgrim is standing on* rather than from the world, so a=0 always puts
-the eye between the two of them and looks the horror in the face, whatever
-corner of the field the seed dropped it in. (The first pass used world
-bearings and introduced the Bell-Called by the back of its head.)
+Every one is cut to the same grammar, which is the one every boss
+introduction has used since the Nintendo 64:
 
-- **The Gravewarden** — low at the altar, then the eye climbing its whole
-  length as it stands, then the name from the floor looking up at the
-  horns. That last shot was an over-the-shoulder at first, the pilgrim in
-  the foreground for scale, and it does not work: the fight starts the
-  moment he steps through the door and the Warden is thirty-six metres
-  away at the far end, so the frame was an empty nave with a speck in it.
-- **The Fallen One** — from under it with the eye in the sky as it comes
-  down, then an arc round the spread wings, then close on the broken neck
-  and the cracked halo.
-- **The Unburied** — down in the grass, level with the soil that is about
-  to give, then up with it as it claws out, then close on the sideways
-  head and the unhinged jaw.
-- **The Bell-Called** — the bell and the ground going under it, a hand, the
-  other hand, and then the skull with the eye craning up as fast as it
-  rises.
+1. **The place** — a slow low move across the ground it is about to come
+   out of, before there is anything to look at.
+2. **The rise** — the eye at its feet, *craning up its whole length* while
+   it stands. This is the one shot that says how big a thing is, and every
+   one of the four gets it.
+3. **The roar** — close on the head, its own voice, and the lens rushing
+   it. The move eases *in* rather than out: a slow creep that becomes a
+   lunge, which is what a lunge at the camera is made of.
+4. **The name** — pull back off the shout to a held frame. The picture
+   darkens at the edges, the **epithet** fades up in small letters with a
+   rule drawn under it, and then the **NAME** lands below it large, letter
+   by letter, on a sting.
+
+The music is part of the shape: an introduction plays over **silence**,
+and the theme comes in under the name. The Warden's drums used to start
+the instant you crossed the threshold; they wait for the card now.
+
+A shot's bearing is measured from *the line the pilgrim is standing on*
+rather than from the world, so a=0 always puts the eye between the two of
+them and looks the horror in the face, whatever corner of the field the
+seed dropped it in. (The first pass used world bearings and introduced the
+Bell-Called by the back of its head.)
+
+| | epithet | name |
+|---|---|---|
+| the boss | sworn keeper of the bone path | **GRAVEWARDEN** |
+| | carrion seraph, its halo cracked | **THE FALLEN ONE** |
+| | rot-swollen thing of the grave rows | **THE UNBURIED** |
+| | buried in three pieces | **THE BELL-CALLED** |
+
+The Gravewarden's last shot is taken from the flags looking up at the
+horns, with the rose window behind its skull. It was an over-the-shoulder
+at first, the pilgrim in the foreground for scale, and that does not work:
+the fight starts the moment he steps through the door and the Warden is
+thirty-six metres away at the far end, so the frame was an empty nave with
+a speck in it. The Bell-Called takes an extra two beats, because it is
+three things — the bell, a hand, the other hand, and then the skull.
 
 **Any of it is skipped with a tap** — a phone game cannot make you watch
 the same four seconds every time you die to a thing — and the return to

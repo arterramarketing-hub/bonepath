@@ -520,6 +520,20 @@ Known state of play:
     framed on where it was ends up looking past the pilgrim's shoulder;
     without the gate the Warden swings a greatsword through its own
     title card. Only translation is undone — the entrance still plays.
+  - **The four beats are the shape, and they are not negotiable**: the
+    PLACE (low, before anything), the RISE (the eye at its feet craning
+    up its whole length — the one shot that says how big a thing is), the
+    ROAR (close on the head, its own voice, `e:'in'` so the move gathers
+    and then lunges at the lens), and the NAME. Beats 3 and 4 are one
+    move split in two: the push in and the settle back out of it.
+  - **The card is two pieces in two stages.** `epithet` on a shot raises
+    the small line and draws the rule; `title` lands the NAME below it,
+    one `<i>` per letter at 42ms apart, on `AudioSys.nameSting()`, with
+    `#cine.named` darkening the picture. Epithet ABOVE, name BELOW, name
+    much larger — that layout IS the reference, do not flip it back.
+  - An introduction plays over SILENCE (`setMusic(0)` while `CUT.on`) and
+    the theme arrives with the card — the Warden's `bossMusic(1)` moved
+    out of `startBossFight` into the scene's `then`.
   - **A shot's bearing is measured from the PILGRIM'S LINE, not the
     world** (`CUT.base`, taken once at `cutPlay`): a=0 is between him and
     the thing, looking it in the face. Absolute bearings introduced the
