@@ -531,7 +531,7 @@ the same as three blows). The nearest thing takes the round.
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Carry-handle aperture and a post on a triangular base |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
-| **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+| **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then four returns off the stone, each later and quieter and darker than the last, with a roll going away under them. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
 | **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
 
 **What a round leaves.** A body flinches and bleeds (or chips, if it is
@@ -580,8 +580,10 @@ its face and a notch at the back with a dot either side; the UMP a post
 under a hood in a square aperture; the M4 its carry handle's aperture; the
 SPAS a post and a notch on the rib; the RPG a folding ladder. The sight line is computed from the sight itself, so
 the top of the blade is the point of aim, exactly. **Red dot**: a wide
-window of near-clear glass on the rail with one point of light in it —
-a hot white core in a red bloom, sat exactly on the mark. It is **1.15
+window of all-but-clear glass on the rail with one point of light in it
+— a hot white core in a red bloom, sat exactly on the mark. The pane
+keeps a twentieth of a tint and no more: it sits over precisely what you
+are shooting at, so anything you can *see* it is too much of. It is **1.15
 times**, which is to say barely a magnification at all: the picture you
 were looking at is the picture you aim with, the rifle stays in your
 hands, and the eye is on the mark a shade faster. **ACOG**: a short
@@ -596,13 +598,16 @@ you can fight close with.
 
 **The hit marker.** Four ticks flash on the crosshair when a round lands
 — white for a body, gold for the head, red and longer for a kill — and
-the phone buzzes. A miss shows nothing. Each carries its own **clack**:
-a hard two-millisecond transient, not a blip, because the one sound that
-must never lose an argument with a .50 going off in the same frame is
-the one telling you the round landed. A head is the same clack pitched
-up with a ring over it; a kill is the clack and then a lower second one
-a beat behind — the falling pair that says *that one is down*. The
-marker sounds in either view, wherever a gun is in your hands.
+the phone buzzes. A miss shows nothing. Each carries its own **tick**:
+forty milliseconds, dry, and pitched high enough to sit in a band the
+gun is not using, so it cuts through at a third of the gun's level
+rather than shouting over it. It has been wrong in both directions —
+two soft blips the .50's report walked straight over, then a clack loud
+enough to beat the gun, which made a magazine sound like a woodpecker.
+A head is the same tick pitched up with a thin ring over it; a kill is
+the tick and then a lower second one a beat behind — the falling pair
+that says *that one is down*. The marker sounds in either view, wherever
+a gun is in your hands.
 
 **Reloading.** The magazine runs down on the weapon bar; at zero the gun
 clicks and reloads on its own if there is a reserve to reload from

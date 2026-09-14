@@ -488,6 +488,17 @@ Known state of play:
     themselves. A floating thing that does not set it gets shot at the
     dirt under it. **`markUp`** puts the eye's ring at a giant's own
     height rather than a brute's.
+  - **THE JAW OPENS ON A POSITIVE ROTATION, AND THE SIGN IS THE WHOLE OF
+    IT.** The hinge is at the back of the cranium and every part of the
+    jaw hangs FORWARD of it (+z), so R_x carries the chin down only when
+    the angle is POSITIVE. It was `rotation.x=-this.jaw`, which swung the
+    chin, the teeth and the rami UP over the face — at a full gape the
+    whole lower jaw stood above the sockets and the thing had eyebrows
+    instead of a mouth. Measured: at rest the chin sat 0.82m under the
+    eye and opening the jaw RAISED it to 0.61m under, so the mouth shut
+    as it gaped. If you ever doubt a hinge's sign here, measure it —
+    traverse the jaw group, apply `matrixWorld` to each box, and compare
+    against `rig.eyes[0].e`'s world position at two different openings.
   - **A HAND WALKS ON AN ARCH.** Positive `rotation.x` tips a finger DOWN
     (R_x takes +z toward -y), so every joint of a finger is POSITIVE and
     the chain bows from the knuckle to a claw in the soil. The first pass
@@ -765,19 +776,33 @@ Known state of play:
     contributes is the emitter's bloom over that same point. The window
     itself is wide and its glass is `M.reflex` (a sixth opaque), NOT
     `M.glass` (a quarter): at the sights that pane sits over precisely
-    what you are shooting at.
+    what you are shooting at — a sixth was still a teal wash you looked
+    THROUGH rather than a window, and it is a twentieth (.055) now.
   - The ACOG stays in `inGlass` — the eye goes into the lens and the gun
     leaves the picture — but its surround FADES rather than cutting to
     black, which is what keeps 2x from reading as a scope.
-- **`AudioSys.hitmark(kill,head)` must out-shout the gun that caused it.**
-  It was two quiet square blips and lost every argument with a .50 report
-  in the same frame, which is the one thing a hitmarker cannot do. It is a
-  noise transient (the "clack" the ear actually hears as a tick) over the
-  blips now. The three must stay tellable apart at speed: one clack for a
-  body, the same pitched up with a ring for a head, and for a kill a
-  LOWER second clack a beat behind — the falling pair. `hitMark` carries
-  `head` through to it and to `FPS.hitHead`, which is what colours the
-  ticks gold.
+- **`AudioSys.hitmark(kill,head)` has been wrong in BOTH directions, and
+  the answer is neither.** First it was two soft square blips, which the
+  .50's own report walked straight over — a hitmarker that cannot be heard
+  is the one thing a hitmarker cannot be. Then it was a clack loud enough
+  to beat the gun, which beat everything else too: twelve of them in a
+  magazine and a firefight is a woodpecker. What a shooter's marker
+  actually is: SHORT (~40ms), DRY, and pitched high (a bandpass around
+  3kHz) so it sits in a band the gun is not using and cuts through at a
+  THIRD of the gun's level instead of shouting over it. Do not reach for
+  the peak knob in either direction; reach for the band.
+  The three must stay tellable apart at speed: one tick for a body, the
+  same pitched up with a thin ring for a head, and for a kill a LOWER
+  second tick a beat behind — the falling pair. `hitMark` carries `head`
+  through to it and to `FPS.hitHead`, which is what colours the ticks
+  gold.
+- **The sniper is the one gun the FIELD answers.** `AudioSys.gun('sniper')`
+  schedules four returns after the crack (at .14/.30/.52/.80s), each
+  quieter and DARKER than the last — distance eats the top end first, so
+  the filter corner falls with the gain, and each is jittered ±15ms so two
+  shots are never identical. A long low roll runs under all of it. Without
+  that tail a 96-damage round reads no heavier than the carbine: the
+  weight of a rifle is in what comes back, not in the crack.
 
 - **A HOLLOW IS 85 AND A THROWER 70** (`Enemy`'s constructor), five swings
   of the greatsword and four. They were 64 and 52 — four swings and three

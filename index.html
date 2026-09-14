@@ -2261,8 +2261,23 @@ const AudioSys=(()=>{
        the whole field being told. All of it goes through the same grimy
        chain as everything else, so nothing comes out clean. */
     gun(kind){if(!ac)return;const t=now();
+      /* THE SNIPER, AND THE FIELD ANSWERING IT. A .50 going off outdoors is
+         not one sound, it is two: the crack, and then the report coming
+         back off everything standing within half a kilometre. That return
+         is what makes a rifle sound big — without it a 96-damage round
+         reads no heavier than the carbine. Four returns, each LATER,
+         QUIETER and DARKER than the last (distance eats the top end
+         first), jittered a little so two shots are never the same, and a
+         low roll going away under all of them. */
       if(kind==='sniper'){noise(t,{peak:.72,att:.001,dec:.22,f0:4200,f1:260});tone(t,{f:150,f2:28,type:'sawtooth',peak:.36,att:.003,dec:.6});
-        noise(t+.04,{peak:.3,att:.03,dec:1.1,f0:500,f1:60});tone(t+.01,{f:2400,f2:700,type:'square',peak:.05,att:.001,dec:.08});return;}
+        noise(t+.04,{peak:.3,att:.03,dec:1.1,f0:500,f1:60});tone(t+.01,{f:2400,f2:700,type:'square',peak:.05,att:.001,dec:.08});
+        for(const[d,a,f]of[[.14,.30,2000],[.30,.17,1250],[.52,.10,820],[.80,.055,540]]){
+          const e=t+d+rr2(-.015,.015);
+          noise(e,{peak:a,att:.02,dec:.30+d,f0:f,f1:Math.max(60,f*.18)});
+          tone(e,{f:130-d*24,f2:32,type:'sawtooth',peak:a*.40,att:.015,dec:.36+d});
+        }
+        noise(t+.12,{peak:.11,att:.22,dec:2.0,f0:250,f1:44});
+        return;}
       if(kind==='ump'){   // suppressed: no crack at all — a thick, short thump, a breath of gas, and the action clacking over it
         noise(t,{peak:.3,att:.002,dec:.05,f0:900,f1:180});tone(t,{f:130,f2:48,type:'sawtooth',peak:.13,att:.003,dec:.09});
         noise(t+.008,{peak:.09,att:.01,dec:.12,f0:2200,f1:500,type:'bandpass',Q:1.2});
@@ -2291,27 +2306,29 @@ const AudioSys=(()=>{
     magIn(){if(!ac)return;const t=now();noise(t,{peak:.24,att:.001,dec:.05,f0:2400,f1:900,type:'bandpass',Q:1.6});tone(t,{f:520,f2:240,type:'square',peak:.06,att:.001,dec:.06});},
     rack(){if(!ac)return;const t=now();noise(t,{peak:.2,att:.001,dec:.035,f0:3000,f1:1400,type:'bandpass',Q:2});noise(t+.07,{peak:.17,att:.001,dec:.04,f0:2300,f1:1000,type:'bandpass',Q:2});tone(t+.07,{f:900,f2:500,type:'square',peak:.04,att:.001,dec:.05});},
     bolt(){if(!ac)return;const t=now();for(let i=0;i<3;i++){noise(t+i*.09,{peak:.18-i*.03,att:.001,dec:.04,f0:2200-i*300,f1:900,type:'bandpass',Q:2});tone(t+i*.09,{f:700-i*120,f2:400,type:'square',peak:.045,att:.001,dec:.05});}},
-    /* THE HITMARKER. It was two quiet square blips and it lost every
-       argument with a .50 calibre report going off in the same frame —
-       which is the one thing a hitmarker cannot do, because it is the
-       only confirmation the shot landed at all. It is a CLACK now: a
-       two-millisecond noise transient on top, which is what the ear
-       actually hears as "tick", then the blips under it, and the whole
-       thing three times as loud as it was.
-       Three of them, and they must stay tellable apart at speed:
-         hit   one clack, mid
-         head  the same clack pitched up with a ring over it
-         kill  the clack, then a LOWER second one a beat after — the
+    /* THE HITMARKER, THE WAY A SHOOTER DOES ONE. It has been both wrong
+       ways round now: two quiet square blips that the .50's own report
+       walked straight over, and then a CLACK loud enough to beat the gun,
+       which beat everything else as well — twelve of them in a magazine
+       and the fight is a woodpecker.
+       What a shooter's marker actually is: SHORT (forty milliseconds,
+       gone before you have thought about it), DRY, and high enough to sit
+       in a band the gun is not using, so it cuts through at a third of the
+       gun's level rather than shouting over it. A tick, not a clack.
+       The three must stay tellable apart at speed:
+         hit   one tick
+         head  the same, pitched up, with a thin ring over it
+         kill  the tick, then a LOWER second one a beat behind — the
                falling pair that reads as "that one is down" */
     hitmark(kill,head){if(!ac)return;const t=now();
-      const clack=(at,f,g)=>{
-        noise(at,{peak:.3*g,att:.0005,dec:.012,f0:head?5200:4200,f1:1800,type:'bandpass',Q:1.1});   // the tick itself
-        tone(at,{f,f2:f*.62,type:'square',peak:.2*g,att:.0006,dec:.045});
-        tone(at+.004,{f:f*2.02,f2:f*1.2,type:'triangle',peak:.09*g,att:.0006,dec:.03});
+      const tick=(at,f,g)=>{
+        noise(at,{peak:.105*g,att:.0004,dec:.020,f0:head?3400:2800,f1:1200,type:'bandpass',Q:1.5});
+        tone(at,{f,f2:f*.58,type:'square',peak:.052*g,att:.0005,dec:.030});
+        tone(at+.003,{f:f*1.98,f2:f*1.15,type:'triangle',peak:.022*g,att:.0005,dec:.018});
       };
-      clack(t,head?1900:1380,1);
-      if(head)tone(t+.01,{f:3100,f2:2400,type:'sine',peak:.07,att:.001,dec:.16});                    // the ring off a skull
-      if(kill){clack(t+.07,760,.95);tone(t+.07,{f:300,f2:180,type:'sine',peak:.13,att:.002,dec:.16});}
+      tick(t,head?1980:1460,1);
+      if(head)tone(t+.008,{f:3200,f2:2600,type:'sine',peak:.030,att:.001,dec:.11});   // the ring off a skull
+      if(kill){tick(t+.055,820,.92);tone(t+.055,{f:310,f2:190,type:'sine',peak:.045,att:.002,dec:.12});}
     },
     ammoPick(){if(!ac)return;const t=now();for(let i=0;i<3;i++){noise(t+i*.07,{peak:.14,att:.001,dec:.05,f0:3200,f1:1600,type:'bandpass',Q:4});tone(t+i*.07,{f:1900+i*300,f2:1400,type:'triangle',peak:.05,att:.002,dec:.08});}},
     // Thor's call: the charge climbing off the blade — a fizzing electric crackle, a buzz under it, a rising whine
@@ -11979,7 +11996,16 @@ class GiantSkull{
     r.root.position.set(this.x,this.y,this.z);
     r.root.rotation.set(pitch,this.facing,this.roll);
     this.jaw+=(jawWant-this.jaw)*Math.min(1,14*dt);
-    if(r.jaw&&r.jaw.parent)r.jaw.rotation.x=-this.jaw;
+    /* THE JAW OPENS DOWNWARD, AND THE SIGN IS THE WHOLE OF IT. The hinge
+       sits at the back of the cranium and every part of the jaw hangs
+       FORWARD of it (+z), so a rotation about x takes the chin down only
+       when it is POSITIVE — R_x carries +z toward -y. It was negative,
+       which swung the chin, the teeth and the rami up over the face: at a
+       full gape the whole lower jaw stood above the sockets and the thing
+       had eyebrows instead of a mouth. Measured before the fix: at rest
+       the chin sat 0.82m under the eye, and opening the jaw RAISED it to
+       0.61m under — the mouth shut as it gaped. */
+    if(r.jaw&&r.jaw.parent)r.jaw.rotation.x=this.jaw;
     // the light in the sockets: banked while it watches, white when it screams
     for(const{e,gl}of r.eyes){
       const h=this.eyeHot*(.7+.3*Math.sin(G.time*3.1));
@@ -13650,7 +13676,14 @@ function gunMats(){if(_gunMats)return _gunMats;return _gunMats={
   gun:vmMat(0x2b2d2f),gunD:vmMat(0x1a1b1d),grey:vmMat(0x4a4c4e),wood:vmMat(0x4a3222),glove:vmMat(0x5b5148),sleeve:vmMat(0x4b4f52),
   olive:vmMat(0x4a5238),tan:vmMat(0x8a7a52),pale:vmMat(0xf4eedc),
   glass:new THREE.MeshBasicMaterial({color:0x223a48,transparent:true,opacity:.28,depthWrite:false}),
-  reflex:new THREE.MeshBasicMaterial({color:0x2c4a5c,transparent:true,opacity:.16,depthWrite:false})};}
+  /* THE REFLEX'S GLASS IS ALMOST NOT THERE. A red dot's argument is that
+     the picture does not change, and the pane sits over exactly what you
+     are shooting at — a sixth opaque was still a teal wash you were
+     looking through rather than a window. Fourteen hundredths of a stop
+     of tint is all it keeps: enough for the glass to catch the light at
+     the edge of the frame, not enough to stand between you and a hollow
+     at forty metres. */
+  reflex:new THREE.MeshBasicMaterial({color:0x5a8aa4,transparent:true,opacity:.055,depthWrite:false})};}
 /* THE SIGHTS. A rail height in, a group out, with `h` the height of its
    sight line — the one number the aim needs. The red dot is a framed
    window with a point of light in it; the acog a short tube with a bell.
