@@ -578,8 +578,18 @@ remembered by the browser, in either view. **Iron sights**: each gun's
 own, and drawn as such — the eagle a blade up front with a white dot on
 its face and a notch at the back with a dot either side; the UMP a post
 under a hood in a square aperture; the M4 its carry handle's aperture; the
-SPAS a post and a notch on the rib; the RPG a folding ladder. The sight line is computed from the sight itself, so
-the top of the blade is the point of aim, exactly. **Red dot**: a wide
+SPAS a post and a notch on the rib; the RPG a folding ladder.
+
+**The whole ADS pose is computed off the sight itself**, both ways: its
+height puts the sight line at the screen's exact centre, so the top of
+the blade *is* the point of aim, and its depth puts your eye a fixed
+distance — a cheek's width — behind the rearmost part of whatever is on
+the rail. Every gun and every optic therefore presents the same sight
+picture. The distances used to be typed in per gun and had all drifted
+long: eye to rear sight, the pistol sat at 34cm, the rifle at 40 and the
+shotgun at 47, which is not a cheek weld, it is a man holding a rifle out
+at arm's length and squinting down it. They are 26cm now, and the
+receiver owns the bottom of the picture the way it should. **Red dot**: a wide
 window of all-but-clear glass on the rail with one point of light in it
 — a hot white core in a red bloom, sat exactly on the mark. The pane
 keeps a twentieth of a tint and no more: it sits over precisely what you

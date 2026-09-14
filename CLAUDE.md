@@ -675,12 +675,39 @@ Known state of play:
      `takeHit` alone only wakes the dormant.
   10. The `ammo` drop is in `ELEMENTS`/`DROP_FACE` so `spawnElemDrop`
       needs no special case; the drop cap is 6 in first person, 4 otherwise.
-  11. **The ADS position is computed, never hand-tuned.** `applyAttachment`
-      sets each gun's `ads` from `sightH[att] * scale`, so the sight line
-      sits at the screen's centre exactly; the hip position is the only
-      free number. Every viewmodel motion (bob, idle sway, look-lag) is
+  11. **The ADS position is computed, never hand-tuned — ALL THREE AXES
+      now.** `applyAttachmentTo` sets each gun's `ads` from the sight's own
+      geometry: `y` from `sightH[att]*scale`, which puts the sight line at
+      the screen's centre exactly, and `z` from `-(ADS_EYE +
+      sightZ[att]*scale)`, which puts the EYE a fixed distance behind the
+      rearmost point of whatever sight is on the rail. `sightZ` is measured
+      off the model at build (`Box3.setFromObject(g[k]).max.z`, taken
+      BEFORE the scale is applied, since applyAttachmentTo multiplies by it
+      the same way it does for the height). The hip position is the only
+      free number left.
+      `adsZ` used to be typed in per gun and every one of them had drifted
+      long: measured eye-to-rear-sight, the pistol sat at 0.34m, the rifle
+      0.40 and the shotgun 0.47 — arm's length, not a cheek weld, and it
+      read exactly like that. `ADS_EYE` is .26 for every gun and every
+      optic, so each combination presents the same sight picture. A real
+      cheek weld is nearer still (about a hand's width); at that range the
+      receiver fills half the screen, which is why no shooter uses the true
+      figure either.
+      **Do not "fix" the geometry that ends up behind the near plane.** At
+      .26 the stocks of the UMP, the SPAS and the RPG pass through the eye
+      (nearest vertex −0.07m at rest, a little more under recoil, since the
+      kick adds to z). It is the stock, it is off the bottom of the frame,
+      and nothing of the cut is ever on screen — verified per gun, at rest
+      and mid-recoil. Lowering `camera.near` to avoid it would cost depth
+      precision across the whole world for a sliver nobody sees.
+      Every viewmodel motion (bob, idle sway, look-lag) is
       scaled by `(1-ads)` so the sight is true when it is up. The hurt
       flinch is the one thing that still dips it, on purpose.
+      **The gun and the blade viewmodels must each put the OTHER away.**
+      `updateBladeVm` hides itself when a gun is held, but it is only
+      called while no gun is held — so swapping from a blade to a gun in
+      first person left the last blade standing on screen beside the rifle,
+      for ever. `updateGun` clears `FPS.vmBlade.visible` from its side.
   12. **The cone is the hip's** (`coneNow`: `spread*(1-ads)`, 0 past
       `ads>.9`); on the sights the ray is the camera's forward and nothing
       else, and the crosshair is hidden past `ads>.8`. Recoil moves the
