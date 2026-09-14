@@ -140,6 +140,35 @@
   #shop button:disabled{opacity:.35;}
   #shop #shopLeave{border-color:var(--bone-dim);background:transparent;color:var(--bone-dim);margin-top:16px;}
   /* ---- banners & screens ---- */
+  /* ---- cutscenes ---- */
+  /* The letterbox is two bars that GROW rather than a black frame that
+     fades: the picture is never dimmed, only cropped, so the thing being
+     introduced keeps every bit of the light it has. The catcher over the
+     whole screen is what takes the skip. */
+  #cine{position:fixed;inset:0;z-index:9;pointer-events:none;}
+  #cine .bar{position:absolute;left:0;right:0;height:0;background:#000;
+    transition:height .55s cubic-bezier(.33,0,.16,1);}
+  #cine .bar.t{top:0;}
+  #cine .bar.b{bottom:0;}
+  #cine.on .bar{height:11.5vh;}
+  #cine .catch{position:absolute;inset:0;}
+  #cine.on .catch{pointer-events:auto;}
+  #cineT{position:absolute;left:0;right:0;bottom:15.5vh;text-align:center;
+    opacity:0;transform:translateY(10px);transition:opacity .9s,transform .9s;}
+  #cineT.on{opacity:1;transform:none;}
+  #cineT .big{font-size:clamp(20px,5.2vw,44px);letter-spacing:.42em;text-transform:uppercase;
+    color:var(--bone);text-shadow:0 0 26px rgba(208,118,43,.55),0 2px 5px #000;}
+  #cineT .rule{width:200px;height:1px;margin:11px auto;
+    background:linear-gradient(90deg,transparent,var(--bone-dim),transparent);}
+  #cineT .sm{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--bone-dim);}
+  #cineSkip{position:absolute;right:16px;bottom:calc(11.5vh + 12px);
+    font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--bone-dim);
+    opacity:0;transition:opacity .6s;}
+  #cine.on #cineSkip{opacity:.5;}
+  body.cine #hud,body.cine #controls,body.cine #banner,body.cine #prompt,body.cine #toast,
+  body.cine #pauseBtn,body.cine #povBtn,body.cine #perf{
+    opacity:0!important;transition:opacity .35s;}
+  body.cine #controls{pointer-events:none;}
   #banner{position:fixed;left:0;right:0;top:34%;z-index:8;text-align:center;pointer-events:none;
     opacity:0;transition:opacity .7s;}
   #banner .big{font-size:clamp(22px,5vw,42px);letter-spacing:.4em;text-transform:uppercase;
@@ -375,6 +404,12 @@
   <div class="btns"><div class="btn2" id="btnResume">Resume</div><div class="btn2" id="btnRestart">Restart</div></div>
 </div></div>
 
+<div id="cine">
+  <div class="bar t"></div><div class="bar b"></div>
+  <div id="cineT"><div class="big" id="cineBig"></div><div class="rule"></div><div class="sm" id="cineSm"></div></div>
+  <div id="cineSkip">tap to skip</div>
+  <div class="catch" id="cineCatch"></div>
+</div>
 <div id="banner"><div class="big" id="bannerBig"></div><div class="rule"></div><div class="sm" id="bannerSm"></div></div>
 <div id="toast"></div>
 <div id="died"><div class="t">YOU DIED</div></div>
@@ -8827,6 +8862,7 @@ const player={
   iframes(){const R=rollProf();return (this.state==='roll'&&this.t>R.IF0&&this.t<R.IF1)||this.state==='execute'||this.state==='backstab'||this.state==='iai'||(this.state==='fowl'&&this.t<.8)||(this.state==='floored'&&this.t>FLOOR.LAND);},
   takeHit(dmg,fx,fz,heavy,kind){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
+    if(CUT.on)return 'immune';          // not during an introduction: see CUT
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
     if(this.hurtGrace>0)return 'immune';
     this.hp-=dmg;
@@ -9188,7 +9224,7 @@ const player={
     this.hurtGrace=Math.max(0,this.hurtGrace-dt);
     this.postRollT+=dt;
     // poison ticks the life away, two at a time, and won't be rolled off
-    if(this.poisonT>0&&this.state!=='dead'){
+    if(this.poisonT>0&&this.state!=='dead'&&!CUT.on){   // (the rot holds its breath through an introduction too: see CUT)
       this.poisonT-=dt;this.poisonTick-=dt;
       if(Math.random()<dt*7)elemFleck('poison',this.x+rr3(-.35,.35),.5+rr3(0,1.1),this.z+rr3(-.35,.35));
       if(this.poisonTick<=0){this.poisonTick=1.2;this.hp-=HEART/2;    // the rot takes half a heart at a time
@@ -10550,6 +10586,8 @@ class Enemy{
         break;}
       case 'chase':{
         faceP(6);
+        // the Warden was swinging a greatsword through its own title card
+        if(cutSubject(this))break;
         if(this.caster){
           // bone-thrower keeps its distance and lobs
           const l=dist||1;
@@ -11105,7 +11143,7 @@ class FallenAngel{
         }
         this.cool-=dt;
         if(dist>30||G.bossActive){this.state='wait';this.engaged=false;break;} // the nave is the Warden's
-        if(this.cool<=0&&G.mode==='play'){
+        if(this.cool<=0&&G.mode==='play'&&!cutSubject(this)){   // (not while it is being introduced: see CUT)
           const roll=Math.random();
           if(dist<3.4)this.begin(roll<.65?'wingblade':'plunge');
           else if(dist>5&&roll<.45)this.begin('lament');
@@ -11208,8 +11246,8 @@ function summonAngel(){
   constrain(p,false);
   if(cathDist(p.x,p.z)<4)pushOutOfCath(p,4);
   const e=new FallenAngel(p.x,p.z);enemies.push(e);
-  bannerShow('SOMETHING DESCENDS','its halo is cracked');
   AudioSys.screech();G.camShake=Math.max(G.camShake,.2);
+  cutAngel(e);
   return e;
 }
 
@@ -11264,6 +11302,10 @@ class GraveGhoul{
     this.rig.root.visible=true;this.engaged=true;
     AudioSys.retch();G.camShake=Math.max(G.camShake,.3);G.vibr(40);
     boneBurst(this.x,.2,this.z,0x4a463a,16,2.8);
+    // the FIRST time it comes up out of the row, and never again: it
+    // burrows and erupts a dozen times in a fight, and a cutscene on
+    // every one of those would be unplayable
+    if(!this.metOnce){this.metOnce=true;cutGhoul(this);}
   }
   update(dt){
     const P=player,r=this.rig;
@@ -11292,7 +11334,7 @@ class GraveGhoul{
         if(dist>this.reach*.7){this.x+=dx/l*this.speed*pulse*sp*dt;this.z+=dz/l*this.speed*pulse*sp*dt;}
         this.cool-=dt;this.burrowT+=dt;
         if(dist>26||G.bossActive){this.state='return';break;}
-        if(G.mode==='play'){
+        if(G.mode==='play'&&!cutSubject(this)){   // (nor while it is being introduced: see CUT)
           if(this.burrowT>9&&dist>3.5){this.begin('burrow');this.burrowT=0;}
           else if(this.cool<=0){
             if(dist<this.reach)this.begin('rake');
@@ -11565,7 +11607,7 @@ class BoneHand{
           this.x+=-dz/l*side*1.5*dt;this.z+=dx/l*side*1.5*dt;this.walk+=dt*3.4;}
         this.tick-=dt;if(this.tick<=0){this.tick=solo?.22:.32;AudioSys.boneScuttle();}
         this.cool-=dt*(solo?1.7:1);
-        if(this.cool<=0&&G.mode==='play'){
+        if(this.cool<=0&&G.mode==='play'&&!cutSubject(this)){   // (nothing new while it is being introduced: see CUT)
           if(dist<3.2)this.begin(Math.random()<.62?'swipe':'slam');
           else if(dist<7)this.begin('slam');
           else this.cool=.4;
@@ -11794,7 +11836,7 @@ class GiantSkull{
         jawWant=.18+Math.sin(G.time*5.5)*.14;                        // the chatter
         this.cool-=dt;
         if(dist>34){this.begin('wait');this.engaged=false;break;}
-        if(this.cool<=0&&G.mode==='play'){
+        if(this.cool<=0&&G.mode==='play'&&!cutSubject(this)){   // (nothing new while it is being introduced: see CUT)
           if(this.phase===1)this.begin('shriek');
           else this.begin(dist<4.6?'bite':'chomp');
         }
@@ -11901,7 +11943,6 @@ function bellStruck(b,cx,cz){
 }
 function summonBellHorror(x,z){
   const gy=heightAt(x,z);
-  bannerShow('THE BELL-CALLED','it was buried in three pieces');
   G.camShake=Math.max(G.camShake,.9);G.hitstop=Math.max(G.hitstop,.2);
   AudioSys.quake();
   // the ground opens: a scar under the bell and two more where the hands were
@@ -11917,6 +11958,7 @@ function summonBellHorror(x,z){
     paintScar(p.x,p.z,Math.random()*TAU,.9,1.1,true);
     boneBurst(p.x,heightAt(p.x,p.z)+.2,p.z,0x4a463a,12,2.4);
   }
+  cutBell(sk,sk.hands);
   return sk;
 }
 
@@ -12863,12 +12905,9 @@ function startBossFight(){
   boss.state='rise';boss.t=0;boss.rig.root.position.y=heightAt(boss.x,boss.z);
   trampleBreakables(boss.x,boss.z,2.5);
   AudioSys.bossMusic(1);
-  setTimeout(()=>{
-    AudioSys.roar();G.camShake=.5;G.vibr([60,40,120]);
-    $('bossbar').style.display='block';$('bossname').textContent='GRAVEWARDEN OF THE BONE PATH';
-    $('bossfill').style.width='100%';
-    bannerShow('GRAVEWARDEN OF THE BONEFIELD','');
-  },900);
+  // the bar and the roar belong to the introduction now, not to a timer
+  cutWarden();
+  setTimeout(()=>{AudioSys.roar();G.camShake=.5;G.vibr([60,40,120]);},900);
 }
 function onBossDead(){
   G.bossDead=true;G.bossActive=false;
@@ -13014,6 +13053,212 @@ function updateCamera(dt){
   const lk=1-Math.pow(.0005,dt);
   lookX=lerp(lookX,lx,lk);lookY=lerp(lookY,ly,lk);lookZ=lerp(lookZ,lz,lk);
   camera.lookAt(lookX,lookY,lookZ);
+}
+
+/* ======================= CUTSCENES =======================
+   Every boss and mini-boss is INTRODUCED. Not with a still frame and a
+   name — with the camera taken off the pilgrim's shoulder and walked
+   round the thing while it comes up out of whatever it was under.
+
+   The rule that keeps this cheap: a cutscene does not ANIMATE anything.
+   Every one of these horrors already had an entrance — the Warden climbs
+   out of the flags, the Fallen One comes down sixteen metres, the
+   Unburied claws up through the soil, the Bell-Called is three pieces
+   coming out of three holes — and all of them ran with the camera stuck
+   behind the pilgrim looking at his back. The cutscene is CHOREOGRAPHY
+   over an entrance that already exists, so there is one new thing here
+   (a camera track) and no new animation at all.
+
+   The world keeps running under it. Stopping it would stop the entrance
+   too, and the whole point is that you are watching a thing happen and
+   not a cut of film. What is suspended is the PILGRIM: his input is
+   dropped, he is held where he stands, and he cannot be hit — the host
+   may still be wandering about behind the camera, and being opened up by
+   a hollow you never saw during a boss introduction is not drama.
+
+   A SHOT is a length and a camera: `at(p,e)` takes its own progress and
+   the thing being introduced, and answers with an eye and a look point in
+   world space. `title` on a shot raises the name card. Anything can be
+   skipped with a tap, which runs the last shot's final frame and hands
+   control straight back. */
+const CUT={on:false,shots:null,i:0,t:0,e:null,name:'',sub:'',then:null,titled:false,out:0,base:0,hold:null};
+const cutEl=()=>({box:$('cine'),big:$('cineBig'),sm:$('cineSm'),t:$('cineT')});
+/* how high the middle of a thing is: a flier carries its own y, everything
+   else stands on the soil */
+function cutY(e){return (e&&aloft(e)?e.y:heightAt(e?e.x:0,e?e.z:0));}
+/* A RING ROUND IT — and the bearing is measured from the PILGRIM'S LINE,
+   never from the world. `a` is an offset from the direction the thing is
+   facing him along, so a=0 puts the eye between the two of them and looks
+   the horror in the face, whatever corner of the field the seed dropped
+   it in. The first pass used absolute bearings and introduced the
+   Bell-Called by the back of its head.
+     a  offset from the pilgrim's line (radians, + to one side)
+     r  how far out
+     y  eye height above the SOIL — easier to reason about than above a
+        flier's middle, which is where the look point is measured from
+     l  look height above the thing's middle */
+function cutOrbit(o){
+  return (p,e,base)=>{
+    const q=easeInOut(p),cx=e?e.x:0,cz=e?e.z:0,gy=heightAt(cx,cz),cy=cutY(e);
+    const a=base+lerp(o.a0,o.a1===undefined?o.a0:o.a1,q),
+          r=lerp(o.r0,o.r1===undefined?o.r0:o.r1,q),
+          y=lerp(o.y0,o.y1===undefined?o.y0:o.y1,q),
+          l=lerp(o.l0||0,o.l1===undefined?(o.l0||0):o.l1,q);
+    return [cx+Math.sin(a)*r,gy+y,cz+Math.cos(a)*r,cx,cy+l,cz];
+  };
+}
+// the same ring, but round something else in the scene (one of the hands)
+function cutOrbitOn(get,o){const f=cutOrbit(o);return (p,e,base)=>f(p,get()||e,base);}
+/* WHAT IS BEING INTRODUCED DOES NOT WALK OFF THE SHOT. Every one of these
+   horrors starts hunting the moment its entrance finishes — the Fallen One
+   closes to within three metres, the hands scuttle — and a camera framed on
+   where it WAS ends up looking past the pilgrim's shoulder at nothing. So
+   the things in the scene are pinned in x and z for its length. Only the
+   translation is undone: the entrance, the wings, the rise out of the soil
+   and every pose go on running, which is the whole point of the scene. */
+/* IS THIS THE THING THE SCENE IS ABOUT? Anything being introduced holds
+   its fire for the length of its own introduction — the Warden was
+   swinging a greatsword through the title card — but the rest of the host
+   is left alone, because a field that freezes is a cut of film and this
+   is meant to be a thing happening. */
+function cutSubject(e){return CUT.on&&(CUT.e===e||!!(CUT.hold&&CUT.hold.some(h=>h.o===e)));}
+function cutHold(){
+  if(!CUT.on||!CUT.hold)return;
+  for(const h of CUT.hold)if(h.o){h.o.x=h.x;h.o.z=h.z;h.o.vx=0;h.o.vz=0;}
+}
+function cutPlay(e,shots,name,sub,then,extra){
+  if(CUT.on||G.mode!=='play')return false;
+  CUT.on=true;CUT.shots=shots;CUT.i=0;CUT.t=0;CUT.e=e;CUT.name=name||'';CUT.sub=sub||'';
+  CUT.then=then||null;CUT.titled=false;CUT.out=0;
+  // one bearing for the whole scene, taken now: every shot is written as
+  // an offset from it, and the pilgrim does not move while it runs
+  CUT.base=e?Math.atan2(player.x-e.x,player.z-e.z):0;
+  CUT.hold=[e].concat(extra||[]).filter(o=>o&&o.x!==undefined).map(o=>({o,x:o.x,z:o.z}));
+  for(const sh of shots)sh.fxDone=false;
+  const E=cutEl();
+  E.big.textContent=CUT.name;E.sm.textContent=CUT.sub;
+  E.t.classList.remove('on');E.box.classList.add('on');
+  document.body.classList.add('cine');
+  Input.releaseAll();Input.consume();
+  player.state='free';player.t=0;player.vx=0;player.vz=0;player.moveAmt=0;
+  G.lockTarget=null;lockMarker.visible=false;
+  return true;
+}
+function cutEnd(){
+  if(!CUT.on)return;
+  CUT.on=false;CUT.shots=null;CUT.e=null;CUT.hold=null;
+  const E=cutEl();
+  E.box.classList.remove('on');E.t.classList.remove('on');
+  document.body.classList.remove('cine');
+  Input.releaseAll();Input.consume();
+  camSnap();                                    // a hard cut back, not a five-metre glide
+  const f=CUT.then;CUT.then=null;if(f)f();
+}
+/* put the camera where the follow camera would have it, this instant, so
+   the return to play is a CUT and not a swoop across the field */
+function camSnap(){
+  const hP=heightAt(player.x,player.z);
+  if(FPS.on&&player.state!=='dead'){updateFpsCamera(1);return;}
+  const dist=G.camDist||5.1;
+  camera.position.set(player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist,
+    hP+1.55+Math.sin(G.camPitch)*dist,
+    player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist);
+  lookX=player.x;lookY=hP+1.35;lookZ=player.z;
+  camera.lookAt(lookX,lookY,lookZ);
+}
+const CUT_EYE=new THREE.Vector3(),CUT_LK=new THREE.Vector3();
+function updateCut(dt){
+  const S=CUT.shots;if(!S||!S.length||G.mode!=='play'){cutEnd();return;}
+  CUT.t+=dt;
+  let sh=S[CUT.i];
+  while(sh&&CUT.t>=sh.d){CUT.t-=sh.d;CUT.i++;sh=S[CUT.i];}
+  if(!sh){cutEnd();return;}
+  const p=clamp(CUT.t/sh.d,0,1),e=CUT.e;
+  if(sh.title&&!CUT.titled){CUT.titled=true;cutEl().t.classList.add('on');}
+  if(sh.fx&&!sh.fxDone){sh.fxDone=true;sh.fx(e);}
+  const v=sh.at(p,e,CUT.base);
+  CUT_EYE.set(v[0],v[1],v[2]);CUT_LK.set(v[3],v[4],v[5]);
+  /* the same two rules the follow camera lives by, because a cutscene
+     that ends up inside a wall is the blank screen with a name on it:
+     hold the eye inside the world, then walk the line from what it is
+     LOOKING AT out to where it wants to be and stop at the first stone */
+  if(!isFinite(CUT_EYE.x)||!isFinite(CUT_EYE.y)||!isFinite(CUT_EYE.z)){cutEnd();return;}
+  let cx=CUT_EYE.x,cz=CUT_EYE.z;
+  if(G.bossActive){cx=clamp(cx,-(HW-.5),HW-.5);cz=clamp(cz,-(HL-.5),HL-.5);}
+  else if(PATH.on)cx=clamp(cx,-20.5,20.5);
+  else{const m=HEX_AP-2.6;
+    for(let i=0;i<6;i++){const n=HEXN[i],d=cx*n.x+cz*n.z;if(d>m){cx-=(d-m)*n.x;cz-=(d-m)*n.z;}}}
+  {const cc=PATH.on?cathZ(CUT_LK.z):0;
+   if(cc<1e8){
+     const hx=CUT_LK.x,hz=CUT_LK.z-cc,dx=cx-hx,dz=(cz-cc)-hz,L=Math.hypot(dx,dz);
+     if(L>.05){const n=Math.min(24,Math.max(2,Math.ceil(L/.3)));let u=1;
+       for(let i=1;i<=n;i++){const k=i/n;if(camStone(hx+dx*k,hz+dz*k)){u=(i-1)/n*.92;break;}}
+       if(u<1){cx=hx+dx*u;cz=cc+hz+dz*u;}}}}
+  camera.position.set(cx,Math.max(heightAt(cx,cz)+.55,CUT_EYE.y),cz);
+  if(G.camShake>0){
+    G.camShake=Math.max(0,G.camShake-dt*1.6);
+    camera.position.x+=(Math.random()-.5)*G.camShake*.22;
+    camera.position.y+=(Math.random()-.5)*G.camShake*.22;
+  }
+  camera.lookAt(CUT_LK);
+  lookX=CUT_LK.x;lookY=CUT_LK.y;lookZ=CUT_LK.z;
+}
+
+/* ---- the four introductions ----
+   Every one is the same three beats: FAR (where it is coming from), ROUND
+   (a move that shows the whole of it), CLOSE (its face, and the name).
+   Only the Bell-Called takes four, because it is three things. */
+/* THE WARDEN. Already climbing out of the flags when this starts, and the
+   nave is a box eleven metres wide — so the first two shots are kept well
+   inside the walls and the last goes behind the pilgrim, which is the
+   only way its height reads as height. */
+function cutWarden(){
+  cutPlay(boss,[
+    {d:1.7,at:cutOrbit({a0:1.0,a1:.55,r0:6.2,r1:5.0,y0:.45,y1:1.1,l0:.4,l1:2.0})},
+    {d:1.9,at:cutOrbit({a0:.4,a1:.22,r0:4.6,r1:4.0,y0:.6,y1:4.2,l0:1.0,l1:3.6})},
+    /* and the name, from the floor. This was an over-the-shoulder shot at
+       first — the pilgrim in the foreground and the Warden beyond him,
+       for scale — and it does not work: the fight starts the moment he
+       steps through the door and the Warden is thirty-six metres away at
+       the altar end, so the frame was an empty nave with a speck in it.
+       Height reads from BELOW instead: the eye on the flags, looking up
+       at the horns. */
+    {d:2.4,title:1,at:cutOrbit({a0:.22,a1:-.06,r0:5.4,r1:3.8,y0:.45,y1:.75,l0:3.0,l1:3.7})},
+  ],'GRAVEWARDEN','of the bonefield',()=>{
+    $('bossbar').style.display='block';$('bossname').textContent='GRAVEWARDEN OF THE BONE PATH';
+    $('bossfill').style.width='100%';
+  });
+}
+/* THE FALLEN ONE. It takes 2.6 seconds to come down sixteen metres, so
+   the first shot is spent under it with the eye tilted into the sky. */
+function cutAngel(e){
+  cutPlay(e,[
+    {d:1.5,at:cutOrbit({a0:.3,r0:5.2,y0:.5,y1:.7,l0:-1.4,l1:-.2})},
+    {d:1.8,at:cutOrbit({a0:1.45,a1:.35,r0:6.4,r1:4.4,y0:2.2,y1:1.3,l0:.2,l1:.9})},
+    // (back far enough, and looking high enough, that the neck and the
+    //  cracked halo are in the frame: at three metres it was chest and wings)
+    {d:2.3,title:1,at:cutOrbit({a0:.3,a1:-.14,r0:4.6,r1:4.0,y0:2.4,y1:2.7,l0:1.9,l1:2.1})},
+  ],'THE FALLEN ONE','its halo is cracked');
+}
+/* THE UNBURIED. It claws up through the soil over 1.3 seconds, so the
+   camera opens down in the grass, level with the ground about to give. */
+function cutGhoul(e){
+  cutPlay(e,[
+    {d:1.3,at:cutOrbit({a0:.45,r0:3.8,y0:.3,y1:.5,l0:.1,l1:1.1})},
+    {d:1.7,at:cutOrbit({a0:1.3,a1:.35,r0:4.4,r1:3.4,y0:.9,y1:2.0,l0:1.0,l1:1.5})},
+    {d:2.2,title:1,at:cutOrbit({a0:.3,a1:-.1,r0:3.1,r1:2.7,y0:2.2,y1:2.0,l0:1.7,l1:1.6})},
+  ],'THE UNBURIED','it was put under this row');
+}
+/* THE BELL-CALLED. Three things out of three holes, so a shot each and
+   then the skull, with the eye craning up as fast as it rises. */
+function cutBell(sk,hands){
+  const h0=()=>hands[0],h1=()=>hands[1];
+  cutPlay(sk,[
+    {d:1.5,at:cutOrbit({a0:.35,r0:7.0,r1:6.2,y0:2.4,y1:1.2,l0:-2.6,l1:-2.2})},   // the bell, and the ground going under it
+    {d:1.4,at:cutOrbitOn(h0,{a0:.5,a1:.1,r0:3.4,r1:2.9,y0:1.4,y1:.9,l0:.5,l1:.6})},
+    {d:1.4,at:cutOrbitOn(h1,{a0:-.5,a1:-.1,r0:3.4,r1:2.9,y0:.8,y1:1.3,l0:.6,l1:.7})},
+    {d:2.6,title:1,at:cutOrbit({a0:.2,a1:-.05,r0:9.0,r1:7.6,y0:1.0,y1:4.2,l0:0,l1:.2})},
+  ],'THE BELL-CALLED','it was buried in three pieces',null,hands);
 }
 
 /* ---------------- lock-on: the eye never closes ----------------
@@ -13784,7 +14029,9 @@ function fpsRespawn(){
    without this putting it back. */
 function syncFpsRig(){
   const r=player.rig;if(!r)return;
-  const hide=FPS.on&&player.state!=='dead'&&G.mode!=='dead';
+  // a cutscene takes the eye OUT of the helm, so the body has to be back
+  // in the world for the length of it or there is a hole in the shot
+  const hide=FPS.on&&!CUT.on&&player.state!=='dead'&&G.mode!=='dead';
   if(hide){if(r.root.visible||!FPS.hidRig){r.root.visible=false;FPS.hidRig=true;}}
   else if(FPS.hidRig){r.root.visible=true;FPS.hidRig=false;G.camPitch=.34;camIdle=9;}
 }
@@ -13863,7 +14110,7 @@ function updateViewmodel(dt){
   if(V.pump){const u=clamp((FPS.boltT-.12)/.5,0,1);V.pump.position.z=V.pumpZ+.08*Math.sin(u*Math.PI);}   // the fore-end back and forward
   V.flash.visible=FPS.flashT>0;
   if(V.flash.visible){const s=(g.suppressed?.06:g.rocket?.5:g.pellets?.3:g.key==='sniper'?.26:.2)*(.8+Math.random()*.5);V.flash.scale.set(s,s,1);V.flash.material.rotation=Math.random()*TAU;}
-  vm.visible=FPS.on&&gunHeld()&&!(inGlass(g)&&ads>.85)&&P.state!=='dead'&&G.mode!=='dead';
+  vm.visible=FPS.on&&!CUT.on&&gunHeld()&&!(inGlass(g)&&ads>.85)&&P.state!=='dead'&&G.mode!=='dead';
 }
 /* ---- the blade, from behind the eyes ----
    The pilgrim's own weapon, cloned off the rig (minus its light) and hung on
@@ -13886,7 +14133,7 @@ function ensureBladeVm(){
 function updateBladeVm(dt){
   const h=ensureBladeVm();if(!h)return;
   const P=player,st=P.state,w=P.weapon();
-  h.visible=FPS.on&&!gunHeld()&&st!=='dead'&&G.mode!=='dead'&&!P.katThrown;
+  h.visible=FPS.on&&!CUT.on&&!gunHeld()&&st!=='dead'&&G.mode!=='dead'&&!P.katThrown;
   if(FPS.vm)FPS.vm.visible=false;                          // (the gun stays out of the picture under a blade)
   if(!h.visible)return;
   const mv=Math.min(1,P.moveAmt);
@@ -14132,6 +14379,9 @@ $('modeField').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropa
 $('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on)gotoMode('path');else begin();});
 $('title').addEventListener('pointerdown',begin);   // (a touch anywhere else begins the way the page is set to)
 // first person is not a third way: it is a switch inside either, by the pause button
+// the cutscene's own catcher: any touch anywhere over it ends the scene
+$('cineCatch').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(CUT.on)cutEnd();});
+addEventListener('keydown',e=>{if(CUT.on&&!e.repeat)cutEnd();});
 $('povBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(G.mode==='play'&&!G.paused)setPov(!FPS.on);});
 
 buildTextures();
@@ -14495,6 +14745,21 @@ function frame(now){
   else if(G.slowMo&&G.slowMo<1)wdt=dt*G.slowMo;        // the finishing cut's held breath
   G.time+=wdt;
   Input.poll(dt);
+  /* A CUTSCENE SUSPENDS THE PILGRIM, NOT THE WORLD. The horror's entrance
+     has to keep running — it is the whole thing being watched — so the
+     update order below is untouched and only the INPUT is dropped, after
+     the one press that matters: any of it skips. */
+  if(CUT.on){
+    if(IN.anyPressed||IN.firePressed||IN.interactPressed||IN.swipe){cutEnd();}
+    else{
+      IN.mx=0;IN.mz=0;IN.camDX=0;IN.camDY=0;IN.swipe=null;
+      IN.chargeHeld=false;IN.chargeRelease=false;IN.firePressed=false;IN.fireHeld=false;
+      IN.adsTap=false;IN.adsRelease=false;IN.adsHeld=false;
+      IN.reloadPressed=false;IN.swapPressed=false;IN.zoomPressed=false;IN.pickGun=-1;
+      IN.interactPressed=false;IN.anyPressed=false;
+      player.vx=0;player.vz=0;
+    }
+  }
 
   if(G.mode==='play'||G.mode==='dead'){
     if(G.mode==='play'){
@@ -14542,6 +14807,7 @@ function frame(now){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
       if(e.burnT>0&&e.hp>0&&!e.untouchable&&G.mode==='play')tickBurn(e,wdt);
     }
+    cutHold();                      // the thing being introduced stays in its shot
     updateLock();
     updateExecMark();
     updateMarrowDrop();
@@ -14579,7 +14845,7 @@ function frame(now){
   AudioSys.setMusic(G.bossActive||G.mode==='victory'?0:G.mode==='dead'?.35:1);
   { // the threat layer follows what is hunting you; the heart follows your life
     let th=0;
-    if(G.mode==='play'&&!G.bossActive)for(const e of enemies){
+    if(G.mode==='play'&&!G.bossActive&&!CUT.on)for(const e of enemies){
       if(e.hp<=0||e.boss||!['chase','windup','strike','recover','lurch','hover','plunge','lament','wingblade','retch','rake','burrowed','erupt'].includes(e.state))continue;
       const d=Math.hypot(e.x-player.x,e.z-player.z);
       if(d<16)th=Math.max(th,e.mini?1:Math.min(1,1.25-d/16));
@@ -14595,7 +14861,8 @@ function frame(now){
       l.haze.material.opacity=.1+.06*l.intensity;}
   }
   updateWeaponGlow();
-  if(FPS.on&&G.mode==='play'&&player.state!=='dead')updateFpsCamera(dt);else updateCamera(dt);
+  if(CUT.on)updateCut(dt);
+  else if(FPS.on&&G.mode==='play'&&player.state!=='dead')updateFpsCamera(dt);else updateCamera(dt);
 
   grainT+=dt;
   if(grainT>.09){grainT=0;
@@ -14609,7 +14876,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

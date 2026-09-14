@@ -504,6 +504,36 @@ Known state of play:
   is not finite, and `boltLine`/`boltArc` refuse to build a geometry from
   one. If it ever comes back, patch `computeBoundingSphere` again and
   read the vertex count: it names the producer exactly.
+- **CUTSCENES (`CUT`, `cutPlay`, `updateCut`, and the four `cut*`
+  functions beside them).** A scene ANIMATES NOTHING: every boss already
+  had an entrance and the cutscene is a camera track over it. Do not add
+  poses for one.
+  - The world keeps running; only the PILGRIM is suspended. The input is
+    zeroed in `frame()` right after `Input.poll` (after the one press that
+    matters — any of it skips), `takeHit` returns 'immune', and the POISON
+    tick is gated too because it is the one damage that does not go
+    through `takeHit`.
+  - **`cutSubject(e)`** is what holds a thing's fire during its own scene
+    — five sites, one per attack-selection — and `cutHold()` pins the
+    scene's things in x/z after the enemy update loop. Both are needed:
+    without the pin the Fallen One closes to three metres and the shot
+    framed on where it was ends up looking past the pilgrim's shoulder;
+    without the gate the Warden swings a greatsword through its own
+    title card. Only translation is undone — the entrance still plays.
+  - **A shot's bearing is measured from the PILGRIM'S LINE, not the
+    world** (`CUT.base`, taken once at `cutPlay`): a=0 is between him and
+    the thing, looking it in the face. Absolute bearings introduced the
+    Bell-Called by the back of its head. `y` in a shot is the eye's height
+    above the SOIL; `l` is the look point above the thing's middle.
+  - The cut camera obeys the same two rules the follow camera does — held
+    inside the world, then walked out from what it is LOOKING AT and
+    stopped at the first stone (`camStone`) — or a cutscene is the blank
+    screen with a name on it.
+  - In first person the body is put back (`syncFpsRig`) and the gun and
+    the blade viewmodels are hidden, because the eye has left the helm.
+  - `cutEnd` calls `camSnap()`: a hard cut back to the follow camera, not
+    a glide across the field. And a scene cannot outlive its run —
+    `updateCut` ends it if `G.mode` stops being 'play'.
 - **The camera is clamped inside the world, and it has to be.** It rides
   BEHIND the pilgrim, so at the rim it ends up outside the hexagon where
   the ground mesh has fallen away — but `heightAt` out there still answers

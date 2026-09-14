@@ -1483,6 +1483,59 @@ apart into bone. The ragdoll was refused to the boss and the two that are
 not hollows on purpose — something that big flopping at every stagger is a
 joke — so the dying asks for it outright, and nothing else can.
 
+## Being introduced
+
+**Every boss and mini-boss is introduced.** Not with a still frame and a
+name over it — with the camera taken off the pilgrim's shoulder and walked
+round the thing while it comes up out of whatever it was under. Two black
+bars grow in from the top and bottom, the HUD goes, and the name comes up
+on the last shot.
+
+The rule that keeps this cheap is that a cutscene **animates nothing**.
+Every one of these horrors already had an entrance — the Warden climbs out
+of the flags, the Fallen One comes down sixteen metres on spread wings, the
+Unburied claws up through the soil, the Bell-Called is three pieces coming
+out of three holes — and every one of them used to play with the camera
+stuck behind the pilgrim, looking at his back. The cutscene is
+choreography over an entrance that already exists.
+
+**The world keeps running under it**, which is the point: you are watching
+a thing happen, not a piece of film. What is suspended is the *pilgrim* —
+his input is dropped, he is held where he stands, he cannot be hit, and
+the rot in him holds its breath. What is being introduced holds still and
+holds its fire for the length of its own scene (the Warden was swinging a
+greatsword through its own title card), but the rest of the host goes on
+about its business behind the camera.
+
+Each one is the same three beats — **far**, where it is coming from;
+**round**, a move that shows the whole of it; **close**, its face and the
+name — and only the Bell-Called takes four, because it is three things. A
+shot is a length and a camera, and its bearing is measured from *the line
+the pilgrim is standing on* rather than from the world, so a=0 always puts
+the eye between the two of them and looks the horror in the face, whatever
+corner of the field the seed dropped it in. (The first pass used world
+bearings and introduced the Bell-Called by the back of its head.)
+
+- **The Gravewarden** — low at the altar, then the eye climbing its whole
+  length as it stands, then the name from the floor looking up at the
+  horns. That last shot was an over-the-shoulder at first, the pilgrim in
+  the foreground for scale, and it does not work: the fight starts the
+  moment he steps through the door and the Warden is thirty-six metres
+  away at the far end, so the frame was an empty nave with a speck in it.
+- **The Fallen One** — from under it with the eye in the sky as it comes
+  down, then an arc round the spread wings, then close on the broken neck
+  and the cracked halo.
+- **The Unburied** — down in the grass, level with the soil that is about
+  to give, then up with it as it claws out, then close on the sideways
+  head and the unhinged jaw.
+- **The Bell-Called** — the bell and the ground going under it, a hand, the
+  other hand, and then the skull with the eye craning up as fast as it
+  rises.
+
+**Any of it is skipped with a tap** — a phone game cannot make you watch
+the same four seconds every time you die to a thing — and the return to
+play is a hard cut, not a five-metre glide back across the field.
+
 ## The two that are not hollows
 
 Two things in the field are worse than the host, and each borrows the
