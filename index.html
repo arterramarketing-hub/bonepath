@@ -284,18 +284,41 @@
   #scope .mag{position:absolute;left:50%;top:calc(50% - var(--r) + 14px);transform:translateX(-50%);
     font-size:11px;letter-spacing:.3em;color:var(--bone-dim);text-shadow:0 1px 2px #000;}
   /* the acog: a smaller glass, a red chevron with its point on the mark and a post under it */
-  #acog{position:absolute;inset:0;display:none;--r:min(34vh,34vw);
-    background:radial-gradient(circle at 50% 50%, transparent 0, transparent calc(var(--r) - 1px), rgba(2,2,3,.96) var(--r));}
+  /* THE ACOG. A two-power combat optic, not a sniper's tube: the glass
+     takes nearly the whole screen and the housing FADES out past it
+     rather than cutting to black, because at this magnification you are
+     meant to keep your situational awareness. The chevron and the post
+     are the reticle, with a pair of stadia ticks either side of it. */
+  #acog{position:absolute;inset:0;display:none;--r:min(43vh,43vw);
+    background:radial-gradient(circle at 50% 50%, transparent 0,
+      transparent calc(var(--r) - 2px),
+      rgba(4,5,6,.5) calc(var(--r) + 2px),
+      rgba(3,3,4,.86) calc(var(--r) + 11vh));}
   #acog.on{display:block;}
   #acog .ring{position:absolute;left:50%;top:50%;width:calc(var(--r) * 2);height:calc(var(--r) * 2);transform:translate(-50%,-50%);
-    border-radius:50%;border:3px solid #050505;box-shadow:inset 0 0 40px rgba(0,0,0,.85);}
-  #acog .chev{position:absolute;left:50%;top:50%;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;
-    border-top:15px solid #ff3b2a;transform:translate(-50%,-100%);filter:drop-shadow(0 0 2px rgba(255,60,40,.7));}
-  #acog .post{position:absolute;left:50%;top:50%;width:2px;height:44px;margin-left:-1px;background:#ff3b2a;box-shadow:0 0 3px rgba(255,60,40,.7);}
-  /* the red dot: one point of light at the centre, and nothing else */
-  #reddot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;display:none;
-    background:#ff2a1a;box-shadow:0 0 7px #ff3b2a,0 0 2px rgba(255,255,255,.8);}
+    border-radius:50%;border:2px solid rgba(8,9,10,.92);
+    box-shadow:inset 0 0 30px rgba(0,0,0,.45);
+    background:radial-gradient(circle at 50% 44%,rgba(190,160,96,.055),rgba(0,0,0,0) 62%);}
+  #acog .ring::before,#acog .ring::after{content:'';position:absolute;top:50%;width:calc(var(--r) * .17);height:1px;
+    background:rgba(255,60,40,.75);box-shadow:0 0 3px rgba(255,60,40,.55);}
+  #acog .ring::before{left:calc(50% - var(--r) * .40);}
+  #acog .ring::after{left:calc(50% + var(--r) * .23);}
+  #acog .chev{position:absolute;left:50%;top:50%;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;
+    border-top:14px solid #ff3b2a;transform:translate(-50%,-100%);filter:drop-shadow(0 0 2px rgba(255,60,40,.7));}
+  #acog .post{position:absolute;left:50%;top:50%;width:2px;height:calc(var(--r) * .34);margin-left:-1px;
+    background:linear-gradient(180deg,#ff3b2a,rgba(255,59,42,.35));box-shadow:0 0 3px rgba(255,60,40,.6);}
+  /* THE RED DOT. The HOUSING IS THE GUN'S OWN — the optic is modelled on
+     the rail and `applyAttachment` puts its sight line at the screen's
+     exact centre, so a drawn tube on top of it is a second housing at the
+     wrong scale, floating in the picture. (It was tried; it read as a
+     black hoop hanging in front of the rifle.) All that belongs here is
+     the EMITTER: a hot white core inside a red bloom, sat where the glass
+     already is. The picture barely changes — that is what a dot is for. */
+  #reddot{position:absolute;inset:0;display:none;}
   #reddot.on{display:block;}
+  #reddot .dot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;
+    background:radial-gradient(circle,#fff 0,#ff6a44 34%,#ff1f0c 66%,rgba(255,20,8,0) 100%);
+    box-shadow:0 0 7px rgba(255,58,30,.95),0 0 17px rgba(255,40,20,.6),0 0 34px rgba(255,30,12,.32);}
   /* the frame's own measure, off unless asked for in the testing menu */
   #perf{position:fixed;bottom:10px;left:12px;z-index:14;display:none;pointer-events:none;
     font-family:Georgia,'Times New Roman',serif;font-size:11px;letter-spacing:.14em;
@@ -335,7 +358,7 @@
   <div id="hitmark"><i></i><i></i><i></i><i></i></div>
   <div id="scope"><div class="ring"></div><div class="hl"></div><div class="vl"></div><div class="mag" id="scopeMag">4&times;</div></div>
   <div id="acog"><div class="ring"></div><div class="chev"></div><div class="post"></div></div>
-  <div id="reddot"></div>
+  <div id="reddot"><div class="dot"></div></div>
   <div id="marrow"><span class="lbl">marrow</span><span id="marrowN">0</span></div>
   <div id="bossbar">
     <div id="bossname">GRAVEWARDEN OF THE BONE PATH</div>
@@ -2244,8 +2267,28 @@ const AudioSys=(()=>{
     magIn(){if(!ac)return;const t=now();noise(t,{peak:.24,att:.001,dec:.05,f0:2400,f1:900,type:'bandpass',Q:1.6});tone(t,{f:520,f2:240,type:'square',peak:.06,att:.001,dec:.06});},
     rack(){if(!ac)return;const t=now();noise(t,{peak:.2,att:.001,dec:.035,f0:3000,f1:1400,type:'bandpass',Q:2});noise(t+.07,{peak:.17,att:.001,dec:.04,f0:2300,f1:1000,type:'bandpass',Q:2});tone(t+.07,{f:900,f2:500,type:'square',peak:.04,att:.001,dec:.05});},
     bolt(){if(!ac)return;const t=now();for(let i=0;i<3;i++){noise(t+i*.09,{peak:.18-i*.03,att:.001,dec:.04,f0:2200-i*300,f1:900,type:'bandpass',Q:2});tone(t+i*.09,{f:700-i*120,f2:400,type:'square',peak:.045,att:.001,dec:.05});}},
-    // the marker's tick: a hit, and a kill's lower second note
-    hitmark(kill){if(!ac)return;const t=now();tone(t,{f:kill?1500:1250,f2:kill?900:1100,type:'square',peak:.075,att:.001,dec:.06});if(kill)tone(t+.05,{f:760,f2:520,type:'square',peak:.07,att:.001,dec:.1});},
+    /* THE HITMARKER. It was two quiet square blips and it lost every
+       argument with a .50 calibre report going off in the same frame —
+       which is the one thing a hitmarker cannot do, because it is the
+       only confirmation the shot landed at all. It is a CLACK now: a
+       two-millisecond noise transient on top, which is what the ear
+       actually hears as "tick", then the blips under it, and the whole
+       thing three times as loud as it was.
+       Three of them, and they must stay tellable apart at speed:
+         hit   one clack, mid
+         head  the same clack pitched up with a ring over it
+         kill  the clack, then a LOWER second one a beat after — the
+               falling pair that reads as "that one is down" */
+    hitmark(kill,head){if(!ac)return;const t=now();
+      const clack=(at,f,g)=>{
+        noise(at,{peak:.3*g,att:.0005,dec:.012,f0:head?5200:4200,f1:1800,type:'bandpass',Q:1.1});   // the tick itself
+        tone(at,{f,f2:f*.62,type:'square',peak:.2*g,att:.0006,dec:.045});
+        tone(at+.004,{f:f*2.02,f2:f*1.2,type:'triangle',peak:.09*g,att:.0006,dec:.03});
+      };
+      clack(t,head?1900:1380,1);
+      if(head)tone(t+.01,{f:3100,f2:2400,type:'sine',peak:.07,att:.001,dec:.16});                    // the ring off a skull
+      if(kill){clack(t+.07,760,.95);tone(t+.07,{f:300,f2:180,type:'sine',peak:.13,att:.002,dec:.16});}
+    },
     ammoPick(){if(!ac)return;const t=now();for(let i=0;i<3;i++){noise(t+i*.07,{peak:.14,att:.001,dec:.05,f0:3200,f1:1600,type:'bandpass',Q:4});tone(t+i*.07,{f:1900+i*300,f2:1400,type:'triangle',peak:.05,att:.002,dec:.08});}},
     // Thor's call: the charge climbing off the blade — a fizzing electric crackle, a buzz under it, a rising whine
     thorZap(){if(!ac)return;const t=now();
@@ -12833,24 +12876,55 @@ function hostKit(kindOf){
     patrol:{cost:105,place(w){const base=rr(26,40),sd=rnd()<.5?1:-1;for(let k=0;k<3;k++){const d=base+k*3.2,off=rr(2.4,3.6)*sd;sow('hollow',Math.cos(w.a)*d-Math.sin(w.a)*off,Math.sin(w.a)*d+Math.cos(w.a)*off,{red:red(w)});}}},
     guard: {cost:115,place(w){const h=high(w)||spot(w,26,48,.4);if(!h)return;sow('caster',h[0],h[1],{red:red(w)});for(let k=0;k<2;k++){const p=spot(w,24,50,.45)||h;sow('hollow',p[0],p[1],{red:red(w)});}}},
     brute: {cost:155,place(w){const p=spot(w,28,50,.4);if(!p)return;sow('big',p[0],p[1],{red:red(w)});const q=spot(w,24,50,.45)||p;sow('hollow',q[0],q[1],{red:red(w)});}},
+    // a brute on its own, out where there is room for it to swing
+    lone:  {cost:120,place(w){const p=high(w)||spot(w,28,52,.4);if(!p)return;sow('big',p[0],p[1],{red:red(w)});}},
+    // ...and a brute with a bone-thrower behind it, which is the pair that
+    // actually makes you move: one you cannot walk up to, one you must
+    overseer:{cost:165,place(w){const p=spot(w,28,50,.4);if(!p)return;sow('big',p[0],p[1],{red:red(w)});
+      const h=high(w)||spot(w,26,52,.45)||p;sow('caster',h[0],h[1],{red:red(w)});}},
     ambush:{cost:70, place(w){for(let k=0;k<2;k++){const p=spot(w,24,46,.25,.5);if(p)sow('hollow',p[0],p[1],{red:red(w),ambush:true});}}},
     nest:  {cost:90, place(w){const p=spot(w,30,52,.4);if(!p)return;sow('caster',p[0],p[1],{red:red(w)});sow('caster',p[0]+rr(-2,2),p[1]+rr(-2,2),{red:red(w)});}},
     roost: {cost:25, place(w){if(crows>=3)return;const p=spot(w,26,50,.4);if(p){roost(p[0],p[1]);crows++;}}},
   };
-  const WEIGHTS={graves:{pair:3,patrol:2,ambush:3,guard:1,brute:1,nest:1,roost:2},wood:{pair:3,patrol:1,ambush:3,guard:1,brute:1,nest:1,roost:3},
-    ruins:{pair:2,patrol:1,ambush:1,guard:3,brute:1,nest:2,roost:1},hollow:{pair:2,patrol:1,ambush:2,guard:1,brute:3,nest:1,roost:1},
-    causeway:{pair:2,patrol:3,ambush:1,guard:3,brute:1,nest:1,roost:1},chapel:{pair:2,patrol:1,ambush:2,guard:3,brute:1,nest:2,roost:1}};
-  return {sow,roost,spot,high,T,WEIGHTS};
+  const WEIGHTS={
+    graves:  {pair:3,patrol:3,ambush:3,guard:2,brute:2,lone:1,overseer:1,nest:2,roost:2},
+    wood:    {pair:3,patrol:2,ambush:3,guard:2,brute:2,lone:1,overseer:1,nest:2,roost:3},
+    ruins:   {pair:2,patrol:2,ambush:1,guard:3,brute:2,lone:1,overseer:2,nest:3,roost:1},
+    hollow:  {pair:2,patrol:1,ambush:2,guard:2,brute:3,lone:2,overseer:2,nest:2,roost:1},
+    causeway:{pair:3,patrol:3,ambush:1,guard:3,brute:2,lone:1,overseer:2,nest:2,roost:1},
+    chapel:  {pair:2,patrol:2,ambush:2,guard:3,brute:2,lone:1,overseer:2,nest:3,roost:1}};
+  /* HOW OFTEN A WEDGE LEADS WITH A BRUTE. A wedge's budget is about a
+     hundred and eighty and a brute costs a hundred and fifty-five, so ANY
+     cheaper template drawn before one locks the big skeletons out of that
+     wedge for good — which is why the field was averaging half of one.
+     The weights alone could never fix that; the draw order had to. */
+  const BIG_LEAD=.55;
+  // ...and WHICH of the three it leads with. `overseer` is in the pool on
+  // purpose: leading with a brute alone starved the bone-throwers out of
+  // the field entirely — three a run down to half of one — because a lead
+  // eats the budget the caster templates used to buy. This one puts a
+  // brute AND a caster in for the price of the two.
+  const LEAD_POOL=['brute','lone','overseer','lone','overseer'];
+  // the lead: a brute-bearing template placed before the weighted draw
+  const bigLead=(w,budget)=>{
+    if(rnd()>=BIG_LEAD||budget<T.lone.cost)return 0;
+    const pool=LEAD_POOL.filter(k=>T[k].cost<=budget);
+    const k=pool[(rnd()*pool.length)|0]||'lone';
+    T[k].place(w);return T[k].cost;
+  };
+  return {sow,roost,spot,high,T,WEIGHTS,bigLead};
 }
 /* a tile's host on the path: the templates, as the field's, to the tile's
    budget — or, in a cathedral, sown inside the walls, in the nave */
 function pathHost(w,budget,cath){
   const K=hostKit(cath?'cathedral':w.kind);
-  if(cath){let n=0;while(budget>=60&&n<12){const kind=rnd()<.2?'big':rnd()<.25?'caster':'hollow',cost=kind==='big'?140:kind==='caster'?80:60;
+  if(cath){let n=0;while(budget>=60&&n<12){const kind=rnd()<.32?'big':rnd()<.25?'caster':'hollow',cost=kind==='big'?140:kind==='caster'?80:60;
       K.sow(kind,rr(-8.5,8.5),rr(-15,15),{red:rnd()<.14||undefined});budget-=cost;n++;}return;}
   const W=K.WEIGHTS[w.kind]||K.WEIGHTS.graves;
-  for(let guard=0;guard<10&&budget>=70;guard++){
+  budget-=K.bigLead(w,budget);                                    // the path's tiles lead with one too
+  for(let guard=0;guard<10&&budget>=25;guard++){
     const opts=Object.keys(K.T).filter(k=>K.T[k].cost<=budget);
+    if(!opts.length)break;
     let tw=0;for(const k of opts)tw+=W[k]||1;let r=rnd()*tw,pick=opts[0];for(const k of opts){r-=W[k]||1;if(r<=0){pick=k;break;}}
     K.T[pick].place(w);budget-=K.T[pick].cost;}
 }
@@ -12862,16 +12936,30 @@ function spawnEnemies(){
   // just enough marrow among them (1170) to call the cathedral open.
   // They only stir when the pilgrim comes near.
   let curW=null;
-  const {sow,roost,spot,high,T,WEIGHTS}=hostKit(()=>curW&&curW.kind);
+  const {sow,roost,spot,high,T,WEIGHTS,bigLead}=hostKit(()=>curW&&curW.kind);
   srand(RUN.seed^0x5eed);
-  const TOTAL=1000,SOUTH=105;                                             // (costs are coarse: the field ends up a little over, as the old fixed host did)
+  /* THE FIELD'S PURSE. It was a thousand, and a brute-bearing template
+     returns less marrow for its price than a hollow one does (a lone brute
+     is 140 marrow for 120; a pair of hollows is 120 for 70) — so leading
+     every wedge with a big skeleton quietly took the thinnest seed's sown
+     marrow from 1210 down to 1110, against a gate of a thousand and a host
+     that never comes back — one brute lost over the rim and the cathedral
+     could not be opened at all. The purse is widened to hold the slack:
+     measured over twelve seeds, the thinnest now sows 1305. If you change
+     what a template costs, re-measure the THINNEST seed, not the mean. */
+  const TOTAL=1120,SOUTH=105;                                             // (costs are coarse: the field ends up a little over, as the old fixed host did)
   const shares=RUN.wedges.map(w=>w.i===1?0:rr(.7,1.3)),sum=shares.reduce((a,b)=>a+b,0);
   let spent=0;
   for(const w of RUN.wedges){
     curW=w;
     let budget=w.i===1?SOUTH:(TOTAL-SOUTH)*shares[w.i]/sum;const W=WEIGHTS[w.kind]||WEIGHTS.graves;
-    for(let guard=0;guard<12&&budget>=70;guard++){
+    if(w.i!==1){const c=bigLead(w,budget);budget-=c;spent+=c;}     // (never the south: its budget is a third of a wedge's)
+    // the floor is the CHEAPEST template's price, not the second-cheapest:
+    // what a lead leaves behind is usually enough for a crow and no more,
+    // and a crow is exactly the thing that should be spending it
+    for(let guard=0;guard<12&&budget>=25;guard++){
       const opts=Object.keys(T).filter(k=>T[k].cost<=budget&&(w.i!==1||k==='pair'||k==='patrol'||k==='ambush'));
+      if(!opts.length)break;                                // (the south is barred from the crow, so its cheapest is 70, not 25)
       let tw=0;for(const k of opts)tw+=W[k]||1;let r=rnd()*tw,pick=opts[0];for(const k of opts){r-=W[k]||1;if(r<=0){pick=k;break;}}
       T[pick].place(w);budget-=T[pick].cost;spent+=T[pick].cost;
     }
@@ -13533,10 +13621,19 @@ for(const g of GUNS)gunAmmo(g);for(const k in CALIBRES)FPS.res[k]=CALIBRES[k].st
    One per gun, remembered by the browser, chosen on the pause screen. */
 const ATTACH=[
   ['iron','iron sights','the sights the gun came with: a post and a notch, true at the top of the blade. nothing between you and the field'],
-  ['reddot','red dot','a glass window with one red point in it: nothing to line up, the field stays open, and the eye is on the mark a shade faster'],
-  ['acog','acog scope','a short scope on the rail: the field closes to a third and a chevron sits on the mark. slower onto the eye, and the gun leaves the picture while you are in the glass'],
+  ['reddot','red dot','a wide window of near-clear glass with one red point in it: nothing to line up, barely a magnification at all, the field stays open and the eye is on the mark a shade faster'],
+  ['acog','acog scope','a two-power combat scope: a chevron over a post sits on the mark and the housing fades off into the edges rather than closing you into a tube. slower onto the eye, and the gun leaves the picture while you are in the glass'],
 ];
-const ATT_FOV={reddot:52,acog:24};
+/* WHAT EACH SIGHT DOES TO THE PICTURE, as a magnification rather than as
+   a number pulled out of the air. The camera's own field is 68 degrees,
+   so a power of N wants `2*atan(tan(34deg)/N)`:
+     red dot  1.15x -> 61 deg. A red dot is very nearly 1x — it is a
+              sight, not a scope, and the point of it is that the picture
+              barely changes. It was 52 (1.38x), which read as a zoom.
+     ACOG     2.00x -> 37 deg. It was 24 (3.17x), which is a sniper's
+              magnification with a sniper's tunnel to go with it. The
+              housing fades out now instead of cutting to black. */
+const ATT_FOV={reddot:61,acog:37};
 function attOf(g){g=g||gunOf();return FPS.att[g.key]||'iron';}
 function attLabel(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the scope';if(a==='iron'&&g.rocket)return 'the ladder sight';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[1];}
 function attNote(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the rifle\'s own glass: four times, or eight on the zoom button. the gun leaves the picture while you are in it';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[2];}
@@ -13560,18 +13657,26 @@ function gunMats(){if(_gunMats)return _gunMats;return _gunMats={
   gold:vmMat(0xd4ac44),dark:vmMat(0x2a2622),steel:vmMat(0x8a8478),
   gun:vmMat(0x2b2d2f),gunD:vmMat(0x1a1b1d),grey:vmMat(0x4a4c4e),wood:vmMat(0x4a3222),glove:vmMat(0x5b5148),sleeve:vmMat(0x4b4f52),
   olive:vmMat(0x4a5238),tan:vmMat(0x8a7a52),pale:vmMat(0xf4eedc),
-  glass:new THREE.MeshBasicMaterial({color:0x223a48,transparent:true,opacity:.28,depthWrite:false})};}
+  glass:new THREE.MeshBasicMaterial({color:0x223a48,transparent:true,opacity:.28,depthWrite:false}),
+  reflex:new THREE.MeshBasicMaterial({color:0x2c4a5c,transparent:true,opacity:.16,depthWrite:false})};}
 /* THE SIGHTS. A rail height in, a group out, with `h` the height of its
    sight line — the one number the aim needs. The red dot is a framed
    window with a point of light in it; the acog a short tube with a bell.
    The iron sights are each gun's own, built with the gun. */
-function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.027;zc=zc||0;
+/* the reflex: a WIDE window, and the glass barely there. A red dot is the
+   sight whose whole argument is that the picture does not change — a small
+   porthole with a quarter-opaque teal pane in it is an argument against
+   itself, and at the sights that pane sits over exactly what you are
+   shooting at. The window is half again as wide as it was and the glass is
+   a sixth rather than a quarter. The emitter is the 3D sprite; the HUD's
+   `#reddot` lays its bloom over the same point. */
+function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.028;zc=zc||0;
   s.add(vmBox(.022,.01,.044,M.gunD,0,railY+.005,zc));
-  s.add(vmBox(.032,.003,.006,M.gunD,0,wy+.016,zc+.012));s.add(vmBox(.032,.003,.006,M.gunD,0,wy-.016,zc+.012));
-  s.add(vmBox(.003,.035,.006,M.gunD,-.0145,wy,zc+.012));s.add(vmBox(.003,.035,.006,M.gunD,.0145,wy,zc+.012));
-  const gl=new THREE.Mesh(GBox(.026,.029,.002),M.glass);gl.position.set(0,wy,zc+.012);s.add(gl);
+  s.add(vmBox(.046,.003,.006,M.gunD,0,wy+.019,zc+.012));s.add(vmBox(.046,.003,.006,M.gunD,0,wy-.019,zc+.012));
+  s.add(vmBox(.003,.041,.006,M.gunD,-.0215,wy,zc+.012));s.add(vmBox(.003,.041,.006,M.gunD,.0215,wy,zc+.012));
+  const gl=new THREE.Mesh(GBox(.040,.035,.002),M.reflex);gl.position.set(0,wy,zc+.012);s.add(gl);
   const dot=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff2a1a,transparent:true,opacity:.95,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
-  dot.scale.set(.009,.009,1);dot.position.set(0,wy,zc+.01);s.add(dot);
+  dot.scale.set(.0085,.0085,1);dot.position.set(0,wy,zc+.01);s.add(dot);
   s.h=wy;return s;}
 function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.036;zc=zc||0;
   s.add(vmBox(.024,.012,.05,M.gunD,0,railY+.006,zc));
@@ -13939,7 +14044,7 @@ function woundEnemy(e,o,d,t,size){
 function clearWounds(e){if(!e.wounds)return;for(const w of e.wounds){if(w.parent)w.parent.remove(w);const k=_woundAll.indexOf(w);if(k>=0)_woundAll.splice(k,1);}e.wounds=null;}
 
 /* ---- the hit ---- */
-function hitMark(kill,head){FPS.hitT=.16;if(kill)FPS.killT=.32;FPS.hitHead=!!head;AudioSys.hitmark(kill);G.vibr(kill?[10,20,25]:8);}
+function hitMark(kill,head){FPS.hitT=.16;if(kill)FPS.killT=.32;FPS.hitHead=!!head;AudioSys.hitmark(kill,head);G.vibr(kill?[10,20,25]:head?[6,8,10]:8);}
 /* A HEAD UNDER A STRONG ROUND COMES OFF. `severLimb` is the game's own
    dismemberment and it kills if it takes the last of the life, so the life
    is parked at 999 across the call — exactly as `reaperFinish` does — and

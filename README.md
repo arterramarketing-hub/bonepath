@@ -561,18 +561,30 @@ own, and drawn as such — the eagle a blade up front with a white dot on
 its face and a notch at the back with a dot either side; the UMP a post
 under a hood in a square aperture; the M4 its carry handle's aperture; the
 SPAS a post and a notch on the rib; the RPG a folding ladder. The sight line is computed from the sight itself, so
-the top of the blade is the point of aim, exactly. **Red dot**: a framed
-window of glass on the rail with one point of light in it; the field
-stays open, and the eye is on the mark a shade faster. **ACOG**: a short
-scope on the rail; the field closes to a third, a red chevron sits with
-its point on the mark, and the gun leaves the picture while you are in
-the glass. The sniper's own scope is its iron option (four and eight
+the top of the blade is the point of aim, exactly. **Red dot**: a wide
+window of near-clear glass on the rail with one point of light in it —
+a hot white core in a red bloom, sat exactly on the mark. It is **1.15
+times**, which is to say barely a magnification at all: the picture you
+were looking at is the picture you aim with, the rifle stays in your
+hands, and the eye is on the mark a shade faster. **ACOG**: a short
+scope on the rail at **two times** — a working magnification, not a
+sniper's. A red chevron over a post sits on the mark with a pair of
+stadia ticks either side; the eye goes into the glass, so the gun leaves
+the picture, but the housing FADES out into the edges of the screen
+rather than cutting to black, and you keep what is coming at you from
+the sides. The sniper's own scope is its iron option (four and eight
 times, the zoom button); give it a dot or an ACOG and it becomes a rifle
 you can fight close with.
 
 **The hit marker.** Four ticks flash on the crosshair when a round lands
-— white for a body, gold for the head, red and longer for a kill — with
-a tick of sound under each, and the phone buzzes. A miss shows nothing.
+— white for a body, gold for the head, red and longer for a kill — and
+the phone buzzes. A miss shows nothing. Each carries its own **clack**:
+a hard two-millisecond transient, not a blip, because the one sound that
+must never lose an argument with a .50 going off in the same frame is
+the one telling you the round landed. A head is the same clack pitched
+up with a ring over it; a kill is the clack and then a lower second one
+a beat behind — the falling pair that says *that one is down*. The
+marker sounds in either view, wherever a gun is in your hands.
 
 **Reloading.** The magazine runs down on the weapon bar; at zero the gun
 clicks and reloads on its own if there is a reserve to reload from
@@ -948,9 +960,19 @@ them the seed decides:
   encounter templates drawn to suit its chunk: a **patrol** strung
   beside the road, a **guard** (a caster on the highest ground with two
   hollows), a **brute** (a big one and a hollow, likeliest in a hollow),
-  an **ambush** lying low till you are close, a **nest** of two
-  casters, a **pair**, a **crow** on a roost (three at most). The south
-  wedge gets a light budget and only the small templates. The same
+  a **lone** brute out where it has room to swing, an **overseer** (a
+  brute with a bone-thrower on the high ground behind it), an **ambush**
+  lying low till you are close, a **nest** of two casters, a **pair**, a
+  **crow** on a roost (three at most). The south wedge gets a light
+  budget and only the small templates. **Every wedge but the south
+  draws a brute-bearing template FIRST**, two times in three, before the
+  weighted draw begins: a brute costs most of a wedge's purse, so any
+  cheaper template drawn ahead of one locked the big skeletons out of
+  that wedge for good — the field used to average half a brute a run,
+  and now averages three, with the bone-throwers and the crows still in
+  the mix behind them. The purse was widened to pay for it, because a
+  brute returns less marrow for its price than a pair of hollows does
+  and the cathedral's gate is a hard number. The same
   total marrow is out there every run — a little over what the
   cathedral asks — laid differently; the Unburied waits under the grave
   rows, or under whatever lies where the seed put no graves. A
@@ -1055,7 +1077,9 @@ and a host sown to a budget that grows with every hex. Two or three
 tiles always stand ahead of you, built as you come; what is fifty
 metres behind is torn down. Every sixth hex is the cathedral, with a
 back door and stair mirrored from the front so you walk the nave
-straight through — and its host waits INSIDE the walls. Six thousand
+straight through — and its host waits INSIDE the walls, a third of it
+brutes now. The path's tiles lead with a brute-bearing template the same
+way the field's wedges do. Six thousand
 marrow wins (the marrow counter reads to it); death ends the path
 where you fall, with the hexes walked and the horrors felled on the
 stone. There is no Warden on the path. The path is a RUN: walk and

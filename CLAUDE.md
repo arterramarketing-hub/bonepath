@@ -684,6 +684,64 @@ Known state of play:
       `scatterBones` with `crumbled` set, the katana-slice path, so
       `pruneFallen` buries it.
 
+- **THE HOST'S DRAW ORDER IS WHAT DECIDES THE MIX, NOT THE WEIGHTS**
+  (`hostKit`, `bigLead`, `spawnEnemies`, `pathHost`). A wedge's purse is
+  about a hundred and eighty and the cheapest brute-bearing template is a
+  hundred and twenty, so ANY cheaper template drawn before one locks the
+  big skeletons out of that wedge for good. Raising `brute`'s weight could
+  never fix it — measured, the field averaged **0.58 brutes**. `bigLead`
+  places one before the weighted draw begins, `BIG_LEAD` of the time, from
+  `LEAD_POOL`; it is never run for the south wedge, whose purse is a third
+  of the others'. Now: **3.2 brutes, 2.7 throwers, 13.9 hollows, 2.6
+  crows** over twelve seeds.
+  Two traps came out of it, both measured:
+  1. **A lead costs the wedge the casters and the crows it used to buy.**
+     Leading with a bare brute took the throwers from 3.00 a field to
+     0.50. `overseer` (a brute AND a thrower for the price of the two) is
+     in the lead pool for exactly this reason, and the draw loop's floor
+     is the CHEAPEST template's price (25, a crow), not the
+     second-cheapest — what a lead leaves behind is usually a crow's
+     worth and a crow is what should spend it. **The south wedge is barred
+     from the crow, so its cheapest is 70, not 25: the loop must `break`
+     on an empty option list or it reads `T[undefined].place` and takes
+     the whole game down at boot.** (It did.)
+  2. **A brute returns LESS marrow for its price than hollows do** (140
+     for 120, against 120 for 70), and the host never comes back — so a
+     field of brutes quietly sows less marrow against a gate of a
+     thousand. It took the thinnest of twelve seeds from 1210 to 1110:
+     one brute lost over the rim and the cathedral could not be opened at
+     all. `TOTAL` is 1000→1120 to hold the slack (thinnest seed now
+     1305). **If you change what a template costs, re-measure the
+     THINNEST seed, not the mean.**
+  Fewer, bigger bodies is also CHEAPER: a hollow's rig is 41 meshes and a
+  brute's 34, and there are four fewer bodies. Measured over four seeds x
+  eight headings, **847 draw calls to 546**.
+- **The sights are a magnification, and the number is derived, not
+  chosen** (`ATT_FOV`): the camera's field is 68 degrees, so a power of N
+  is `2*atan(tan(34deg)/N)`. The red dot is **1.15x (61 deg)** and the
+  ACOG **2x (37 deg)**; they were 1.38x and 3.17x, and the ACOG's was a
+  sniper's magnification with a sniper's tunnel to go with it.
+  - **The red dot's housing is the GUN'S OWN.** `applyAttachment` puts the
+    modelled optic's sight line at the screen's exact centre, so a drawn
+    tube in `#reddot` on top of it is a second housing at the wrong scale
+    — it read as a black hoop hanging in front of the rifle. All the HUD
+    contributes is the emitter's bloom over that same point. The window
+    itself is wide and its glass is `M.reflex` (a sixth opaque), NOT
+    `M.glass` (a quarter): at the sights that pane sits over precisely
+    what you are shooting at.
+  - The ACOG stays in `inGlass` — the eye goes into the lens and the gun
+    leaves the picture — but its surround FADES rather than cutting to
+    black, which is what keeps 2x from reading as a scope.
+- **`AudioSys.hitmark(kill,head)` must out-shout the gun that caused it.**
+  It was two quiet square blips and lost every argument with a .50 report
+  in the same frame, which is the one thing a hitmarker cannot do. It is a
+  noise transient (the "clack" the ear actually hears as a tick) over the
+  blips now. The three must stay tellable apart at speed: one clack for a
+  body, the same pitched up with a ring for a head, and for a kill a
+  LOWER second clack a beat behind — the falling pair. `hitMark` carries
+  `head` through to it and to `FPS.hitHead`, which is what colours the
+  ticks gold.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,
