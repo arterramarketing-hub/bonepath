@@ -1059,6 +1059,37 @@ Known state of play:
   it filled the hole instead of sitting in it.
   And the drum gets no flat top: at ADS it is the nearest thing to the eye
   after the hoop, and a wide slab there hangs over the aperture.
+- **A GUN MAY OFFER A SIGHT THE OTHERS DO NOT** (`SIGHTS`, `attHas`,
+  `attOpts`, `g.ring`). `iron2` is a SECOND set of a weapon's own sights
+  and only a gun whose `GUNS` descriptor carries `ring:true` has one built;
+  the pause screen cycles THAT GUN'S list, so a rifle without a second set
+  never shows the row twice. Three things had to stop being hardcoded to
+  the original three names: `applyAttachmentTo`'s visibility, the `sightZ`
+  measuring loop in `buildGunModel`, and the aimed-field pick (now
+  `attFov(g,a)`, which drops anything that is not a dot or a scope onto the
+  gun's own `adsFov` — so a second iron set aims at the same field as the
+  first, which is what it should do).
+  **`attOf` degrades a choice the current gun cannot honour back to
+  `iron`.** The attachment is remembered per gun in localStorage, so a gun
+  that loses a sight between versions — or a key typed in by hand — would
+  otherwise hand `applyAttachmentTo` a name with no group behind it and
+  hide every sight on the weapon. Verified: forcing `FPS.att.m4='iron2'`
+  reads back as `iron` and the rifle's own irons stay up.
+  **THE UMP'S SECOND SET IS A NOTCH AND A RING** — no hood, nothing to look
+  through. The ring stands at the muzzle end and you lay it on the mark;
+  the field stays open above the sight line, which is the whole trade
+  against the drum.
+  **And the REAR is what wants shrinking, never the front.** It sits a
+  fifth of a metre from the eye and the front sight is five times further,
+  so every millimetre at the back is worth five at the front. A .028 bed
+  with .014 posts came up as two black ears filling the middle of the frame
+  — a big rear element swapped for a different big rear element. Low bed,
+  short ticks, and both BELOW the sight line: the picture is the ring with
+  a notch under it, not a notch with a ring in it.
+  **A front-only sight is not an option**, however much it might look like
+  one: `sightZ` is the REARMOST point of the group and that is what fixes
+  where the eye sits (`ADS_EYE` behind it). Drop the rear and the eye lands
+  level with the ejection port with the whole gun squashed behind it.
 - **AN APERTURE SIGHT MUST HAVE NOTHING BEHIND ITS HOLE.** The obvious way
   to mount a ghost ring is to stand it on a tower, and a tower at the
   hoop's own z fills the aperture with its own material — you aim at a

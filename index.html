@@ -13823,7 +13823,7 @@ const GUNS=[
     sway:{idle:.0045,rate:1.1,look:.0011,walk:.014,bob:.010},rec:{cam:.07,yaw:.018,back:.07,up:1.0,side:.25,recover:6,settle:.55},
     poise:2.2,kb:1.3,reload:1.5,adsFov:50,adsSpeed:9,range:60,
     note:'a hand cannon in gold, .50 cal: seven rounds, each a hollow\'s worth and two to a brute; a head under one comes off. it climbs hard and the sights hold half of it down'},
-  {key:'ump',name:'ump45',cal:'9mm',mag:25,dmg:12,head:1.8,rof:.088,auto:true,suppressed:true,gap:5,sp:{hip:.03,walk:.022,shot:.011},
+  {key:'ump',name:'ump45',cal:'9mm',mag:25,dmg:12,head:1.8,rof:.088,auto:true,suppressed:true,ring:true,gap:5,sp:{hip:.03,walk:.022,shot:.011},
     sway:{idle:.0028,rate:1.4,look:.0007,walk:.010,bob:.008},rec:{cam:.011,yaw:.006,back:.022,up:.35,side:.12,recover:16,settle:.4},
     poise:.6,kb:.4,reload:1.9,adsFov:48,adsSpeed:11,range:52,
     note:'the spray, 9mm, with a can on it: twenty-five at eleven a second, each one a scratch and none of them loud. hold the trigger; it walks up a little and settles fast'},
@@ -13855,8 +13855,17 @@ for(const g of GUNS)gunAmmo(g);for(const k in CALIBRES)FPS.res[k]=CALIBRES[k].st
 /* THE ATTACHMENTS. Where the blade has its charged attack, a gun has what
    sits on its rail: the sights it came with, a red dot, or a short scope.
    One per gun, remembered by the browser, chosen on the pause screen. */
+/* AND NOT EVERY GUN OFFERS EVERY ONE. `iron2` is a SECOND set of the
+   weapon's own sights, and only a gun whose descriptor carries `ring:true`
+   has one built — the list the pause screen cycles is the gun's, not the
+   global one, so a rifle that has no second set never shows the row twice.
+   `attOf` degrades a stored choice the current gun cannot honour back to
+   `iron`, which matters because the choice is remembered per gun in
+   localStorage and a gun can lose a sight between versions. */
+const SIGHTS=['iron','iron2','reddot','acog'];
 const ATTACH=[
   ['iron','iron sights','the sights the gun came with: a post and a notch, true at the top of the blade. nothing between you and the field'],
+  ['iron2','ring sight','the same weapon\'s other set: no hooded drum to look through, only a shallow notch at the back and a small ring standing at the muzzle end. you put the ring on the mark rather than looking through anything, and the whole field stays open above it'],
   ['reddot','red dot','a wide window of near-clear glass with one red point in it: nothing to line up, barely a magnification at all, the field stays open and the eye is on the mark a shade faster'],
   ['acog','acog scope','a two-power combat scope: a chevron over a post sits on the mark and the housing fades off into the edges rather than closing you into a tube. slower onto the eye, and the gun leaves the picture while you are in the glass'],
 ];
@@ -13874,11 +13883,14 @@ const ATTACH=[
               tunnel is gone and the power can go back up where a combat
               optic's belongs. */
 const ATT_FOV={reddot:61,acog:30};
-function attOf(g){g=g||gunOf();return FPS.att[g.key]||'iron';}
+function attHas(g,a){return a!=='iron2'||!!g.ring;}
+function attOpts(g){return ATTACH.filter(o=>attHas(g,o[0]));}
+function attOf(g){g=g||gunOf();const a=FPS.att[g.key]||'iron';return attHas(g,a)?a:'iron';}
 function attLabel(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the scope';if(a==='iron'&&g.rocket)return 'the ladder sight';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[1];}
+function attFov(g,a){return a==='acog'?ATT_FOV.acog:a==='reddot'?ATT_FOV.reddot:g.scope?(g.adsFov[FPS.zoom]||g.adsFov[0]):g.adsFov;}
 function attNote(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the rifle\'s own glass: four times, or eight on the zoom button. the gun leaves the picture while you are in it';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[2];}
 function inGlass(g){g=g||gunOf();const a=attOf(g);return !!g.scope&&a==='iron';}   // the sniper's own glass alone: an overlay, and no viewmodel
-function cycleAtt(d){const g=gunOf();let i=ATTACH.findIndex(o=>o[0]===attOf(g));i=(i+d+ATTACH.length)%ATTACH.length;FPS.att[g.key]=ATTACH[i][0];
+function cycleAtt(d){const g=gunOf(),L=attOpts(g);let i=L.findIndex(o=>o[0]===attOf(g));i=(i+d+L.length)%L.length;FPS.att[g.key]=L[i][0];
   try{localStorage.setItem('bp_att',JSON.stringify(FPS.att));}catch(e){}applyAttachment();if(player.rig&&player.rig.gunModel)applyAttachmentTo(player.rig.gunModel,g);if(FPS.on)AudioSys.magIn();}
 /* HOW FAR THE EYE SITS BEHIND THE SIGHT, and it is the same for every gun
    and every optic on purpose.
@@ -13923,7 +13935,8 @@ const VM_GUN=1.08;
    with the squash already in it. */
 const VM_ZSQ_MARGIN=.03;
 // what the rail carries decides which sight shows, and where the sights sit on the screen when he aims
-function applyAttachmentTo(V,g){const a=FPS.att[g.key]||'iron';V.iron.visible=a==='iron';V.reddot.visible=a==='reddot';V.acog.visible=a==='acog';
+function applyAttachmentTo(V,g){let a=FPS.att[g.key]||'iron';if(!V[a])a='iron';
+  for(const k of SIGHTS)if(V[k])V[k].visible=(a===k);
   const sc=V.vmScale||V.scale.x,eye=g.adsEye||ADS_EYE;
   const sz0=(V.sightZ&&V.sightZ[a]||0);
   // how far back the gun may reach before the near plane takes a slice out
@@ -14267,12 +14280,47 @@ function buildGunModel(key,o){o=o||{};
     iron.add(vmRing(.0105,.0022,14,M.gunD,0,ay,-.27));                       // ...and the ring hooding the post
     iron.add(vmBox(.0035,.011,.004,M.gunD,0,ay-.006,-.27));
     iron.add(vmBox(.0035,.0035,.003,M.pale,0,ay+.0005,-.2675));              // the bead on its tip
-    g.add(iron);const rd=sightRedDot(.081,-.02),ac=sightAcog(.081,-.02);g.add(rd);g.add(ac);
+    g.add(iron);
+    /* THE SECOND SET: A NOTCH AND A RING, and nothing to look THROUGH.
+       The drum above is a peep — you put your eye to a hole and the hole
+       frames the world. This is the other way a weapon can be sighted: a
+       SHALLOW NOTCH at the back, two short posts with a gap between them
+       and no hood at all, and a SMALL RING standing at the muzzle end that
+       you lay on the mark. Nothing closes over the picture, so the field
+       stays open above the sight line — which is what you want on a gun
+       fired at ten metres in a hurry, and what the drum costs you.
+       The ring is the thing the eye goes to, so it is the one part on the
+       gun in a light metal (`M.grey`) with a pale tick at its crown. Sized
+       the way every sight here is sized — `(r_outer/dist)/tan(adsFov/2)` —
+       it covers 8.9% of the screen's height: a small circle, not a hoop.
+       THE REAR MUST STILL SET `sightZ`. It is the rearmost point of the
+       group that fixes where the eye sits (`ADS_EYE` behind it), so a
+       front-only sight would put the eye level with the ejection port and
+       squash the whole gun behind it. The notch earns its place twice. */
+    const iron2=new THREE.Group(),ay2=.108;
+    /* THE REAR IS KEPT LOW AND SMALL ON PURPOSE. It sits a fifth of a metre
+       from the eye — five times nearer than the front — so every millimetre
+       of it is worth five out there. The first pass gave it a .028 bed and
+       .014 posts and they came up as two black ears filling the middle of
+       the frame: a big rear element traded for a different big rear
+       element, which is not what was asked for. It is a shallow bump with
+       two short ticks now, riding BELOW the sight line, so the picture is
+       the ring with a notch under it rather than a notch with a ring in
+       it. If it ever crowds the frame again, shrink the rear — the front
+       is nearly free. */
+    iron2.add(vmOct(.020,.007,.010,M.gunD,0,.0875,rz));                      // the notch's bed, low across the channel
+    iron2.add(vmOct(.005,.008,.008,M.gunD,-.007,.093,rz));                   // and the two short ticks it is cut between
+    iron2.add(vmOct(.005,.008,.008,M.gunD,.007,.093,rz));
+    iron2.add(vmOct(.009,.040,.008,M.gunD,0,.086,-.27));                     // the front tower
+    iron2.add(vmRing(.0132,.0028,14,M.grey,0,ay2,-.27));                     // ...and THE RING, the one thing the eye goes to
+    iron2.add(vmBox(.004,.004,.003,M.pale,0,ay2+.016,-.2675));               // a tick at its crown, so which way is up is never a question
+    g.add(iron2);g.iron2=iron2;
+    const rd=sightRedDot(.081,-.02),ac=sightAcog(.081,-.02);g.add(rd);g.add(ac);
     hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
     grip.position.set(0,-.004,-.215);muzzle.position.set(0,.042,-.466);
     port.position.set(.030,.050,-.058);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.042,-.466);
-    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,reddot:rd.h,acog:ac.h};
+    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,iron2:ay2,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.46];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='m4'){
     /* THE M4A1, AND IT IS A RIFLE. It read as a submachine gun before, and
@@ -14503,7 +14551,7 @@ function buildGunModel(key,o){o=o||{};
      before the scale is applied, because `applyAttachmentTo` multiplies
      by the scale the same way it does for the sight's height. */
   g.sightZ={};
-  for(const k of ['iron','reddot','acog'])
+  for(const k of SIGHTS)
     g.sightZ[k]=g[k]?new THREE.Box3().setFromObject(g[k]).max.z:0;
   g.rearZ=new THREE.Box3().setFromObject(g).max.z;   // ...and how far the whole thing reaches back past the hand
   /* THE MODEL IS CUT IN TWO AT THE SIGHT, and only the half BEHIND it is
@@ -14988,7 +15036,7 @@ function updateGun(dt){
   if(FPS.ads<.01)FPS.ads=0;
   if(FPS.on){
     const att=attOf(g);
-    const fovAim=adsFovOf(att==='acog'?ATT_FOV.acog:att==='reddot'?ATT_FOV.reddot:g.scope?(g.adsFov[FPS.zoom]||g.adsFov[0]):g.adsFov);
+    const fovAim=adsFovOf(attFov(g,att));
     const fov=lerp(VIEW.fov,fovAim,FPS.ads);
     if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
   }
