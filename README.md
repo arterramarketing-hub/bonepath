@@ -345,7 +345,7 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     metres' worth of score — for half a second running, so a crowd
     circling you no longer makes it jump. And it **lets go of what you
     run from**: move with the marked horror well behind your heading for
-    a second and a half straight and the eye releases it, so the camera
+    two and a half seconds straight and the eye releases it, so the camera
     comes round to where you are running; it comes back the moment you
     strike, stop, turn toward the host, or take a blow — so running past
     a pack costs you nothing, and turning to fight costs no button. As

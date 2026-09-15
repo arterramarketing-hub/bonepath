@@ -13950,7 +13950,16 @@ function lockScore(e){
   const fx=-Math.sin(G.camYaw),fz=-Math.cos(G.camYaw),c=(dx*fx+dz*fz)/d;
   return d+3.5*(1-c);
 }
-const LOCK_LEAVE=1.5;   // seconds of running from the locked horror before the eye lets it go
+/* Seconds of running from the locked horror before the eye lets it go.
+   It was 1.5 and that is too short to back off with: a stride and a half
+   away from something and the lock dropped, the camera swung round behind
+   the heading, and then stopping — which is the very next thing you do —
+   put it straight back on, swinging the camera again. The release is
+   supposed to be for running PAST a pack, not for giving ground in a
+   fight. Every part of the return is unchanged (a strike, a stop, turning
+   toward the host, or a blow); this is only how long you have to be
+   committed to leaving before the eye believes you. */
+const LOCK_LEAVE=2.5;
 function updateLock(){
   // first person: the crosshair is the eye. Nothing is ever locked
   if(FPS.on){G.lockTarget=null;G.lockOff=false;G.lockAwayT=0;G.lockDeadAt=undefined;lockMarker.visible=false;return;}
