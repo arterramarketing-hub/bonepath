@@ -316,6 +316,10 @@
      already is. The picture barely changes — that is what a dot is for. */
   #reddot{position:absolute;inset:0;display:none;}
   #reddot.on{display:block;}
+  /* the reticle is a RING AND A DOT, the way a holographic sight draws one
+     — the ring is the HUD's, laid over the hood the gun itself carries */
+  #reddot .ring{position:absolute;left:50%;top:50%;width:7vh;height:7vh;margin:-3.5vh 0 0 -3.5vh;border-radius:50%;
+    border:1px solid rgba(255,58,30,.45);box-shadow:0 0 7px rgba(255,40,20,.25),inset 0 0 8px rgba(255,40,20,.16);}
   #reddot .dot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;
     background:radial-gradient(circle,#fff 0,#ff6a44 34%,#ff1f0c 66%,rgba(255,20,8,0) 100%);
     box-shadow:0 0 7px rgba(255,58,30,.95),0 0 17px rgba(255,40,20,.6),0 0 34px rgba(255,30,12,.32);}
@@ -358,7 +362,7 @@
   <div id="hitmark"><i></i><i></i><i></i><i></i></div>
   <div id="scope"><div class="ring"></div><div class="hl"></div><div class="vl"></div><div class="mag" id="scopeMag">4&times;</div></div>
   <div id="acog"><div class="ring"></div><div class="chev"></div><div class="post"></div></div>
-  <div id="reddot"><div class="dot"></div></div>
+  <div id="reddot"><div class="ring"></div><div class="dot"></div></div>
   <div id="marrow"><span class="lbl">marrow</span><span id="marrowN">0</span></div>
   <div id="bossbar">
     <div id="bossname">GRAVEWARDEN OF THE BONE PATH</div>
@@ -13675,11 +13679,37 @@ function cycleAtt(d){const g=gunOf();let i=ATTACH.findIndex(o=>o[0]===attOf(g));
    (A real cheek weld is nearer still, about a hand's width; at that range
    the receiver fills half the screen and you cannot see what you are
    shooting, which is why no shooter uses the true figure either.) */
-const ADS_EYE=.26;
+const ADS_EYE=.205;
+/* HOW BIG THE WEAPON IS IN THE HANDS. The models are slimmer than a
+   shooter's — a real handguard is a fist thick and ours is a box — so at
+   the same distance they read as toys. The viewmodel is scaled up rather
+   than dragged nearer: moving it closer would buy the same size at the
+   cost of savage foreshortening (the receiver enormous, the muzzle tiny),
+   and the reference shots do not look like that. */
+const VM_GUN=1.08;
+/* AND WHY THE WEAPON IS SQUASHED IN DEPTH WHEN THE SIGHTS COME UP.
+   Bring a gun as close as a shooter does and its own STOCK ends up behind
+   your eye — the near plane cuts the receiver in half and you are looking
+   at a flat grey lid where the gun should be. (Seen, on the UMP and the
+   SPAS, at a quarter of a metre.) Every shooter solves this the same way:
+   the viewmodel gets its own, narrower field of view, which is the same
+   thing as flattening it along the barrel. So each gun is scaled down in
+   Z when it is aimed — just far enough that its rearmost point clears the
+   near plane, computed from its own geometry rather than typed in:
+
+     (rear − sight) · scale · zs  ≤  ADS_EYE − near − margin
+
+   Looking straight down the barrel, a depth squash is very nearly
+   invisible; being cut in half is not. The sight line stays exact, since
+   the squash moves the sight along z only and the ADS offset is computed
+   with the squash already in it. */
+const VM_ZSQ_MARGIN=.03;
 // what the rail carries decides which sight shows, and where the sights sit on the screen when he aims
 function applyAttachmentTo(V,g){const a=FPS.att[g.key]||'iron';V.iron.visible=a==='iron';V.reddot.visible=a==='reddot';V.acog.visible=a==='acog';
-  const sz=(V.sightZ&&V.sightZ[a]||0)*V.scale.x;
-  V.ads=[0,-V.sightH[a]*V.scale.x,-((g.adsEye||ADS_EYE)+sz)];}   // (the sight line at the screen's centre, exactly, and the eye a cheek's width behind it)
+  const sc=V.vmScale||V.scale.x,eye=g.adsEye||ADS_EYE;
+  const sz0=(V.sightZ&&V.sightZ[a]||0),back=((V.rearZ||0)-sz0)*sc;
+  V.adsZs=back>1e-4?clamp((eye-camera.near-VM_ZSQ_MARGIN)/back,.2,1):1;   // the depth squash this gun needs, and no more
+  V.ads=[0,-V.sightH[a]*sc,-(eye+sz0*sc*V.adsZs)];}   // (the sight line at the screen's centre, exactly, and the eye a cheek's width behind it)
 function applyAttachment(){const vm=FPS.vm;if(!vm)return;for(const g of GUNS)applyAttachmentTo(vm.guns[g.key],g);}
 try{Object.assign(FPS.att,JSON.parse(localStorage.getItem('bp_att')||'{}'));}catch(e){}
 const GUN_NOTE_HUD='fire (either thumb) — shoot · drag the right trigger — turn while firing · aim — down the sights · reload · dodge · tap the bar — swap';
@@ -13694,33 +13724,31 @@ function gunMats(){if(_gunMats)return _gunMats;return _gunMats={
   gold:vmMat(0xd4ac44),dark:vmMat(0x2a2622),steel:vmMat(0x8a8478),
   gun:vmMat(0x2b2d2f),gunD:vmMat(0x1a1b1d),grey:vmMat(0x4a4c4e),wood:vmMat(0x4a3222),glove:vmMat(0x5b5148),sleeve:vmMat(0x4b4f52),
   olive:vmMat(0x4a5238),tan:vmMat(0x8a7a52),pale:vmMat(0xf4eedc),
-  glass:new THREE.MeshBasicMaterial({color:0x223a48,transparent:true,opacity:.28,depthWrite:false}),
-  /* THE REFLEX'S GLASS IS ALMOST NOT THERE. A red dot's argument is that
-     the picture does not change, and the pane sits over exactly what you
-     are shooting at — a sixth opaque was still a teal wash you were
-     looking through rather than a window. Fourteen hundredths of a stop
-     of tint is all it keeps: enough for the glass to catch the light at
-     the edge of the frame, not enough to stand between you and a hollow
-     at forty metres. */
-  reflex:new THREE.MeshBasicMaterial({color:0x5a8aa4,transparent:true,opacity:.055,depthWrite:false})};}
+  glass:new THREE.MeshBasicMaterial({color:0x223a48,transparent:true,opacity:.28,depthWrite:false})};}
 /* THE SIGHTS. A rail height in, a group out, with `h` the height of its
-   sight line — the one number the aim needs. The red dot is a framed
-   window with a point of light in it; the acog a short tube with a bell.
+   sight line — the one number the aim needs. The red dot is an open hood
+   with a point of light hanging in it; the acog a short tube with a bell.
    The iron sights are each gun's own, built with the gun. */
-/* the reflex: a WIDE window, and the glass barely there. A red dot is the
-   sight whose whole argument is that the picture does not change — a small
-   porthole with a quarter-opaque teal pane in it is an argument against
-   itself, and at the sights that pane sits over exactly what you are
-   shooting at. The window is half again as wide as it was and the glass is
-   a sixth rather than a quarter. The emitter is the 3D sprite; the HUD's
-   `#reddot` lays its bloom over the same point. */
-function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.028;zc=zc||0;
-  s.add(vmBox(.022,.01,.044,M.gunD,0,railY+.005,zc));
-  s.add(vmBox(.046,.003,.006,M.gunD,0,wy+.019,zc+.012));s.add(vmBox(.046,.003,.006,M.gunD,0,wy-.019,zc+.012));
-  s.add(vmBox(.003,.041,.006,M.gunD,-.0215,wy,zc+.012));s.add(vmBox(.003,.041,.006,M.gunD,.0215,wy,zc+.012));
-  const gl=new THREE.Mesh(GBox(.040,.035,.002),M.reflex);gl.position.set(0,wy,zc+.012);s.add(gl);
+/* THE REFLEX HAS NO GLASS IN IT, AND THAT IS THE POINT. It had a pane: a
+   quarter opaque first, then a sixth, then a twentieth, and at every one
+   of those the answer to "can you see through it" was still no — a pane
+   over the exact spot you are shooting at is a pane you look AT. A holo
+   sight is a hood and a floating reticle, so that is what this is now:
+   two square frames, one behind the other so the sight has depth, nothing
+   between them, and the emitter hanging in the middle. The window is half
+   as wide again as the old one, because a small window with a heavy frame
+   reads as a black box with a dot on it however clear the glass is. */
+function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.031;zc=zc||0;
+  s.add(vmBox(.024,.011,.046,M.gunD,0,railY+.005,zc));                      // the mount on the rail
+  const W=.060,H=.053,T=.0035;
+  const hoop=(z,t)=>{                                                       // a square hoop: two rails and two posts
+    s.add(vmBox(W,T,t,M.gunD,0,wy+H/2,z));s.add(vmBox(W,T,t,M.gunD,0,wy-H/2,z));
+    s.add(vmBox(T,H,t,M.gunD,-W/2+T/2,wy,z));s.add(vmBox(T,H,t,M.gunD,W/2-T/2,wy,z));
+  };
+  hoop(zc+.014,.006);hoop(zc-.034,.005);                                     // the rear hoop, and one forward of it
+  for(const sd of[1,-1])s.add(vmBox(T,T,.05,M.gunD,sd*(W/2-T/2),wy+H/2,zc-.01));   // the two rails between them
   const dot=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff2a1a,transparent:true,opacity:.95,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
-  dot.scale.set(.0085,.0085,1);dot.position.set(0,wy,zc+.01);s.add(dot);
+  dot.scale.set(.0095,.0095,1);dot.position.set(0,wy,zc-.012);s.add(dot);
   s.h=wy;return s;}
 function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.036;zc=zc||0;
   s.add(vmBox(.024,.012,.05,M.gunD,0,railY+.006,zc));
@@ -13756,7 +13784,7 @@ function buildGunModel(key,o){o=o||{};
     hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.06,-.2);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.06,-.2);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
-    g.hip=[.2,-.2,-.48];g.hipRy=-.08;
+    g.hip=[.2,-.2,-.48];g.hipRy=.20;g.hipRz=-.10;
   }else if(key==='ump'){
     g.body=vmBox(.058,.07,.34,M.gun,0,.03,-.02);g.add(g.body);
     g.add(vmBox(.05,.06,.14,M.gunD,0,.02,-.2));g.add(vmCyl(.011,.08,8,M.grey,0,.045,-.31));g.add(vmCyl(.016,.11,8,M.gunD,0,.045,-.40));
@@ -13773,7 +13801,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,-.01,-.2);muzzle.position.set(0,.045,-.47);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.045,-.47);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.081,reddot:rd.h,acog:ac.h};
-    g.hip=[.18,-.21,-.46];g.hipRy=-.1;
+    g.hip=[.19,-.21,-.46];g.hipRy=.26;g.hipRz=-.15;
   }else if(key==='m4'){
     /* THE M4A1: an upper with a carry handle, a round handguard with its
        vents, a curved thirty on a straight well, a collapsing stock. Its
@@ -13798,7 +13826,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,.01,-.26);muzzle.position.set(0,.04,-.55);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.04,-.55);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.091,reddot:rd.h,acog:ac.h};
-    g.hip=[.18,-.2,-.5];g.hipRy=-.1;
+    g.hip=[.19,-.205,-.48];g.hipRy=.26;g.hipRz=-.15;
   }else if(key==='spas'){
     /* THE SPAS-12: a long receiver over a tube magazine, a ribbed pump
        fore-end that works after every shell, a folding hook stock. The
@@ -13819,7 +13847,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,.01,-.33);muzzle.position.set(0,.055,-.63);
     g.pump=pump;g.pumpZ=pump.position.z;g.flash=gunFlash(g,0,.055,-.63);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.088,reddot:rd.h,acog:ac.h};
-    g.hip=[.18,-.2,-.48];g.hipRy=-.1;
+    g.hip=[.19,-.2,-.47];g.hipRy=.26;g.hipRz=-.15;
   }else if(key==='sniper'){
     g.add(vmCyl(.016,.62,8,M.steel,0,.05,-.42,.012));
     g.body=vmBox(.05,.06,.22,M.gun,0,.045,-.04);g.add(g.body);
@@ -13838,7 +13866,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,-.01,-.26);muzzle.position.set(0,.05,-.74);
     g.bolt=bolt;g.boltZ=bolt.position.z;g.flash=gunFlash(g,0,.05,-.74);
     g.iron=scope;g.reddot=rd;g.acog=ac;g.sightH={iron:.11,reddot:rd.h,acog:ac.h};
-    g.hip=[.17,-.19,-.42];g.hipRy=-.1;
+    g.hip=[.18,-.19,-.44];g.hipRy=.24;g.hipRz=-.14;
   }else{
     /* THE RPG-4: a long tube over the shoulder, its wooden heat shield
        under the hand, the flared venturi at the back, and the warhead
@@ -13860,7 +13888,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,-.02,-.14);muzzle.position.set(0,.02,-.62);
     g.flash=gunFlash(g,0,.02,.4);                                        // the flash is the BACKBLAST
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.085,reddot:rd.h,acog:ac.h};
-    g.hip=[.2,-.14,-.44];g.hipRy=-.06;
+    g.hip=[.21,-.15,-.44];g.hipRy=.18;g.hipRz=-.12;
   }
   /* and where the EYE goes for each of them: the rearmost point of the
      sight itself, measured off the geometry rather than typed in. Taken
@@ -13869,14 +13897,16 @@ function buildGunModel(key,o){o=o||{};
   g.sightZ={};
   for(const k of ['iron','reddot','acog'])
     g.sightZ[k]=g[k]?new THREE.Box3().setFromObject(g[k]).max.z:0;
-  g.scale.setScalar(o.scale||1);
+  g.rearZ=new THREE.Box3().setFromObject(g).max.z;   // ...and how far the whole thing reaches back past the hand
+  g.vmScale=o.scale||1;
+  g.scale.setScalar(g.vmScale);
   return g;
 }
 function buildViewmodel(){
   if(FPS.vm)return;
   scene.add(camera);                                   // (a child of the camera has to have the camera in the scene)
   const vm=new THREE.Group();vm.guns={};camera.add(vm);
-  for(const g of GUNS){const V=buildGunModel(g.key,{hands:true,scale:.85});vm.add(V);vm.guns[g.key]=V;}
+  for(const g of GUNS){const V=buildGunModel(g.key,{hands:true,scale:VM_GUN});vm.add(V);vm.guns[g.key]=V;}
   FPS.vm=vm;
   applyAttachment();
 }
@@ -14326,12 +14356,15 @@ function updateViewmodel(dt){
   let rl=0;if(FPS.reloading)rl=Math.sin(Math.PI*Math.min(1,FPS.reloadT/g.reload));
   const hurt=P.state==='hurt'?Math.sin(Math.PI*Math.min(1,P.t/(P.hurtDur||.38)))*.12:0;
   const H=V.hip,A=V.ads;
+  // the depth squash comes in with the sights (see VM_ZSQ_MARGIN)
+  {const zs=lerp(1,V.adsZs===undefined?1:V.adsZs,ads),s0=V.vmScale||1;
+   if(Math.abs(V.scale.z-s0*zs)>1e-4)V.scale.set(s0,s0,s0*zs);}
   vm.position.set(lerp(H[0],A[0],ads)+bobX+idX+FPS.swayX+sr*.06+k*R.side*.02*ks*(1-.5*ads),
                   lerp(H[1],A[1],ads)+bobY+idY+FPS.swayY-rl*.10-sr*.09-hurt*.4+k*R.back*.15,
                   lerp(H[2],A[2],ads)+k*R.back+rl*.03+sr*.05);
   vm.rotation.set(-k*R.up*.12+rl*.55+sr*.35+hurt,
                   lerp(V.hipRy,0,ads)+FPS.swayX*2.5-sr*.5+k*R.side*.1*ks,
-                  rl*.4+sr*.3+FPS.swayX*.8+k*R.side*.15*ks);
+                  lerp(V.hipRz||0,0,ads)+rl*.4+sr*.3+FPS.swayX*.8+k*R.side*.15*ks);
   if(V.mag){const u=FPS.reloading?FPS.reloadT/g.reload:0,out=u<=0?0:u<.5?Math.min(1,u/.2):Math.max(0,(1-u)/.35);
     V.mag.position.y=V.magY-out*.16;V.mag.rotation.z=out*.35;}
   if(V.bolt){const u=clamp(FPS.boltT/.8,0,1),lift=Math.sin(u*Math.PI);   // the handle lifts, the bolt comes back, and goes home

@@ -700,6 +700,35 @@ Known state of play:
       and nothing of the cut is ever on screen — verified per gun, at rest
       and mid-recoil. Lowering `camera.near` to avoid it would cost depth
       precision across the whole world for a sliver nobody sees.
+      `ADS_EYE` is .205 now, matched against reference shots rather than
+      taste: measured off a CoD ADS frame the weapon covers about 0.37 of
+      the screen's width and 0.58 of its height, and off a CS hip frame
+      about 0.5 by 0.44. Ours read 0.21 x 0.53 and 0.26 x 0.40. The way to
+      check this is to project the viewmodel's vertices through the camera
+      and take the on-screen span — not to eyeball it.
+      **`VM_GUN` (1.08) is the other half of that.** The models are slimmer
+      than a shooter's — a real handguard is a fist thick, ours is a box —
+      so the viewmodel is SCALED rather than dragged nearer: moving it
+      closer buys the same size with savage foreshortening, the receiver
+      enormous and the muzzle tiny, which is not what the references look
+      like.
+      **And `V.adsZs` is why nothing is cut in half.** Bring a gun that
+      close and its own stock ends up behind the eye — the near plane
+      slices the receiver and you are aiming at a flat grey lid (it did,
+      on the UMP and the SPAS). Every shooter answers this with a separate,
+      narrower weapon FOV, which is the same thing as flattening the model
+      along the barrel, so each gun is scaled down in Z as the sights come
+      up, by exactly as much as its own geometry needs:
+      `zs ≤ (ADS_EYE − near − margin) / ((rearZ − sightZ) · scale)`,
+      clamped to [.2,1] and computed at `applyAttachmentTo`. Looking down
+      the barrel a depth squash is invisible; being cut in half is not.
+      Verified: every gun, every optic, zero vertices behind the near
+      plane at full ADS (it was 132 on the SPAS).
+      The hip is the same question with different numbers: the guns used
+      to be held nearly parallel to the view, so you saw them end-on as a
+      thin sliver. `hipRy` is +.26 (POSITIVE yaw points the muzzle left:
+      R_y takes the barrel's −z toward −x) and `hipRz` about −.15, which
+      is what makes a hip carry read as a weapon held across you.
       Every viewmodel motion (bob, idle sway, look-lag) is
       scaled by `(1-ads)` so the sight is true when it is up. The hurt
       flinch is the one thing that still dips it, on purpose.
@@ -799,12 +828,18 @@ Known state of play:
   - **The red dot's housing is the GUN'S OWN.** `applyAttachment` puts the
     modelled optic's sight line at the screen's exact centre, so a drawn
     tube in `#reddot` on top of it is a second housing at the wrong scale
-    — it read as a black hoop hanging in front of the rifle. All the HUD
-    contributes is the emitter's bloom over that same point. The window
-    itself is wide and its glass is `M.reflex` (a sixth opaque), NOT
-    `M.glass` (a quarter): at the sights that pane sits over precisely
-    what you are shooting at — a sixth was still a teal wash you looked
-    THROUGH rather than a window, and it is a twentieth (.055) now.
+    — it read as a black hoop hanging in front of the rifle. The HUD
+    contributes the emitter's bloom and the reticle RING over that same
+    point, and nothing else.
+    **THERE IS NO GLASS IN IT.** The pane went a quarter opaque, then a
+    sixth, then a twentieth, and at every one of those the answer to "can
+    you see through it" was still no: a pane over the exact spot you are
+    shooting at is a pane you look AT. A holo sight is a hood and a
+    floating reticle, so `sightRedDot` is two square hoops one behind the
+    other with NOTHING between them. Do not put a pane back in. The window
+    is also half as wide again as the old one — a small window in a heavy
+    frame reads as a black box with a dot on it however clear its glass
+    is.
   - The ACOG stays in `inGlass` — the eye goes into the lens and the gun
     leaves the picture — but its surround FADES rather than cutting to
     black, which is what keeps 2x from reading as a scope.

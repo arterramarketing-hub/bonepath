@@ -583,17 +583,44 @@ SPAS a post and a notch on the rib; the RPG a folding ladder.
 **The whole ADS pose is computed off the sight itself**, both ways: its
 height puts the sight line at the screen's exact centre, so the top of
 the blade *is* the point of aim, and its depth puts your eye a fixed
-distance — a cheek's width — behind the rearmost part of whatever is on
-the rail. Every gun and every optic therefore presents the same sight
-picture. The distances used to be typed in per gun and had all drifted
-long: eye to rear sight, the pistol sat at 34cm, the rifle at 40 and the
-shotgun at 47, which is not a cheek weld, it is a man holding a rifle out
-at arm's length and squinting down it. They are 26cm now, and the
-receiver owns the bottom of the picture the way it should. **Red dot**: a wide
-window of all-but-clear glass on the rail with one point of light in it
-— a hot white core in a red bloom, sat exactly on the mark. The pane
-keeps a twentieth of a tint and no more: it sits over precisely what you
-are shooting at, so anything you can *see* it is too much of. It is **1.15
+distance — a cheek's width, 20cm — behind the rearmost part of whatever
+is on the rail. Every gun and every optic therefore presents the same
+sight picture. The distances used to be typed in per gun and had all
+drifted long: eye to rear sight, the pistol sat at 34cm, the rifle at 40
+and the shotgun at 47, which is not a cheek weld, it is a man holding a
+rifle out at arm's length and squinting down it.
+
+**How big it all is was matched against the real thing, not guessed.**
+Measured off a shooter's ADS frame, the weapon covers about 0.37 of the
+screen's width and 0.58 of its height; off a hip frame, about 0.5 by
+0.44. Ours read 0.21 by 0.53 aimed and 0.26 by 0.40 at the hip — a toy in
+both. They now measure 0.30–0.39 by 0.51–0.62 aimed and 0.41–0.51 by
+0.39–0.46 at the hip. Half of that is the eye coming up to the sight and
+half is the weapon being **scaled** rather than dragged nearer: these
+models are slimmer than a shooter's (a real handguard is a fist thick and
+ours is a box), and hauling one closer buys size at the cost of savage
+foreshortening — the receiver enormous, the muzzle tiny.
+
+**At the hip the guns are carried across you now**, muzzle swung inward
+and the weapon rolled a little, the way a shooter holds one. They used to
+sit nearly parallel to the line of sight, which shows you a rifle end-on:
+a thin dark sliver in the corner with nothing of its length to read.
+
+**And a weapon that close would be cut in half by the near plane** — its
+own stock ends up behind your eye, and you find yourself aiming at a flat
+grey lid where the receiver should be. Every shooter answers this with a
+separate, narrower field of view for the weapon, which is the same thing
+as flattening it along the barrel; so each gun is squashed in depth as
+the sights come up, by exactly as much as its own geometry needs and no
+more. Looking straight down the barrel a depth squash is invisible. Being
+cut in half is not. **Red dot**: a **holographic** one — an open
+square hood on the rail with **no glass in it at all**, and the reticle
+hanging in the middle of it: a ring with a hot white core in a red bloom
+at its centre, sat exactly on the mark. It had a pane once, a quarter
+opaque, then a sixth, then a twentieth, and at every one of those the
+answer to *can you see through it* was still no. A pane over the exact
+spot you are shooting at is a pane you look **at**. So there is nothing
+there now. It is **1.15
 times**, which is to say barely a magnification at all: the picture you
 were looking at is the picture you aim with, the rifle stays in your
 hands, and the eye is on the mark a shade faster. **ACOG**: a short
