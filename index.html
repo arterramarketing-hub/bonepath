@@ -13786,21 +13786,55 @@ function buildGunModel(key,o){o=o||{};
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
     g.hip=[.2,-.2,-.48];g.hipRy=.20;g.hipRz=-.10;
   }else if(key==='ump'){
-    g.body=vmBox(.058,.07,.34,M.gun,0,.03,-.02);g.add(g.body);
-    g.add(vmBox(.05,.06,.14,M.gunD,0,.02,-.2));g.add(vmCyl(.011,.08,8,M.grey,0,.045,-.31));g.add(vmCyl(.016,.11,8,M.gunD,0,.045,-.40));
-    const mag=vmBox(.03,.17,.05,M.gunD,0,-.07,-.13);mag.rotation.x=-.12;g.add(mag);
-    const gr=vmBox(.036,.1,.045,M.gunD,0,-.06,.08);gr.rotation.x=.3;g.add(gr);
-    g.add(vmBox(.02,.04,.2,M.gun,0,.03,.26));g.add(vmBox(.03,.07,.02,M.gunD,0,.03,.36));g.add(vmBox(.008,.008,.04,M.grey,-.034,.055,-.1));
+    /* THE UMP45, off the reference: a flat-topped polymer receiver with a
+       rail the whole length of it, a stubby barrel under a short front
+       rail, the magazine raked forward out of a slanted well, and — the
+       one silhouette nobody mistakes for another gun — the SKELETON SIDE
+       FOLDER at the back: an open rectangle of a stock, a fat top rail, a
+       thin bottom strut, a butt plate closing it.
+       It keeps its can. A suppressed UMP is what this weapon is FOR here
+       (see AudioSys.gun('ump') and the flash, both cut down for it), so
+       the reference's bare muzzle is the one thing not copied. */
+    // THE UPPER: flat-topped, with the rail and its teeth down the whole of it
+    g.body=vmBox(.050,.046,.30,M.gun,0,.044,-.045);g.add(g.body);
+    g.add(vmBox(.024,.009,.30,M.gunD,0,.0725,-.045));
+    for(let i=0;i<4;i++)g.add(vmBox(.028,.005,.009,M.grey,0,.0785,-.15+i*.075));
+    // THE LOWER: the trigger group and the well, wider and darker
+    g.add(vmBox(.056,.042,.22,M.gunD,0,.005,-.03));
+    g.add(vmBox(.050,.018,.062,M.gun,0,-.017,-.082));                        // the well's lip
+    const tail=vmBox(.046,.052,.10,M.gun,0,.030,.105);tail.rotation.x=-.10;g.add(tail);   // and the tail, sloping into the hinge
+    // THE FRONT: a short rail section, the nut, the stubby barrel, the can
+    g.add(vmBox(.044,.040,.10,M.gunD,0,.040,-.225));
+    g.add(vmBox(.024,.009,.095,M.gunD,0,.0725,-.225));
+    g.add(vmCyl(.014,.022,8,M.gunD,0,.042,-.285));
+    g.add(vmCyl(.0105,.05,8,M.gunD,0,.042,-.318));
+    g.add(vmCyl(.0185,.012,10,M.gun,0,.042,-.350));                          // the can's collar
+    g.add(vmCyl(.017,.115,10,M.gunD,0,.042,-.408));
+    // THE MAGAZINE, raked forward out of its well
+    const mag=vmBox(.029,.185,.05,M.gunD,0,-.082,-.10);mag.rotation.x=-.17;g.add(mag);
+    const mw=vmBox(.038,.052,.06,M.gun,0,-.010,-.094);mw.rotation.x=-.17;g.add(mw);
+    const mb=vmBox(.033,.012,.056,M.grey,0,-.172,-.118);mb.rotation.x=-.17;g.add(mb);     // the floor plate
+    // THE GRIP, and the guard in front of it
+    const gr=vmBox(.034,.105,.044,M.gunD,0,-.062,.062);gr.rotation.x=.24;g.add(gr);
+    g.add(vmBox(.030,.007,.052,M.gunD,0,-.030,.012));
+    // THE STOCK: the side-folder, an open rectangle, and half the gun's profile
+    const st=new THREE.Group();st.position.set(0,.034,.145);st.rotation.x=-.05;g.add(st);
+    st.add(vmBox(.032,.058,.032,M.gunD,0,0,0));                              // the hinge block
+    st.add(vmBox(.016,.016,.145,M.gunD,0,.036,.077));                        // the top rail
+    st.add(vmBox(.014,.013,.132,M.gunD,0,-.036,.072));                       // the bottom strut
+    st.add(vmBox(.032,.100,.016,M.gunD,0,0,.146));                           // the butt, closing the frame
+    g.add(vmBox(.009,.011,.05,M.grey,-.031,.052,-.11));                      // the charging handle, on the left
     const iron=new THREE.Group();
-    iron.add(vmBox(.004,.016,.004,M.dark,0,.075,-.27));iron.add(vmBox(.003,.003,.002,M.pale,0,.081,-.2675));
-    iron.add(vmBox(.003,.03,.006,M.gunD,-.011,.082,-.27));iron.add(vmBox(.003,.03,.006,M.gunD,.011,.082,-.27));iron.add(vmBox(.025,.003,.006,M.gunD,0,.0985,-.27));
-    const ay=.081;iron.add(vmBox(.026,.003,.006,M.gunD,0,ay+.011,.06));iron.add(vmBox(.026,.003,.006,M.gunD,0,ay-.011,.06));
-    iron.add(vmBox(.003,.025,.006,M.gunD,-.0115,ay,.06));iron.add(vmBox(.003,.025,.006,M.gunD,.0115,ay,.06));
-    g.add(iron);const rd=sightRedDot(.066,-.02),ac=sightAcog(.066,-.02);g.add(rd);g.add(ac);
-    hands(0,-.065,.09);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.01,-.02,-.2));
-    grip.position.set(0,-.01,-.2);muzzle.position.set(0,.045,-.47);
-    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.045,-.47);
-    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.081,reddot:rd.h,acog:ac.h};
+    iron.add(vmBox(.004,.020,.004,M.dark,0,.086,-.27));iron.add(vmBox(.003,.003,.002,M.pale,0,.094,-.2675));
+    iron.add(vmBox(.003,.032,.006,M.gunD,-.012,.088,-.27));iron.add(vmBox(.003,.032,.006,M.gunD,.012,.088,-.27));
+    iron.add(vmBox(.027,.003,.006,M.gunD,0,.105,-.27));
+    const ay=.094;iron.add(vmBox(.028,.003,.006,M.gunD,0,ay+.012,.06));iron.add(vmBox(.028,.003,.006,M.gunD,0,ay-.012,.06));
+    iron.add(vmBox(.003,.027,.006,M.gunD,-.0125,ay,.06));iron.add(vmBox(.003,.027,.006,M.gunD,.0125,ay,.06));
+    g.add(iron);const rd=sightRedDot(.077,-.02),ac=sightAcog(.077,-.02);g.add(rd);g.add(ac);
+    hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
+    grip.position.set(0,-.004,-.215);muzzle.position.set(0,.042,-.466);
+    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.042,-.466);
+    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,reddot:rd.h,acog:ac.h};
     g.hip=[.19,-.21,-.46];g.hipRy=.26;g.hipRz=-.15;
   }else if(key==='m4'){
     /* THE M4A1: an upper with a carry handle, a round handguard with its
