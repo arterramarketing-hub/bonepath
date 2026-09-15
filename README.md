@@ -509,7 +509,10 @@ To the right-hand trigger's left and
 above it: **aim** (a tap toggles the sights, a long hold releases them on
 the way up), **reload**, and **dodge** (the roll, by button: a flick would
 be a look now). The **weapon bar** at the bottom centre carries the gun's
-name and its magazine over its reserve; tap it to swap. A **zoom** button
+name, its calibre and its magazine over its reserve; tap it to swap. It
+**sizes itself to what it is carrying** — "golden eagle" is two and a half
+times the width of "m4a1" — so the name is never pushed off the panel and
+a short one never leaves a gulf before the count. A **zoom** button
 appears only when the sniper is in its scope. The pause button and the
 hearts are where they were; there is no lock-on and no finishing mark.
 
@@ -1025,6 +1028,14 @@ them the seed decides:
     wading and starts reading as a cart track. And no mark appears: a boot
     presses in over a third of a second, which is the difference between a
     footfall and a decal being switched on behind you.
+  - **stone takes no print.** The cathedral's flags, its stair and the
+    apron around it are cut geometry standing on the soil — nothing
+    presses into a flagstone, so no boot dish, no ploughed furrow, no
+    paint and no sheet of snow thrown off a roll. It is the same reach at
+    which your footfalls start to ring on stone, so what you hear and what
+    you leave can never disagree about what is underfoot, and it holds
+    wherever a cathedral stands: the field's, and every one the path
+    builds.
   - **and snow goes up as well as down.** A furrow is what is left behind,
     and behind is mostly where the camera is — what you actually watch,
     pace after pace, is the snow the legs are shovelling aside right now.

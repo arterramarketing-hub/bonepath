@@ -146,6 +146,22 @@ Known state of play:
   give marks their own meshes. The snowfall points are one more draw.
   `snowSink()` drops standing BODIES into the drift and touches nothing the
   game measures — never make it change `heightAt`.
+- **STONE TAKES NO PRINT, AND THE TEST GOES INSIDE THE PRODUCER.**
+  `onStone(x,z)` (`cathDist < STONE_APRON`, 4.5, declared beside
+  `cathDist`) is the one rule, and `snowStamp`, `printSnow` and `snowPuff`
+  each ask it on their own first line.
+  It used to be at the CALL SITES, and only one of them — the pilgrim's
+  heel — ever remembered to ask: every hollow that walked the nave pressed
+  boot-dishes into the flagstones, and a roll across them threw up a sheet
+  of snow that was not there. Measured before the fix: five stamps and
+  five paint strokes out of five at the middle of the nave. After: zero
+  anywhere `cathDist < 4.5`, and five of five a metre past it. There are
+  too many callers for a convention — guard the producer.
+  It is the SAME reach the footstep sound uses for 'stone' and the same
+  one `snowSink` stops at, so what you hear, what you leave and how deep
+  you stand can never disagree; every scattered copy of the literal 4.5
+  now says `onStone`. And it holds on the path, because `cathZ` answers
+  with whatever cathedral that stretch of corridor is carrying.
 - **Three traps in that code, all of which cost hours:**
   1. A mark written BELOW the ground is invisible. The ground is one mesh
      and nothing carves into it, so everything sits above the surface
@@ -851,6 +867,21 @@ Known state of play:
       `scatterBones` with `crumbled` set, the katana-slice path, so
       `pruneFallen` buries it.
 
+- **THE WEAPON BAR WAS LAID OUT AS A 52px CIRCLE, AND IT WAS A
+  SPECIFICITY BUG.** `#fpsCtl .btn{width:52px;height:52px}` is (1,1,0) and
+  `#fbSwap{width:228px;height:42px}` was only (1,0,0), so the size rule
+  the bar wanted never applied: it was drawn as one of the round buttons
+  while its own contents — the name, the calibre and the count — ran 95 to
+  136 pixels wide. Everything past the first 52 fell outside the panel, so
+  the gun's name and its ammunition sat on the bare field with no ground
+  under them. The selector is `#fpsCtl #fbSwap` now, which is (2,0,0).
+  **If a button in that set ever ignores its own size, count the
+  specificity before you touch the numbers.**
+  While there: the bar sizes to its contents (`width:auto` with a floor
+  and a `min(64vw,330px)` ceiling) because the names are not one length,
+  and it carries its own LINEAR background — `.btn`'s fill is a radial
+  gradient lit from 38%/32%, which on a bar two hundred pixels wide is a
+  bright patch off to one side.
 - **THE PLAYER OWNS TWO NUMBERS: `VIEW.fov` AND `VIEW.sens`** (declared
   immediately below `camera`, above everything that reads them, and
   remembered under `bp_view`). Two sliders on the pause screen write them.

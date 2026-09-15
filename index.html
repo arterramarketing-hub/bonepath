@@ -266,11 +266,32 @@
   #fbReload.dim{opacity:.4;}
   #fbRoll{right:calc(34px + env(safe-area-inset-right));bottom:calc(178px + env(safe-area-inset-bottom));width:52px;height:52px;}
   #fbZoom{right:calc(184px + env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));width:46px;height:46px;display:none;}
-  #fbSwap{left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:228px;height:42px;border-radius:4px;
-    flex-direction:row;justify-content:space-between;padding:0 12px;letter-spacing:.1em;white-space:nowrap;}
-  #fbSwap .wn{font-size:9px;letter-spacing:.24em;color:var(--bone-dim);text-transform:uppercase;line-height:1.3;}
+  /* THE WEAPON BAR IS THE ONE BUTTON THAT IS NOT A DISC, AND ITS SIZE HAS
+     TO OUT-SPECIFY THE SET'S. `#fpsCtl .btn{width:52px;height:52px}` is
+     (1,1,0) and `#fbSwap{...}` was only (1,0,0), so the bar was laid out
+     as a 52px CIRCLE while its own contents — the name, the calibre and
+     the ammunition — ran 95 to 136 pixels wide. Everything past the first
+     52 fell outside the panel: the gun's name and its count sat on the
+     bare field with no ground under them. Hence `#fpsCtl #fbSwap`, which
+     is (2,0,0) and wins.
+     It SIZES TO ITS CONTENTS now rather than to a typed width, because
+     the names are not one length — "golden eagle" is 95px of small caps
+     and "m4a1" is 37 — and a fixed box either clips the long one or
+     leaves a gulf in the short one. A floor keeps it from shrinking to a
+     stub, a ceiling keeps it off the triggers on a small screen, and the
+     name and the count are held apart by a real gap instead of being
+     pushed against each other by `space-between`. */
+  #fpsCtl #fbSwap{left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    width:auto;min-width:200px;max-width:min(64vw,330px);height:44px;border-radius:4px;
+    flex-direction:row;justify-content:space-between;gap:18px;padding:0 14px;letter-spacing:.1em;white-space:nowrap;
+    background:linear-gradient(180deg,rgba(56,54,45,.82),rgba(10,13,11,.9));}
+  /* and its own pressed fill: `.btn.pressed` lights a disc from 38%/32%,
+     which on a bar two hundred pixels wide is a bright patch off to one side */
+  #fpsCtl #fbSwap.pressed{background:linear-gradient(180deg,rgba(116,100,68,.9),rgba(30,26,18,.92));}
+  #fbSwap .wn{font-size:9px;letter-spacing:.24em;color:var(--bone-dim);text-transform:uppercase;line-height:1.3;
+    overflow:hidden;text-overflow:ellipsis;}
   #fbSwap .cal{font-size:8px;letter-spacing:.18em;color:var(--bone-faint);}
-  #fbSwap .wa{font-variant-numeric:tabular-nums;color:var(--bone);font-size:12px;}
+  #fbSwap .wa{font-variant-numeric:tabular-nums;color:var(--bone);font-size:12px;flex:0 0 auto;}
   #fbSwap .wa b{font-weight:normal;font-size:20px;color:#e8dcc0;}
   #fbSwap.low .wa b{color:var(--blood);}
   #fbSwap.rl .wa b{opacity:.45;}
@@ -3380,6 +3401,22 @@ function rectSD(x,z,hw,hl){
 function pathCath(z){for(const t of PATH.tiles)if(t&&!t.dead&&t.cath&&z<t.z0+2&&z>t.z1-2)return t;return null;}
 function cathZ(z){if(!PATH.on)return 0;const t=pathCath(z);return t?t.czc:1e9;}   // (1e9: no cathedral anywhere near)
 const cathDist=(x,z)=>rectSD(x,z-cathZ(z),HW+WALLT,HL+WALLT);   // from the outer wall face
+/* STONE TAKES NO PRINT. The cathedral's flags, its stair and the apron
+   round it are cut geometry standing ON the soil, so nothing presses into
+   them: no boot dish, no ploughed furrow, no sheet of snow thrown off a
+   roll. `STONE_APRON` is the reach the whole game already agreed on — the
+   footstep sound goes to 'stone' at exactly this distance, and `snowSink`
+   stops dropping a body into the drift there — so the mark and the sound
+   can never disagree about what is underfoot.
+   THE TEST BELONGS INSIDE THE STAMPERS, NOT AT THEIR CALL SITES. It was
+   at the call sites, and only ONE of them — the pilgrim's heel — ever
+   remembered to ask: every hollow walking the nave pressed boot-dishes
+   into the flagstones, and a roll across them threw up snow that was not
+   there. There are too many callers for a convention. Guard the producer.
+   It works on the path as well as the field, because `cathZ` answers with
+   whichever cathedral that stretch of the corridor is carrying. */
+const STONE_APRON=4.5;
+const onStone=(x,z)=>cathDist(x,z)<STONE_APRON;
 const inStairsL=(x,zl)=>{const az=PATH.on?Math.abs(zl):zl;return Math.abs(x)<STAIR_W&&az>PL-.5&&az<PL+STAIR_L+.5;};   // (on the path the stair is at both ends)
 const inStairs=(x,z)=>inStairsL(x,z-cathZ(z));
 function pushOutOfCath(p,m){const cz=cathZ(p.z);if(cz>1e8)return;p.z-=cz;pushOutOf(p,HW+WALLT,HL+WALLT,m);p.z+=cz;}
@@ -4838,13 +4875,14 @@ function trodFlush(){
 function snowDeep(){return RUN.weather==='blizzard'?1:RUN.weather==='snow'?.35:0;}
 function snowSink(x,z){
   const d=snowDeep();
-  if(!d||cathDist(x,z)<4.5)return 0;
+  if(!d||onStone(x,z))return 0;
   return .26*d;
 }
 /* press something into the snow: a boot, a shoulder rolled through it, a
    hollow's dragging foot. Silent unless there is snow to press */
 function snowStamp(x,z,ang,w,l,depth,drop,pal){
   if(RUN.weather!=='snow'&&RUN.weather!=='blizzard')return;
+  if(onStone(x,z))return;                         // flagstones keep no boot
   trodInit();
   const slot=TROD.next;TROD.next=(TROD.next+1)%TROD.N;
   const k=.55+.9*snowDeep();                      // a drift takes a deeper print than a dusting
@@ -5059,7 +5097,7 @@ function updateTrail(dt){
   if(!PLOUGHS()){if(TRAIL.mesh.visible)trailClear();return;}
   // lane 0 is always the pilgrim's; the rest go to the nearest hollows
   const L0=TRAIL.lanes[0];L0.own=player;
-  if(G.mode==='play'&&player.hp>0&&cathDist(player.x,player.z)>=4.5&&!(player.rollAir>.04))
+  if(G.mode==='play'&&player.hp>0&&!onStone(player.x,player.z)&&!(player.rollAir>.04))
     /* WIDTH. A man wading leaves a channel about as wide as he is; it was
        coming out three times that, which is a cart track. Only a ROLL is
        wide, because that is the one time the whole body is on the ground
@@ -5244,7 +5282,7 @@ function wearSnow(rig,body,boot,blood){
    little of it up and back: loose grains that fly, slow down, and drop.
    More of it at a run, a whole sheet of it out of a roll. */
 function snowPuff(x,z,ang,n,force){
-  if(!snowDeep())return;
+  if(!snowDeep()||onStone(x,z))return;             // there is no drift on a flagstone to kick up
   const y=heightAt(x,z);
   for(let i=0;i<n;i++){
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.flake||texCache.glow,
@@ -5373,6 +5411,7 @@ function paintScar(x,z,facing,w,l,dark,pal){
 // painted into the same sheet the gouges are, so it follows the ground
 const SNOW_PRINT=['rgba(146,159,180,.32)','rgba(104,119,142,.6)'];
 function printSnow(x,z,facing){
+  if(onStone(x,z))return;                                    // nor does the paint go on stone
   const side=Math.random()<.5?-.18:.18;                      // left boot or right
   paintScar(x+Math.cos(facing)*side,z-Math.sin(facing)*side,facing,.22,.44,false,SNOW_PRINT);
 }
@@ -9516,7 +9555,7 @@ const player={
     const startDodge=(s)=>{
       this.rollLanded=false;this.rollAir=0;this.dashGhost=0;
       if(isThief()){                                  // cloth and grit, and gone
-        AudioSys.step(.8,cathDist(this.x,this.z)<4.5?'stone':snowDeep()?'snow':'grass');
+        AudioSys.step(.8,onStone(this.x,this.z)?'stone':snowDeep()?'snow':'grass');
         if(snowDeep())snowPuff(this.x,this.z,this.facing,6,3.4);
         else boneBurst(this.x,.1,this.z,0x4a463a,5,1.6);
       }
@@ -9731,7 +9770,7 @@ const player={
       const heel=this.rig._heel||0;
       if(heel>.45&&!this._heelOn){
         this._heelOn=true;
-        const onFlags=cathDist(this.x,this.z)<4.5;
+        const onFlags=onStone(this.x,this.z);
         AudioSys.step(Math.min(1,this.moveAmt+(this.sprinting?.6:.3)),onFlags?'stone':snowy?'snow':'grass');   // (the flags and the stair ring; the field is turf, or snow over it)
         // a dusting is stepped ON and keeps a boot; a drift is ploughed
         // THROUGH and keeps a furrow instead (see updateTrail)
@@ -10193,7 +10232,7 @@ const player={
         this.rollLanded=true;
         G.camShake=Math.max(G.camShake,.3);G.vibr(20);
         AudioSys.bodyfall();
-        AudioSys.step(1,cathDist(this.x,this.z)<4.5?'stone':snowDeep()?'snow':'grass');
+        AudioSys.step(1,onStone(this.x,this.z)?'stone':snowDeep()?'snow':'grass');
         if(snowDeep())snowPuff(this.x,this.z,Math.atan2(this.rollDX,this.rollDZ),11,5.4);
         else boneBurst(this.x,.12,this.z,0x4a463a,7,2.1);
       }
@@ -10479,7 +10518,7 @@ const player={
      this.snowBoot=lerp(this.snowBoot||0,deep>=.8?.72:deep?.42:0,Math.min(1,2.2*dt));
      this.snowCoat=lerp(this.snowCoat||0,this.snowCling*.95,Math.min(1,5*dt));
      wearSnow(r,this.snowCoat,this.snowBoot,bloodState());
-     snowCuffs(r,cathDist(this.x,this.z)<4.5?0:this.snowBoot);}
+     snowCuffs(r,onStone(this.x,this.z)?0:this.snowBoot);}
     r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z)
       +(this.state==='roll'?this.rollAir||0:0)
       +(this.state==='falling'?this.fallY:0),this.z);
@@ -15623,7 +15662,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
