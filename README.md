@@ -469,7 +469,28 @@ weapon** is the loadout's, as it always was — and the loadout now holds
 six guns beside the blades. **The eye is in the helm**, 1.74m up, inside
 the pilgrim's own head (his head runs 1.56 to 2.08 above the soil): it
 used to sit at 1.42, which is his belt, and the view read exactly like
-that. So a **gun is carried in third person** too,
+that.
+
+**And a gun over the shoulder is a gun, not a blade that goes bang.**
+There is a **BRACE**: the aim button pulls the camera in past the
+pilgrim's right shoulder, eases the angle down toward the horizontal,
+slows the turn and closes the cone the same way the sights do behind the
+eyes — fifteen rounds in twenty on a hollow at ten metres from the hip,
+nineteen braced. There is a **mark on the screen**, and it is where the
+ROUND lands rather than where the camera points, because the two are not
+the same thing in third person: the round leaves the hands, a metre and a
+half ahead of the body and off to one side, and goes to the eye's mark or
+straight along the facing. It rests at working range when there is
+nothing to hit and snaps onto whatever the line meets. The rifle has a
+**muzzle flash** on it at last. And the **recoil is carried by the man**:
+the shoulder driven round and back, the head going with it, the knees
+taking the rest, riding the shot and settling rather than snapping.
+
+**Every gun's cone is capped.** Held down, an M4's hip cone used to open
+from two degrees to fifteen — a two-and-a-half metre circle at ten metres
+— and go on opening. It tops out at about four now, which is the
+difference between a weapon that punishes a long burst and one that stops
+being a weapon. So a **gun is carried in third person** too,
 over the shoulder at the chest, the eye's mark doing the aiming and the
 tap the firing (a held thumb runs the automatics); and a **greatsword is
 swung from behind the eyes** in first, its arc drawn across the screen by
@@ -1589,6 +1610,43 @@ snappy one: just over half a second, faster off the ground, and the window
 scaled with it. The ground covered is tuned to stay near what the old roll
 covered — a leap that also doubled the dodge's reach would be a balance
 change wearing an animation's clothes.
+
+## How the host fights
+
+A horror used to know about exactly one thing: the pilgrim. It walked the
+straight line from wherever it stood to wherever she was and swung when it
+arrived, and that was the whole of it. Set six of them on her from an arc
+fourteen metres out and the pack's angular spread was a hundred and
+twenty-six degrees at the start and **a hundred and twenty-six degrees
+eight seconds later** — every body held the radius it was born on. A group
+that spawned in a clump arrived as a clump and queued up to hit you.
+Neither was a decision.
+
+**They come at you from somewhere now.** Each carries its own side, and
+while it is still out in the open its approach is BANKED toward that side
+— half of them curling left and half right — so a pack opens into a
+crescent and closes on you from around rather than along. The bank washes
+out over the last stride, so the arrival is still straight in and still
+readable. And they no longer walk through one another: anything within a
+couple of metres pushes off. Measured: the same six now spread from a
+hundred and twenty-six degrees to **two hundred and five** while closing
+from fourteen metres to three and a half.
+
+**A thrower works for its shot.** It held its range and lobbed from one
+bearing for ever, which makes a ranged thing a target you can forget
+about. Its range and its movement are separate things now: it holds its
+band and **works round you the whole time**, turning its circle after
+every throw and whenever you close on it, so the line to it keeps breaking
+and sooner or later you have to go and deal with it.
+
+**And one of them dropping means something.** Whatever is asleep near the
+body wakes; whatever is pacing its post comes; and whatever is already on
+you and close enough is **startled** — a third of a second with its head
+off you and round to where it happened, at half speed, and then it comes
+on again from a fresh bearing. It is a beat and not a stun, deliberately:
+a pack that freezes every time you kill something is a pack you take apart
+one at a time for nothing. An ambush never wakes to it — lying still is
+what an ambush is.
 
 ## What the host is worth killing
 

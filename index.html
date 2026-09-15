@@ -251,7 +251,7 @@
   #fpsCtl.fps,#fpsCtl.gun{display:block;}
   #fpsCtl>.btn{display:none;}
   #fpsCtl.fps>#fbFireL,#fpsCtl.fps>#fbFireR,#fpsCtl.fps>#fbAds,#fpsCtl.fps>#fbRoll{display:flex;}
-  #fpsCtl.gun>#fbSwap,#fpsCtl.gun>#fbReload{display:flex;}
+  #fpsCtl.gun>#fbSwap,#fpsCtl.gun>#fbReload,#fpsCtl.gun>#fbAds{display:flex;}
   #fpsCtl.blade>#fbAds span.t::after{content:' / charge';}
   #fpsCtl .btn{width:52px;height:52px;}
   #fpsCtl .btn span.g{font-size:18px;}
@@ -298,14 +298,14 @@
   /* the crosshair opens with the spread (--gap), the marker flashes on a hit
      (white; gold for the head; red and longer for a kill), and the scope is
      the sniper's sights: a hole in the dark with the reticle over it */
-  #xhair{position:absolute;left:50%;top:50%;width:0;height:0;display:none;--gap:6px;}
+  #xhair{position:absolute;left:50%;top:50%;width:0;height:0;display:none;--gap:6px;--dx:0px;--dy:0px;transform:translate(var(--dx),var(--dy));}
   #xhair i{position:absolute;background:#f2ecd6;outline:1px solid rgba(0,0,0,.8);box-shadow:0 0 3px rgba(0,0,0,.6);}
   #xhair .u{width:2px;height:9px;left:-1px;top:calc(-9px - var(--gap));}
   #xhair .d{width:2px;height:9px;left:-1px;top:var(--gap);}
   #xhair .l{height:2px;width:9px;top:-1px;left:calc(-9px - var(--gap));}
   #xhair .r{height:2px;width:9px;top:-1px;left:var(--gap);}
   #xhair .c{width:2px;height:2px;left:-1px;top:-1px;}
-  #hitmark{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0;}
+  #hitmark{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0;--dx:0px;--dy:0px;transform:translate(var(--dx),var(--dy));}
   #hitmark i{position:absolute;left:0;top:-1px;width:12px;height:2px;background:#fff;box-shadow:0 0 2px #000;transform-origin:0 50%;}
   #hitmark i:nth-child(1){transform:rotate(45deg) translateX(8px);}
   #hitmark i:nth-child(2){transform:rotate(135deg) translateX(8px);}
@@ -10766,6 +10766,72 @@ const player={
 
 /* ---------------- enemies ---------------- */
 const enemies=[];
+/* ================= THE PACK =================
+   Three things the host never did, and all three are the same sentence:
+   a horror only ever knew about the PILGRIM.
+
+   1. THE APPROACH WAS A STRAIGHT LINE. `chase` walked each body down the
+      radius it happened to be born on and swung when it arrived. Measured
+      on six hollows set on her from an arc fourteen metres out: the pack's
+      angular spread was 126 degrees at the start and 126 degrees eight
+      seconds later — every one of them held its own bearing to the metre.
+      A group that spawns in a clump arrives as a clump and queues to hit
+      you; one that spawns spread arrives spread. Neither is a decision.
+   2. THEY WALKED THROUGH ONE ANOTHER. Nothing kept two bodies apart, so a
+      pack funnelling round a gravestone came out the far side stacked.
+   3. A KILL MEANT NOTHING. Nothing in `die()` touched a neighbour: one
+      lost its head and the thing two metres away kept walking the same
+      line at the same speed.
+
+   `packSteer` answers the first two and `alertPack` the third. Both are
+   deliberately cheap — arithmetic over the live list, no pathfinding, no
+   grid — because this runs for every chasing body every frame on a phone.
+*/
+const CAST_BAND=9.6;   // the range a thrower likes to work at
+const FLANK_NEAR=1.6,     // inside this many reaches the bank is gone: the last stride is straight in
+      FLANK_FAR=5,        // and it is at its fullest this much further out
+      SEP_R=2.4,          // how close two of them may walk
+      SEP_W=1.35;         // and how hard they refuse it
+const _psv={x:0,z:0};
+/* The direction a chasing body actually wants to go: the line to the
+   pilgrim, BANKED to one side while it is still out in the open, and
+   pushed off whatever else is walking at her. The bank is what makes a
+   pack arrive as a crescent — each body carries its own signed `flank`,
+   so half of them curl left and half right and the group opens out on its
+   own without anyone being told to take a position. */
+function packSteer(e,dx,dz,dist){
+  const l=dist||1;let ax=dx/l,az=dz/l;
+  const w=clamp((dist-e.reach*FLANK_NEAR)/FLANK_FAR,0,1)*(e.flank||0);
+  if(w){const tx=-az,tz=ax;ax+=tx*w;az+=tz*w;}      // toward the tangent: a curve in, not a charge
+  let sx=0,sz=0;
+  for(const o of enemies){
+    if(o===e||o.hp<=0||o.state==='dead'||o.state==='dormant')continue;
+    const ox=e.x-o.x,oz=e.z-o.z;
+    if(Math.abs(ox)>SEP_R||Math.abs(oz)>SEP_R)continue;   // (the cheap test first: this runs n² a frame)
+    const d2=ox*ox+oz*oz;if(d2<1e-4||d2>SEP_R*SEP_R)continue;
+    const d=Math.sqrt(d2),k=(1-d/SEP_R)/d;
+    sx+=ox*k;sz+=oz*k;
+  }
+  ax+=sx*SEP_W;az+=sz*SEP_W;
+  const m=Math.hypot(ax,az)||1;_psv.x=ax/m;_psv.z=az/m;return _psv;
+}
+/* ONE OF THEM DROPS AND THE REST KNOW. Whatever is near enough turns to
+   look, and whatever was asleep or pacing comes. `startleT` is short on
+   purpose: it is a beat, not a stun — a pack that freezes every time you
+   kill something is a pack you can kill one at a time for nothing. */
+function alertPack(x,z,from){
+  for(const e of enemies){
+    if(e===from||e.hp<=0||e.state==='dead'||e.boss)continue;
+    const d=Math.hypot(e.x-x,e.z-z);
+    if(d>12)continue;
+    if(e.state==='dormant'){if(!e.ambush&&d<8)e.wake();continue;}
+    if(e.state==='patrol'||e.state==='guard'||e.state==='return'){e.state='chase';e.t=0;continue;}
+    if(e.state==='chase'&&d<7&&(e.startleCd||0)<=0){
+      e.startleT=.34;e.startleCd=3.5;e.lookX=x;e.lookZ=z;
+      e.flank=(Math.random()<.5?-1:1)*rr3(.4,1.0);   // and it comes at her from somewhere else next time
+    }
+  }
+}
 class Enemy{
   constructor(kind,x,z,opts){
     opts=opts||{};
@@ -10773,6 +10839,8 @@ class Enemy{
     this.big=kind==='big';this.boss=kind==='boss';this.caster=kind==='caster';
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=opts.facing||Math.PI;
     this.radius=this.boss?.8:this.big?.55:.4;
+    this.startleT=0;this.startleCd=0;this.lookX=x;this.lookZ=z;
+    this.rollFlank();                                   // which side it comes at her from (see packSteer)
     /* WHAT A HOLLOW IS WORTH KILLING. It was 64 and a thrower 52, which
        is four swings of the greatsword and three — and at four swings a
        hollow is a door you open rather than a thing you fight: no room
@@ -10925,6 +10993,7 @@ class Enemy{
     }
     if(FPS.on&&!this.boss&&Math.random()<.5)spawnElemDrop(this.x+rr3(-.9,.9),this.z+rr3(-.9,.9),'ammo');   // and, with a gun in the field, what a gun needs
     boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
+    alertPack(this.x,this.z,this);     // the rest of them know
     if(this.boss)onBossDead();
     // the body falls the way the blow sent it — or folds where it stood
     if(this.mound){scene.remove(this.mound);this.mound.geometry.dispose();this.mound=null;}
@@ -10933,6 +11002,10 @@ class Enemy{
       startRagdoll(this,h.dx,h.dz,3+h.kb*3.5,h.up!==undefined?1.3+h.up:2.6);
     }
   }
+  /* WHICH WAY THIS ONE BANKS. Signed, and its own — half the host curls
+     one way and half the other, which is the whole of why a pack spreads
+     into a crescent instead of queueing. Re-rolled when it is startled. */
+  rollFlank(){this.flank=(Math.random()<.5?-1:1)*rr3(.4,1.0);}
   patrol(){ // path-born: no grave to climb from — it stands on the road already, pacing a few strides back and forth
     this.state='patrol';this.t=rr3(0,6);this.patA=rr3(0,TAU);this.patR=rr3(1.6,3.4);this.patW=rr3(.5,.8);this.patMv=0;
     this.rig.root.position.y=heightAt(this.x,this.z);
@@ -11005,27 +11078,52 @@ class Enemy{
         break;
       case 'patrol':{
         // a short beat back and forth about its post, a pause at each end; the prey in reach and it comes
-        if(dist<this.aggroR&&G.mode==='play'){this.state='chase';this.t=0;break;}
+        if(dist<this.aggroR&&G.mode==='play'){this.state='chase';this.t=0;this.rollFlank();break;}
         const sw=Math.sin(this.t*this.patW)*this.patR,tx=this.homeX+Math.cos(this.patA)*sw,tz=this.homeZ+Math.sin(this.patA)*sw;
         const ex=tx-this.x,ez=tz-this.z,el=Math.hypot(ex,ez);
         this.patMv=lerp(this.patMv,Math.min(1,el/.5),Math.min(1,5*dt));
         if(el>.12){this.facing=angLerp(this.facing,Math.atan2(ex,ez),4*dt);const st=Math.min(el,this.speed*.5*dt);this.x+=ex/el*st;this.z+=ez/el*st;}
         break;}
       case 'chase':{
-        faceP(6);
+        /* IT SAW THAT. `alertPack` sets `startleT` on whatever was near
+           enough when one of them dropped: for a third of a second the
+           head comes off the pilgrim and round to where it happened, and
+           the body slows. Then it comes on, from a new bearing. */
+        this.startleCd=Math.max(0,(this.startleCd||0)-dt);
+        if(this.startleT>0){
+          this.startleT-=dt;
+          this.facing=angLerp(this.facing,Math.atan2(this.lookX-this.x,this.lookZ-this.z),7*dt);
+        }else faceP(6);
         // the Warden was swinging a greatsword through its own title card
         if(cutSubject(this))break;
         if(this.caster){
-          // bone-thrower keeps its distance and lobs
+          /* THE THROWER DOES NOT STAND STILL ANY MORE. It held its band —
+             back off under five and a half, close past eleven — and lobbed
+             from whatever bearing it happened to be on, for ever: measured,
+             its bearing moved seven degrees in five seconds. A ranged thing
+             that never moves is a target, and worse, it is a target you can
+             forget about. It STRAFES the band now, turning its circle after
+             every throw and whenever the pilgrim closes, so the line to it
+             keeps breaking and you have to go and deal with it. */
           const l=dist||1;
-          if(dist<5.5){this.x-=dx/l*this.speed*dt;this.z-=dz/l*this.speed*dt;}
-          else if(dist>11){this.x+=dx/l*this.speed*dt;this.z+=dz/l*this.speed*dt;}
-          if(dist>3.2&&dist<13&&this.t>1.2)this.begin('throw');
+          if(this.orbit===undefined)this.orbit=Math.random()<.5?-1:1;
+          // it holds a RANGE and it WORKS ROUND her; the two are separate,
+          // so it never ends up pinned on the edge of its own band
+          const err=dist-CAST_BAND;
+          if(Math.abs(err)>1.2){const sp=Math.sign(err)*this.speed*(err<0?1:.8);
+            this.x+=dx/l*sp*dt;this.z+=dz/l*sp*dt;}
+          const ox=-dz/l*this.orbit,oz=dx/l*this.orbit,osp=this.speed*(dist<7?1.15:.85);
+          this.x+=ox*osp*dt;this.z+=oz*osp*dt;
+          this.turnCd=Math.max(0,(this.turnCd||0)-dt);
+          if(dist<7&&(this.turnCd||0)<=0){this.orbit=-this.orbit;this.turnCd=1.4;}   // crowded, it breaks the other way
+          if(dist>3.2&&dist<13&&this.t>1.2){this.orbit=Math.random()<.5?-1:1;this.begin('throw');}
         }else{
           if(dist>this.reach*.72){
-            const l=dist||1;
-            this.x+=dx/l*this.speed*(this.boss&&this.phase2?1.3:1)*dt;
-            this.z+=dz/l*this.speed*(this.boss&&this.phase2?1.3:1)*dt;
+            /* THE APPROACH IS BANKED AND IT KEEPS ITS DISTANCE FROM ITS
+               OWN KIND — see `packSteer`. Straight in was a queue. */
+            const v=this.boss?{x:dx/(dist||1),z:dz/(dist||1)}:packSteer(this,dx,dz,dist);
+            const sp=this.speed*(this.boss&&this.phase2?1.3:1)*(this.startleT>0?.45:1);
+            this.x+=v.x*sp*dt;this.z+=v.z*sp*dt;
           }
           const inRange=dist<this.reach*.85;
           if(this.boss){
@@ -11049,7 +11147,7 @@ class Enemy{
         break;}
       case 'guard':
         // home again: it stands its ground and waits for the prey to return
-        if(dist<this.aggroR&&G.mode==='play'){this.state='chase';this.t=0;}
+        if(dist<this.aggroR&&G.mode==='play'){this.state='chase';this.t=0;this.rollFlank();}
         break;
       case 'windup':{
         const wd=this.windDur();
@@ -13414,8 +13512,9 @@ function updateCamera(dt){
     // no prey: a follow camera. It eases in behind the direction you are
     // walking — slowly, souls-fashion — and a manual drag is left exactly
     // where you put it until you move again
-    G.camYaw-=IN.camDX*.0062*VIEW.sens;
-    G.camPitch=clamp(G.camPitch+IN.camDY*.002*VIEW.sens,.12,.6);
+    const bs=1-.45*(gunHeld()?FPS.ads:0);   // braced, the thumb moves the world more slowly
+    G.camYaw-=IN.camDX*.0062*VIEW.sens*bs;
+    G.camPitch=clamp(G.camPitch+IN.camDY*.002*VIEW.sens*bs,.12,.6);
     if(dragging)G.camHeld=true;
     const moving=player.state!=='dead'&&player.moveAmt>.15;
     if(moving&&camIdle>.4)G.camHeld=false;
@@ -13434,10 +13533,27 @@ function updateCamera(dt){
     if(!near&&Math.abs(diff)>.1)G.camYaw+=clamp(diff*5*dt,-2.4*dt,2.4*dt);
     G.camPitch=lerp(G.camPitch,.3,4*dt);
   }
-  const dist=G.camDist||5.1,py=1.55;
+  /* AND THE BRACE FLATTENS THE ANGLE. The follow camera rides well above
+     the pilgrim and looks DOWN on him, which is right for a blade — you
+     want to see the ground round your feet — and wrong for a rifle, where
+     what you want is the line out to what you are shooting. Aiming eases
+     the pitch down toward the horizontal as the camera comes in. */
+  if(gunHeld()&&FPS.ads>.01)G.camPitch=lerp(G.camPitch,.17,Math.min(1,5*dt*FPS.ads));
+  /* THE BRACE, over the shoulder. A gun aimed in third person pulls the
+     camera IN and to the pilgrim's right, the way every third-person
+     shooter does — the body slides off to the left of the frame and the
+     line to what you are shooting at is clear. It rides the same
+     `FPS.ads` lerp the sights do, so the brace and the cone close
+     together. The screen-right here is the stick's own mapping
+     (`cos yaw, -sin yaw`), and it is applied BEFORE the rim and the
+     cathedral clamps, so a braced camera is held out of stone exactly
+     like an unbraced one. */
+  const brace=gunHeld()?FPS.ads:0;
+  const dist=(G.camDist||5.1)*(1-.42*brace),py=1.55+.10*brace;
   const hP=heightAt(player.x,player.z);
-  let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist;
-  let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist;
+  const brx=Math.cos(G.camYaw)*BRACE_SIDE*brace,brz=-Math.sin(G.camYaw)*BRACE_SIDE*brace;
+  let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist+brx;
+  let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist+brz;
   const cy=hP+py+Math.sin(G.camPitch)*dist;
   if(G.bossActive){ // keep the camera off the ossuary walls
     cx=clamp(cx,-(HW-.3),HW-.3);cz=clamp(cz,-(HL-.3),HL-.3);
@@ -13509,7 +13625,7 @@ function updateCamera(dt){
     camera.position.x+=(Math.random()-.5)*G.camShake*.3;
     camera.position.y+=(Math.random()-.5)*G.camShake*.3;
   }
-  let lx=player.x,ly=hP+1.35,lz=player.z;
+  let lx=player.x+brx,ly=hP+1.35+.22*brace,lz=player.z+brz;   // the gaze slides with the brace, so the pilgrim sits left of the line
   /* OVER THE BRINK, THE EYE GOES WITH HER. The body falls out of the world
      and the gaze was staying level with the rim, so the last you saw of
      yourself was a pair of boots leaving the bottom of the frame. It
@@ -13987,6 +14103,11 @@ for(const g of GUNS)gunAmmo(g);for(const k in CALIBRES)FPS.res[k]=CALIBRES[k].st
    `attOf` degrades a stored choice the current gun cannot honour back to
    `iron`, which matters because the choice is remembered per gun in
    localStorage and a gun can lose a sight between versions. */
+/* How far a gun's cone may bloom past its own resting figure, however long
+   the trigger is held. A shooter caps this; ours did not. */
+const SPREAD_CAP=2.6;
+// how far right of the pilgrim the braced camera sits
+const BRACE_SIDE=.95;
 const SIGHTS=['iron','iron2','reddot','acog'];
 const ATTACH=[
   ['iron','iron sights','the sights the gun came with: a post and a notch, true at the top of the blade. nothing between you and the field'],
@@ -14875,7 +14996,12 @@ function hitscan(o,d,range){
    exactly through the sight as it is drawn this frame. The recoil is
    honest instead: it moves the EYE, so the sight is somewhere else for
    the next one. In third person the base direction is the eye's mark. */
-function coneNow(){return FPS.on&&FPS.ads>.9?0:FPS.spread*(FPS.on?1-FPS.ads:1);}
+/* THE CONE ANSWERS THE SIGHTS IN EITHER VIEW. It used to read
+   `FPS.spread*(FPS.on?1-FPS.ads:1)` — over the shoulder the aim did
+   nothing to it, which was true then because there was no aim over the
+   shoulder. There is now (the BRACE), and it closes the cone the same
+   way the sights do. */
+function coneNow(){return FPS.ads>.9?0:FPS.spread*(1-FPS.ads);}
 function gunRay(spread,base){
   if(base)_gv4.copy(base);else camera.getWorldDirection(_gv4);
   if(spread>0){
@@ -15193,7 +15319,13 @@ function syncFpsRig(){
    tap is the trigger and a held thumb the automatic's. */
 function updateGun(dt){
   const P=player,g=gunOf(),A=gunAmmo(g);
-  const canAim=FPS.on&&(P.state==='free'||P.state==='hurt');
+  /* THE BRACE. Aiming used to be `FPS.on && ...` — behind the eyes only —
+     so over the shoulder the AIM button did nothing, the cone never
+     closed and there was no way to shoot deliberately at all. A gun in
+     the hands can be braced in EITHER view now: the same `FPS.ads` lerp,
+     the same closing cone, and over the shoulder the camera comes in past
+     the pilgrim's shoulder and the turn slows with it. */
+  const canAim=gunHeld()&&(P.state==='free'||P.state==='hurt');
   if(IN.adsTap)FPS.adsOn=!FPS.adsOn;
   if(IN.adsRelease)FPS.adsOn=false;
   /* THE SIGHTS CAP YOU TO A WALK; THEY DO NOT COME DOWN WHEN YOU MOVE.
@@ -15214,12 +15346,27 @@ function updateGun(dt){
     const fov=lerp(VIEW.fov,fovAim,FPS.ads);
     if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
   }
-  // the hip's cone: at rest, wider walking and wider at a sprint, blooming with every shot and closing back
+  /* THE HIP'S CONE: at rest, wider walking and wider at a sprint,
+     blooming with every shot and closing back — AND CAPPED. It had no
+     ceiling at all: measured on the M4, a magazine held down opened it
+     from 2.0 to 15.4 degrees, which at ten metres is a two-and-a-half
+     metre circle. Behind the eyes you can bring the sights up and zero
+     it; over the shoulder there was nothing you could do, and half the
+     rounds missed a standing hollow at nine metres. `SPREAD_CAP` is a
+     multiple of the gun's own resting cone, so it scales with whatever
+     the weapon is. */
   const mv=Math.min(1,P.moveAmt),base=g.sp.hip+g.sp.walk*mv*(P.sprinting?1.8:1);
-  FPS.spread=Math.max(base,FPS.spread-dt*(g.auto?.09:.16));
+  FPS.spread=Math.min(base*SPREAD_CAP,Math.max(base,FPS.spread-dt*(g.auto?.09:.16)));
   // and the share of the climb that settles, settles
   if(FPS.recP>1e-4){const r=FPS.recP*Math.min(1,dt*g.rec.recover*.7);FPS.pitch-=r;FPS.recP-=r;}else FPS.recP=0;
   FPS.shotT=Math.max(0,FPS.shotT-dt);FPS.hitT-=dt;FPS.killT-=dt;FPS.flashT-=dt;FPS.boltT+=dt;
+  /* THE KICK DECAYS HERE, NOT IN THE VIEWMODEL. It lived in
+     `updateViewmodel`, which only runs behind the eyes — so over the
+     shoulder `FPS.kick` was set to 1 by the first round and stayed there
+     for ever (measured: 1.000 five seconds later), and `poseGunCarry`
+     reads it, so the pilgrim's firing arm froze in the recoil pose and
+     never came down again. It belongs to the GUN, not to the viewmodel. */
+  FPS.kick=Math.max(0,FPS.kick-dt*g.rec.recover);
   if(FPS.reloading){
     FPS.reloadT+=dt;const u=FPS.reloadT/g.reload;
     if(FPS.rlStage<1&&u>.48){FPS.rlStage=1;AudioSys.magIn();}
@@ -15240,6 +15387,26 @@ function updateGun(dt){
     else{AudioSys.gunEmpty();FPS.shotT=.28;if(resOf(g)>0)startReload();}
   }
   if(FPS.on)updateViewmodel(dt);
+  else updateRigGun(dt,g);
+}
+/* ---- the gun over the shoulder ----
+   What the viewmodel does behind the eyes, the RIG does here: the flash at
+   its own muzzle and the shot's mark on the screen. The pose is
+   `poseGunCarry`'s (it reads `FPS.kick`); this is everything that is not
+   the body. */
+function updateRigGun(dt,g){
+  const P=player,R=P.rig&&P.rig.gunModel;
+  if(!R)return;
+  /* THE MUZZLE FLASH OVER THE SHOULDER. Every gun model builds one, and
+     nothing ever showed it: `V.flash.visible` is written in
+     `updateViewmodel`, which runs behind the eyes alone, so a rifle fired
+     in third person had no flash on it at all. It is bigger than the
+     viewmodel's because it is five metres from the camera rather than
+     half a metre from the lens. */
+  const F=R.flash;if(!F)return;
+  F.visible=FPS.flashT>0&&P.state!=='dead'&&G.mode==='play';
+  if(F.visible){const s=(g.suppressed?.10:g.rocket?.8:g.pellets?.48:g.key==='sniper'?.42:.32)*(.8+Math.random()*.5);
+    F.scale.set(s,s,1);F.material.rotation=Math.random()*TAU;}
 }
 function updateViewmodel(dt){
   const vm=FPS.vm;if(!vm)return;
@@ -15251,8 +15418,7 @@ function updateViewmodel(dt){
   const t=G.time,idX=Math.sin(t*S.rate)*S.idle*hold,idY=Math.sin(t*S.rate*2)*S.idle*.5*hold;   // the breath: a slow figure of eight
   FPS.swayX=lerp(FPS.swayX,clamp(-IN.camDX*S.look,-.05,.05)*(1-.9*ads),Math.min(1,8*dt));
   FPS.swayY=lerp(FPS.swayY,clamp(IN.camDY*S.look,-.035,.035)*(1-.9*ads),Math.min(1,8*dt));
-  FPS.kick=Math.max(0,FPS.kick-dt*R.recover);
-  const k=FPS.kick,ks=FPS.kickSide||0;
+  const k=FPS.kick,ks=FPS.kickSide||0;   // (the decay is in updateGun: it runs in both views)
   FPS.sprintVm=lerp(FPS.sprintVm,P.sprinting&&mv>.5?1:0,Math.min(1,6*dt));
   const sr=FPS.sprintVm;
   let rl=0;if(FPS.reloading)rl=Math.sin(Math.PI*Math.min(1,FPS.reloadT/g.reload));
@@ -15410,7 +15576,9 @@ function updateFpsCamera(dt){
   lookX=P.x;lookY=hP+ey;lookZ=P.z;                        // so the third-person gaze picks up from here, not from wherever it last was
 }
 /* ---- the HUD: crosshair, hit marker, scope, ammunition; and which buttons show ---- */
-const FHUD={gap:-1,ammo:'',name:'',cal:'',mark:'',scope:false,acog:false,dot:false,zoom:-1,low:false,rl:false,dim:false,lit:false,zoomOn:false,ctl:''};
+const _xhv=new THREE.Vector3(),_xhp=new THREE.Vector3(),_xhd=new THREE.Vector3();   // the aim mark, over the shoulder
+const AIM_REST=22;   // where the mark sits when the round would meet nothing
+const FHUD={gap:-1,dx:0,dy:0,ammo:'',name:'',cal:'',mark:'',scope:false,acog:false,dot:false,zoom:-1,low:false,rl:false,dim:false,lit:false,zoomOn:false,ctl:''};
 function syncGunUi(){
   const gun=gunHeld(),cls=(FPS.on?'fps ':'')+(gun?'gun ':'')+(FPS.on&&!gun?'blade':'');
   if(cls!==FHUD.ctl){FHUD.ctl=cls;$('fpsCtl').className=cls;$('hud').classList.toggle('fps',FPS.on);}
@@ -15430,8 +15598,54 @@ function updateGunHud(){
   // next round can leave through. On the sights it goes, and the sights
   // do the aiming — there is no cone there to draw
   const f=innerHeight/(2*Math.tan(camera.fov*Math.PI/360));
-  const gap=!FPS.on||!gun||glass||dead||FPS.ads>.8?-1:Math.round(clamp(Math.tan(g.pellets?g.pellet:coneNow())*f+g.gap,g.gap,110));
+  let gap=-1,dx=0,dy=0;
+  if(gun&&!dead&&!glass){
+    if(FPS.on){
+      /* BEHIND THE EYES the camera IS the barrel, so the mark is the
+         screen's centre and the gap is the cone through the screen. */
+      if(FPS.ads<=.8)gap=Math.round(clamp(Math.tan(g.pellets?g.pellet:coneNow())*f+g.gap,g.gap,110));
+    }else{
+      /* OVER THE SHOULDER THE CAMERA IS NOT THE BARREL, and there was no
+         mark at all — you fired a rifle in third person with nothing on
+         the screen to say where the round would go. It leaves the hands,
+         a metre and a half in front of the body and off to one side, and
+         it goes to the EYE'S MARK when something is locked or straight
+         along the facing when nothing is: none of which is the middle of
+         the picture. So the mark is put where the round actually LANDS —
+         `hitscan` along the same base `fireGun` uses, projected — and the
+         gap is that cone's real radius at that range seen from where the
+         camera is, which is a different angle from the muzzle's. One ray
+         a frame, and only with a gun in hand over the shoulder. */
+      const o=muzzleWorld().clone(),d=gunAimBase(o),h=hitscan(o,d,g.range);
+      /* WHERE TO PUT IT WHEN THE ROUND MEETS NOTHING. The round leaves
+         LEVEL, and the field is near enough flat, so an unlocked shot at
+         nothing runs the gun's whole range and the mark lands on the
+         HORIZON — true, and useless: a reticle at seventy metres tells
+         you nothing about the ten you are fighting in. It sits at a
+         working distance instead, and snaps onto whatever the ray
+         actually meets the moment there is something to meet. */
+      const t=h.kind==='air'?Math.min(AIM_REST,g.range):h.t;
+      _xhp.copy(o).addScaledVector(d,t);
+      /* AND `project()`'S OWN Z IS NOT THE TEST FOR "IN FRONT". Measured,
+         a point seventy-six metres out came back with ndc z 1.0042 — past
+         the far plane by the projection's reckoning though it is well
+         inside the world — so guarding on `z<1` hid the mark ALWAYS. Ask
+         the camera which way it is facing instead. */
+      _xhd.copy(_xhp).sub(camera.position);
+      camera.getWorldDirection(_xhv);
+      if(_xhv.dot(_xhd)>0){
+        _xhv.copy(_xhp).project(camera);
+        dx=Math.round(clamp(_xhv.x,-1.2,1.2)*innerWidth/2);
+        dy=Math.round(clamp(-_xhv.y,-1.2,1.2)*innerHeight/2);
+        const rad=Math.tan(g.pellets?g.pellet:coneNow())*Math.max(.5,t);
+        const dc=Math.max(.5,_xhd.length());
+        gap=Math.round(clamp(rad/dc*f+g.gap,g.gap,110));
+      }
+    }
+  }
   if(gap!==FHUD.gap){FHUD.gap=gap;xh.style.display=gap<0?'none':'block';if(gap>=0)xh.style.setProperty('--gap',gap+'px');}
+  if(dx!==FHUD.dx||dy!==FHUD.dy){FHUD.dx=dx;FHUD.dy=dy;
+    for(const el of [xh,hm]){el.style.setProperty('--dx',dx+'px');el.style.setProperty('--dy',dy+'px');}}
   const mark=FPS.hitT>0?(FPS.killT>0?'on kill':FPS.hitHead?'on head':'on'):'';
   if(mark!==FHUD.mark){FHUD.mark=mark;hm.className=mark;}
   const ammo=A.mag+'|'+resOf(g);
@@ -15472,12 +15686,28 @@ function setPov(on){
 }
 /* ---- the gun in the pilgrim's hands, third person ---- */
 const GUN_L={obj:null,off:[0,0,0]};
+/* THE CARRY, AND WHAT A ROUND DOES TO THE MAN HOLDING IT.
+   The right arm out ahead with the piece levelled, the left across to the
+   fore-end — and the recoil carried through the whole body rather than the
+   one joint it used to move. A rifle going off does not just lift a wrist:
+   the muzzle climbs, the shoulder is driven round and back, the head goes
+   with it and the knees take it. Every one of these joints is in
+   `SMOOTH_JOINTS`, so the springs give the follow-through for nothing —
+   the body rides the shot and settles, it does not snap.
+   `FPS.kick` is the shot's clock (1 at the report, decaying at the gun's
+   own `rec.recover`) and `FPS.kickSide` is which way this one threw him.
+   It is the same pair the viewmodel uses behind the eyes, so what you see
+   over the shoulder and what you feel down the sights are one number. */
 function poseGunCarry(r,t,P){
-  // the right arm out ahead with the piece levelled, the left across to the fore-end
-  const kick=FPS.kick||0;
-  r.armR.rotation.set(-1.42+kick*.25,-.1,-.2);r.foreR.rotation.set(-.28,0,0);
-  r.torso.rotation.y+=.22;                                    // the body turns a little off the line, the way a rifle is held
-  r.weapon.rotation.set(-.02-kick*.2,0,0);
+  const kick=FPS.kick||0,side=FPS.kickSide||0;
+  r.armR.rotation.set(-1.42+kick*.30,-.1,-.2+kick*.12*side);
+  r.foreR.rotation.set(-.28+kick*.20,0,0);
+  r.armL.rotation.x-=kick*.16;                                // the support hand rides it too
+  r.torso.rotation.y+=.22+kick*.13*side;                      // the body turns a little off the line, and the shot drives the shoulder round
+  r.torso.rotation.x-=kick*.11;                               // ...and back into it
+  r.head.rotation.x-=kick*.14;                                // the head goes with the shoulder
+  r.body.position.y-=kick*.022;                               // and the knees take the rest
+  r.weapon.rotation.set(-.02-kick*.30,0,kick*.05*side);       // the muzzle climbs
   if(r.gunGrip){GUN_L.obj=r.gunGrip;r.ikLeftT=GUN_L;}
 }
 /* ---------------- HUD & messaging ---------------- */

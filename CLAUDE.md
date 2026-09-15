@@ -999,6 +999,99 @@ Known state of play:
       must stay empty — **anything new that calls either producer has to
       pass its height**, or it silently becomes a 2.4m wall again.
 
+- **THE GUN OVER THE SHOULDER WAS THE LEAST-FINISHED THING IN THE GAME,
+  and `updateGun` running in both views hid it.** Everything worked; almost
+  nothing was FINISHED. Audited, in the order it was found:
+  1. **`FPS.kick` never came down.** Its decay lived in `updateViewmodel`,
+     which only runs behind the eyes — so over the shoulder the first round
+     set it to 1 and it stayed there (measured: 1.000 five seconds later).
+     `poseGunCarry` reads it, so the pilgrim's firing arm FROZE in the
+     recoil pose for the rest of the run. The decay is in `updateGun` now,
+     where both views reach it. **Anything a gun owns belongs in
+     `updateGun`; only what the VIEWMODEL owns belongs in
+     `updateViewmodel`.**
+  2. **The hip's cone had no ceiling.** Measured on the M4, a magazine held
+     down opened it 2.0 → 15.4 degrees — a two-and-a-half metre circle at
+     ten. Behind the eyes you bring the sights up and zero it; over the
+     shoulder there was no aim at all, so **half the rounds missed a
+     standing hollow at nine metres** (10/20 measured). `SPREAD_CAP` (2.6)
+     is a multiple of the gun's own resting cone, so it scales with the
+     weapon: the M4 now tops out at 3.9 degrees.
+  3. **There was no aim over the shoulder.** `canAim` was `FPS.on&&...`,
+     so the AIM button was not even drawn, `coneNow` ignored `FPS.ads`
+     in third person, and nothing the player could do tightened the shot.
+     The **BRACE** is the answer and it is the same `FPS.ads` lerp: the
+     cone closes, the camera comes IN and to the pilgrim's right
+     (`BRACE_SIDE`), the pitch eases toward the horizontal, and the turn
+     slows. Measured at ten metres: hip 15/20, braced 19/20.
+  4. **There was no mark on the screen.** The crosshair was `-1` unless
+     `FPS.on`, so a rifle in third person was fired blind. And the
+     screen's CENTRE is the wrong place for it: the round leaves the
+     HANDS, a metre and a half ahead of the body and off to one side, and
+     goes to the eye's mark or straight along the facing — none of which
+     is where the camera points. So the mark is put where the round
+     LANDS: one `hitscan` a frame along the same base `fireGun` uses,
+     projected, with the gap sized from the cone's real radius at that
+     range as seen from the CAMERA (a different angle from the muzzle's).
+     Two traps in that: **`project()`'s own z is not the test for "in
+     front"** — a point seventy-six metres out came back z 1.0042 and the
+     mark was hidden always; ask `camera.getWorldDirection` and dot it.
+     And a level round over flat ground meets NOTHING, so the honest mark
+     is the horizon, which tells you nothing — it rests at `AIM_REST`
+     (22m) and snaps onto whatever the ray meets the moment there is
+     something to meet.
+  5. **The rig's gun had a muzzle flash and nothing ever showed it**
+     (`V.flash.visible` is written in `updateViewmodel` alone).
+     `updateRigGun` is the third-person half of the viewmodel: the flash,
+     bigger than the viewmodel's because it is five metres from the camera
+     rather than half a metre from the lens.
+  6. **The recoil now goes through the whole body.** It moved one joint;
+     a rifle going off drives the shoulder round and back, takes the head
+     with it and is absorbed at the knees. Every joint `poseGunCarry`
+     writes is in `SMOOTH_JOINTS`, so the springs give the follow-through
+     for nothing — the body rides the shot and settles rather than
+     snapping.
+
+- **THE PACK: THREE THINGS THE HOST NEVER DID, AND ALL THREE THE SAME
+  SENTENCE — a horror only ever knew about the PILGRIM.**
+  1. **The approach was a straight line on a frozen bearing.** Measured on
+     six hollows set on her from a 126-degree arc fourteen metres out: the
+     spread was 126 degrees at the start and **126 degrees eight seconds
+     later**. Every body held the radius it was born on, so a pack that
+     spawns in a clump arrives as a clump and queues to hit you. Neither
+     outcome is a decision.
+  2. **They walked through one another.** Nothing kept two bodies apart.
+  3. **A kill meant nothing.** Nothing in `die()` touched a neighbour.
+  `packSteer(e,dx,dz,dist)` answers the first two: the line to the
+  pilgrim, BANKED toward the tangent while still out in the open (each
+  body carries its own signed `flank`, so half curl left and half right
+  and the group opens out with nobody being assigned a position), plus a
+  separation push off anything else walking at her. The bank fades to
+  nothing inside `FLANK_NEAR` reaches, so the last stride is straight in.
+  Measured now: **126 → 205 degrees** of spread while closing 14m → 3.5m,
+  closest pair 1.58m rather than stacked.
+  `alertPack(x,z,from)` answers the third, from `die()`: dormant within
+  8m wakes (never an ambush — that is what an ambush is for), anything
+  patrolling or guarding within 12m comes, and a chaser within 7m is
+  STARTLED — `startleT`, a third of a second with its head off the
+  pilgrim and round to where it happened, at 45% speed, then on from a
+  fresh bearing. Measured: 2 of 3 neighbours startled, the pacer went to
+  chase. **It is a beat and not a stun on purpose**: a pack that freezes
+  on every kill is a pack you take apart one at a time for free, and
+  `startleCd` (3.5s) stops a massacre chaining it.
+  **The cost is nothing and it was measured**: every live body steering
+  against every other is **8.6 microseconds a frame — 0.05% of a 60fps
+  frame** at 24 bodies. The two-comparison bounding test before the
+  distance is what buys that; keep it.
+  **The THROWER stood on one line.** Its band was a rubber band on the
+  same radius, so it lobbed from one bearing for ever (measured: seven
+  degrees in five seconds) — a ranged thing that never moves is a target
+  you can forget about. Its RANGE and its ORBIT are separate now, or it
+  ends up pinned on the edge of its own band: it holds `CAST_BAND` within
+  a metre and a bit, and works round her the whole time, turning its
+  circle after every throw and whenever she closes inside seven metres.
+  Measured: 21 degrees in ten seconds at a steady 10.7–11.6m.
+
 - **THE WEAPON BAR WAS LAID OUT AS A 52px CIRCLE, AND IT WAS A
   SPECIFICITY BUG.** `#fpsCtl .btn{width:52px;height:52px}` is (1,1,0) and
   `#fbSwap{width:228px;height:42px}` was only (1,0,0), so the size rule
