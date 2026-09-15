@@ -905,6 +905,25 @@ Known state of play:
       a frame and `rocketBurst` throws a killed small humanoid into
       `scatterBones` with `crumbled` set, the katana-slice path, so
       `pruneFallen` buries it.
+  21. **COVER IS THE OCCLUDER'S OWN CROWN, AND IT USED TO BE A CONSTANT
+      PER KIND.** `hitscan` blocked a ray at `heightAt+2.4` for any wall
+      segment, `+1.4` for any other obstacle (`+5.5` for a tree) and
+      `+1.5`/`+2.6` for a breakable — numbers that have nothing to do with
+      the thing standing there. Measured on seed 7: ruin walls run 1.31 to
+      2.18m, so **every one of them ate rounds a metre above its own
+      crown**, and a hollow's skull plainly showing over a wall could not
+      be shot. A slab grave is 0.19m and stopped everything under 2.4. The
+      same constant ran the other way on the colonnade: an 8.6m pillar was
+      see-through above 1.4m.
+      `addObstacle(x,z,r,stone,top)` and `addWall(...,stone,top)` take
+      `top` — the WORLD y of the crown, not a height above anything — and
+      `hitscan` reads it, falling back to the old constants only for an
+      obstacle that forgot to say. A breakable takes its own from
+      `b.obs.top`. Verified over 178 field occluders and 68 on the path:
+      **0 still block a shot 20cm over their own crown**, and what passes
+      through their middle is unchanged. `BP.obstacles.filter(o=>o.top==null)`
+      must stay empty — **anything new that calls either producer has to
+      pass its height**, or it silently becomes a 2.4m wall again.
 
 - **THE WEAPON BAR WAS LAID OUT AS A 52px CIRCLE, AND IT WAS A
   SPECIFICITY BUG.** `#fpsCtl .btn{width:52px;height:52px}` is (1,1,0) and

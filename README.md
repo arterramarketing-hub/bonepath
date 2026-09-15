@@ -584,6 +584,15 @@ imbued element rides the rounds — fire bites and can take, frost holds
 them where they stand, lightning adds to the damage — exactly as an arrow
 carries them.
 
+**Cover is the real height of the thing you are behind.** A round is
+stopped by a wall, a tree, a column, a headstone or a bell only up to that
+object's own crown, and passes over it above that. This is what lets you
+take the head of a hollow standing behind a ruined wall — and what stops
+you shooting through a colonnade pillar, which reaches eleven metres.
+Every low thing in the world is low to a bullet as well as to the eye: a
+slab grave is eighteen centimetres and blocks nothing above them, a
+toppled causeway stone sixty-five, a headstone just over a metre.
+
 **Attachments.** Where the blade has its charged attack, the pause
 screen's third row is what sits on the gun's **rail** — one per gun,
 remembered by the browser, in either view. **Iron sights**: each gun's
