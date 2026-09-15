@@ -13799,17 +13799,26 @@ function buildGunModel(key,o){o=o||{};
        thing that can tell you the gun has length is a value change running
        away from you; in one flat black it reads as a wall with a sight on
        it, which is exactly what it did. */
-    g.body=vmBox(.046,.046,.30,M.gunD,0,.043,-.045);g.add(g.body);
-    g.add(vmBox(.046,.005,.30,M.gun,0,.0665,-.045));                         // the top FACE, its own mesh and a step lighter
-    g.add(vmBox(.026,.008,.30,M.grey,0,.0725,-.045));                        // the rail, lighter again
-    for(let i=0;i<5;i++)g.add(vmBox(.030,.005,.010,M.grey,0,.0785,-.165+i*.062));
+    /* and the whole of it a value ABOVE black. A UMP is black polymer, but
+       a black gun under a noon sun renders as a silhouette with nothing in
+       it — the reference reads as dark grey metal, and so does this. */
+    /* THE RECEIVER ENDS AT THE SIGHT and the tail carries on from there.
+       Its square rear face is the one thing in the aimed picture that is
+       pure dark mass — a box seen end-on — and the nearer it is the more
+       of the screen it owns. Ending it at the notch puts that face 20cm
+       out instead of 15, and what continues behind it is the tail, which
+       is narrower, lower, sloping, and in the squashed half anyway. */
+    g.body=vmBox(.052,.046,.245,M.grey,0,.043,-.073);g.add(g.body);
+    g.add(vmBox(.052,.005,.245,M.steel,0,.0665,-.073));                      // the top FACE, its own mesh and a step lighter
+    g.add(vmBox(.026,.008,.245,M.grey,0,.0725,-.073));                       // the rail
+    for(let i=0;i<7;i++)g.add(vmBox(.028,.005,.009,M.steel,0,.0785,-.175+i*.048));   // and its teeth: small light ticks running away, which is the depth cue
     // THE LOWER: the trigger group and the well, wider and darker
-    g.add(vmBox(.056,.042,.22,M.gunD,0,.005,-.03));
+    g.add(vmBox(.058,.042,.20,M.gun,0,.005,-.04));
     g.add(vmBox(.050,.018,.062,M.gun,0,-.017,-.082));                        // the well's lip
-    const tail=vmBox(.040,.044,.10,M.gunD,0,.026,.105);tail.rotation.x=-.10;g.add(tail);  // and the tail, narrower and lower than the receiver, sloping into the hinge
+    const tail=vmBox(.042,.046,.115,M.gun,0,.030,.095);tail.rotation.x=-.10;g.add(tail);  // and the tail, narrower and lower than the receiver, sloping into the hinge
     // THE FRONT: a short rail section, the nut, the stubby barrel, the can
-    g.add(vmBox(.044,.040,.10,M.gunD,0,.040,-.225));
-    g.add(vmBox(.024,.009,.095,M.gunD,0,.0725,-.225));
+    g.add(vmBox(.044,.040,.10,M.gun,0,.040,-.225));
+    g.add(vmBox(.024,.009,.095,M.grey,0,.0725,-.225));
     g.add(vmCyl(.014,.022,8,M.gunD,0,.042,-.285));
     g.add(vmCyl(.0105,.05,8,M.gunD,0,.042,-.318));
     g.add(vmCyl(.0185,.012,10,M.gun,0,.042,-.350));                          // the can's collar
@@ -13828,24 +13837,32 @@ function buildGunModel(key,o){o=o||{};
     st.add(vmBox(.014,.013,.132,M.gunD,0,-.036,.072));                       // the bottom strut
     st.add(vmBox(.032,.100,.016,M.gunD,0,0,.146));                           // the butt, closing the frame
     g.add(vmBox(.009,.011,.05,M.grey,-.031,.052,-.11));                      // the charging handle, on the left
-    /* THE SIGHTS, and the rear one is a BLOCK, not four thin bars. Aimed,
-       the rear sight is the nearest thing to the eye and the widest thing
-       in the picture: a flat top with a shoulder either side of the
-       aperture is what the reference shows, and what gives the silhouette
-       a waist — wide at the eye, narrowing away to the front post. */
-    const iron=new THREE.Group(),ay=.104;
-    iron.add(vmBox(.006,.024,.005,M.dark,0,.092,-.27));iron.add(vmBox(.004,.004,.003,M.pale,0,.1045,-.2672));
-    iron.add(vmBox(.004,.034,.007,M.gunD,-.013,.092,-.27));iron.add(vmBox(.004,.034,.007,M.gunD,.013,.092,-.27));
-    iron.add(vmBox(.030,.004,.007,M.gunD,0,.112,-.27));
-    /* and the rear sight is kept NARROW at its base. It was as wide as the
-       receiver, which meant it stood squarely in front of the rail — and
-       the rail running away under the aperture is the one thing in the
-       whole picture that says the gun has length. Only the flat top is
-       wide, and that sits above the eye line where it hides nothing. */
-    iron.add(vmBox(.030,.009,.016,M.gun,0,.0805,.06));                       // the base, sat on the rail
-    iron.add(vmBox(.009,.028,.016,M.gunD,-.0165,.0985,.06));iron.add(vmBox(.009,.028,.016,M.gunD,.0165,.0985,.06));   // the walls of the notch
-    iron.add(vmBox(.042,.005,.016,M.grey,0,.1145,.06));                      // the flat top, shoulder to shoulder
-    iron.add(vmBox(.024,.004,.016,M.gunD,0,.0865,.06));                      // the floor of the notch
+    /* THE SIGHTS, OFF THE REFERENCE'S OUTLINE. Two things make that
+       picture, and only one of them is the sight itself.
+       FIRST, THE REAR SIGHT STANDS TALL. What fills the bottom of a
+       shooter's aimed frame is the receiver's TOP running away from the
+       eye — a trapezoid, wide at the bottom edge and narrowing to the
+       sight at its far end — and how much of that you see is set by how
+       far the eye rides ABOVE the top face. At 25mm of sight height the
+       band was a sliver and the gun read as a wall. This is an HK drum:
+       a tall tower on the rail with the notch cut through its top, which
+       puts the eye 57mm up, and the trapezoid runs off the bottom of the
+       screen the way the reference's does.
+       SECOND, THE SIGHT SITS FORWARD. There has to be receiver BETWEEN
+       your eye and the rear sight or there is no trapezoid to see. It can
+       only come forward as far as the near plane allows — past that the
+       receiver itself starts being squashed and the gun comes apart at
+       the seam — which is z=.04 here, 7cm of rail behind the notch.
+       The front post is raised to match and hooded, HK-fashion. */
+    const iron=new THREE.Group(),ay=.126,rz=.04;
+    iron.add(vmBox(.007,.048,.006,M.gunD,0,.101,-.27));                       // the front post's tower
+    iron.add(vmBox(.005,.010,.005,M.dark,0,.1265,-.27));iron.add(vmBox(.004,.004,.003,M.pale,0,.1285,-.2672));
+    iron.add(vmBox(.004,.040,.008,M.gun,-.014,.106,-.27));iron.add(vmBox(.004,.040,.008,M.gun,.014,.106,-.27));   // its hood
+    iron.add(vmBox(.032,.004,.008,M.gun,0,.1275,-.27));
+    iron.add(vmBox(.026,.040,.016,M.gun,0,.099,rz));                          // the rear tower, narrow so the rail runs past it
+    iron.add(vmBox(.011,.030,.016,M.gunD,-.0175,.126,rz));iron.add(vmBox(.011,.030,.016,M.gunD,.0175,.126,rz));   // the drum either side of the notch
+    iron.add(vmBox(.046,.005,.016,M.grey,0,.1425,rz));                        // its flat top, shoulder to shoulder
+    iron.add(vmBox(.024,.005,.016,M.gunD,0,.1185,rz));                        // the floor of the notch
     g.add(iron);const rd=sightRedDot(.077,-.02),ac=sightAcog(.077,-.02);g.add(rd);g.add(ac);
     hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
     grip.position.set(0,-.004,-.215);muzzle.position.set(0,.042,-.466);

@@ -737,7 +737,32 @@ Known state of play:
       **A ray probe is how you find out what is actually filling the
       picture** — `Raycaster` from the camera through a few NDC points
       into the viewmodel, printing each hit's box size, position and
-      whether its parent is `aft`. Do not guess at a slab; ask it.
+      whether its parent is `aft`. Do not guess at a slab; ask it. (And
+      when a bright shape turns out not to be on the gun at all, it is the
+      cathedral's steps behind it. Dump every mesh's box size AND its
+      material colour before theorising about light.)
+      **WHAT AN AIMED OUTLINE IS MADE OF**, worked out against a reference
+      frame on the UMP and true of all of them — three things, and only
+      one is the sight:
+      1. the receiver's TOP running away from the eye, a trapezoid wide at
+         the bottom edge and narrowing to the sight. How much of it you
+         see is set by how far the eye rides ABOVE that face — which is
+         the REAR SIGHT'S HEIGHT. 25mm is a sliver and reads as a wall;
+         the UMP's drum puts it at 57mm.
+      2. receiver BETWEEN the eye and the rear sight, or there is no
+         trapezoid at all. The sight can only come as far back toward the
+         eye as `P` allows (z=.04 on the UMP, 7cm of rail behind the
+         notch): past that the receiver goes in the aft group, and a
+         squashed receiver with an unsquashed sight pulls the model apart
+         at the seam — the sight ends up floating behind the receiver's
+         own end.
+      3. the receiver must END somewhere before the eye. A box seen
+         end-on presents its square rear face as pure dark mass, and the
+         nearer it is the more of the screen it owns; the UMP's receiver
+         stops at the notch and the tail carries on behind it.
+      Values: three steps up the gun (body, top face, rail) plus light
+      ticks on the rail's teeth, and all of it a value ABOVE black — a
+      black gun under a noon sun is a silhouette with nothing in it.
       **THE HIP CARRY IS THE OFFSET AND THE ROLL, NOT THE YAW.** The guns
       were first held nearly parallel to the view and read as a thin
       sliver end-on; the answer looked like yaw, so they got `hipRy` +.26

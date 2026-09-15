@@ -528,7 +528,7 @@ the same as three blows). The nearest thing takes the round.
 | | calibre | magazine · start | damage (body / head) | rate | the feel |
 |---|---|---|---|---|---|
 | **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down |
-| **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun |
+| **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. Its irons are an **HK drum**: a tall tower forward on the rail with the notch cut through its top, and a hooded post to match |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Carry-handle aperture and a post on a triangular base |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
 | **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then four returns off the stone, each later and quieter and darker than the last, with a roll going away under them. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
@@ -618,6 +618,31 @@ shooter's hip carry is a weapon offset right, rolled over, and pointed
 very nearly straight forward; the diagonal you see is perspective — the
 stock near and far right, the muzzle converging on the centre. The barrel
 now vanishes within two per cent of the crosshair.
+
+**What an aimed weapon's outline is made of** — worked out against a
+reference frame, on the UMP, and true of all of them. Three things, and
+only one is the sight:
+
+1. **The receiver's top running away from the eye.** A trapezoid, wide at
+   the bottom edge of the screen and narrowing to the sight at its far
+   end. How much of it you see is set by how far the eye rides ABOVE that
+   top face, which is the REAR SIGHT'S HEIGHT. At 25mm the band was a
+   sliver and the gun read as a wall; the drum puts the eye 57mm up and
+   the trapezoid runs off the bottom of the frame the way the reference's
+   does.
+2. **Receiver BETWEEN your eye and the rear sight.** No gap, no
+   trapezoid — and the sight can only come as far forward as the near
+   plane allows, since past that the receiver itself starts being
+   squashed and the gun comes apart at the seam.
+3. **Somewhere for the eye to stop.** A box receiver seen end-on presents
+   its square rear face, and the nearer that face is the more of the
+   screen it owns as pure dark mass. The receiver ends at the notch now
+   and the tail — narrower, lower, sloping, and in the squashed half
+   anyway — carries on behind it.
+
+And the values: three steps up the gun (body, top face, rail) with light
+ticks on the rail's teeth, all of it a value above black. A black gun
+under a noon sun renders as a silhouette with nothing in it.
 
 **And a weapon that close would be cut in half by the near plane** — its
 own stock ends up behind your eye, and you find yourself aiming at a flat
