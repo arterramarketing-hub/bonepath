@@ -980,6 +980,16 @@ Known state of play:
     `M.tube` still has `side:THREE.DoubleSide`: a single-sided tube seen
     from inside draws nothing and the scope becomes a window onto the
     skybox.
+    **ONE BORE, ONE RING.** The body was r .024 with a WIDER eyepiece of
+    r .028 behind it, and looking down a tube whose radius steps you see
+    the edge of each: two concentric hoops. A scope's body is a single
+    bore from the eye to the bell. A flare is free — anything WIDER than
+    the bore is outside what the bore already frames and draws no edge of
+    its own, which is why the bell may and does flare; only a NARROWING
+    adds a ring. If a second hoop ever appears, look for a radius step.
+    The power is 30 degrees (2.47x) now rather than 37 (2x): the reason it
+    was pulled down to 2x was the tunnel, and the tunnel went when the
+    optic became a model.
 - **EVERY GUN IS BUILT OUT OF `vmOct`, AND THE FURNITURE FOLLOWS ONE
   RULE.** `GOct` is a unit eight-sided prism lying along z, turned an
   eighth of a turn so its flats land exactly where a box's faces would —
@@ -1076,6 +1086,17 @@ Known state of play:
   same length and height is an equals sign, not an L. The frame is 150
   against the slide's 262 and steps down off it, and the grip is DARK,
   which is what stops the gold halfway down.
+- **AN OPTIC NEEDS AIR UNDER IT, AND THE LAUNCHER HAD NONE.** The RPG's
+  rail sat straight on a 76mm pipe, so its sight line was barely two
+  centimetres over the tube's own crown — and at ADS the sight line IS the
+  middle of the screen, so the pipe rose to just under the reticle and
+  filled the lower frame. Measured at full ADS, the crown in the near
+  half-metre (the part that actually fills the picture, not the far end,
+  which converges toward the vanishing point and tells you nothing): NDC
+  **-0.26 → -0.58** once it was put on a bracket. When you measure this,
+  force `FPS.ads` to 1 first — the launcher auto-reloads off a magazine of
+  one, and `FPS.reloading` blocks the sights, so a timed wait catches the
+  lerp mid-flight and reads a different number every run.
 - **THE BRASS** (`SHELLS`, `shellPool`, `ejectShell`, `updateShells`).
   Fourteen cases in a ring buffer, thrown along the GUN'S OWN right and
   up — which in first person is the camera's and in third the hand's —
@@ -1088,6 +1109,21 @@ Known state of play:
   - `updateShells(dt)` runs in `frame()` under `G.mode==='play'||'dead'`,
     not inside the play branch: brass in the air does not care that you
     have just died.
+  - **A CASE DOES NOT LAND ONCE, AND THAT WAS THE LAST THING WRONG WITH
+    IT.** It hits, turns over, hits again and settles, and that short
+    irregular run of re-contacts IS what brass sounds like — one tick on
+    its own is a pebble, however well the tick is built. `shellDrop`
+    plays two or three re-contacts, each quieter, brighter and closer to
+    the last. The other half was a 45ms tone at 420Hz put in as "the
+    case's mass": a cartridge is twenty grams of thin brass and has no
+    mass to hear, and a low tone held that long is a wood block. All of
+    its voice is high, dense and inharmonic (1 : 1.71 : 2.43) and over
+    inside 25ms.
+    **The run is only spent when a case has the air to itself.** A second
+    throttle (`_shRun`, 420ms) beside `_shTink`: a carbine throws twelve a
+    second and twelve runs of three would be gravel, so in sustained fire
+    each case gets its single tick. Measured: one shot → one full run;
+    twenty-four rounds held down → 39 sounds, 3 of them runs.
   - **IT WAS A SQUEAK, AND THE SHAPE WAS THE FAULT, NOT THE LEVEL.**
     `shellDrop` was two nearly-pure partials at 3kHz and 5kHz, each held
     around a tenth of a second — a sine that high, that clean and that
@@ -1139,13 +1175,21 @@ Known state of play:
   second tick a beat behind — the falling pair. `hitMark` carries `head`
   through to it and to `FPS.hitHead`, which is what colours the ticks
   gold.
-- **The sniper is the one gun the FIELD answers.** `AudioSys.gun('sniper')`
-  schedules four returns after the crack (at .14/.30/.52/.80s), each
-  quieter and DARKER than the last — distance eats the top end first, so
-  the filter corner falls with the gain, and each is jittered ±15ms so two
-  shots are never identical. A long low roll runs under all of it. Without
-  that tail a 96-damage round reads no heavier than the carbine: the
-  weight of a rifle is in what comes back, not in the crack.
+- **The sniper is the one gun the FIELD answers**, and **THE TAIL IS
+  DENSITY, NOT A COUNT OF ECHOES.** It was four returns at .14/.30/.52/.80
+  — and four discrete events a third of a second apart are four ECHOES,
+  which is a canyon, not a field. A field answers the way a room does: two
+  or three early reflections you can still pick out, and then the density
+  RISES until the returns run into one another and the rest is a wash
+  coming down. So it is fifteen returns whose gaps SHRINK (each .72 of the
+  last), none loud enough to stand out of the others, over the same total
+  length. Each is quieter and DARKER than the last — distance eats the top
+  end first, so the filter corner falls with the gain — and only the first
+  four carry the low sawtooth, or the bottom end flutters. A long low roll
+  runs under all of it. Without that tail a 96-damage round reads no
+  heavier than the carbine: the weight of a rifle is in what comes back,
+  not in the crack. **If it ever sounds like separate echoes again, add
+  returns and close the gaps; do not move the four.**
 
 - **A HOLLOW IS 85 AND A THROWER 70** (`Enemy`'s constructor), five swings
   of the greatsword and four. They were 64 and 52 — four swings and three

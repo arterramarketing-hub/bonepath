@@ -534,7 +534,7 @@ the same as three blows). The nearest thing takes the round.
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. Its irons are an **HK drum**, and they are **round**: a rear drum with a peep bored through it and a front post standing inside a ring, so what you see aimed is a circle at the far end sitting inside a circle at the near one with the post's tip between them |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Built as a RIFLE rather than a compact: a twenty-seven centimetre quad rail with its rungs running the length of it, a barrel carrying well past that to a gas block and front sight, a flat-topped receiver with one rail unbroken from the stock to the muzzle, and a collapsing stock on a ribbed buffer tube. Its irons are a **ghost ring** — a fat hoop on the back of the rail with the post half a metre in front of it, which is what an aperture is for |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
-| **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then four returns off the stone, each later and quieter and darker than the last, with a roll going away under them. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+| **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then the field coming back — a couple of returns off the stone you can still pick out, and then more of them, closer and closer together until they run into one another and the rest is a wash coming down, each darker than the last, with a roll going away under all of it. Four spaced returns is a canyon; a field answers with density. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
 | **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
 
 **What a round leaves.** A body flinches and bleeds (or chips, if it is
@@ -675,14 +675,16 @@ window, nothing in it, and a dot — no ring. It is **1.15
 times**, which is to say barely a magnification at all: the picture you
 were looking at is the picture you aim with, the rifle stays in your
 hands, and the eye is on the mark a shade faster. **ACOG**: a short
-scope on the rail at **two times** — a working magnification, not a
+scope on the rail at **two and a half times** — a working magnification, not a
 sniper's — and it is a **scope you can see**, not a hole cut in the
 screen. The optic is modelled: a bell, a body, two rings clamping it to
 its mount, an elevation turret on top and a windage turret on the side,
 and you look **down the tube** at the world through it, with the gun
 still under you and the field still round the edges of the frame. A red
 donut sits on the mark with a post under it and a pair of stadia ticks
-either side. It used to go to black glass with the weapon taken away —
+either side, and you look down **one bore** — a scope whose body steps in
+width shows you the edge of every step, and reads as two rings inside one
+another rather than as a tube. It used to go to black glass with the weapon taken away —
 which is what a sniper's scope does, and the ACOG is not one. The sniper's own scope is its iron option (four and eight
 times, the zoom button); give it a dot or an ACOG and it becomes a rifle
 you can fight close with.
@@ -742,11 +744,15 @@ round waits on it.
 **The brass comes out.** Every round but the rocket throws its case out
 of the ejection port — the gun's own right and a little up, tumbling,
 under gravity, bouncing once off the soil and lying still — and each one
-**ticks** as it lands: mostly impact, the case's own small mass under it,
-and a brief ring over the top whose two partials are deliberately not an
-octave apart, so the ear hears metal rather than a note. All of it is gone
-inside seventy milliseconds — held longer and higher, as it was, a case
-landing is a whistle. Fourteen are in the air at a time
+**ticks** as it lands — and then ticks again, twice or three times more,
+quieter and closer each time, because a case does not land once: it hits,
+turns over, hits again and settles, and that little irregular run is what
+brass actually sounds like. One tick on its own is a pebble. Each contact
+is dense, high and inharmonic and gone inside twenty-five milliseconds, and
+there is no low thud under it, because a cartridge is twenty grams of thin
+brass and has no mass to hear. The settling run is only spent when a case
+has the air to itself — hold the trigger down and each one gets a single
+tick, or a magazine is gravel. Fourteen are in the air at a time
 and a case lies where it fell for five seconds. The port is a point on
 each weapon's model, so the brass leaves the rifle at the rifle's port
 whether the eye is in the helm or behind the shoulder. One sound per

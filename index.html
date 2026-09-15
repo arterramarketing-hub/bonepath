@@ -2354,12 +2354,25 @@ const AudioSys=(()=>{
          low roll going away under all of them. */
       if(kind==='sniper'){noise(t,{peak:.72,att:.001,dec:.22,f0:4200,f1:260});tone(t,{f:150,f2:28,type:'sawtooth',peak:.36,att:.003,dec:.6});
         noise(t+.04,{peak:.3,att:.03,dec:1.1,f0:500,f1:60});tone(t+.01,{f:2400,f2:700,type:'square',peak:.05,att:.001,dec:.08});
-        for(const[d,a,f]of[[.14,.30,2000],[.30,.17,1250],[.52,.10,820],[.80,.055,540]]){
-          const e=t+d+rr2(-.015,.015);
-          noise(e,{peak:a,att:.02,dec:.30+d,f0:f,f1:Math.max(60,f*.18)});
-          tone(e,{f:130-d*24,f2:32,type:'sawtooth',peak:a*.40,att:.015,dec:.36+d});
-        }
-        noise(t+.12,{peak:.11,att:.22,dec:2.0,f0:250,f1:44});
+        /* THE TAIL IS DENSITY, NOT FOUR SLAPS. It was four returns at
+           .14, .30, .52 and .80 — and four discrete events spaced a third
+           of a second apart are four ECHOES, which is what a canyon does,
+           not what a field does. A field answers the way a room does: two
+           or three early reflections you can still pick out, and then the
+           density RISES until the returns run into one another and the
+           rest is a wash coming down. So the count is fifteen, the gaps
+           SHRINK as it goes (each is .72 of the last), and every one is
+           quiet enough that no single one stands out of the others. Same
+           total length, same falling brightness — distance eats the top
+           end first, so the filter corner comes down with the gain. */
+        {let d=.105,gap=.115,a=.175,f=2300;
+         for(let i=0;i<15;i++){
+           const e=t+d+rr2(-.012,.012)*(1-i/18);
+           noise(e,{peak:a,att:.018+d*.05,dec:.30+d*.8,f0:f,f1:Math.max(55,f*.2)});
+           if(i<4)tone(e,{f:132-d*26,f2:32,type:'sawtooth',peak:a*.34,att:.015,dec:.36+d});
+           d+=gap;gap*=.72;a*=.845;f*=.90;
+         }}
+        noise(t+.12,{peak:.12,att:.26,dec:2.2,f0:240,f1:42});   // and the long roll under all of it
         return;}
       if(kind==='ump'){   // suppressed: no crack at all — a thick, short thump, a breath of gas, and the action clacking over it
         noise(t,{peak:.3,att:.002,dec:.05,f0:900,f1:180});tone(t,{f:130,f2:48,type:'sawtooth',peak:.13,att:.003,dec:.09});
@@ -2434,13 +2447,37 @@ const AudioSys=(()=>{
        octave) or the ear hears a note instead of metal. Nothing in it runs
        past seventy milliseconds. If it ever squeaks again, shorten the
        partials and pull them down; do not reach for the level. */
-    shellDrop(v){if(!ac)return;const t=now();v=v==null?1:v;
-      noise(t,{peak:.060*v,att:.0004,dec:.028,f0:5200,f1:1100,type:'bandpass',Q:1.1});   // the tick
-      noise(t,{peak:.025*v,att:.0004,dec:.008,f0:9000,f1:5000,type:'highpass',Q:.7});    // and its edge
-      tone(t,{f:rr2(380,520),f2:220,type:'triangle',peak:.026*v,att:.0006,dec:.045});    // the case's own small mass
-      const f=rr2(1500,2100);
-      tone(t+.001,{f:f,f2:f*.9,type:'triangle',peak:.018*v,att:.001,dec:.055});
-      tone(t+.002,{f:f*2.37,f2:f*2.2,type:'sine',peak:.008*v,att:.001,dec:.032});},
+    shellDrop(v,full){if(!ac)return;const t=now();v=v==null?1:v;
+      /* ONE CONTACT: a tick, with a DENSE cluster of partials over it. The
+         pass before this had one partial pair at 1.5kHz and a 45ms tone at
+         420Hz underneath for "the case's mass" — and a low tone that long
+         is a wood block or a pebble, which is what it sounded like. A
+         cartridge case is 20 grams of thin brass: there is no mass in it to
+         hear. All of its voice is high, dense and INHARMONIC (1 : 1.71 :
+         2.43 here, nothing like a harmonic series) and all of it is over
+         inside twenty-five milliseconds. */
+      const hit=(t0,g,br)=>{
+        noise(t0,{peak:.052*g,att:.0003,dec:.016,f0:6000*br,f1:1600,type:'bandpass',Q:1.0});
+        noise(t0,{peak:.020*g,att:.0003,dec:.005,f0:11000,f1:6000,type:'highpass',Q:.7});
+        const f=rr2(2600,3400)*br;
+        tone(t0,{f:f,f2:f*.94,type:'triangle',peak:.019*g,att:.0006,dec:.022});
+        tone(t0+.0008,{f:f*1.71,f2:f*1.64,type:'sine',peak:.012*g,att:.0006,dec:.017});
+        tone(t0+.0012,{f:f*2.43,f2:f*2.35,type:'sine',peak:.007*g,att:.0006,dec:.012});
+      };
+      hit(t,v,1);
+      /* AND A CASE DOES NOT LAND ONCE. It hits, turns over, hits again and
+         settles, and that short irregular run of re-contacts IS what brass
+         sounds like — one tick on its own is a pebble, and that is the
+         whole of what was still wrong. Each is quieter, brighter and closer
+         to the last than the one before.
+         The run is only spent when a case has the air to itself (`full`):
+         a carbine throws twelve a second, and twelve runs of three would be
+         gravel. In sustained fire each case gets its single tick, which is
+         what a firefight actually sounds like. */
+      if(!full)return;
+      const n=2+(Math.random()*2|0);
+      let tt=t,g=.44*v;
+      for(let i=0;i<n;i++){tt+=rr2(.032,.080)/(1+i*.55);hit(tt,g,1.06+i*.07);g*=.52;}},
     /* THE HITMARKER, THE WAY A SHOOTER DOES ONE. It has been both wrong
        ways round now: two quiet square blips that the .50's own report
        walked straight over, and then a CLACK loud enough to beat the gun,
@@ -13829,10 +13866,14 @@ const ATTACH=[
      red dot  1.15x -> 61 deg. A red dot is very nearly 1x — it is a
               sight, not a scope, and the point of it is that the picture
               barely changes. It was 52 (1.38x), which read as a zoom.
-     ACOG     2.00x -> 37 deg. It was 24 (3.17x), which is a sniper's
-              magnification with a sniper's tunnel to go with it. The
-              housing fades out now instead of cutting to black. */
-const ATT_FOV={reddot:61,acog:37};
+     ACOG     2.47x -> 30 deg. It was 24 (3.17x) and that was a sniper's
+              magnification with a sniper's tunnel to go with it, so it
+              came back to 37 (2x) while the optic was still a hole cut in
+              the screen. The optic is MODELLED now — you look down a tube
+              with the gun under it and the field round the edges — so the
+              tunnel is gone and the power can go back up where a combat
+              optic's belongs. */
+const ATT_FOV={reddot:61,acog:30};
 function attOf(g){g=g||gunOf();return FPS.att[g.key]||'iron';}
 function attLabel(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the scope';if(a==='iron'&&g.rocket)return 'the ladder sight';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[1];}
 function attNote(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the rifle\'s own glass: four times, or eight on the zoom button. the gun leaves the picture while you are in it';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[2];}
@@ -13975,13 +14016,19 @@ function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.046
   s.add(vmOct(.026,.012,.056,M.gunD,0,railY+.006,zc));                       // the mount on the rail
   s.add(vmOct(.040,.024,.016,M.gunD,0,railY+.022,zc-.030));                  // the rings that clamp the body
   s.add(vmOct(.040,.024,.016,M.gunD,0,railY+.022,zc+.030));
-  s.add(vmTube(.024,.118,12,M.tube,0,ay,zc-.004));                           // the body — wide, the way a combat optic is
-  s.add(vmTube(.031,.032,12,M.tube,0,ay,zc-.076));                           // the bell, flaring out at the front
-  s.add(vmRing(.031,.004,12,M.gunD,0,ay,zc-.092));                           // its rim
-  s.add(vmTube(.028,.026,12,M.tube,0,ay,zc+.048));                           // the eyepiece
-  s.add(vmRing(.028,.004,12,M.gunD,0,ay,zc+.061));                           // and its
-  s.add(vmKnob(.009,.017,8,M.gun,0,ay+.026,zc-.006));                        // the elevation turret
-  s.add(vmKnob(.008,.015,8,M.gun,.026,ay,zc-.006,Math.PI/2));                // the windage, on the side
+  /* ONE BORE, ONE RING. The body was r .024 with a WIDER eyepiece of
+     r .028 behind it, and looking down a tube whose radius steps you see
+     the edge of each one: two concentric hoops, one inside the other.
+     A scope's body is a single bore from the eye to the bell. The BELL may
+     flare, and does, because anything WIDER than the bore is outside what
+     the bore already frames and shows no edge of its own — it is only a
+     narrowing that draws a second ring. */
+  s.add(vmTube(.026,.148,14,M.tube,0,ay,zc-.008));                           // the body, one bore the whole way back to the eye
+  s.add(vmRing(.026,.004,14,M.gunD,0,ay,zc+.064));                           // and its ONE rim, at the eye's end
+  s.add(vmTube(.033,.032,14,M.tube,0,ay,zc-.088));                           // the bell, flaring out at the front
+  s.add(vmRing(.033,.004,14,M.gunD,0,ay,zc-.102));                           // its rim
+  s.add(vmKnob(.009,.017,8,M.gun,0,ay+.028,zc-.006));                        // the elevation turret
+  s.add(vmKnob(.008,.015,8,M.gun,.028,ay,zc-.006,Math.PI/2));                // the windage, on the side
   s.h=ay;return s;}
 /* SPENT BRASS. A pool of fourteen, because a magazine's worth of them all
    at once is thirty draws nobody asked for; the oldest is recycled. They
@@ -14013,9 +14060,9 @@ function ejectShell(){
   s.vx=_shr.x*sp+_shu.x*up+_shf.x*fw;s.vy=_shr.y*sp+_shu.y*up+_shf.y*fw;s.vz=_shr.z*sp+_shu.z*up+_shf.z*fw;
   s.sx=rr3(-16,16);s.sy=rr3(-16,16);s.sz=rr3(-16,16);
 }
-let _shTink=0;
+let _shTink=0,_shRun=0;
 function updateShells(dt){
-  _shTink-=dt;
+  _shTink-=dt;_shRun-=dt;
   for(const s of SHELLS.m){
     if(s.t<0)continue;
     s.t+=dt;
@@ -14026,7 +14073,9 @@ function updateShells(dt){
       const gy=heightAt(s.me.position.x,s.me.position.z)+.011;
       if(s.me.position.y<=gy){
         s.me.position.y=gy;
-        if(_shTink<=0){_shTink=.05;AudioSys.shellDrop(s.hit?.6:1);}   // once per case, and never two in a frame's breath
+        if(_shTink<=0){_shTink=.05;
+          const solo=_shRun<=0;if(solo)_shRun=.42;                     // ...and the bouncing RUN only when a case has the air to itself
+          AudioSys.shellDrop(s.hit?.6:1,solo&&!s.hit);}
         s.hit=true;
         if(Math.abs(s.vy)>1.0){s.vy=-s.vy*.34;s.vx*=.5;s.vz*=.5;s.sx*=.4;s.sy*=.4;s.sz*=.4;}
         else{s.rest=true;s.sx=s.sy=s.sz=0;s.me.rotation.set(Math.PI/2,rr3(0,TAU),0);}
@@ -14429,7 +14478,18 @@ function buildGunModel(key,o){o=o||{};
     for(const yy of[.07,.085,.1])iron.add(vmBox(.024,.003,.006,M.gunD,0,yy,.02));
     iron.add(vmOct(.006,.028,.006,M.dark,0,.072,-.25));iron.add(vmBox(.003,.003,.002,M.pale,0,.083,-.2475));
     iron.add(vmOct(.022,.016,.008,M.gunD,0,.054,-.25));                   // the post's base on the tube
-    g.add(iron);const rd=sightRedDot(.058,-.05),ac=sightAcog(.058,-.05);g.add(rd);g.add(ac);
+    /* AND THE OPTIC STANDS OFF THE TUBE ON A BRACKET. A launcher's body is
+       a 76mm pipe and the rail sat straight on top of it, so the sight line
+       sat barely two centimetres over the tube's own crown, so at ADS the
+       pipe rose to just under the reticle and filled the lower frame hard
+       against it. Measured at full ADS, the crown in the near half-metre
+       — which is the part that actually fills the picture — sat at NDC
+       -0.26, a quarter of the way down from the middle; on the bracket it
+       sits at -0.58, down where a launcher's body belongs. Every RPG
+       carries its glass high on a bracket for exactly this reason. */
+    g.add(vmOct(.030,.044,.052,M.gunD,0,.068,-.05));                     // the bracket
+    g.add(vmOct(.020,.012,.062,M.gunD,0,.088,-.05));                     // and the rail on top of it
+    g.add(iron);const rd=sightRedDot(.092,-.05),ac=sightAcog(.092,-.05);g.add(rd);g.add(ac);
     hands(0,-.065,.03);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.005,-.02,-.14));
     grip.position.set(0,-.02,-.14);muzzle.position.set(0,.02,-.62);
     g.flash=gunFlash(g,0,.02,.4);                                        // the flash is the BACKBLAST
