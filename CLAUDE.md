@@ -206,11 +206,50 @@ Known state of play:
   The motes (`elemFleck` off the blade) are held back in first person for
   the same reason the glow went: they spawn at the weapon's own frame,
   which is on the lens.
-- What dominates now is the **character rigs**: every hollow, and the hero,
-  is assembled from dozens of small meshes, each animated on its own
-  transform. That is the next real win and the hardest, since instancing
-  animated parts means writing world matrices per instance per frame rather
-  than leaning on the scene graph.
+- What dominates is the **character rigs** — and most of that is now paid
+  only where it shows. `lodUpdate` (beside `resetPose`) swaps a distant
+  body for THREE BOXES. Measured on a phone-sized viewport over eight
+  headings: **606 draws → 435**, rig draws **247 → 82**, 17 of 24 bodies
+  swapped, and the two frames differ by about fifty pixels per far body.
+  - **The switch is one flag per top-level child of the rig's root**
+    (`rig.body`, plus the cloth sheets that hang off root because they are
+    simulated in world space) — not a walk over forty meshes. `visible=false`
+    on a group makes three.js return before it recurses, so the subtree
+    costs nothing.
+  - **It composes because it owns its own flag.** Fourteen places write
+    `rig.root.visible`; NONE writes `rig.body.visible`, so the two can never
+    fight, and severed limbs are deeper still and untouched. If you ever add
+    a rig part directly to `root`, it is LOD'd unless you tag it
+    `userData.lodKeep` — the ground shadow is tagged, because it is one draw
+    and it is what plants the body on the soil.
+  - **THE THRESHOLD IS APPARENT SIZE, NOT DISTANCE, AND SNIPING IS WHY.**
+    Through 8x glass a body at forty-five metres fills as much of the screen
+    as one at six; swapping it for boxes exactly when the player puts their
+    eye to a scope would ruin the shot the rifle exists for. The test is
+    `dist * tan(camera.fov/2) / tan(FOV_REF/2)` — the range it would have to
+    be at, at the reference field, to look the size it looks now. It shrinks
+    with every power of magnification and grows when the player widens their
+    lens, which is the correct behaviour in both directions. Verified: the
+    sniper at 4x and 8x holds full detail at 47m and 68m, the ACOG at 2.5x
+    holds it at 42m, and all three swap at the hip.
+    `LOD_MIN` (16 real metres) is a floor under it so melee is never touched
+    whatever the lens is doing, and `LOD_ON`/`LOD_OFF` are a band, or a body
+    sitting on the boundary flickers.
+  - **What must never be swapped**, and each for its own reason: the boss and
+    the mini-bosses (they are events); anything dead, ragdolling or crumbled
+    (the ragdoll writes bones the boxes do not have); anything ON FIRE
+    (`setAblaze` hangs its flame sprites off the rig, and a burning hollow
+    across the field is the one distant thing you most want to see); and
+    anything mid-`scatter`.
+  - **The impostor's skin is taken from the LARGEST lit mesh, not the
+    first.** Taking the first the traversal reached painted the whole body
+    the colour of an EYE — `#d23c3c`, a red socket sphere high in the tree —
+    and a hollow at forty metres came up scarlet. Eyes and every other glow
+    are Basic and additive; the picker takes Lambert only, by bounding-box
+    volume, which is reliably the torso.
+  Full instancing is still the bigger win and still the hardest — per
+  instance world matrices every frame rather than leaning on the scene
+  graph — but this took most of it without that.
 - The world's geometry all sits within ~80 units of the origin, so there is
   nothing beyond the fog to cull and no draw distance to win back by pulling
   the camera's far plane in. This was measured; do not re-litigate it.

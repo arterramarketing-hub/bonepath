@@ -803,6 +803,18 @@ its scope and the ball on its bolt handle. None of it is decoration —
 each piece is something a hand uses. The cost is about forty draw calls
 while a gun is held, and none of it while one is not.
 
+**And a body far enough off is three boxes.** A hollow is forty-one small
+meshes whether it fills the screen or covers nine pixels, and on a field of
+two dozen horrors nearly all of that was being paid for shapes too distant
+to read as more than a silhouette — so past a certain point on the screen a
+body is swapped for a trunk, a head and a pair of legs in its own colour.
+What decides it is **how big the thing looks, not how far away it is**, and
+that distinction is the whole of it: through a scope at eight times, a
+horror at seventy metres is as large in the frame as one at nine, and it
+keeps every mesh it has. Put the rifle down and it goes back to boxes.
+Nothing you are fighting, locked on to, standing near, or that is on fire
+is ever swapped.
+
 **Under the hood.** The viewmodel is a set of low-poly guns hung off the
 camera itself (the camera is in the scene for it) and drawn in the PSX
 frame with everything else, so they wobble and dither like the world;

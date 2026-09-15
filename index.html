@@ -6317,7 +6317,7 @@ function buildHumanoid(o){
   /* shadow blob */
   const sh=new THREE.Mesh(new THREE.CircleGeometry(.42*s,10),
     new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.4,depthWrite:false}));
-  sh.rotation.x=-Math.PI/2;sh.position.y=.02;root.add(sh);
+  sh.rotation.x=-Math.PI/2;sh.position.y=.02;sh.userData.lodKeep=true;root.add(sh);   // (kept at any distance: one draw, and it is what plants the body on the soil)
 
   // back scabbard mount: hilt rides up over the right shoulder
   if(o.backMount){
@@ -6333,6 +6333,104 @@ function buildHumanoid(o){
   if(o.sheet)sheetDress(rig,o);                                   // the sheet knight: lofted plate over the same bones
   rig.capeSway=0;rig._spNow=0;
   return rig;
+}
+
+/* ---------------------------------------------------------------------
+   THE FAR RIGS ARE MOST OF THE FRAME AND ALMOST NONE OF THE PICTURE.
+   Measured on a phone-sized viewport over eight headings: 601 draw calls
+   on the field, 261 of them character rigs — and only 34 of those inside
+   fifteen metres, where the fight is. Two hundred and twenty-seven were
+   spent on horrors too far off to read as more than a silhouette. A
+   hollow is 41 meshes whether it fills the screen or covers nine pixels.
+
+   So a distant body is swapped for three boxes. The switch is ONE FLAG
+   PER TOP-LEVEL CHILD of the rig's root (`rig.body`, and the cloth sheets
+   that hang off root because they are simulated in world space) — not a
+   walk over forty meshes — and `visible=false` on a group makes three.js
+   return before it recurses, so the whole subtree costs nothing.
+   **It composes with everything else that hides a rig.** Fourteen places
+   write `rig.root.visible` (crumbling, the melt, a body gone over the
+   rim); none writes `rig.body.visible`, so this owns that flag outright
+   and the two never fight. Severed limbs are deeper still and untouched.
+
+   AND THE THRESHOLD IS APPARENT SIZE, NOT DISTANCE. Sniping is the whole
+   reason this needs saying: through 8x glass a body at forty-five metres
+   fills as much of the screen as one at six, and swapping it for boxes
+   exactly when the player has put their eye to a scope would ruin the one
+   shot the rifle exists for. So the test is the distance the body would
+   have to be at, at the REFERENCE field, to look the size it looks now —
+   `dist * tan(fov/2) / tan(FOV_REF/2)` — which shrinks with every power
+   of magnification and grows when the player widens their lens. A hard
+   floor of `LOD_MIN` real metres sits under it so melee is never touched
+   whatever the lens is doing. */
+const LOD_MIN=16, LOD_ON=30, LOD_OFF=25;      // real-metre floor, and the band (hysteresis, or a body at the edge flickers)
+function lodParts(r){
+  if(!r._lodP)r._lodP=r.root.children.filter(o=>!o.userData.lodKeep);
+  return r._lodP;
+}
+/* three boxes in the rig's own steel: a trunk, a head and the legs. It is
+   parented to the ROOT, so it inherits the body's place and facing and
+   whatever rotation a death has left there, for free. */
+function lodImpostor(r){
+  if(r.imp!==undefined)return r.imp;
+  const s=r.s||1;
+  /* THE SKIN COMES OFF THE BIGGEST PART, NOT THE FIRST ONE. Taking the
+     first mesh the traversal reaches painted the whole stand-in the colour
+     of an EYE — `#d23c3c`, a red socket sphere near the top of the tree —
+     and a hollow at forty metres showed up as a scarlet box. The torso is
+     reliably the largest thing on a body, so the material is chosen by
+     bounding-box volume, and only from the LIT materials: eyes and any
+     other glow are Basic and additive, which is exactly what must not be
+     smeared over a whole body. */
+  const tmp=new THREE.Box3();let m=null,best=-1;
+  r.root.updateMatrixWorld(true);
+  r.root.traverse(o=>{
+    if(!o.isMesh||o.userData.lodKeep)return;
+    const mm=o.material;
+    if(!mm||!mm.color||Array.isArray(mm)||!mm.isMeshLambertMaterial||mm.transparent)return;
+    tmp.setFromObject(o);
+    const v=(tmp.max.x-tmp.min.x)*(tmp.max.y-tmp.min.y)*(tmp.max.z-tmp.min.z);
+    if(v>best){best=v;m=mm;}});
+  if(!m){r.imp=null;return null;}                       // nothing lit to copy: leave the body alone
+  const g=new THREE.Group();g.userData.lodKeep=true;
+  const y=r.baseY||.92*s;
+  g.add(M(GBox(.50*s,.60*s,.30*s),m,0,y+.26*s,0));      // the trunk, at a body's real width across the shoulders
+  g.add(M(GBox(.24*s,.24*s,.24*s),m,0,y+.66*s,0));      // the head
+  g.add(M(GBox(.36*s,.86*s,.24*s),m,0,y-.44*s,0));      // and the legs as one
+  g.visible=false;r.root.add(g);r.imp=g;return g;
+}
+function lodSet(e,far){
+  const r=e.rig;if(!r||r.lodFar===far)return;
+  const imp=far?lodImpostor(r):(r.imp||null);
+  if(far&&!imp)return;                                  // nothing to stand in with — leave it alone
+  r.lodFar=far;
+  for(const o of lodParts(r))o.visible=!far;
+  if(imp)imp.visible=far;
+}
+/* what may never be swapped: the thing you have locked (you are looking at
+   it), anything big enough to be an event, and any body that is dead,
+   ragdolling or already hidden — the ragdoll writes the bones the boxes do
+   not have. */
+function lodUpdate(){
+  const P=player,k=Math.tan(camera.fov*Math.PI/360)/Math.tan(FOV_REF*Math.PI/360);
+  for(const e of enemies){
+    const r=e.rig;
+    /* a body ON FIRE keeps every mesh it has: `setAblaze` hangs its flame
+       sprites off the RIG, so hiding the body takes the fire with it — and
+       a burning hollow across the field is the one distant thing you most
+       want to see. Same for anything mid-scatter, whose parts are being
+       thrown about by code the boxes know nothing of. */
+    if(!r||!r.root||!r.humanoid||e.boss||e.mini||e.rag||e.hp<=0||e.crumbled||e.burnT>0||e.state==='scatter'){
+      if(r&&r.lodFar)lodSet(e,false);
+      continue;
+    }
+    if(e===G.lockTarget){if(r.lodFar)lodSet(e,false);continue;}
+    const d=Math.hypot(e.x-P.x,e.z-P.z);
+    if(d<LOD_MIN){if(r.lodFar)lodSet(e,false);continue;}
+    const sd=d*k;                                       // the distance it LOOKS, at the reference field
+    if(!r.lodFar&&sd>LOD_ON)lodSet(e,true);
+    else if(r.lodFar&&sd<LOD_OFF)lodSet(e,false);
+  }
 }
 
 /* pose primitives — every field written every frame */
@@ -15800,6 +15898,7 @@ function frame(now){
       // and the braces: empty hands are only ever the thrown blade's doing
       else if(player.rig&&player.rig.weapon&&!player.rig.weapon.visible)player.rig.weapon.visible=true;
       pruneFallen();
+      lodUpdate();                                            // ...and the far bodies down to three boxes each — see THE FAR RIGS
       if(PATH.on)updatePath(wdt);
     }else{
       player.t+=wdt;
@@ -15893,7 +15992,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
