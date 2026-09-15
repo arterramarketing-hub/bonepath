@@ -1133,10 +1133,39 @@ Known state of play:
   otherwise hand `applyAttachmentTo` a name with no group behind it and
   hide every sight on the weapon. Verified: forcing `FPS.att.m4='iron2'`
   reads back as `iron` and the rifle's own irons stay up.
-  **THE UMP'S SECOND SET IS A NOTCH AND A RING** — no hood, nothing to look
-  through. The ring stands at the muzzle end and you lay it on the mark;
-  the field stays open above the sight line, which is the whole trade
-  against the drum.
+  **THE UMP'S SECOND SET IS A NOTCH AND A RING AND A BEAD** — no hood,
+  nothing to look through. The ring stands at the muzzle end and you lay
+  the bead on the mark; the field stays open above the sight line, which is
+  the whole trade against the drum.
+  - **The bead goes in the ring's CENTRE and the front tower must stop
+    under it.** The first pass put a tick on the ring's CROWN and ran the
+    tower straight up through the middle and out of the top of the hoop, so
+    what you actually aimed with was a black post and the point of aim was
+    an empty spot beside it.
+  - **A THREE-PIXEL PART IS A COLOUR PROBLEM, NOT A SIZE PROBLEM.** The
+    render is 383x216; the ring's clear circle is about ten pixels of it
+    and the bead is four. At `M.pale` it was four pixels of cream on a pale
+    noon sky and read as nothing at all, and there is no room at that size
+    for a dark rim wide enough to save it — a shroud fat enough to see
+    fills the hoop. It is `M.bead` (amber) now, which separates from a
+    bright sky by HUE and from dark soil by VALUE, so it needs neither.
+    Measured at (410,231) with the ring dead centre: max channel difference
+    against the background 176 at clear noon, 201 sunrise, 207 dusk, 206
+    storm night, 196 snow.
+  - **PROVE A SMALL PART IS MISSING BEFORE YOU MOVE IT.** Hours went on the
+    assumption that the bead was being culled, occluded or snapped away —
+    it was none of those. Repainting it red showed 48 pixels exactly where
+    it should be. Recolour first; it is one line and it answers the
+    question outright.
+  - **HOW HIGH IT RIDES IS `ay2`, WHICH IS THE WHOLE SIGHT LINE.** Lowering
+    it brings the eye down with the ring, so the deck rises in the picture.
+    It went .108 -> .0995 and the air between the ring's bottom and the
+    channel's lit caps measured 56px -> 36px, with the caps' visible run
+    18px -> 13px: that shortening of the trapezoid is what a low sight
+    costs, and it is the trade. An intermediate .1045 moved the gap only to
+    54px and is not worth having — it is nearly all tower. The rear notch
+    must come down by the same amount or it rises through the sight line it
+    is supposed to sit under.
   **And the REAR is what wants shrinking, never the front.** It sits a
   fifth of a metre from the eye and the front sight is five times further,
   so every millimetre at the back is worth five at the front. A .028 bed

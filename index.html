@@ -14096,7 +14096,7 @@ function gunMats(){if(_gunMats)return _gunMats;return _gunMats={
   goldHi:vmMat(0xf2e6c2),gold:vmMat(0xb5913c),goldM:vmMat(0x8a6a22),goldD:vmMat(0x4a3410),
   dark:vmMat(0x2a2622),steel:vmMat(0x8a8478),
   gun:vmMat(0x2b2d2f),gunD:vmMat(0x1a1b1d),grey:vmMat(0x4a4c4e),wood:vmMat(0x4a3222),glove:vmMat(0x5b5148),sleeve:vmMat(0x4b4f52),
-  olive:vmMat(0x4a5238),tan:vmMat(0x8a7a52),pale:vmMat(0xf4eedc),
+  olive:vmMat(0x4a5238),tan:vmMat(0x8a7a52),pale:vmMat(0xf4eedc),bead:vmMat(0xe89a30),   // the ring sight's amber bead: see the UMP's iron2
   tube:vmMat(0x232529,{side:THREE.DoubleSide}),   // a scope's body: you see its inside wall as well as its outside
   glass:new THREE.MeshBasicMaterial({color:0x223a48,transparent:true,opacity:.28,depthWrite:false})};}
 /* THE SIGHTS. A rail height in, a group out, with `h` the height of its
@@ -14394,14 +14394,40 @@ function buildGunModel(key,o){o=o||{};
        stays open above the sight line — which is what you want on a gun
        fired at ten metres in a hurry, and what the drum costs you.
        The ring is the thing the eye goes to, so it is the one part on the
-       gun in a light metal (`M.grey`) with a pale tick at its crown. Sized
-       the way every sight here is sized — `(r_outer/dist)/tan(adsFov/2)` —
-       it covers 8.9% of the screen's height: a small circle, not a hoop.
+       gun in a light metal (`M.grey`), and THE BEAD SITS DEAD CENTRE OF
+       IT, on a hair of a stem up from the ring's inner floor — a ring and
+       bead, which is what you aim rather than a hoop you look through. It
+       was a tick on the ring's CROWN before, which says which way is up
+       and nothing else; the point of aim was then the ring's own middle,
+       an empty spot the eye has to guess at — and worse, the front TOWER
+       ran up through that middle and out the top of the hoop, so what you
+       aimed with was a black post. The tower stops under the ring now.
+       WHAT MAKES THE BEAD VISIBLE IS ITS COLOUR, NOT ITS OUTLINE, AND THAT
+       IS FORCED BY HOW FEW PIXELS IT HAS. The render is 383x216 and the
+       ring's clear circle is about ten pixels of it, so the bead is three
+       and there is no room for a dark rim of any use — at `M.pale` it
+       measured three pixels of cream on a pale noon sky and was simply not
+       there. (It WAS drawing: painting it red showed 48 pixels dead centre
+       of the hoop. If a small part ever looks absent here, recolour it
+       before you move it.) It is AMBER now (`M.bead`), which separates from
+       a bright sky by hue and from the dark soil by value, with a shroud a
+       pixel wider all round for what that is worth. Check it against open
+       sky AND against the nave; a value alone can only win one of those. Sized the way every sight here is sized, the ring
+       covers 6.9% of the screen's height, measured by projecting its own
+       vertices through the camera: a small circle, not a hoop. (The 8.9%
+       written here before was the formula worked by hand, and wrong.)
        THE REAR MUST STILL SET `sightZ`. It is the rearmost point of the
        group that fixes where the eye sits (`ADS_EYE` behind it), so a
        front-only sight would put the eye level with the ejection port and
        squash the whole gun behind it. The notch earns its place twice. */
-    const iron2=new THREE.Group(),ay2=.108;
+    /* AND IT RIDES LOW. The first pass stood it 27mm over the channel's
+       lit caps on a tall tower, which is a sight bolted onto a gun rather
+       than a sight that belongs to one; `ay2` is the whole sight line, so
+       lowering it brings the eye down with the ring and the deck stays in
+       the picture under it. The ring's bottom now clears the caps by 3mm
+       and the tower is a stub. The rear came down the same amount, or the
+       notch would have risen through the sight line it sits under. */
+    const iron2=new THREE.Group(),ay2=.0995;
     /* THE REAR IS KEPT LOW AND SMALL ON PURPOSE. It sits a fifth of a metre
        from the eye — five times nearer than the front — so every millimetre
        of it is worth five out there. The first pass gave it a .028 bed and
@@ -14412,12 +14438,14 @@ function buildGunModel(key,o){o=o||{};
        the ring with a notch under it rather than a notch with a ring in
        it. If it ever crowds the frame again, shrink the rear — the front
        is nearly free. */
-    iron2.add(vmOct(.020,.007,.010,M.gunD,0,.0875,rz));                      // the notch's bed, low across the channel
-    iron2.add(vmOct(.005,.008,.008,M.gunD,-.007,.093,rz));                   // and the two short ticks it is cut between
-    iron2.add(vmOct(.005,.008,.008,M.gunD,.007,.093,rz));
-    iron2.add(vmOct(.009,.040,.008,M.gunD,0,.086,-.27));                     // the front tower
+    iron2.add(vmOct(.020,.007,.010,M.gunD,0,.0825,rz));                      // the notch's bed, low across the channel
+    iron2.add(vmOct(.005,.008,.008,M.gunD,-.007,.0875,rz));                  // and the two short ticks it is cut between
+    iron2.add(vmOct(.005,.008,.008,M.gunD,.007,.0875,rz));
+    iron2.add(vmOct(.009,.020,.008,M.gunD,0,.0745,-.27));                    // the front tower, a stub now: the ring rides just clear of the caps
     iron2.add(vmRing(.0132,.0028,14,M.grey,0,ay2,-.27));                     // ...and THE RING, the one thing the eye goes to
-    iron2.add(vmBox(.004,.004,.003,M.pale,0,ay2+.016,-.2675));               // a tick at its crown, so which way is up is never a question
+    iron2.add(vmBox(.0030,.0100,.003,M.gunD,0,ay2-.0058,-.2685));            // the bead's stem, up from the ring's inner floor
+    iron2.add(vmBox(.0078,.0078,.003,M.gunD,0,ay2,-.2685));                  // the thinnest of dark bezels round it
+    iron2.add(vmBox(.0062,.0062,.004,M.bead,0,ay2,-.2665));                  // THE BEAD, dead centre of the ring: the point of aim
     g.add(iron2);g.iron2=iron2;
     const rd=sightRedDot(.081,-.02),ac=sightAcog(.081,-.02);g.add(rd);g.add(ac);
     hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
