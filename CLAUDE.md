@@ -875,6 +875,35 @@ Known state of play:
       +0.07, and the gun still covers 0.47 x 0.43 of the screen.
       If a gun ever looks like it is aimed off to one side, measure the
       vanishing point before you touch anything.
+      **AND THE RUNNING CARRY COMMITTED THE SAME SIN AT TEN TIMES THE
+      SIZE.** The sprint pose was `+sr*.35` pitch, `-sr*.5` YAW and
+      `+sr*.3` roll, and it was never measured. Projected: the barrel's
+      vanishing point sat at NDC **(+0.42, +0.54)** with the barrel
+      **31.7 degrees** off the camera's line — identical on the M4, the
+      UMP and the Eagle, because the pose is shared. That is a rifle
+      pointing up and to the RIGHT while its rounds go dead ahead down the
+      crosshair, and you can fire the whole time: sprinting is the `free`
+      state and nothing stops the trigger.
+      Two halves to the fix, and both were needed.
+      1. **The carry is sold by the ROLL and the DROP, never the yaw** —
+         the hip's own lesson. A rotation about the barrel's own axis
+         changes the posture completely and moves the aim point not at
+         all, so the CANT does the work (`+sr*.62`); the muzzle goes DOWN
+         (`-sr*.17`, and note the sign — positive pitch RAISES it here,
+         which is what had it aimed at the sky), and the yaw is `-sr*.09`,
+         a fifth of what it was. Measured after: **9.9 degrees** off, the
+         vanishing point at (+0.03, −0.26) — just under the crosshair,
+         where a lowered weapon belongs. The gun covers 7% of the screen
+         running against 20.6% at rest, low and to the right.
+      2. **The trigger takes the weapon OUT of the run** (`GUN_READY`,
+         `FPS.readyT`, read by `updateViewmodel`). Nothing used to, so the
+         first burst out of a sprint was fired from the carry. Held down,
+         the pose comes out over about three tenths of a second and the
+         barrel goes 9.9 → **3.5 degrees**, vanishing point (−0.04,
+         −0.06): back on the crosshair, which is where the rounds go. It
+         eases back in when you let go.
+      **If a viewmodel pose is ever added or changed, project its barrel.**
+      Every one of these faults looked fine in the source.
       Every viewmodel motion (bob, idle sway, look-lag) is
       scaled by `(1-ads)` so the sight is true when it is up. The hurt
       flinch is the one thing that still dips it, on purpose.

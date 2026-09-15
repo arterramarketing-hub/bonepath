@@ -14117,6 +14117,8 @@ for(const g of GUNS)gunAmmo(g);for(const k in CALIBRES)FPS.res[k]=CALIBRES[k].st
 const SPREAD_CAP=2.6;
 // how far right of the pilgrim the braced camera sits
 const BRACE_SIDE=.95;
+// how long the trigger holds the weapon out of the running carry
+const GUN_READY=.28;
 const SIGHTS=['iron','iron2','reddot','acog'];
 const ATTACH=[
   ['iron','iron sights','the sights the gun came with: a post and a notch, true at the top of the blade. nothing between you and the field'],
@@ -15376,6 +15378,7 @@ function updateGun(dt){
      reads it, so the pilgrim's firing arm froze in the recoil pose and
      never came down again. It belongs to the GUN, not to the viewmodel. */
   FPS.kick=Math.max(0,FPS.kick-dt*g.rec.recover);
+  FPS.readyT=Math.max(0,(FPS.readyT||0)-dt);   // (the trigger's grip on the carry — see GUN_READY)
   if(FPS.reloading){
     FPS.reloadT+=dt;const u=FPS.reloadT/g.reload;
     if(FPS.rlStage<1&&u>.48){FPS.rlStage=1;AudioSys.magIn();}
@@ -15391,6 +15394,14 @@ function updateGun(dt){
   const tap=IN.firePressed||(!FPS.on&&!!IN.swipe&&IN.swipe.kind==='atk');
   const held=IN.fireHeld||(!FPS.on&&IN.chargeHeld);
   const wantFire=g.auto?(held||tap):tap;
+  /* THE TRIGGER TAKES THE GUN OUT OF THE RUN. You can fire while
+     sprinting — sprinting is the `free` state and nothing stops you — and
+     nothing used to bring the weapon back to the ready when you did, so
+     the rounds went down the crosshair while the model was still slung
+     across the chest pointing somewhere else. `readyT` is held up for a
+     moment by the trigger and `updateViewmodel` reads it: the carry comes
+     out fast and eases back in when you let go. */
+  if(wantFire&&!busy)FPS.readyT=GUN_READY;
   if(wantFire&&!busy&&!FPS.reloading&&FPS.shotT<=0&&!((g.bolt||g.pump)&&FPS.boltT<.85)){
     if(A.mag>0)fireGun();
     else{AudioSys.gunEmpty();FPS.shotT=.28;if(resOf(g)>0)startReload();}
@@ -15428,7 +15439,22 @@ function updateViewmodel(dt){
   FPS.swayX=lerp(FPS.swayX,clamp(-IN.camDX*S.look,-.05,.05)*(1-.9*ads),Math.min(1,8*dt));
   FPS.swayY=lerp(FPS.swayY,clamp(IN.camDY*S.look,-.035,.035)*(1-.9*ads),Math.min(1,8*dt));
   const k=FPS.kick,ks=FPS.kickSide||0;   // (the decay is in updateGun: it runs in both views)
-  FPS.sprintVm=lerp(FPS.sprintVm,P.sprinting&&mv>.5?1:0,Math.min(1,6*dt));
+  /* THE RUNNING CARRY, AND IT WAS AIMED AT THE SKY. Measured the way the
+     hip carry was — project the barrel's own -z axis and find its
+     VANISHING POINT — the sprint pose put it at NDC (+0.42, +0.54) with
+     the barrel 31.7 degrees off the camera's line, on all three guns.
+     That is a rifle pointing up and to the right while its rounds go dead
+     ahead, which is exactly what "it looks like it's firing sideways"
+     means; the hip carry had the same fault at a tenth the size and was
+     fixed the same way.
+     The cure is the one the hip taught: **sell it with the ROLL and the
+     DROP, not with the yaw.** A rotation about the barrel's own axis
+     changes the posture completely and moves the aim point not at all, so
+     the cant does the work; the muzzle goes DOWN (which is where a man
+     running actually carries it) instead of up, and the yaw is a fifth of
+     what it was. */
+  const runCarry=P.sprinting&&mv>.5&&(FPS.readyT||0)<=0;
+  FPS.sprintVm=lerp(FPS.sprintVm,runCarry?1:0,Math.min(1,(runCarry?6:9)*dt));
   const sr=FPS.sprintVm;
   let rl=0;if(FPS.reloading)rl=Math.sin(Math.PI*Math.min(1,FPS.reloadT/g.reload));
   const hurt=P.state==='hurt'?Math.sin(Math.PI*Math.min(1,P.t/(P.hurtDur||.38)))*.12:0;
@@ -15436,12 +15462,12 @@ function updateViewmodel(dt){
   // the depth squash comes in with the sights (see VM_ZSQ_MARGIN)
   if(V.aft){const zs=lerp(1,V.adsZs===undefined?1:V.adsZs,ads);
    if(Math.abs(V.aft.scale.z-zs)>1e-4)V.aft.scale.z=zs;}
-  vm.position.set(lerp(H[0],A[0],ads)+bobX+idX+FPS.swayX+sr*.06+k*R.side*.02*ks*(1-.5*ads),
-                  lerp(H[1],A[1],ads)+bobY+idY+FPS.swayY-rl*.10-sr*.09-hurt*.4+k*R.back*.15,
-                  lerp(H[2],A[2],ads)+k*R.back+rl*.03+sr*.05);
-  vm.rotation.set(-k*R.up*.12+rl*.55+sr*.35+hurt,
-                  lerp(V.hipRy,0,ads)+FPS.swayX*2.5-sr*.5+k*R.side*.1*ks,
-                  lerp(V.hipRz||0,0,ads)+rl*.4+sr*.3+FPS.swayX*.8+k*R.side*.15*ks);
+  vm.position.set(lerp(H[0],A[0],ads)+bobX+idX+FPS.swayX-sr*.03+k*R.side*.02*ks*(1-.5*ads),
+                  lerp(H[1],A[1],ads)+bobY+idY+FPS.swayY-rl*.10-sr*.045-hurt*.4+k*R.back*.15,
+                  lerp(H[2],A[2],ads)+k*R.back+rl*.03+sr*.06);
+  vm.rotation.set(-k*R.up*.12+rl*.55-sr*.17+hurt,                                    // the muzzle DROPS, it does not rise
+                  lerp(V.hipRy,0,ads)+FPS.swayX*2.5-sr*.09+k*R.side*.1*ks,           // and barely turns: the yaw was the whole fault
+                  lerp(V.hipRz||0,0,ads)+rl*.4+sr*.62+FPS.swayX*.8+k*R.side*.15*ks); // the CANT carries the posture, and costs no aim
   if(V.mag){const u=FPS.reloading?FPS.reloadT/g.reload:0,out=u<=0?0:u<.5?Math.min(1,u/.2):Math.max(0,(1-u)/.35);
     V.mag.position.y=V.magY-out*.16;V.mag.rotation.z=out*.35;}
   if(V.bolt){const u=clamp(FPS.boltT/.8,0,1),lift=Math.sin(u*Math.PI);   // the handle lifts, the bolt comes back, and goes home

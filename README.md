@@ -486,6 +486,17 @@ nothing to hit and snaps onto whatever the line meets. The rifle has a
 the shoulder driven round and back, the head going with it, the knees
 taking the rest, riding the shot and settling rather than snapping.
 
+**And the weapon comes up when you fire it.** Running with a gun, it is
+carried low and canted across the body — but you can pull the trigger at
+a dead run, and the rifle used to stay slung there while the rounds went
+down the crosshair: measured, the barrel pointed **thirty-two degrees**
+off the line, up and to the right, which is exactly what *it looks like
+it's firing sideways* means. The carry is sold by the cant and the drop
+now rather than by turning the weapon away (a roll about the barrel
+changes the whole posture and costs no aim at all), and the trigger
+breaks it: the gun comes up to the ready in about three tenths of a
+second and the barrel sits back on the crosshair.
+
 **Every gun's cone is capped.** Held down, an M4's hip cone used to open
 from two degrees to fifteen — a two-and-a-half metre circle at ten metres
 — and go on opening. It tops out at about four now, which is the
