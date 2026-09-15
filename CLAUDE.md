@@ -1031,6 +1031,34 @@ Known state of play:
   its depth stopped with it, halfway to the muzzle; the handguard carries
   the same `M.grey` strip at the same height (.063–.068) so the band is
   one unbroken fifty-centimetre run receding from the eye.
+- **THE UMP'S DECK IS A CHANNEL, AND THAT IS THE WHOLE AIMED PICTURE.**
+  The reference frame shows a TROUGH: a raised wall down each outer edge
+  of the receiver, their top faces catching the light, and a sunken groove
+  between them running away to a small dark sight block. The eye is led
+  down the groove. The build before this had it inside out — one bright
+  rail raised along the CENTRE with light teeth on it — and a raised
+  centre reads as a spine, not as a line to look along. The walls are
+  `M.gun` with a 4mm `M.grey` cap each (one lit edge apiece, and nothing
+  else on the gun is lit); the groove's floor is `M.gunD`, a step DOWN
+  into shadow. The handguard carries the same channel on unbroken, so the
+  run is one length from the eye to the front sight.
+  **And the gun is DARK.** A UMP is black polymer. The old one laid
+  `M.steel` across the whole top face and it rendered as a cream stripe
+  the length of the weapon. Light on the EDGES, nowhere else — the same
+  lesson the Eagle's gold taught.
+  **THE REAR PEEP WAS TWICE THE SIZE IT SHOULD BE**: measured by the M4's
+  own formula, `(r_outer/eyeDist)/tan(adsFov/2)`, its hoop covered 43% of
+  the screen's height and the aimed picture was a donut with a gun
+  somewhere under it. r .0095 / tube .0024 puts it at 26%, and what fills
+  the frame is the channel, which is the point.
+  **A HOODED FRONT SIGHT MUST NEST INSIDE THE REAR APERTURE, and the test
+  is angular, not linear.** The front ring is more than twice as far from
+  the eye, so what matters is radius over ITS OWN distance: .0105 at .527
+  subtends 0.70 of the rear's clear .0071 at .205. The old front ring was
+  .0207 across and subtended MORE than the rear aperture could frame, so
+  it filled the hole instead of sitting in it.
+  And the drum gets no flat top: at ADS it is the nearest thing to the eye
+  after the hoop, and a wide slab there hangs over the aperture.
 - **AN APERTURE SIGHT MUST HAVE NOTHING BEHIND ITS HOLE.** The obvious way
   to mount a ghost ring is to stand it on a tower, and a tower at the
   hoop's own z fills the aperture with its own material — you aim at a
@@ -1160,6 +1188,37 @@ Known state of play:
   are all around .1–.3 now and the loudest moment of a reload sits under
   `AudioSys.gun`'s .58. If a reload ever shouts, look at the sum, not at
   one layer.
+- **A HITMARKER THAT FIRES WHEN YOU HIT NOTHING IS WORSE THAN NONE.**
+  `rocketBurst` ended with a bare `hitMark(true,false)`, so EVERY rocket
+  flashed the red KILL cross and played the kill's falling pair — at a
+  wall, at the dirt, at nothing at all. It is the one piece of the HUD the
+  player trusts to say whether the shot counted. The burst now tracks
+  `caught` and `slew` across its own enemy loop and reports what actually
+  happened. Measured, the three cases: empty ground `''`, a survivor
+  caught in it `'on'`, a kill `'on kill'` — where the committed build gave
+  `'on kill'` for all three.
+  **Any new thing that damages in an AREA has the same trap in it**: the
+  marker belongs after the loop, not beside the effect.
+- **AN EXPLOSION IS THREE LIVES WITH THREE CURVES, NOT ONE SPRITE THAT
+  FADES.** The rocket's burst was a single glow scaled 2.4 → 7.4 over
+  three tenths of a second: the largest round in the game looked like a
+  muzzle flash on the ground. What reads as an explosion is a FLASH gone
+  before you can look at it, a FIREBALL that swells fast and then eases as
+  it burns out and climbs, and SMOKE that outlives both and is still
+  standing a second later — and the last is what actually says something
+  big happened, because it is the only part left when you look back.
+  So `puff(colour, s0, s1, dur, rise, opacity, delay)` builds them as
+  overlapping lives: a .10s white flash, a .42s fireball, a .60s darker
+  heart, and five smoke bodies out to 3.2s, each rising further than the
+  one before. The ease is `1-(1-q)²` — fast then slow, which is how a
+  pressure wave actually expands; a linear scale reads as a balloon.
+  Two rings, not one (a fast bright one and a slow wide one of dust), and
+  `WX.flash` so it lights the whole field the way lightning does.
+  **`AudioSys.quake()` is allowed here** — CLAUDE.md warns it off
+  `ultraThud` because that fires on every swing, landed or not; a rocket
+  lands about five times in a run and is an actual explosion, which is the
+  one thing that rumble was written for. It is audio only: no hitstop, no
+  camera shake of its own.
 - **`AudioSys.hitmark(kill,head)` has been wrong in BOTH directions, and
   the answer is neither.** First it was two soft square blips, which the
   .50's own report walked straight over — a hitmarker that cannot be heard

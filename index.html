@@ -14179,56 +14179,54 @@ function buildGunModel(key,o){o=o||{};
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
     g.hip=[.13,-.20,-.46];g.hipRy=.05;g.hipRz=-.12;
   }else if(key==='ump'){
-    /* THE UMP45, off the reference: a flat-topped polymer receiver with a
-       rail the whole length of it, a stubby barrel under a short front
-       rail, the magazine raked forward out of a slanted well, and — the
-       one silhouette nobody mistakes for another gun — the SKELETON SIDE
-       FOLDER at the back: an open rectangle of a stock, a fat top rail, a
-       thin bottom strut, a butt plate closing it.
-       It keeps its can. A suppressed UMP is what this weapon is FOR here
-       (see AudioSys.gun('ump') and the flash, both cut down for it), so
-       the reference's bare muzzle is the one thing not copied. */
-    /* THE UPPER: flat-topped, with the rail and its teeth down the whole of
-       it — and each of those three a STEP LIGHTER than the last. Down the
-       sights you see the receiver's top face almost edge-on, so the only
-       thing that can tell you the gun has length is a value change running
-       away from you; in one flat black it reads as a wall with a sight on
-       it, which is exactly what it did. */
-    /* and the whole of it a value ABOVE black. A UMP is black polymer, but
-       a black gun under a noon sun renders as a silhouette with nothing in
-       it — the reference reads as dark grey metal, and so does this. */
-    /* THE RECEIVER ENDS AT THE SIGHT and the tail carries on from there.
-       Its square rear face is the one thing in the aimed picture that is
-       pure dark mass — a box seen end-on — and the nearer it is the more
-       of the screen it owns. Ending it at the notch puts that face 20cm
-       out instead of 15, and what continues behind it is the tail, which
-       is narrower, lower, sloping, and in the squashed half anyway. */
-    g.body=vmOct(.052,.046,.245,M.grey,0,.043,-.073);g.add(g.body);
-    g.add(vmBox(.052,.005,.245,M.steel,0,.0665,-.073));                      // the top FACE, its own mesh and a step lighter
-    g.add(vmOct(.026,.008,.245,M.grey,0,.0725,-.073));                       // the rail
-    for(let i=0;i<7;i++)g.add(vmBox(.028,.005,.009,M.steel,0,.0785,-.175+i*.048));   // and its teeth: small light ticks running away, which is the depth cue
+    /* THE UMP45, rebuilt against the reference's AIMED picture, because
+       that is the one the player spends the fight looking at.
+       WHAT THE REFERENCE ACTUALLY SHOWS IS A CHANNEL. The receiver's top
+       is not a flat deck with a rail standing up the middle of it — it is
+       a TROUGH: a raised wall down each outer edge, their top faces
+       catching the light, and a sunken groove between them running away to
+       a small dark sight block at the far end. Your eye is led down the
+       groove. The old build had it inside out — a bright rail raised along
+       the CENTRE with light teeth on it — and a raised centre reads as a
+       spine, not as a sight line to look along.
+       AND THE GUN IS DARK. A UMP is black polymer. The old one put
+       `M.steel` across the whole top face and it rendered as a cream
+       stripe the length of the weapon; the light belongs on the EDGES (the
+       two rail caps, one strip each) and nowhere else — the same lesson
+       the Eagle's gold taught. It keeps its can: a suppressed UMP is what
+       this weapon is FOR here (see AudioSys.gun('ump') and the flash, both
+       cut down for it). */
+    // THE UPPER, and the CHANNEL cut along the top of it
+    g.body=vmOct(.052,.046,.245,M.gun,0,.043,-.073);g.add(g.body);           // z .050 .. -.196
+    g.add(vmBox(.034,.006,.245,M.gunD,0,.0665,-.073));                       // the groove's floor, a step DOWN into shadow
+    for(const sx of[-.021,.021]){
+      g.add(vmBox(.010,.016,.245,M.gun,sx,.069,-.073));                      // the walls either side of it
+      g.add(vmBox(.0104,.004,.245,M.grey,sx,.0785,-.073));                   // ...and the one lit edge on each, which is the whole depth cue
+    }
     // THE LOWER: the trigger group and the well, wider and darker
-    g.add(vmOct(.058,.042,.20,M.gun,0,.005,-.04));
-    g.add(vmOct(.050,.018,.062,M.gun,0,-.017,-.082));                        // the well's lip
-    const tail=vmOct(.042,.046,.115,M.gun,0,.030,.095);tail.rotation.x=-.10;g.add(tail);  // and the tail, narrower and lower than the receiver, sloping into the hinge
-    // THE FRONT: a short rail section, the nut, the stubby barrel, the can
-    g.add(vmOct(.044,.040,.10,M.gun,0,.040,-.225));
-    g.add(vmOct(.024,.009,.095,M.grey,0,.0725,-.225));
-    for(let i=0;i<3;i++)g.add(vmBox(.026,.005,.009,M.steel,0,.0785,-.258+i*.040));   // the front rail has teeth too
-    g.add(vmCyl(.014,.022,10,M.gunD,0,.042,-.285));
-    g.add(vmCyl(.0105,.05,10,M.gunD,0,.042,-.318));
+    g.add(vmOct(.058,.042,.20,M.gunD,0,.005,-.04));
+    g.add(vmOct(.050,.018,.062,M.gunD,0,-.017,-.082));                       // the well's lip
+    const tail=vmOct(.042,.046,.115,M.gunD,0,.030,.095);tail.rotation.x=-.10;g.add(tail);  // the tail, narrower and lower, sloping into the hinge
+    // THE FRONT: the handguard carries the SAME channel on, unbroken
+    g.add(vmOct(.044,.046,.10,M.gun,0,.043,-.225));
+    for(const sx of[-.021,.021]){
+      g.add(vmBox(.010,.016,.10,M.gun,sx,.069,-.225));
+      g.add(vmBox(.0104,.004,.10,M.grey,sx,.0785,-.225));
+    }
+    g.add(vmCyl(.014,.022,10,M.gunD,0,.042,-.285));                          // the nut
+    g.add(vmCyl(.0105,.05,10,M.gunD,0,.042,-.318));                          // the stub of barrel
     g.add(vmCyl(.0185,.012,12,M.gun,0,.042,-.350));                          // the can's collar
     g.add(vmCyl(.017,.115,12,M.gunD,0,.042,-.408));
-    for(let i=0;i<4;i++)g.add(vmRing(.0178,.0022,12,M.gun,0,.042,-.362-i*.030));     // the can's bands
+    for(let i=0;i<4;i++)g.add(vmRing(.0178,.0022,12,M.gun,0,.042,-.362-i*.030));     // its bands
     g.add(vmRing(.0176,.003,12,M.gun,0,.042,-.464));                         // and its cap
-    // THE MAGAZINE, raked forward out of its well
+    // THE MAGAZINE, raked forward out of its slanted well
     const mag=vmOct(.029,.185,.05,M.gunD,0,-.082,-.10);mag.rotation.x=-.17;g.add(mag);
-    for(let i=0;i<4;i++){const rb=vmBox(.031,.004,.052,M.gun,0,-.026-i*.036,-.094-i*.0062);rb.rotation.x=-.17;g.add(rb);}  // its witness ribs
-    const mw=vmOct(.038,.052,.06,M.gun,0,-.010,-.094);mw.rotation.x=-.17;g.add(mw);
-    const mb=vmOct(.033,.012,.056,M.grey,0,-.172,-.118);mb.rotation.x=-.17;g.add(mb);     // the floor plate
+    for(let i=0;i<4;i++){const rb=vmBox(.031,.004,.052,M.gun,0,-.026-i*.036,-.094-i*.0062);rb.rotation.x=-.17;g.add(rb);}
+    const mw=vmOct(.038,.052,.06,M.gunD,0,-.010,-.094);mw.rotation.x=-.17;g.add(mw);
+    const mb=vmOct(.033,.012,.056,M.gun,0,-.172,-.118);mb.rotation.x=-.17;g.add(mb);      // the floor plate
     // THE GRIP, and the guard in front of it
     const gr=vmOct(.034,.105,.044,M.gunD,0,-.062,.062);gr.rotation.x=.24;g.add(gr);
-    for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.032-i*.028,.036+i*.007);fg.rotation.x=.24;g.add(fg);}   // the finger grooves
+    for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.032-i*.028,.036+i*.007);fg.rotation.x=.24;g.add(fg);}
     g.add(vmLoop(.024,.005,10,M.gunD,0,-.030,.014));
     g.add(vmBox(.008,.020,.006,M.grey,0,-.028,.010));                        // the trigger
     g.add(vmOct(.010,.016,.028,M.grey,-.030,.012,.012));                     // the selector — an HK's is on BOTH sides
@@ -14239,33 +14237,37 @@ function buildGunModel(key,o){o=o||{};
     const st=new THREE.Group();st.position.set(0,.034,.145);st.rotation.x=-.05;g.add(st);
     st.add(vmOct(.032,.058,.032,M.gunD,0,0,0));                              // the hinge block
     st.add(vmKnob(.011,.036,8,M.grey,0,.010,-.008,Math.PI/2));               // its pin, across the gun
-    st.add(vmOct(.016,.016,.145,M.gunD,0,.036,.077));                        // the top rail
-    st.add(vmOct(.014,.013,.132,M.gunD,0,-.036,.072));                       // the bottom strut
+    st.add(vmOct(.018,.018,.145,M.gunD,0,.036,.077));                        // the top rail
+    st.add(vmBox(.019,.004,.145,M.gun,0,.046,.077));                         // and its lit edge, the way the receiver's walls have theirs
+    st.add(vmOct(.016,.015,.132,M.gunD,0,-.036,.072));                       // the bottom strut
     st.add(vmOct(.032,.100,.016,M.gunD,0,0,.146));                           // the butt, closing the frame
-    st.add(vmOct(.036,.036,.008,M.gun,0,0,.155));                            // and its pad
+    st.add(vmOct(.038,.086,.010,M.gun,0,0,.156));                            // and the pad on it
     g.add(vmOct(.009,.011,.05,M.grey,-.031,.052,-.11));                      // the charging handle, on the left
     g.add(vmKnob(.0085,.014,8,M.grey,-.040,.052,-.128,Math.PI/2));           // its knob
     g.add(vmLoop(.008,.0022,8,M.gunD,-.026,.014,.100));                      // the sling loop, at the hinge
-    /* THE SIGHTS, AND THEY ARE ROUND. An HK's are: the front post stands
-       inside a RING — a hooded donut, not a square cage with a bar over
-       it — and the rear is a DRUM with a round peep bored through it.
-       Aimed, what you see is a circle at the far end sitting inside a
-       circle at the near one with the post's tip between them, which is
-       the reference's picture exactly.
-       The rest of the outline is the three things under THE AIMED
-       SILHOUETTE: the sight stands tall so the receiver's top runs away
-       beneath it, it sits forward so there IS receiver to run, and the
-       receiver ends at the drum so its square end-face is not the
-       picture. */
-    const iron=new THREE.Group(),ay=.126,rz=.04;
-    iron.add(vmOct(.010,.048,.008,M.gun,0,.101,-.27));                        // the front tower
-    iron.add(vmRing(.0175,.0032,10,M.gun,0,ay,-.27));                         // ...and the ring hooding the post
-    iron.add(vmBox(.0045,.013,.004,M.dark,0,ay-.007,-.27));
-    iron.add(vmBox(.004,.004,.003,M.pale,0,ay+.0005,-.2672));                 // the bead on its tip
-    iron.add(vmOct(.026,.040,.016,M.gun,0,.100,rz));                          // the rear drum's tower
-    iron.add(vmRing(.016,.0035,10,M.gun,0,ay,rz+.008));                       // the peep bored through it — a RIM, not a blob
-    iron.add(vmOct(.030,.010,.016,M.grey,0,ay+.020,rz));                      // the drum's flat top
-    g.add(iron);const rd=sightRedDot(.077,-.02),ac=sightAcog(.077,-.02);g.add(rd);g.add(ac);
+    /* THE SIGHTS: A DRUM AND A HOODED POST, AND BOTH ARE SMALL.
+       They are round — an HK's are — but the last pass made the rear peep
+       enormous: measured, its hoop covered 43% of the screen's height and
+       the aimed picture was a donut with a gun somewhere under it. The
+       reference's rear sight is a SMALL dark block at the end of the
+       channel, and what fills the frame is the channel, not the sight.
+       The share is computed the way the M4's is — `(r_outer / eyeDist) /
+       tan(adsFov/2)` — and comes to 26%.
+       AND THE FRONT RING MUST NEST INSIDE THE REAR APERTURE. It is more
+       than twice as far away, so its size on the screen is its radius over
+       ITS OWN distance: r .0105 at .527 subtends 0.70 of the rear's clear
+       .0071 at .205. Aimed, that is a small circle sitting inside a larger
+       one with the post's bead between them. The old front ring was .0207
+       across and subtended MORE than the rear aperture could frame, so it
+       filled the hole instead of sitting in it. */
+    const iron=new THREE.Group(),ay=.115,rz=.04;
+    iron.add(vmOct(.016,.040,.018,M.gunD,0,.0855,rz));                       // the rear drum, planted on the channel's floor
+    iron.add(vmRing(.0095,.0024,14,M.gunD,0,ay,rz+.008));                    // the peep bored through it
+    iron.add(vmOct(.010,.040,.008,M.gunD,0,.097,-.27));                      // the front tower
+    iron.add(vmRing(.0105,.0022,14,M.gunD,0,ay,-.27));                       // ...and the ring hooding the post
+    iron.add(vmBox(.0035,.011,.004,M.gunD,0,ay-.006,-.27));
+    iron.add(vmBox(.0035,.0035,.003,M.pale,0,ay+.0005,-.2675));              // the bead on its tip
+    g.add(iron);const rd=sightRedDot(.081,-.02),ac=sightAcog(.081,-.02);g.add(rd);g.add(ac);
     hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
     grip.position.set(0,-.004,-.215);muzzle.position.set(0,.042,-.466);
     port.position.set(.030,.050,-.058);
@@ -14839,14 +14841,40 @@ function fireRocket(o,d,g){
    within reach is thrown off his feet, and the soil is scorched. */
 function rocketBurst(p,g,d){
   const x=p.x,y=p.y,z=p.z,R=g.blast||3.8;
-  AudioSys.boom();G.camShake=Math.max(G.camShake,1.0);G.hitstop=Math.max(G.hitstop,.06);G.vibr([80,40,120]);
-  const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffb060,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending}));
-  f.scale.set(2.4,2.4,1);f.position.set(x,y+.3,z);scene.add(f);
-  let t=0;effects.push({update(dt){t+=dt;const q=t/.3;f.material.opacity=1-q;f.scale.setScalar(2.4+q*5);if(q>=1){scene.remove(f);f.material.dispose();return false;}return true;}});
-  sparkBurst(x,y,z,30);boneBurst(x,y,z,0xff7a30,20,4.2);boneBurst(x,y,z,0x3a3430,16,3.2);smokePuff(x,y+.3,z,14);
-  shockRing(x,z,0xffa040,R,.45);
-  for(let i=0;i<5;i++)paintScar(x+rr3(-.9,.9),z+rr3(-.9,.9),Math.random()*TAU,.7,1.1,true);
-  G.glowFlash=Math.max(G.glowFlash||0,1);
+  AudioSys.boom();G.camShake=Math.max(G.camShake,2.2);G.hitstop=Math.max(G.hitstop,.10);G.vibr([120,50,180,40,90]);
+  AudioSys.quake();                                              // the ground still going after the crack
+  /* THE BLAST IS THREE THINGS IN SEQUENCE, NOT ONE SPRITE THAT FADES.
+     It was a single glow scaled from 2.4 to 7.4 over three tenths of a
+     second, which is a puff — the largest round in the game looked like a
+     muzzle flash on the ground. What an explosion actually reads as is a
+     FLASH that is gone before you can look at it, a FIREBALL that swells
+     fast and then slows as it burns out and climbs, and SMOKE that
+     outlives both and is still standing when the fireball has gone. So
+     they are three overlapping lives with three different curves, and the
+     one that matters most is the last: the smoke is what says something
+     big happened here, because it is the only part still there a second
+     later. */
+  const puff=(c,s0,s1,dur,rise,op,delay)=>{
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:c,transparent:true,
+      opacity:0,depthWrite:false,blending:c===0x4a4038?THREE.NormalBlending:THREE.AdditiveBlending}));
+    sp.scale.set(s0,s0,1);sp.position.set(x+rr3(-.5,.5),y+.3,z+rr3(-.5,.5));sp.renderOrder=6;scene.add(sp);
+    let t=-(delay||0);
+    effects.push({update(dt){t+=dt;if(t<0)return true;
+      const q=Math.min(1,t/dur),e=1-(1-q)*(1-q);                 // swells fast, then eases out
+      sp.material.opacity=op*(q<.12?q/.12:1-(q-.12)/.88);
+      sp.scale.setScalar(s0+(s1-s0)*e);sp.position.y=y+.3+rise*e;
+      if(q>=1){scene.remove(sp);sp.material.dispose();return false;}return true;}});
+  };
+  puff(0xfff4d0,1.6,5.0,.10,.2,1.0,0);                           // the flash: white, huge, gone at once
+  puff(0xffb050,2.2,8.5,.42,1.1,1.0,.02);                        // the fireball, climbing as it burns
+  puff(0xff7420,1.4,6.0,.60,1.8,.85,.06);                        // its darker heart, lasting longer and rising further
+  for(let i=0;i<5;i++)puff(0x4a4038,2.0,7.0+i,1.9+i*.35,1.5+i*.5,.5,.10+i*.07);   // and the smoke, which outlives all of it
+  sparkBurst(x,y,z,70);boneBurst(x,y,z,0xff7a30,46,7.0);boneBurst(x,y,z,0x3a3430,34,5.5);smokePuff(x,y+.3,z,26);
+  shockRing(x,z,0xffd090,R*1.35,.30);                            // a fast bright ring...
+  shockRing(x,z,0x8a7a60,R*2.1,.85);                             // ...and a slower wide one of dust behind it
+  for(let i=0;i<11;i++)paintScar(x+rr3(-1.5,1.5),z+rr3(-1.5,1.5),Math.random()*TAU,.8,1.3,true);
+  G.glowFlash=Math.max(G.glowFlash||0,1);WX.flash=Math.max(WX.flash,.55);   // it lights the field like a stroke of lightning
+  let caught=false,slew=false;
   for(const e of enemies.slice()){
     if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter')continue;
     const ey=aloft(e)?e.y:heightAt(e.x,e.z)+1.0,ddx=e.x-x,ddz=e.z-z,dist=Math.hypot(ddx,ddz,ey-y);
@@ -14856,6 +14884,7 @@ function rocketBurst(p,g,d){
     const hv={dx:ux,dz:uz,up:2};
     if(e.state==='patrol'){e.state='chase';e.t=0;}
     e.takeHit(dmg,e.boss?4:99,x,z,2.6,hv);
+    caught=true;if(e.hp<=0)slew=true;                        // ...and what the marker is owed
     if(e.hp<=0&&!e.boss&&!e.mini&&e.rig&&e.rig.humanoid&&!e.crumbled){   // blown apart, nothing to fall over
       if(e.rag)endRagdoll(e);clearWounds(e);
       e.rig.root.visible=false;e.crumbled=true;
@@ -14866,7 +14895,14 @@ function rocketBurst(p,g,d){
     const P=player,dd=Math.hypot(P.x-x,P.z-z,heightAt(P.x,P.z)+1-y);
     if(dd<R*.7&&P.state!=='dead')P.floored(x,z,dd<1.6?20:10);
   }
-  hitMark(true,false);
+  /* THE MARKER IS EARNED. This said `hitMark(true,false)` unconditionally,
+     so EVERY rocket flashed the red kill cross and played the kill's
+     falling pair — at a wall, at the dirt, at nothing. A hitmarker that
+     fires when you hit nothing is worse than none at all: it is the one
+     piece of the HUD the player trusts to tell them whether the shot
+     counted. It now says what actually happened — red for a kill, white
+     for a body caught in it, and NOTHING at all for a hole in the ground. */
+  if(caught)hitMark(slew,false);
 }
 function fireGun(){
   const g=gunOf(),A=gunAmmo(g);
