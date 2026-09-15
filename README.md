@@ -529,7 +529,7 @@ the same as three blows). The nearest thing takes the round.
 |---|---|---|---|---|---|
 | **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down |
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. Its irons are an **HK drum**, and they are **round**: a rear drum with a peep bored through it and a front post standing inside a ring, so what you see aimed is a circle at the far end sitting inside a circle at the near one with the post's tip between them |
-| **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Carry-handle aperture and a post on a triangular base |
+| **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Built as a RIFLE rather than a compact: a twenty-seven centimetre quad rail with its rungs running the length of it, a barrel carrying well past that to a gas block and front sight, a flat-topped receiver with one rail unbroken from the stock to the muzzle, and a collapsing stock on a ribbed buffer tube. Its irons are a **ghost ring** — a fat hoop on the back of the rail with the post half a metre in front of it, which is what an aperture is for |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
 | **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then four returns off the stone, each later and quieter and darker than the last, with a roll going away under them. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
 | **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
@@ -683,6 +683,23 @@ either side. It used to go to black glass with the weapon taken away —
 which is what a sniper's scope does, and the ACOG is not one. The sniper's own scope is its iron option (four and eight
 times, the zoom button); give it a dot or an ACOG and it becomes a rifle
 you can fight close with.
+
+**The lens and the turn are yours.** Two sliders sit under *the view* on
+the pause screen and the browser remembers both.
+**Field of view** runs from 60 to 100 degrees, 68 by default, and the
+picture behind the pause screen redraws as you drag it so you judge the
+number on the field rather than on the number.
+**Turn speed** runs from 0.40 to 2.20 and multiplies every drag, in both
+views and on the keys.
+The thing that makes the field of view safe to change is that **a sight is
+stored as a magnification, not as an angle**. Every aimed field in the
+game — each gun's own irons, the red dot's 1.15x, the ACOG's 2x, the
+sniper's 4x and 8x — was tuned against the 68-degree lens, so each is read
+back as the power it stood for and re-derived through whatever lens you
+have chosen. Set the field to a hundred and the red dot is still 1.15
+times, not a scope. The first-person turn additionally narrows with
+`camera.fov / your field`, which is what keeps the rate under your thumb
+the same while the sights are up.
 
 **The hit marker.** Four ticks flash on the crosshair when a round lands
 — white for a body, gold for the head, red and longer for a kill — and

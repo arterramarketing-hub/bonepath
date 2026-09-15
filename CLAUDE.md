@@ -851,6 +851,34 @@ Known state of play:
       `scatterBones` with `crumbled` set, the katana-slice path, so
       `pruneFallen` buries it.
 
+- **THE PLAYER OWNS TWO NUMBERS: `VIEW.fov` AND `VIEW.sens`** (declared
+  immediately below `camera`, above everything that reads them, and
+  remembered under `bp_view`). Two sliders on the pause screen write them.
+  - **A SIGHT IS A MAGNIFICATION, NOT AN ANGLE, AND THIS IS THE WHOLE
+    TRICK.** Every aimed field in the game — each gun's `adsFov`, the
+    sniper's zoom array, `ATT_FOV`'s 61 and 37 — was hand-tuned against a
+    68-degree lens. Store those as absolute degrees and a player who sets
+    a hundred-degree field finds his red dot has silently become a scope.
+    `FOV_REF` is 68 and `adsFovOf(deg)` reads a stored figure back as the
+    POWER it stood for at 68 and re-derives it through `VIEW.fov`.
+    Verified: the red dot holds 1.145x at base 60, 68, 84 and 100.
+    **Any new aimed field goes through `adsFovOf`.** Writing one straight
+    into `camera.fov` is the bug, and it is invisible at the default.
+  - `applyFov()` is the one place the lens is put back to rest; the two
+    sites that used to write a literal 68 call it now. Do not add a third.
+  - The first-person turn is `.0034*(camera.fov/VIEW.fov)*VIEW.sens` — the
+    `camera.fov/VIEW.fov` share is what holds the rate ON THE SCREEN
+    steady while the sights narrow, and it must be measured against
+    `VIEW.fov`, not against 68, or the setting changes the feel of the
+    hip as well. Third person is `.0062*VIEW.sens`, unscaled: it has no
+    sights.
+  - **A SLIDER STYLED DOWN TO A HAIRLINE IS TWO PIXELS TALL AND NOBODY
+    CAN HIT IT.** Put the height on the input (22px, transparent) and the
+    hairline on `::-webkit-slider-runnable-track` / `::-moz-range-track`,
+    with the thumb pulled up by half its own height. Measured: the hit
+    box is 22px, not 2px. And stop `pointerdown`/`pointermove` at the
+    input the way `#seedIn` does, or the overlay under it takes the drag
+    and the thumb never moves.
 - **THE HOST'S DRAW ORDER IS WHAT DECIDES THE MIX, NOT THE WEIGHTS**
   (`hostKit`, `bigLead`, `spawnEnemies`, `pathHost`). A wedge's purse is
   about a hundred and eighty and the cheapest brute-bearing template is a
@@ -942,10 +970,44 @@ Known state of play:
   perfect in the source — the rifle's fore-end chequer sat 6mm inside the
   wood for a while. If a detail is invisible, check it is at the surface
   before you touch its colour.
-  Measured, first person, gun in hand: the pass costs **24–58 draw calls**
-  a weapon (deagle 26→52 meshes, ump 53→78, m4 38→71) and nothing at all
+  Measured, first person, gun in hand: the pass costs **22–58 draw calls**
+  a weapon (deagle 26→52 meshes, ump 53→78, m4 38→94) and nothing at all
   while a blade is held. That is the price of the detail and it was paid
   deliberately; do not pay it twice by adding more.
+- **WHAT MAKES A MODEL READ AS A RIFLE RATHER THAN AN SMG IS PROPORTION,
+  NOT DETAIL.** The M4 was covered in furniture and still read as a
+  submachine gun, and the reason was a short fat handguard, a stub of
+  barrel past it and a tall stubby receiver. What says RIFLE is LENGTH
+  FORWARD OF THE HAND: a long slim handguard (.270 now, against .200), a
+  barrel carrying well past it to a gas block and front sight at the end
+  of it, and a receiver that is LONGER and SLIMMER rather than taller
+  (.050 x .048 x .225, against .056 x .060 x .260). It runs 1.00 in gun
+  units against the old .88 and nearly all of the gain is ahead of the
+  grip. The carry handle went with it — a flat top with one rail unbroken
+  from the receiver to the end of the handguard is the modern outline.
+  **The lit top FACE must run the WHOLE gun.** It stopped at the end of
+  the receiver first time and the trapezoid that gives the aimed picture
+  its depth stopped with it, halfway to the muzzle; the handguard carries
+  the same `M.grey` strip at the same height (.063–.068) so the band is
+  one unbroken fifty-centimetre run receding from the eye.
+- **AN APERTURE SIGHT MUST HAVE NOTHING BEHIND ITS HOLE.** The obvious way
+  to mount a ghost ring is to stand it on a tower, and a tower at the
+  hoop's own z fills the aperture with its own material — you aim at a
+  solid disc and every number in the model looks right. It stands on a
+  NECK that stops at the hoop's OUTER bottom edge (`ay - (r + tube)`), or
+  on two legs set outside the outer radius. Nothing may cross the clear
+  hole.
+  **And how big the hoop is, is MEASURED, not chosen.** The eye sits
+  `ADS_EYE` behind the sight, so the hoop's share of the screen's height
+  is `(r_outer / eyeDist) / tan(adsFov/2)`. At r .020 the M4's covered
+  **55%** of the frame — a tunnel, not a sight. The reference frame's is
+  about 24%; r .0105 with a .0028 wall gives 30%, which is the reference's
+  picture with enough hoop left for a fourteen-sided torus to still read
+  as round. If it wants resizing, compute the share.
+  A dark post on a dark background vanishes, so the front post carries a
+  `M.pale` bead at its tip — test the sight picture against open SKY as
+  well as against the nave, or you will not know whether the post is
+  missing or merely unlit.
 - **THE BRASS** (`SHELLS`, `shellPool`, `ejectShell`, `updateShells`).
   Fourteen cases in a ring buffer, thrown along the GUN'S OWN right and
   up — which in first person is the camera's and in third the hand's —

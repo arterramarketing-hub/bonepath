@@ -66,6 +66,25 @@
   #pause .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
   #pause .btn2:active{background:rgba(200,190,160,.15);}
   #pause .btn2.sm{padding:4px 10px;font-size:10px;margin-left:8px;}
+  /* A SLIDER STACKS: the label on its own line and the track under it,
+     because the picker row is 104px of value and a 212px column has no
+     room for both side by side. */
+  #pause .sel.rng{display:block;margin-top:9px;}
+  #pause .sel.rng .pick{margin-top:4px;width:100%;}
+  #pause .sel.rng b{min-width:40px;font-size:11px;text-align:right;margin-left:8px;}
+  /* THE TRACK IS A HAIRLINE; THE INPUT IS A THUMB'S WIDTH. Styling the
+     input's own height down to the hairline makes the whole control two
+     pixels tall, which on a phone is a target nobody can hit — the track
+     is drawn on the ::track pseudo-element instead and the input keeps a
+     22px box to catch the touch. */
+  #pause input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:22px;margin:0;
+    background:transparent;outline:none;cursor:pointer;}
+  #pause input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(200,190,160,.3);border-radius:2px;}
+  #pause input[type=range]::-moz-range-track{height:2px;background:rgba(200,190,160,.3);border-radius:2px;}
+  #pause input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;
+    margin-top:-6px;border-radius:50%;background:#e6c97a;border:1px solid #14161a;cursor:pointer;}
+  #pause input[type=range]::-moz-range-thumb{width:14px;height:14px;border:1px solid #14161a;
+    border-radius:50%;background:#e6c97a;cursor:pointer;}
   #pause #seedIn{width:112px;background:rgba(0,0,0,.35);border:1px solid rgba(200,190,160,.35);color:#e6c97a;font:inherit;font-size:12px;padding:3px 6px;text-align:center;}
   #poison{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity .4s;
     background:radial-gradient(ellipse at 50% 50%, rgba(40,90,20,0) 38%, rgba(60,130,25,.5) 100%);}
@@ -386,6 +405,8 @@
       <div class="sel"><span>armour</span><div class="pick"><div class="arrow" data-k="armour" data-d="-1">&lsaquo;</div><b id="selArmour">knight plate</b><div class="arrow" data-k="armour" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span id="selChargeLbl">charge</span><div class="pick"><div class="arrow" data-k="charge" data-d="-1">&lsaquo;</div><b id="selCharge">double slash</b><div class="arrow" data-k="charge" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>the view</span><div class="pick"><div class="arrow" data-k="pov" data-d="-1">&lsaquo;</div><b id="selPov">over the shoulder</b><div class="arrow" data-k="pov" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel rng"><span>field of view</span><div class="pick"><input type="range" id="rngFov" min="60" max="100" step="1"><b id="lblFov">68&deg;</b></div></div>
+      <div class="sel rng"><span>turn speed</span><div class="pick"><input type="range" id="rngSens" min="40" max="220" step="5"><b id="lblSens">1.00</b></div></div>
       <div class="note" id="selNote"></div>
     </div>
     <div class="col">
@@ -1533,6 +1554,32 @@ const FOGC=0x090d12;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(FOGC);
 const camera=new THREE.PerspectiveCamera(68,16/9,0.1,220);
+/* THE TWO NUMBERS THE PLAYER OWNS, and they are the only two: how wide the
+   lens is and how fast a drag turns him. Both live on the pause screen and
+   both are remembered by the browser.
+   `FOV_REF` is what every hand-tuned field in the game was tuned AGAINST —
+   each gun's `adsFov`, the sniper's zooms, `ATT_MAG`'s derivation — so a
+   sight is stored as a MAGNIFICATION off the base and re-derived through
+   whatever base the player has chosen. Store an absolute degree figure and
+   a player on a hundred-degree field finds his red dot has become a scope.
+   `VIEW.sens` multiplies the drag in BOTH views; the first-person turn
+   additionally scales with `camera.fov/VIEW.fov`, which is what keeps the
+   rate on the screen the same while the sights are up. */
+const FOV_REF=68;
+const VIEW={fov:FOV_REF,sens:1};
+const _vclamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+try{const v=JSON.parse(localStorage.getItem('bp_view')||'{}');
+  if(isFinite(v.fov))VIEW.fov=_vclamp(+v.fov,60,100);
+  if(isFinite(v.sens))VIEW.sens=_vclamp(+v.sens,.4,2.2);}catch(e){}
+function saveView(){try{localStorage.setItem('bp_view',JSON.stringify(VIEW));}catch(e){}}
+/* a field tuned at FOV_REF, re-expressed at whatever base is set now: take
+   the magnification it stood for and apply it to the player's own lens */
+function adsFovOf(deg){
+  const mag=Math.tan(FOV_REF*Math.PI/360)/Math.tan(deg*Math.PI/360);
+  return 2*Math.atan(Math.tan(VIEW.fov*Math.PI/360)/mag)*180/Math.PI;
+}
+function applyFov(){if(Math.abs(camera.fov-VIEW.fov)>.001){camera.fov=VIEW.fov;camera.updateProjectionMatrix();}}
+applyFov();
 
 /* grade pass — the PSX color pipeline:
    exposure -> S-curve -> desat -> teal shadows / bone-amber highlights
@@ -13138,8 +13185,8 @@ function updateCamera(dt){
     // no prey: a follow camera. It eases in behind the direction you are
     // walking — slowly, souls-fashion — and a manual drag is left exactly
     // where you put it until you move again
-    G.camYaw-=IN.camDX*.0062;
-    G.camPitch=clamp(G.camPitch+IN.camDY*.002,.12,.6);
+    G.camYaw-=IN.camDX*.0062*VIEW.sens;
+    G.camPitch=clamp(G.camPitch+IN.camDY*.002*VIEW.sens,.12,.6);
     if(dragging)G.camHeld=true;
     const moving=player.state!=='dead'&&player.moveAmt>.15;
     if(moving&&camIdle>.4)G.camHeld=false;
@@ -14052,49 +14099,102 @@ function buildGunModel(key,o){o=o||{};
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.46];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='m4'){
-    /* THE M4A1: an upper with a carry handle, a round handguard with its
-       vents, a curved thirty on a straight well, a collapsing stock. Its
-       iron sights are the handle's aperture and a post on a triangular base */
-    g.body=vmOct(.056,.06,.26,M.gun,0,.035,-.04);g.add(g.body);           // the upper and lower
-    g.add(vmOct(.05,.05,.1,M.gunD,0,.015,.04));                          // the lower's well and trigger group
-    g.add(vmCyl(.026,.2,12,M.gunD,0,.04,-.27));                          // the handguard
-    for(const zz of[-.205,-.255,-.305,-.355])g.add(vmRing(.0272,.0038,12,M.gun,0,.04,zz));   // its vents, as bands round it
-    g.add(vmRing(.031,.006,12,M.grey,0,.04,-.172));                      // the delta ring, where it meets the upper
-    g.add(vmCyl(.01,.14,8,M.grey,0,.04,-.44));g.add(vmCyl(.014,.05,8,M.gunD,0,.04,-.52));   // the barrel and its flash hider
-    for(let i=0;i<3;i++)g.add(vmBox(.030,.004,.008,M.grey,0,.0535,-.508+i*.013));  // the hider's slots
-    g.add(vmOct(.020,.020,.020,M.gunD,0,.04,-.372));                     // the gas block under the sight
-    const mag=vmOct(.028,.15,.06,M.gunD,0,-.06,-.03);mag.rotation.x=-.18;g.add(mag);   // the thirty, curved forward
-    for(let i=0;i<3;i++){const rb=vmBox(.030,.004,.062,M.gun,0,-.022-i*.040,-.023-i*.0073);rb.rotation.x=-.18;g.add(rb);}
-    const mf=vmOct(.031,.012,.064,M.grey,0,-.136,-.016);mf.rotation.x=-.18;g.add(mf);  // the floor plate
-    const gr=vmOct(.034,.1,.045,M.gunD,0,-.06,.1);gr.rotation.x=.32;g.add(gr);
-    for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.030-i*.026,.074+i*.009);fg.rotation.x=.32;g.add(fg);}
-    g.add(vmLoop(.026,.005,10,M.gunD,0,-.026,.046));                      // the guard
-    g.add(vmBox(.008,.020,.006,M.grey,0,-.024,.044));                     // the trigger
-    g.add(vmCyl(.016,.14,10,M.gunD,0,.05,.18));                           // the buffer tube
-    for(let i=0;i<4;i++)g.add(vmRing(.0175,.003,10,M.gun,0,.05,.140+i*.028));   // its detent ridges, which is what a stock clicks along
-    g.add(vmOct(.03,.07,.09,M.gunD,0,.03,.29));                           // the stock on it
-    g.add(vmOct(.046,.018,.028,M.gunD,0,.008,.318));                      // its toe
-    g.add(vmOct(.012,.012,.03,M.grey,.03,.05,.04));                       // the charging handle's latch
-    g.add(vmKnob(.011,.018,8,M.gun,.032,.05,.012,Math.PI/2));             // the forward assist
-    g.add(vmOct(.016,.020,.014,M.gun,.030,.058,-.020));                   // the brass deflector behind the port
-    g.add(vmBox(.006,.026,.060,M.gunD,.029,.042,-.058));                  // the ejection port's cover
-    g.add(vmBall(.007,M.grey,.030,.004,.014));                            // the magazine catch
-    g.add(vmOct(.008,.016,.024,M.grey,-.028,.028,.046));                  // the selector
-    g.add(vmOct(.008,.014,.026,M.grey,-.028,.002,.008));                  // the bolt catch
-    g.add(vmLoop(.008,.0022,8,M.gunD,-.026,.012,.086));                   // the sling loop at the castle nut
-    const iron=new THREE.Group();                                         // the carry handle, its aperture, and the front post on its base
-    iron.add(vmOct(.02,.012,.1,M.gunD,0,.071,.02));iron.add(vmOct(.02,.014,.012,M.gunD,0,.084,-.02));iron.add(vmOct(.02,.014,.012,M.gunD,0,.084,.06));
-    const ay=.091;iron.add(vmBox(.024,.003,.006,M.gunD,0,ay+.011,.06));iron.add(vmBox(.024,.003,.006,M.gunD,0,ay-.011,.06));
-    iron.add(vmBox(.003,.025,.006,M.gunD,-.0105,ay,.06));iron.add(vmBox(.003,.025,.006,M.gunD,.0105,ay,.06));
-    iron.add(vmKnob(.008,.012,8,M.grey,0,.079,.03));                      // the handle's elevation drum
-    iron.add(vmOct(.02,.03,.02,M.gunD,0,.07,-.36));iron.add(vmBox(.004,.02,.004,M.dark,0,.089,-.36));iron.add(vmBox(.003,.003,.002,M.pale,0,.091,-.3575));
-    iron.add(vmBox(.003,.03,.006,M.gunD,-.011,.09,-.36));iron.add(vmBox(.003,.03,.006,M.gunD,.011,.09,-.36));
-    g.add(iron);const rd=sightRedDot(.066,-.02),ac=sightAcog(.066,-.02);g.add(rd);g.add(ac);
-    hands(0,-.065,.11);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.01,-.005,-.26));
-    grip.position.set(0,.01,-.26);muzzle.position.set(0,.04,-.55);
-    port.position.set(.032,.048,-.040);
-    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.04,-.55);
-    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.091,reddot:rd.h,acog:ac.h};
+    /* THE M4A1, AND IT IS A RIFLE. It read as a submachine gun before, and
+       the reason was proportion rather than detail: a short fat handguard,
+       a stub of barrel past it, a tall stubby receiver and a carry handle
+       sitting on top of the lot. What says RIFLE is LENGTH FORWARD OF THE
+       HAND — a long slim quad rail, a barrel that carries well past it, a
+       gas block and front sight out at the end of that barrel — over a
+       receiver that is longer and SLIMMER than before, not taller.
+       Overall it runs 1.00 in gun units against the old .88, and almost
+       all of the gain is ahead of the grip.
+       THE LADDER IS THE OTHER HALF. A quad rail's rungs running away from
+       the eye are the single strongest cue in the reference frame, and
+       they double as the depth cue the aimed picture needs (see THE AIMED
+       SILHOUETTE) — light ticks getting closer together as they recede. */
+    // THE UPPER: flat-topped, slim, with one rail running the whole length of gun
+    g.body=vmOct(.050,.048,.225,M.gun,0,.042,-.055);g.add(g.body);        // z .058 .. -.168
+    g.add(vmBox(.050,.005,.225,M.grey,0,.0655,-.055));                    // its top FACE, a step lighter
+    g.add(vmOct(.026,.008,.225,M.gun,0,.0715,-.055));                     // the receiver's rail
+    for(let i=0;i<6;i++)g.add(vmBox(.028,.005,.009,M.grey,0,.0775,-.150+i*.040));
+    // THE LOWER: the well, the trigger group, wider and darker
+    g.add(vmOct(.056,.046,.180,M.gunD,0,.004,-.030));
+    g.add(vmOct(.048,.016,.058,M.gunD,0,-.017,-.072));                    // the well's lip
+    /* THE QUAD RAIL: twenty-seven centimetres of it, the length that makes
+       the difference, and the rail carries on unbroken off the receiver */
+    g.add(vmOct(.046,.050,.270,M.gunD,0,.042,-.305));                     // z -.170 .. -.440
+    g.add(vmBox(.046,.005,.270,M.grey,0,.0655,-.305));                    // ITS TOP FACE, flush with the receiver's: one lit band .50 long running away from the eye
+    g.add(vmOct(.026,.008,.270,M.gun,0,.0715,-.305));
+    for(let i=0;i<11;i++)g.add(vmBox(.028,.005,.009,M.grey,0,.0775,-.185-i*.024));   // the rungs, running away
+    for(const sx of[-.0235,.0235])for(let i=0;i<3;i++)g.add(vmBox(.005,.026,.011,M.grey,sx,.042,-.235-i*.070));
+    g.add(vmRing(.0265,.005,12,M.grey,0,.042,-.172));                     // the barrel nut, where rail meets receiver
+    // THE BARREL, carrying well past the rail, with the gas block out at the end of it
+    g.add(vmOct(.026,.026,.028,M.gunD,0,.042,-.452));                     // the gas block
+    g.add(vmCyl(.0095,.155,10,M.grey,0,.042,-.510));                      // z -.433 .. -.588
+    g.add(vmCyl(.0135,.055,10,M.gunD,0,.042,-.612));                      // the flash hider
+    for(let i=0;i<3;i++)g.add(vmBox(.030,.004,.008,M.grey,0,.0525,-.598+i*.013));   // its slots
+    g.add(vmRing(.0138,.003,10,M.gun,0,.042,-.638));
+    // THE THIRTY, curved forward out of a straight well
+    const mag=vmOct(.028,.155,.062,M.gunD,0,-.062,-.050);mag.rotation.x=-.18;g.add(mag);
+    for(let i=0;i<3;i++){const rb=vmBox(.030,.004,.064,M.gun,0,-.024-i*.042,-.043-i*.0076);rb.rotation.x=-.18;g.add(rb);}
+    const mf=vmOct(.031,.012,.066,M.grey,0,-.138,-.036);mf.rotation.x=-.18;g.add(mf);
+    // THE GRIP and the guard
+    const gr=vmOct(.034,.100,.045,M.gunD,0,-.058,.080);gr.rotation.x=.32;g.add(gr);
+    for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.028-i*.026,.054+i*.009);fg.rotation.x=.32;g.add(fg);}
+    g.add(vmLoop(.026,.005,10,M.gunD,0,-.026,.028));
+    g.add(vmBox(.008,.020,.006,M.grey,0,-.024,.026));                     // the trigger
+    /* THE STOCK: the buffer tube it collapses along, and a stock that is a
+       stock — a body, a comb for the cheek, a toe and a pad */
+    g.add(vmCyl(.0155,.150,10,M.gunD,0,.048,.175));
+    for(let i=0;i<5;i++)g.add(vmRing(.017,.003,10,M.gun,0,.048,.130+i*.026));   // the detents it clicks along
+    g.add(vmOct(.032,.062,.100,M.gunD,0,.036,.280));
+    g.add(vmOct(.022,.014,.070,M.gunD,0,.070,.272));                      // the comb
+    g.add(vmOct(.042,.020,.068,M.gunD,0,.006,.276));                      // the toe
+    g.add(vmOct(.046,.070,.014,M.gun,0,.030,.336));                       // and the pad
+    // THE CONTROLS
+    g.add(vmOct(.012,.012,.030,M.grey,.030,.056,.038));                   // the charging handle's latch
+    g.add(vmKnob(.011,.018,8,M.gun,.032,.050,-.002,Math.PI/2));           // the forward assist
+    g.add(vmOct(.016,.020,.014,M.gun,.030,.058,-.032));                   // the brass deflector
+    g.add(vmBox(.006,.026,.060,M.gunD,.029,.044,-.070));                  // the ejection port's cover
+    g.add(vmBall(.007,M.grey,.030,-.004,-.012));                          // the magazine catch
+    g.add(vmOct(.008,.016,.024,M.grey,-.028,.020,.034));                  // the selector
+    g.add(vmOct(.008,.014,.026,M.grey,-.028,-.004,-.018));                // the bolt catch
+    g.add(vmLoop(.008,.0022,8,M.gunD,-.026,.014,.088));                   // the sling loop at the castle nut
+    /* THE SIGHTS ARE AN APERTURE, and the rear one is a GHOST RING: a
+       single fat hoop standing on the back of the rail with the post out
+       at the gas block half a metre in front of it. That long sight radius
+       is what an aperture is FOR, and the picture it gives — a wide dark
+       ring with a small post standing in the middle of it — is the
+       reference frame exactly.
+       THE HOOP MUST NOT HAVE A BLOCK BEHIND IT. The first thought is to
+       stand it on a tower, but a tower at the ring's own z fills the
+       aperture with its own material and you aim at a solid disc. It
+       stands on TWO LEGS, set outside the hoop's outer radius, on a base
+       that clears its bottom edge. */
+    /* HOW BIG THE HOOP IS, MEASURED OFF THE REFERENCE RATHER THAN CHOSEN.
+       The eye sits `ADS_EYE` behind the sight, so the hoop's share of the
+       screen is `(r_outer/eyeDist) / tan(adsFov/2)`. The first pass used
+       r .020 and it covered 55% of the frame's height — the reference's
+       covers about 24%, which is a sight you look THROUGH rather than a
+       tunnel you look down. r .0105 with a .0028 wall puts it at 30%,
+       which is the reference's picture with enough hoop left for a
+       fourteen-sided torus to still read as round at this resolution.
+       If it ever wants resizing, measure the share; do not eyeball it. */
+    const iron=new THREE.Group(),ay=.100,rz=.042;
+    iron.add(vmOct(.026,.009,.020,M.gun,0,.0805,rz));                     // the leaf's base on the rail
+    iron.add(vmOct(.009,.010,.014,M.gun,0,.0845,rz));                     // the neck, stopping at the hoop's OUTER edge — see above
+    iron.add(vmRing(.0105,.0028,14,M.gun,0,ay,rz+.004));                  // THE GHOST RING
+    iron.add(vmOct(.020,.030,.016,M.gun,0,.072,-.452));                   // the front sight's base on the gas block
+    iron.add(vmBox(.007,.028,.006,M.gunD,0,.086,-.452));                  // the post, stood in the middle of it
+    iron.add(vmBox(.005,.005,.004,M.pale,0,.0985,-.4487));                // and the bead on its tip
+    iron.add(vmBox(.003,.030,.008,M.gun,-.0085,.088,-.452));              // the ears either side of it
+    iron.add(vmBox(.003,.030,.008,M.gun, .0085,.088,-.452));
+    g.add(iron);const rd=sightRedDot(.0755,.0),ac=sightAcog(.0755,.0);g.add(rd);g.add(ac);
+    hands(0,-.062,.092);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.01,-.004,-.320));
+    grip.position.set(0,.006,-.320);muzzle.position.set(0,.042,-.645);
+    port.position.set(.032,.050,-.050);
+    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.042,-.645);
+    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.48];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='spas'){
     /* THE SPAS-12: a long receiver over a tube magazine, a ribbed pump
@@ -14667,8 +14767,8 @@ function updateGun(dt){
   if(FPS.ads<.01)FPS.ads=0;
   if(FPS.on){
     const att=attOf(g);
-    const fovAim=att==='acog'?ATT_FOV.acog:att==='reddot'?ATT_FOV.reddot:g.scope?(g.adsFov[FPS.zoom]||g.adsFov[0]):g.adsFov;
-    const fov=lerp(68,fovAim,FPS.ads);
+    const fovAim=adsFovOf(att==='acog'?ATT_FOV.acog:att==='reddot'?ATT_FOV.reddot:g.scope?(g.adsFov[FPS.zoom]||g.adsFov[0]):g.adsFov);
+    const fov=lerp(VIEW.fov,fovAim,FPS.ads);
     if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
   }
   // the hip's cone: at rest, wider walking and wider at a sprint, blooming with every shot and closing back
@@ -14836,7 +14936,7 @@ function updateBladeVm(dt){
    own, so nothing here need hold the lens inside anything. */
 function updateFpsCamera(dt){
   const P=player;
-  const sens=.0034*(camera.fov/68);
+  const sens=.0034*(camera.fov/VIEW.fov)*VIEW.sens;   // the rate on the SCREEN is what stays put, so it narrows with the sights
   G.camYaw-=IN.camDX*sens;FPS.pitch=clamp(FPS.pitch-IN.camDY*sens,-1.25,1.25);
   const hP=heightAt(P.x,P.z)-snowSink(P.x,P.z);
   let ey=FPS.eyeY;
@@ -14851,7 +14951,7 @@ function updateFpsCamera(dt){
   const roll=(P.state==='floored'?.6*Math.min(1,P.t/FLOOR.LAND)*(P.t<FLOOR.RISE+.3?1:Math.max(0,1-(P.t-FLOOR.RISE-.3)/(FLOOR.DUR-FLOOR.RISE-.3))):0)+FPS.swayX*.5;
   camera.rotation.order='YXZ';
   camera.rotation.set(FPS.pitch,G.camYaw,roll);
-  if(!gunHeld()&&Math.abs(camera.fov-68)>.01){camera.fov=68;camera.updateProjectionMatrix();}
+  if(!gunHeld())applyFov();
   lookX=P.x;lookY=hP+ey;lookZ=P.z;                        // so the third-person gaze picks up from here, not from wherever it last was
 }
 /* ---- the HUD: crosshair, hit marker, scope, ammunition; and which buttons show ---- */
@@ -14907,7 +15007,7 @@ function setPov(on){
     camera.rotation.order='YXZ';FPS.pitch=0;
   }else{
     if(FPS.vm)FPS.vm.visible=false;if(FPS.vmBlade)FPS.vmBlade.visible=false;
-    if(Math.abs(camera.fov-68)>.01){camera.fov=68;camera.updateProjectionMatrix();}
+    applyFov();
     G.camPitch=.34;$('scope').classList.remove('on');$('acog').classList.remove('on');$('reddot').classList.remove('on');$('hitmark').className='';$('xhair').style.display='none';
     FHUD.scope=false;FHUD.acog=false;FHUD.dot=false;FHUD.mark='';FHUD.gap=-1;
     if(player.rig&&FPS.hidRig){player.rig.root.visible=true;FPS.hidRig=false;}
@@ -15279,6 +15379,7 @@ function cycleField(k,d){
   fillField();renderFrame();
 }
 function fillField(){
+  fillView();
   if(!$('selHour'))return;
   $('selHour').textContent=RUN.time;
   $('selWeather').textContent=wxLabel();
@@ -15289,6 +15390,31 @@ function fillField(){
 }
 document.querySelectorAll('#pause .arrow.fld').forEach(el=>el.addEventListener('pointerdown',e=>{
   e.preventDefault();e.stopPropagation();cycleField(el.dataset.k,+el.dataset.d);}));
+/* THE VIEW'S TWO SLIDERS. Both write through to `VIEW`, save, and redraw
+   the frame behind the pause screen, so the field of view is judged on the
+   picture rather than on the number. The pointer events are stopped at the
+   input the way the seed box's are, or the overlay under them takes the
+   drag and the thumb never moves. */
+function fillView(){
+  if(!$('rngFov'))return;
+  $('rngFov').value=Math.round(VIEW.fov);
+  $('rngSens').value=Math.round(VIEW.sens*100);
+  $('lblFov').innerHTML=Math.round(VIEW.fov)+'&deg;';
+  $('lblSens').textContent=VIEW.sens.toFixed(2);
+}
+if($('rngFov')){
+  const stop=e=>e.stopPropagation();
+  for(const id of ['rngFov','rngSens']){
+    const el=$(id);
+    el.addEventListener('pointerdown',stop);el.addEventListener('pointermove',stop);
+    el.addEventListener('touchstart',stop);el.addEventListener('keydown',stop);el.addEventListener('keyup',stop);
+    el.addEventListener('input',e=>{
+      if(id==='rngFov'){VIEW.fov=_vclamp(+el.value,60,100);applyFov();}
+      else VIEW.sens=_vclamp(+el.value/100,.4,2.2);
+      saveView();fillView();renderFrame();
+    });
+  }
+}
 function gotoSeed(){
   const v=($('seedIn').value||'').trim();if(!/^\d+$/.test(v))return;
   const n=(parseInt(v,10)>>>0)||1;
@@ -15497,7 +15623,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
