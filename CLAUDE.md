@@ -737,7 +737,18 @@ Known state of play:
       called while no gun is held — so swapping from a blade to a gun in
       first person left the last blade standing on screen beside the rifle,
       for ever. `updateGun` clears `FPS.vmBlade.visible` from its side.
-  12. **The cone is the hip's** (`coneNow`: `spread*(1-ads)`, 0 past
+  12. **THE CROSSHAIR IS SIZED IN THE SCREEN'S OWN MEASURE, AND IT STAYS
+      THAT WAY.** `updateGunHud` computes the gap as
+      `tan(cone) * (innerHeight / 2tan(fov/2)) + g.gap` — the cone
+      projected through the screen's height, plus each gun's small pixel
+      floor at the closed end. Measured, it holds 3.3% of the height at
+      844x390 and at 760x428, and 2.7% at 1600x900 (the drift is the
+      floor). The holo reticle's ring is `vh` for the same reason and
+      reads exactly 7.0% at every size. **This was played and asked for by
+      name — do not convert either to fixed pixels, and do not scale them
+      with the weapon when the viewmodel changes size.** The crosshair
+      belongs to the cone, not to the gun.
+      **The cone is the hip's** (`coneNow`: `spread*(1-ads)`, 0 past
       `ads>.9`); on the sights the ray is the camera's forward and nothing
       else, and the crosshair is hidden past `ads>.8`. Recoil moves the
       EYE (`FPS.pitch`, `G.camYaw`) plus a settling share (`FPS.recP`);

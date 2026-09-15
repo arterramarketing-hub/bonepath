@@ -556,7 +556,13 @@ the whole body.
 **From the hip there is a cone; on the sights there is none.** The
 crosshair is the hip's and it is honest: its gap *is* the cone the next
 round can leave through — each gun's own at rest, wider walking, wider
-still at a sprint, blooming with every shot and closing back. Bring the
+still at a sprint, blooming with every shot and closing back. It is drawn
+in the SCREEN'S own measure and not in fixed pixels: the gap is that cone
+projected through the screen's height, so it holds the same share of the
+picture on a phone as on a monitor (measured: 3.3% of the height at
+844x390, 3.3% at 760x428, 2.7% at 1600x900, the drift being each gun's
+small pixel floor at the closed end). The weapon may be scaled and carried
+where it likes; the crosshair does not follow it anywhere. Bring the
 sights up and the crosshair goes, the cone goes with it, and the round
 goes **exactly where the sight is** — whatever the gun is doing on the
 screen. Every gun has its own **sway** (a slow breath at the hip, the
