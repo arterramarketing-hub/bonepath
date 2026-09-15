@@ -712,23 +712,50 @@ Known state of play:
       closer buys the same size with savage foreshortening, the receiver
       enormous and the muzzle tiny, which is not what the references look
       like.
-      **And `V.adsZs` is why nothing is cut in half.** Bring a gun that
-      close and its own stock ends up behind the eye — the near plane
-      slices the receiver and you are aiming at a flat grey lid (it did,
-      on the UMP and the SPAS). Every shooter answers this with a separate,
-      narrower weapon FOV, which is the same thing as flattening the model
-      along the barrel, so each gun is scaled down in Z as the sights come
-      up, by exactly as much as its own geometry needs:
-      `zs ≤ (ADS_EYE − near − margin) / ((rearZ − sightZ) · scale)`,
-      clamped to [.2,1] and computed at `applyAttachmentTo`. Looking down
-      the barrel a depth squash is invisible; being cut in half is not.
-      Verified: every gun, every optic, zero vertices behind the near
-      plane at full ADS (it was 132 on the SPAS).
-      The hip is the same question with different numbers: the guns used
-      to be held nearly parallel to the view, so you saw them end-on as a
-      thin sliver. `hipRy` is +.26 (POSITIVE yaw points the muzzle left:
-      R_y takes the barrel's −z toward −x) and `hipRz` about −.15, which
-      is what makes a hip carry read as a weapon held across you.
+      **And `V.adsZs` is why nothing is cut in half — BUT WHAT IT ACTS ON
+      IS THE WHOLE TRICK.** Bring a gun that close and its own stock ends
+      up behind the eye: the near plane slices the receiver and you are
+      aiming at a flat grey lid (it did, on the UMP and the SPAS). Every
+      shooter answers this with a separate, narrower weapon FOV, which is
+      the same thing as flattening the model along the barrel — so parts
+      are scaled down in Z as the sights come up (`splitAds` moves them
+      into `V.aft`, which is what `adsZs` scales).
+      **A part goes in the aft group only if it would reach BEHIND THE
+      NEAR PLANE** — `P`, that limit expressed in the gun's own units —
+      and NOT merely because it sits behind the sight. The first pass used
+      the sight as the line, and since a receiver straddles its own rear
+      sight it put the RECEIVER in the squashed half: crushed to 29% it
+      became a featureless wall a hand's width from the eye, and the aimed
+      picture read as a slab with a sight on it. That was the whole of the
+      "silhouette" complaint; the rest was decoration.
+      The pivot `Q` is the frontmost point of whatever does have to
+      squash, so those parts stay joined at the front and only their tails
+      come forward: `zs = (P − Q)/(R − Q)`. Verified after the fix: every
+      gun, every optic, zero vertices behind the near plane at full ADS
+      (it was 132 on the SPAS), and the receiver, rail, handguard and
+      barrel all keep their true depth.
+      **A ray probe is how you find out what is actually filling the
+      picture** — `Raycaster` from the camera through a few NDC points
+      into the viewmodel, printing each hit's box size, position and
+      whether its parent is `aft`. Do not guess at a slab; ask it.
+      **THE HIP CARRY IS THE OFFSET AND THE ROLL, NOT THE YAW.** The guns
+      were first held nearly parallel to the view and read as a thin
+      sliver end-on; the answer looked like yaw, so they got `hipRy` +.26
+      (15°). That is wrong, and it is wrong in a way you can measure: the
+      BARREL'S OWN VANISHING POINT — project the gun's −z axis through the
+      camera — sat at NDC −0.22, eleven per cent of the screen's width
+      left of the crosshair. The gun was visibly pointing somewhere the
+      rounds do not go, which is exactly what "it looks like you're
+      shooting to the side" means.
+      What a shooter's hip carry actually is: the weapon offset right,
+      ROLLED, and pointed very nearly straight forward — the diagonal you
+      see is perspective, the near end (the stock) far to the right and
+      the far end (the muzzle) converging on the vanishing point. So
+      `hipRy` is +.05 or so, `hipRz` about −.15, and the offset came in
+      from .19 to .12. Measured: barrel vanishing point −0.05, muzzle at
+      +0.07, and the gun still covers 0.47 x 0.43 of the screen.
+      If a gun ever looks like it is aimed off to one side, measure the
+      vanishing point before you touch anything.
       Every viewmodel motion (bob, idle sway, look-lag) is
       scaled by `(1-ads)` so the sight is true when it is up. The hurt
       flinch is the one thing that still dips it, on purpose.
@@ -842,15 +869,16 @@ Known state of play:
     — it read as a black hoop hanging in front of the rifle. The HUD
     contributes the emitter's bloom and the reticle RING over that same
     point, and nothing else.
-    **THERE IS NO GLASS IN IT.** The pane went a quarter opaque, then a
-    sixth, then a twentieth, and at every one of those the answer to "can
-    you see through it" was still no: a pane over the exact spot you are
-    shooting at is a pane you look AT. A holo sight is a hood and a
-    floating reticle, so `sightRedDot` is two square hoops one behind the
-    other with NOTHING between them. Do not put a pane back in. The window
-    is also half as wide again as the old one — a small window in a heavy
-    frame reads as a black box with a dot on it however clear its glass
-    is.
+    **THERE IS NO GLASS IN IT, AND IT IS ONE HOOP.** The pane went a
+    quarter opaque, then a sixth, then a twentieth, and at every one of
+    those the answer to "can you see through it" was still no: a pane over
+    the exact spot you are shooting at is a pane you look AT. Then it had
+    two square hoops with rails between them, for depth — and that read as
+    a CUBE sitting on the gun. It is ONE thin rectangle now, wider than it
+    is tall the way a holographic sight's window really is, with nothing
+    between the sides, and the reticle is a red dot and ONLY a red dot: no
+    ring around it, in the model or in the HUD. Do not put back the pane,
+    the second hoop, or the ring.
   - The ACOG stays in `inGlass` — the eye goes into the lens and the gun
     leaves the picture — but its surround FADES rather than cutting to
     black, which is what keeps 2x from reading as a scope.

@@ -607,26 +607,43 @@ models are slimmer than a shooter's (a real handguard is a fist thick and
 ours is a box), and hauling one closer buys size at the cost of savage
 foreshortening — the receiver enormous, the muzzle tiny.
 
-**At the hip the guns are carried across you now**, muzzle swung inward
-and the weapon rolled a little, the way a shooter holds one. They used to
-sit nearly parallel to the line of sight, which shows you a rifle end-on:
-a thin dark sliver in the corner with nothing of its length to read.
+**At the hip the carry is the offset and the ROLL, not the yaw.** The
+guns used to sit nearly parallel to the line of sight, which shows you a
+rifle end-on — a thin dark sliver in the corner. The first fix swung the
+muzzle inward fifteen degrees, and that is wrong in a way you can
+measure: project the barrel's own axis through the camera and its
+vanishing point sat eleven per cent of the screen's width to the LEFT of
+the crosshair. The gun was pointing somewhere the rounds do not go. A
+shooter's hip carry is a weapon offset right, rolled over, and pointed
+very nearly straight forward; the diagonal you see is perspective — the
+stock near and far right, the muzzle converging on the centre. The barrel
+now vanishes within two per cent of the crosshair.
 
 **And a weapon that close would be cut in half by the near plane** — its
 own stock ends up behind your eye, and you find yourself aiming at a flat
 grey lid where the receiver should be. Every shooter answers this with a
 separate, narrower field of view for the weapon, which is the same thing
-as flattening it along the barrel; so each gun is squashed in depth as
-the sights come up, by exactly as much as its own geometry needs and no
-more. Looking straight down the barrel a depth squash is invisible. Being
-cut in half is not. **Red dot**: a **holographic** one — an open
-square hood on the rail with **no glass in it at all**, and the reticle
-hanging in the middle of it: a ring with a hot white core in a red bloom
-at its centre, sat exactly on the mark. It had a pane once, a quarter
-opaque, then a sixth, then a twentieth, and at every one of those the
-answer to *can you see through it* was still no. A pane over the exact
-spot you are shooting at is a pane you look **at**. So there is nothing
-there now. It is **1.15
+as flattening it along the barrel; so the parts that would reach behind
+your eye are squashed in depth as the sights come up, by exactly as much
+as their own geometry needs and no more.
+
+**Which parts those are is the whole of the aimed silhouette.** The first
+pass cut the gun at its rear sight and squashed everything behind — and a
+receiver straddles its own rear sight, so the receiver went in the
+squashed half and arrived at your eye as a featureless wall three tenths
+of its true length. That is what "the aimed silhouette needs work" was.
+The line is the near plane itself now, not the sight: nearly every part
+keeps its true depth, and what recedes from the eye — the top of the
+receiver, the rail, the handguard, the barrel — is there to be read.
+Looking straight down the barrel a depth squash is invisible. Being cut
+in half is not. **Red dot**: a **holographic** one — a single thin
+rectangular hood on the rail, wider than it is tall, with **no glass in
+it at all** and a red dot hanging in the middle of it. It had a pane
+once, a quarter opaque, then a sixth, then a twentieth, and at every one
+of those the answer to *can you see through it* was still no: a pane over
+the exact spot you are shooting at is a pane you look **at**. Then it had
+two hoops with rails between them and read as a *cube* on the rail. One
+window, nothing in it, and a dot — no ring. It is **1.15
 times**, which is to say barely a magnification at all: the picture you
 were looking at is the picture you aim with, the rifle stays in your
 hands, and the eye is on the mark a shade faster. **ACOG**: a short

@@ -316,10 +316,6 @@
      already is. The picture barely changes — that is what a dot is for. */
   #reddot{position:absolute;inset:0;display:none;}
   #reddot.on{display:block;}
-  /* the reticle is a RING AND A DOT, the way a holographic sight draws one
-     — the ring is the HUD's, laid over the hood the gun itself carries */
-  #reddot .ring{position:absolute;left:50%;top:50%;width:7vh;height:7vh;margin:-3.5vh 0 0 -3.5vh;border-radius:50%;
-    border:1px solid rgba(255,58,30,.45);box-shadow:0 0 7px rgba(255,40,20,.25),inset 0 0 8px rgba(255,40,20,.16);}
   #reddot .dot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;
     background:radial-gradient(circle,#fff 0,#ff6a44 34%,#ff1f0c 66%,rgba(255,20,8,0) 100%);
     box-shadow:0 0 7px rgba(255,58,30,.95),0 0 17px rgba(255,40,20,.6),0 0 34px rgba(255,30,12,.32);}
@@ -362,7 +358,7 @@
   <div id="hitmark"><i></i><i></i><i></i><i></i></div>
   <div id="scope"><div class="ring"></div><div class="hl"></div><div class="vl"></div><div class="mag" id="scopeMag">4&times;</div></div>
   <div id="acog"><div class="ring"></div><div class="chev"></div><div class="post"></div></div>
-  <div id="reddot"><div class="ring"></div><div class="dot"></div></div>
+  <div id="reddot"><div class="dot"></div></div>
   <div id="marrow"><span class="lbl">marrow</span><span id="marrowN">0</span></div>
   <div id="bossbar">
     <div id="bossname">GRAVEWARDEN OF THE BONE PATH</div>
@@ -13707,9 +13703,15 @@ const VM_ZSQ_MARGIN=.03;
 // what the rail carries decides which sight shows, and where the sights sit on the screen when he aims
 function applyAttachmentTo(V,g){const a=FPS.att[g.key]||'iron';V.iron.visible=a==='iron';V.reddot.visible=a==='reddot';V.acog.visible=a==='acog';
   const sc=V.vmScale||V.scale.x,eye=g.adsEye||ADS_EYE;
-  const sz0=(V.sightZ&&V.sightZ[a]||0),back=((V.rearZ||0)-sz0)*sc;
-  V.adsZs=back>1e-4?clamp((eye-camera.near-VM_ZSQ_MARGIN)/back,.2,1):1;   // the depth squash this gun needs, and no more
-  V.ads=[0,-V.sightH[a]*sc,-(eye+sz0*sc*V.adsZs)];}   // (the sight line at the screen's centre, exactly, and the eye a cheek's width behind it)
+  const sz0=(V.sightZ&&V.sightZ[a]||0);
+  // how far back the gun may reach before the near plane takes a slice out
+  // of it, in the gun's own units
+  const P=(eye+sz0*sc-camera.near-VM_ZSQ_MARGIN)/sc;
+  let Q=1e9,R=-1e9;
+  for(const o of V.vmParts||[])if(o.userData.vmZ0>P){Q=Math.min(Q,o.userData.vmZ1);R=Math.max(R,o.userData.vmZ0);}
+  V.adsZs=(Q<1e8&&R>Q)?clamp((P-Q)/(R-Q),.05,1):1;     // the squash those parts need, and no more
+  splitAds(V,P,Q<1e8?Q:0);
+  V.ads=[0,-V.sightH[a]*sc,-(eye+sz0*sc)];}            // (the sight line at the screen's centre, exactly, and the eye a cheek's width behind it)
 function applyAttachment(){const vm=FPS.vm;if(!vm)return;for(const g of GUNS)applyAttachmentTo(vm.guns[g.key],g);}
 try{Object.assign(FPS.att,JSON.parse(localStorage.getItem('bp_att')||'{}'));}catch(e){}
 const GUN_NOTE_HUD='fire (either thumb) — shoot · drag the right trigger — turn while firing · aim — down the sights · reload · dodge · tap the bar — swap';
@@ -13729,26 +13731,22 @@ function gunMats(){if(_gunMats)return _gunMats;return _gunMats={
    sight line — the one number the aim needs. The red dot is an open hood
    with a point of light hanging in it; the acog a short tube with a bell.
    The iron sights are each gun's own, built with the gun. */
-/* THE REFLEX HAS NO GLASS IN IT, AND THAT IS THE POINT. It had a pane: a
-   quarter opaque first, then a sixth, then a twentieth, and at every one
-   of those the answer to "can you see through it" was still no — a pane
-   over the exact spot you are shooting at is a pane you look AT. A holo
-   sight is a hood and a floating reticle, so that is what this is now:
-   two square frames, one behind the other so the sight has depth, nothing
-   between them, and the emitter hanging in the middle. The window is half
-   as wide again as the old one, because a small window with a heavy frame
-   reads as a black box with a dot on it however clear the glass is. */
-function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.031;zc=zc||0;
-  s.add(vmBox(.024,.011,.046,M.gunD,0,railY+.005,zc));                      // the mount on the rail
-  const W=.060,H=.053,T=.0035;
-  const hoop=(z,t)=>{                                                       // a square hoop: two rails and two posts
-    s.add(vmBox(W,T,t,M.gunD,0,wy+H/2,z));s.add(vmBox(W,T,t,M.gunD,0,wy-H/2,z));
-    s.add(vmBox(T,H,t,M.gunD,-W/2+T/2,wy,z));s.add(vmBox(T,H,t,M.gunD,W/2-T/2,wy,z));
-  };
-  hoop(zc+.014,.006);hoop(zc-.034,.005);                                     // the rear hoop, and one forward of it
-  for(const sd of[1,-1])s.add(vmBox(T,T,.05,M.gunD,sd*(W/2-T/2),wy+H/2,zc-.01));   // the two rails between them
+/* THE REFLEX: A WIDE WINDOW, ONE HOOP, AND A DOT IN IT.
+   It had a pane once — a quarter opaque, then a sixth, then a twentieth —
+   and at every one of those the answer to "can you see through it" was
+   still no, because a pane over the exact spot you are shooting at is a
+   pane you look AT. So there is no glass. Then it had two hoops with rails
+   between them, for depth, and that read as a CUBE sitting on the gun. A
+   sight is a WINDOW: one thin rectangle, wider than it is tall the way a
+   holographic sight's really is, and nothing else. The reticle is a red
+   dot and only a red dot — no ring around it. */
+function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.027;zc=zc||0;
+  s.add(vmBox(.026,.011,.044,M.gunD,0,railY+.005,zc));                    // the mount on the rail
+  const W=.072,H=.040,T=.0032,zf=zc+.004;                                 // wide and short: a window, not a box
+  s.add(vmBox(W,T,.007,M.gunD,0,wy+H/2,zf));s.add(vmBox(W,T,.007,M.gunD,0,wy-H/2,zf));
+  s.add(vmBox(T,H,.007,M.gunD,-W/2+T/2,wy,zf));s.add(vmBox(T,H,.007,M.gunD,W/2-T/2,wy,zf));
   const dot=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff2a1a,transparent:true,opacity:.95,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
-  dot.scale.set(.0095,.0095,1);dot.position.set(0,wy,zc-.012);s.add(dot);
+  dot.scale.set(.0095,.0095,1);dot.position.set(0,wy,zf-.004);s.add(dot);
   s.h=wy;return s;}
 function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.036;zc=zc||0;
   s.add(vmBox(.024,.012,.05,M.gunD,0,railY+.006,zc));
@@ -13784,7 +13782,7 @@ function buildGunModel(key,o){o=o||{};
     hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.06,-.2);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.06,-.2);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
-    g.hip=[.2,-.2,-.48];g.hipRy=.20;g.hipRz=-.10;
+    g.hip=[.13,-.20,-.46];g.hipRy=.05;g.hipRz=-.12;
   }else if(key==='ump'){
     /* THE UMP45, off the reference: a flat-topped polymer receiver with a
        rail the whole length of it, a stubby barrel under a short front
@@ -13795,14 +13793,20 @@ function buildGunModel(key,o){o=o||{};
        It keeps its can. A suppressed UMP is what this weapon is FOR here
        (see AudioSys.gun('ump') and the flash, both cut down for it), so
        the reference's bare muzzle is the one thing not copied. */
-    // THE UPPER: flat-topped, with the rail and its teeth down the whole of it
-    g.body=vmBox(.050,.046,.30,M.gun,0,.044,-.045);g.add(g.body);
-    g.add(vmBox(.024,.009,.30,M.gunD,0,.0725,-.045));
-    for(let i=0;i<4;i++)g.add(vmBox(.028,.005,.009,M.grey,0,.0785,-.15+i*.075));
+    /* THE UPPER: flat-topped, with the rail and its teeth down the whole of
+       it — and each of those three a STEP LIGHTER than the last. Down the
+       sights you see the receiver's top face almost edge-on, so the only
+       thing that can tell you the gun has length is a value change running
+       away from you; in one flat black it reads as a wall with a sight on
+       it, which is exactly what it did. */
+    g.body=vmBox(.046,.046,.30,M.gunD,0,.043,-.045);g.add(g.body);
+    g.add(vmBox(.046,.005,.30,M.gun,0,.0665,-.045));                         // the top FACE, its own mesh and a step lighter
+    g.add(vmBox(.026,.008,.30,M.grey,0,.0725,-.045));                        // the rail, lighter again
+    for(let i=0;i<5;i++)g.add(vmBox(.030,.005,.010,M.grey,0,.0785,-.165+i*.062));
     // THE LOWER: the trigger group and the well, wider and darker
     g.add(vmBox(.056,.042,.22,M.gunD,0,.005,-.03));
     g.add(vmBox(.050,.018,.062,M.gun,0,-.017,-.082));                        // the well's lip
-    const tail=vmBox(.046,.052,.10,M.gun,0,.030,.105);tail.rotation.x=-.10;g.add(tail);   // and the tail, sloping into the hinge
+    const tail=vmBox(.040,.044,.10,M.gunD,0,.026,.105);tail.rotation.x=-.10;g.add(tail);  // and the tail, narrower and lower than the receiver, sloping into the hinge
     // THE FRONT: a short rail section, the nut, the stubby barrel, the can
     g.add(vmBox(.044,.040,.10,M.gunD,0,.040,-.225));
     g.add(vmBox(.024,.009,.095,M.gunD,0,.0725,-.225));
@@ -13824,18 +13828,30 @@ function buildGunModel(key,o){o=o||{};
     st.add(vmBox(.014,.013,.132,M.gunD,0,-.036,.072));                       // the bottom strut
     st.add(vmBox(.032,.100,.016,M.gunD,0,0,.146));                           // the butt, closing the frame
     g.add(vmBox(.009,.011,.05,M.grey,-.031,.052,-.11));                      // the charging handle, on the left
-    const iron=new THREE.Group();
-    iron.add(vmBox(.004,.020,.004,M.dark,0,.086,-.27));iron.add(vmBox(.003,.003,.002,M.pale,0,.094,-.2675));
-    iron.add(vmBox(.003,.032,.006,M.gunD,-.012,.088,-.27));iron.add(vmBox(.003,.032,.006,M.gunD,.012,.088,-.27));
-    iron.add(vmBox(.027,.003,.006,M.gunD,0,.105,-.27));
-    const ay=.094;iron.add(vmBox(.028,.003,.006,M.gunD,0,ay+.012,.06));iron.add(vmBox(.028,.003,.006,M.gunD,0,ay-.012,.06));
-    iron.add(vmBox(.003,.027,.006,M.gunD,-.0125,ay,.06));iron.add(vmBox(.003,.027,.006,M.gunD,.0125,ay,.06));
+    /* THE SIGHTS, and the rear one is a BLOCK, not four thin bars. Aimed,
+       the rear sight is the nearest thing to the eye and the widest thing
+       in the picture: a flat top with a shoulder either side of the
+       aperture is what the reference shows, and what gives the silhouette
+       a waist — wide at the eye, narrowing away to the front post. */
+    const iron=new THREE.Group(),ay=.104;
+    iron.add(vmBox(.006,.024,.005,M.dark,0,.092,-.27));iron.add(vmBox(.004,.004,.003,M.pale,0,.1045,-.2672));
+    iron.add(vmBox(.004,.034,.007,M.gunD,-.013,.092,-.27));iron.add(vmBox(.004,.034,.007,M.gunD,.013,.092,-.27));
+    iron.add(vmBox(.030,.004,.007,M.gunD,0,.112,-.27));
+    /* and the rear sight is kept NARROW at its base. It was as wide as the
+       receiver, which meant it stood squarely in front of the rail — and
+       the rail running away under the aperture is the one thing in the
+       whole picture that says the gun has length. Only the flat top is
+       wide, and that sits above the eye line where it hides nothing. */
+    iron.add(vmBox(.030,.009,.016,M.gun,0,.0805,.06));                       // the base, sat on the rail
+    iron.add(vmBox(.009,.028,.016,M.gunD,-.0165,.0985,.06));iron.add(vmBox(.009,.028,.016,M.gunD,.0165,.0985,.06));   // the walls of the notch
+    iron.add(vmBox(.042,.005,.016,M.grey,0,.1145,.06));                      // the flat top, shoulder to shoulder
+    iron.add(vmBox(.024,.004,.016,M.gunD,0,.0865,.06));                      // the floor of the notch
     g.add(iron);const rd=sightRedDot(.077,-.02),ac=sightAcog(.077,-.02);g.add(rd);g.add(ac);
     hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
     grip.position.set(0,-.004,-.215);muzzle.position.set(0,.042,-.466);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.042,-.466);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,reddot:rd.h,acog:ac.h};
-    g.hip=[.19,-.21,-.46];g.hipRy=.26;g.hipRz=-.15;
+    g.hip=[.12,-.20,-.46];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='m4'){
     /* THE M4A1: an upper with a carry handle, a round handguard with its
        vents, a curved thirty on a straight well, a collapsing stock. Its
@@ -13860,7 +13876,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,.01,-.26);muzzle.position.set(0,.04,-.55);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.04,-.55);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.091,reddot:rd.h,acog:ac.h};
-    g.hip=[.19,-.205,-.48];g.hipRy=.26;g.hipRz=-.15;
+    g.hip=[.12,-.20,-.48];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='spas'){
     /* THE SPAS-12: a long receiver over a tube magazine, a ribbed pump
        fore-end that works after every shell, a folding hook stock. The
@@ -13881,7 +13897,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,.01,-.33);muzzle.position.set(0,.055,-.63);
     g.pump=pump;g.pumpZ=pump.position.z;g.flash=gunFlash(g,0,.055,-.63);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.088,reddot:rd.h,acog:ac.h};
-    g.hip=[.19,-.2,-.47];g.hipRy=.26;g.hipRz=-.15;
+    g.hip=[.12,-.20,-.47];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='sniper'){
     g.add(vmCyl(.016,.62,8,M.steel,0,.05,-.42,.012));
     g.body=vmBox(.05,.06,.22,M.gun,0,.045,-.04);g.add(g.body);
@@ -13900,7 +13916,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,-.01,-.26);muzzle.position.set(0,.05,-.74);
     g.bolt=bolt;g.boltZ=bolt.position.z;g.flash=gunFlash(g,0,.05,-.74);
     g.iron=scope;g.reddot=rd;g.acog=ac;g.sightH={iron:.11,reddot:rd.h,acog:ac.h};
-    g.hip=[.18,-.19,-.44];g.hipRy=.24;g.hipRz=-.14;
+    g.hip=[.12,-.19,-.44];g.hipRy=.05;g.hipRz=-.14;
   }else{
     /* THE RPG-4: a long tube over the shoulder, its wooden heat shield
        under the hand, the flared venturi at the back, and the warhead
@@ -13922,7 +13938,7 @@ function buildGunModel(key,o){o=o||{};
     grip.position.set(0,-.02,-.14);muzzle.position.set(0,.02,-.62);
     g.flash=gunFlash(g,0,.02,.4);                                        // the flash is the BACKBLAST
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.085,reddot:rd.h,acog:ac.h};
-    g.hip=[.21,-.15,-.44];g.hipRy=.18;g.hipRz=-.12;
+    g.hip=[.14,-.15,-.44];g.hipRy=.04;g.hipRz=-.10;
   }
   /* and where the EYE goes for each of them: the rearmost point of the
      sight itself, measured off the geometry rather than typed in. Taken
@@ -13932,9 +13948,47 @@ function buildGunModel(key,o){o=o||{};
   for(const k of ['iron','reddot','acog'])
     g.sightZ[k]=g[k]?new THREE.Box3().setFromObject(g[k]).max.z:0;
   g.rearZ=new THREE.Box3().setFromObject(g).max.z;   // ...and how far the whole thing reaches back past the hand
+  /* THE MODEL IS CUT IN TWO AT THE SIGHT, and only the half BEHIND it is
+     ever squashed. Squashing the whole gun cleared the near plane but it
+     also crushed the half you are looking AT: at 29% the UMP's barrel and
+     can folded up behind its own sight and the thing read as a flat slab
+     with a hood on it, because what makes an aimed weapon read is its
+     LENGTH running away from the eye. Everything forward of the sight
+     keeps its true depth now — the rail recedes, the front sight sits out
+     there where it belongs, the can is half a metre off — and the stock,
+     which is behind your eye and off the bottom of the frame anyway, is
+     the only thing that flattens. The arithmetic is unchanged: the sight
+     itself sits on the split, so the clearance the squash must buy is the
+     same either way. */
+  {const aft=new THREE.Group();g.add(aft);g.aft=aft;
+   const parts=[],bb=new THREE.Box3();
+   for(const o of g.children.slice()){
+     if(o===aft||o===grip||o===muzzle||o.isSprite)continue;
+     bb.setFromObject(o);o.userData.vmZ0=bb.max.z;o.userData.vmZ1=bb.min.z;parts.push(o);
+   }
+   g.vmParts=parts;g.splitAt=null;}
   g.vmScale=o.scale||1;
   g.scale.setScalar(g.vmScale);
   return g;
+}
+/* WHICH PARTS SQUASH, AND ABOUT WHAT. A part goes in the aft group only if
+   it would otherwise reach BEHIND THE NEAR PLANE (`P`, that limit in the
+   gun's own units) — not if it merely sits behind the sight. The first
+   pass used the sight as the line and it put the whole RECEIVER in the
+   squashed half, since a receiver straddles its own rear sight: crushed to
+   29% it became a flat wall a hand's width from the eye, which is exactly
+   the slab that made the aimed picture read as a wall with a sight on it.
+   Nearly everything can keep its true depth. The pivot `Q` is the
+   frontmost point of whatever DOES have to squash, so those parts stay
+   joined to the gun at the front and only their tails come forward. */
+function splitAds(V,P,Q){
+  const aft=V.aft;if(!aft||!V.vmParts)return;
+  if(V.splitAt===P&&aft.position.z===Q)return;
+  const off=aft.position.z;
+  for(const o of V.vmParts)if(o.parent===aft){aft.remove(o);o.position.z+=off;V.add(o);}
+  aft.position.z=Q;
+  for(const o of V.vmParts)if(o.userData.vmZ0>P){V.remove(o);o.position.z-=Q;aft.add(o);}
+  V.splitAt=P;
 }
 function buildViewmodel(){
   if(FPS.vm)return;
@@ -14391,8 +14445,8 @@ function updateViewmodel(dt){
   const hurt=P.state==='hurt'?Math.sin(Math.PI*Math.min(1,P.t/(P.hurtDur||.38)))*.12:0;
   const H=V.hip,A=V.ads;
   // the depth squash comes in with the sights (see VM_ZSQ_MARGIN)
-  {const zs=lerp(1,V.adsZs===undefined?1:V.adsZs,ads),s0=V.vmScale||1;
-   if(Math.abs(V.scale.z-s0*zs)>1e-4)V.scale.set(s0,s0,s0*zs);}
+  if(V.aft){const zs=lerp(1,V.adsZs===undefined?1:V.adsZs,ads);
+   if(Math.abs(V.aft.scale.z-zs)>1e-4)V.aft.scale.z=zs;}
   vm.position.set(lerp(H[0],A[0],ads)+bobX+idX+FPS.swayX+sr*.06+k*R.side*.02*ks*(1-.5*ads),
                   lerp(H[1],A[1],ads)+bobY+idY+FPS.swayY-rl*.10-sr*.09-hurt*.4+k*R.back*.15,
                   lerp(H[2],A[2],ads)+k*R.back+rl*.03+sr*.05);
