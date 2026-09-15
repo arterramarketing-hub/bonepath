@@ -3775,6 +3775,16 @@ function layRoad(ax,az,bx,bz,w){
    stands; two hard blows (or a Warden walking through it) and it bursts
    into splinters */
 const breakables=[];
+/* A BREAKABLE'S OBSTACLE IS TAGGED, AND `hitscan` SKIPS IT.
+   Every breakable also stands as a solid obstacle so bodies are pushed
+   out of it, and the two are tested in separate loops — the obstacle's
+   first. Once each obstacle carried its own real crown the obstacle
+   WON that race and the breakable was never reached: a round at the
+   bell came back as stone and the thing stopped ringing. The obstacle
+   is the body's business, not the bullet's; the breakable's own entry
+   carries the same crown (`b.obs.top`) and answers for both.
+   `breakPew` removes the pair together, so the tag cannot outlive it. */
+function addBreakable(b){if(b.obs)b.obs.brk=true;breakables.push(b);return b;}
 function makePew(x,z,parent,woodM){
   const g=new THREE.Group();g.position.set(x,0,z);parent.add(g);
   g.add(box(3.4,.1,.5,woodM,0,.62,0));                 // seat
@@ -3783,7 +3793,7 @@ function makePew(x,z,parent,woodM){
   g.add(box(3.2,.06,.4,woodM,0,.2,.05));               // kneeler
   addWall(x-1.65,z,x+1.65,z,.38,false,PH+1.23);   // the back rail's top (the cathedral's floor is PH)
   const obs=obstacles[obstacles.length-1];
-  breakables.push({g,x,z,hw:1.7,hd:.4,hp:2,obs,parent,kind:'pew'});
+  addBreakable({g,x,z,hw:1.7,hd:.4,hp:2,obs,parent,kind:'pew'});
 }
 function breakPew(b){
   const i=breakables.indexOf(b);if(i<0)return;
@@ -4190,7 +4200,7 @@ function buildWorld(){
     world.add(m);
     const ry=m.rotation.y,lx=Math.cos(ry),lz=-Math.sin(ry);
     addWall(px-lx*.32,pz-lz*.32,px+lx*.32,pz+lz*.32,.2,false,heightAt(px,pz)+(kind<.6?1.06:kind<.85?1.21:.19));   // headstone, cross, or a slab you can shoot clean over
-    breakables.push({g:m,x:px,z:pz,hw:.45,hd:.45,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'grave',mat:M.grave});
+    addBreakable({g:m,x:px,z:pz,hw:.45,hd:.45,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'grave',mat:M.grave});
   }
   function tree(px,pz,tall){
     const tr=new THREE.Group();
@@ -4326,7 +4336,7 @@ function buildWorld(){
       sg.add(cyl(.06,.08,1.9,5,M.bark,0,.95,0));
       const board=new THREE.Mesh(new THREE.BoxGeometry(1.0,.38,.07),bm);board.position.set(0,1.62,0);board.rotation.y=Math.atan2(Math.cos(ra),Math.sin(ra));sg.add(board);
       addObstacle(x,z,.2,false,gy+1.85);RUN.landmarkSpots.push([x,z]);
-      breakables.push({g:sg,x,z,hw:.5,hd:.5,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'sign',mat:bm,post:M.bark,ry:board.rotation.y});}   // two blows and the board comes off the post
+      addBreakable({g:sg,x,z,hw:.5,hd:.5,hp:2,obs:obstacles[obstacles.length-1],parent:world,kind:'sign',mat:bm,post:M.bark,ry:board.rotation.y});}   // two blows and the board comes off the post
   }
 
   /* THE FALLEN BELL — the third landmark, and the only one that answers
@@ -4368,7 +4378,7 @@ function buildWorld(){
       // and the grass round the lip, pushed down where it landed
       addObstacle(x,z,1.5,true,gy+2.05);RUN.landmarkSpots.push([x,z]);
       RUN.bell={x,z,g:bg,bell,tolls:0,called:false};
-      breakables.push({g:bg,x,z,hw:1.5,hd:1.5,hp:3,obs:obstacles[obstacles.length-1],parent:world,
+      addBreakable({g:bg,x,z,hw:1.5,hd:1.5,hp:3,obs:obstacles[obstacles.length-1],parent:world,
         kind:'bell',tough:true,onHit:bellStruck});
     }
   }
@@ -9052,6 +9062,10 @@ const G={
    boot. */
 const FPS={on:false,pitch:0,ads:0,adsOn:false,zoom:0,gun:0,ammo:{},bob:0,kick:0,swayX:0,swayY:0,sprintVm:0,
   shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.42,att:{},res:{},recP:0,kickSide:0,vmBlade:null,vmBladeFor:'',vmBladeRig:null};   // (the eye: where the third-person gaze and the bow's loose already put the head)
+/* Are the sights up? A function DECLARATION, and called only at frame
+   time, so it may reach `gunHeld` (which is declared a long way below
+   this line and reads a LOADOUT that does not exist yet at boot). */
+function adsWalk(){return FPS.on&&FPS.ads>.12&&gunHeld();}
 
 /* ---------------- the player ---------------- */
 const player={
@@ -9893,7 +9907,7 @@ const player={
       // sprint AT ONCE (a slammed stick is a sprint now, not in a quarter
       // second) — and it only drops back to a walk below two-thirds, so a
       // thumb hovering on the line doesn't flicker between the two
-      const run=this.sprinting?mAmt>.66:mAmt>.78;
+      const run=adsWalk()?false:(this.sprinting?mAmt>.66:mAmt>.78);   // the sights hold the sprint off (see updateGun)
       this.sprinting=run;
       this.sprintT=run?this.sprintT+dt:0;
       // the move, in the hero's own frame: ahead (+) or back, and to its left (+)
@@ -14427,7 +14441,7 @@ function buildGunModel(key,o){o=o||{};
        the picture under it. The ring's bottom now clears the caps by 3mm
        and the tower is a stub. The rear came down the same amount, or the
        notch would have risen through the sight line it sits under. */
-    const iron2=new THREE.Group(),ay2=.0995;
+    const iron2=new THREE.Group(),ay2=.0975;
     /* THE REAR IS KEPT LOW AND SMALL ON PURPOSE. It sits a fifth of a metre
        from the eye — five times nearer than the front — so every millimetre
        of it is worth five out there. The first pass gave it a .028 bed and
@@ -14438,14 +14452,14 @@ function buildGunModel(key,o){o=o||{};
        the ring with a notch under it rather than a notch with a ring in
        it. If it ever crowds the frame again, shrink the rear — the front
        is nearly free. */
-    iron2.add(vmOct(.020,.007,.010,M.gunD,0,.0825,rz));                      // the notch's bed, low across the channel
-    iron2.add(vmOct(.005,.008,.008,M.gunD,-.007,.0875,rz));                  // and the two short ticks it is cut between
-    iron2.add(vmOct(.005,.008,.008,M.gunD,.007,.0875,rz));
-    iron2.add(vmOct(.009,.020,.008,M.gunD,0,.0745,-.27));                    // the front tower, a stub now: the ring rides just clear of the caps
+    iron2.add(vmOct(.020,.007,.010,M.gunD,0,.0800,rz));                      // the notch's bed, low in the channel
+    iron2.add(vmOct(.005,.008,.008,M.gunD,-.007,.0850,rz));                  // and the two short ticks it is cut between
+    iron2.add(vmOct(.005,.008,.008,M.gunD,.007,.0850,rz));
+    iron2.add(vmOct(.009,.012,.008,M.gunD,0,.0770,-.27));                    // the front tower: a stub, because the ring sits down IN the channel
     iron2.add(vmRing(.0132,.0028,14,M.grey,0,ay2,-.27));                     // ...and THE RING, the one thing the eye goes to
-    iron2.add(vmBox(.0030,.0100,.003,M.gunD,0,ay2-.0058,-.2685));            // the bead's stem, up from the ring's inner floor
-    iron2.add(vmBox(.0078,.0078,.003,M.gunD,0,ay2,-.2685));                  // the thinnest of dark bezels round it
-    iron2.add(vmBox(.0062,.0062,.004,M.bead,0,ay2,-.2665));                  // THE BEAD, dead centre of the ring: the point of aim
+    iron2.add(vmBox(.0026,.0088,.003,M.gunD,0,ay2-.0052,-.2685));            // the bead's stem, up from the ring's inner floor
+    iron2.add(vmBox(.0064,.0064,.003,M.gunD,0,ay2,-.2685));                  // the thinnest of dark bezels round it
+    iron2.add(vmBox(.0048,.0048,.004,M.bead,0,ay2,-.2665));                  // THE BEAD, dead centre of the ring: the point of aim
     g.add(iron2);g.iron2=iron2;
     const rd=sightRedDot(.081,-.02),ac=sightAcog(.081,-.02);g.add(rd);g.add(ac);
     hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
@@ -14807,6 +14821,7 @@ function hitscan(o,d,range){
      above it passes. The `??` fallbacks are the old per-kind constants,
      and they are only there for anything that forgot to say. */
   for(const ob of obstacles){
+    if(ob.brk)continue;                                     // a breakable's own entry answers for it, below
     if(ob.seg){
       const ex=ob.bx-ob.ax,ez=ob.bz-ob.az,den=ux*ez-uz*ex;if(Math.abs(den)<1e-6)continue;
       const wx=ob.ax-o.x,wz=ob.az-o.z,t2=(wx*ez-wz*ex)/den,u=(wx*uz-wz*ux)/den;
@@ -15167,7 +15182,15 @@ function updateGun(dt){
   const canAim=FPS.on&&(P.state==='free'||P.state==='hurt');
   if(IN.adsTap)FPS.adsOn=!FPS.adsOn;
   if(IN.adsRelease)FPS.adsOn=false;
-  if(P.sprinting&&P.moveAmt>.5)FPS.adsOn=false;         // a sprint comes off the sights
+  /* THE SIGHTS CAP YOU TO A WALK; THEY DO NOT COME DOWN WHEN YOU MOVE.
+     This used to read `if(P.sprinting&&P.moveAmt>.5)FPS.adsOn=false`, and
+     on a THUMBSTICK that is the same sentence as "you cannot aim and
+     move": the stick's own deflection is what decides a sprint (past
+     .78), and a thumb shoves a stick to its edge. So a player who aimed
+     and then walked lost the sights every time. `adsWalk()` is the other
+     half of it, read in the hero's `free` state, and it holds the sprint
+     off while the sights are up rather than dropping them — which is
+     what a shooter does. */
   const wantAds=(FPS.adsOn||IN.adsHeld)&&canAim&&!FPS.reloading;
   FPS.ads=lerp(FPS.ads,wantAds?1:0,Math.min(1,g.adsSpeed*(attOf(g)==='reddot'?1.2:attOf(g)==='acog'?.8:1)*dt));   // a dot is quick to the eye, a scope slower
   if(FPS.ads<.01)FPS.ads=0;

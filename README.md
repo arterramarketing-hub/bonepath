@@ -535,8 +535,8 @@ the same as three blows). The nearest thing takes the round.
 drum below, or a **ring sight**: no hood to look through, only a shallow
 notch at the back and a small ring standing at the muzzle end with an
 **amber bead dead centre of it**, which is what you lay on the mark, and
-the field left open above it. The ring rides low, a finger's width over
-the channel's own edges, rather than up on a tower. Its top is a **channel** — a raised wall down each edge with a lit top face, and a sunken groove between them running away to the sights, so the eye is led down it — and the gun itself is dark, with light only on those two edges. Its irons are an **HK drum**, and they are **round** and SMALL: a rear peep bored through a drum at the back of the channel, a hooded post half a metre in front, and the front ring nests inside the rear aperture rather than filling it |
+the field left open above it. The ring sits down on the channel's own
+edges on a stub of a post, not up on a tower. Its top is a **channel** — a raised wall down each edge with a lit top face, and a sunken groove between them running away to the sights, so the eye is led down it — and the gun itself is dark, with light only on those two edges. Its irons are an **HK drum**, and they are **round** and SMALL: a rear peep bored through a drum at the back of the channel, a hooded post half a metre in front, and the front ring nests inside the rear aperture rather than filling it |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Built as a RIFLE rather than a compact: a twenty-seven centimetre quad rail with its rungs running the length of it, a barrel carrying well past that to a gas block and front sight, a flat-topped receiver with one rail unbroken from the stock to the muzzle, and a collapsing stock on a ribbed buffer tube. Its irons are a **ghost ring** — a fat hoop on the back of the rail with the post half a metre in front of it, which is what an aperture is for |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
 | **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then the field coming back — a couple of returns off the stone you can still pick out, and then more of them, closer and closer together until they run into one another and the rest is a wash coming down, each darker than the last, with a roll going away under all of it. Four spaced returns is a canyon; a field answers with density. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
@@ -579,8 +579,12 @@ climbs on the viewmodel and jumps back, and the *eye* climbs with it, a
 little to one side, so the sight is somewhere else for the next round; a
 share of the climb settles back on its own, the rest you pull down. The
 sway and the bob are held off entirely while the sights are up, which is
-what keeps them true. Aiming narrows the field of view and slows the look
-with it. A **telling shot** (one in twelve) does half again;
+what keeps them true. Aiming narrows the field of view, slows the look
+with it, and **caps you to a walk**: you keep the sights while you move,
+and the only way to sprint is to bring them down. (It used to be the
+other way about — a sprint dropped the sights — and since a thumbstick's
+own deflection is what decides a sprint, that meant you could not aim and
+move at all.) A **telling shot** (one in twelve) does half again;
 the reaper's mark doubles every round on anything but the Warden; and an
 imbued element rides the rounds — fire bites and can take, frost holds
 them where they stand, lightning adds to the damage — exactly as an arrow
@@ -686,9 +690,11 @@ looking through anything, which is what you want at ten metres in a hurry
 and what the drum costs you. The bead is amber and not the pale metal the
 other sights use for a reason: at this render's size it is about three
 pixels across, too few to carry an outline, so it has to separate from a
-bright sky by hue and from dark soil by value at once. The whole sight
-also sits LOW — the ring a finger's width over the channel's lit edges,
-not up on a stalk — so the deck of the gun stays in the picture under it.
+bright sky by hue and from dark soil by value at once. The whole sight also sits LOW — the ring almost touching the channel's
+lit edges on a stub of a post rather than standing on a stalk — and it
+cannot go much lower than that: on the sights the ring IS the centre of
+the screen, so lower only means the gun rising toward it, and past a
+millimetre or two the deck begins to eat the bottom of the hoop.
 **Red dot**: a **holographic** one — a single thin
 rectangular hood on the rail, wider than it is tall, with **no glass in
 it at all** and a red dot hanging in the middle of it. It had a pane

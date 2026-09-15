@@ -844,7 +844,23 @@ Known state of play:
       called while no gun is held — so swapping from a blade to a gun in
       first person left the last blade standing on screen beside the rifle,
       for ever. `updateGun` clears `FPS.vmBlade.visible` from its side.
-  12. **THE CROSSHAIR IS SIZED IN THE SCREEN'S OWN MEASURE, AND IT STAYS
+  12. **THE SIGHTS CAP YOU TO A WALK; THEY DO NOT COME DOWN WHEN YOU
+      MOVE.** `updateGun` used to carry
+      `if(P.sprinting&&P.moveAmt>.5)FPS.adsOn=false` — "a sprint comes off
+      the sights" — and on a THUMBSTICK that is the same sentence as *you
+      cannot aim and move*. Nothing else gates movement while aiming; the
+      stick's own DEFLECTION is what decides a sprint (past .78), and a
+      thumb shoves a stick to its edge, so a player who aimed and then
+      walked lost the sights every time. Measured before: holding the
+      sprint with the sights up gave `ads 0, spd 7.2`.
+      `adsWalk()` (a function DECLARATION beside `FPS`, reaching `gunHeld`,
+      which is why it must not be a const arrow) is read in the hero's
+      `free` state and forces `run` false while the sights are up. After:
+      `ads 1, spd 4.3, sprint false` — the sights hold and you walk, which
+      is what a shooter does. The sprint is untouched everywhere else:
+      verified 7.2 with a gun and no sights, with a blade, and in third
+      person.
+  13. **THE CROSSHAIR IS SIZED IN THE SCREEN'S OWN MEASURE, AND IT STAYS
       THAT WAY.** `updateGunHud` computes the gap as
       `tan(cone) * (innerHeight / 2tan(fov/2)) + g.gap` — the cone
       projected through the screen's height, plus each gun's small pixel
@@ -862,13 +878,13 @@ Known state of play:
       the viewmodel's kick is cosmetic. `gunRay` reads the camera matrix
       from the LAST update, so the kick applied in `fireGun` never bends
       the shot that caused it.
-  13. The right trigger (`#fbFireR`) has its own pointer handling, not
+  14. The right trigger (`#fbFireR`) has its own pointer handling, not
       `bindBtn`: its drag feeds `camDX/camDY` and translates the button.
       The left trigger is a plain `bindBtn`.
-  14. The UMP is `suppressed`: `AudioSys.gun('ump')` is a thump with no
+  15. The UMP is `suppressed`: `AudioSys.gun('ump')` is a thump with no
       crack, the flash sprite is a third the size, and the halo flare is a
       quarter. Do not give it the eagle's report back.
-  15. **The view and the weapon are separate now.** `FPS.on` is the eye's
+  16. **The view and the weapon are separate now.** `FPS.on` is the eye's
       place; `gunHeld()` (`isGunKey(LOADOUT.weapon)`) is what is in the
       hands. `GUNS` holds six and `HERO_OPTS.weapon` lists them beside
       the blades. `updateGun` runs in EITHER view when a gun is held (in
@@ -878,26 +894,26 @@ Known state of play:
       — cloning a PointLight would add a light and recompile every shader).
       `Input.setBlade` tells the input a blade is behind the eyes, so the
       triggers become strikes and the aim button charges.
-  16. `buildGunModel` is a function DECLARATION and touches neither `GUNS`
+  17. `buildGunModel` is a function DECLARATION and touches neither `GUNS`
       nor `FPS`: `makeKnightRig` calls it at boot when a saved loadout
       holds a gun, long before the module's consts exist. `isGunKey` is a
       declaration for the same reason. The rig's gun is the same model
       turned `rotation.x=-π/2, z=π` (barrel down the hand's -y, the way a
       blade hangs) — measured: muzzle 1.16 m ahead, sights up.
-  17. **The gun materials are SHARED** (`gunMats()`) between the rig, the
+  18. **The gun materials are SHARED** (`gunMats()`) between the rig, the
       viewmodel and the pause portrait, and `player.flash` sets every hero
       emissive — so no gun material carries an emissive floor (the gold had
       one; it was wiped by the first blow and the portrait went red).
-  18. Reserves are BY CALIBRE (`FPS.res[cal]`, `CALIBRES`); a magazine is
+  19. Reserves are BY CALIBRE (`FPS.res[cal]`, `CALIBRES`); a magazine is
       the gun's own (`FPS.ammo[key].mag`). `resOf`/`setRes`, never the
       object directly.
-  19. `hitscan` asks each horror's spheres in ORDER — head, then a limb,
+  20. `hitscan` asks each horror's spheres in ORDER — head, then a limb,
       then the trunk — and the first the ray passes through takes it; the
       trunk's sphere is generous and wraps the others, so a nearest-t rule
       never reached a skull or an arm. `popHead`/`popLimb` park hp at 999
       across `severLimb` (which kills at zero and would double-count the
       marrow); `severLimb` takes `armR` now as well as `armL`.
-  20. Holes are one buffer (`HOLES`, 80 quads, `punchHole`) placed by a
+  21. Holes are one buffer (`HOLES`, 80 quads, `punchHole`) placed by a
       Raycaster over `world`'s meshes minus the soil (`surfaceHit`);
       wounds (`woundEnemy`) are quads ATTACHED to the bone they struck,
       capped six a body and forty in all, and `clearWounds` runs in the
@@ -905,7 +921,7 @@ Known state of play:
       a frame and `rocketBurst` throws a killed small humanoid into
       `scatterBones` with `crumbled` set, the katana-slice path, so
       `pruneFallen` buries it.
-  21. **COVER IS THE OCCLUDER'S OWN CROWN, AND IT USED TO BE A CONSTANT
+  22. **COVER IS THE OCCLUDER'S OWN CROWN, AND IT USED TO BE A CONSTANT
       PER KIND.** `hitscan` blocked a ray at `heightAt+2.4` for any wall
       segment, `+1.4` for any other obstacle (`+5.5` for a tree) and
       `+1.5`/`+2.6` for a breakable — numbers that have nothing to do with
@@ -919,7 +935,26 @@ Known state of play:
       `top` — the WORLD y of the crown, not a height above anything — and
       `hitscan` reads it, falling back to the old constants only for an
       obstacle that forgot to say. A breakable takes its own from
-      `b.obs.top`. Verified over 178 field occluders and 68 on the path:
+      `b.obs.top`.
+      **AND IT BROKE THE BELL, WHICH IS THE TRAP WORTH KNOWING.** Every
+      breakable ALSO stands as a solid obstacle (bodies have to be pushed
+      out of it), and `hitscan` tests the obstacles in an earlier loop than
+      the breakables — so the obstacle sets `bt` at that same `t` and the
+      breakable's own `if(t>=bt)continue` then skips it. It never showed
+      before because the obstacle's constant was a LOW 1.4m and a round at
+      chest height sailed over it into the breakable behind; give the bell
+      its true 2.05m crown and the obstacle catches the round first,
+      `hitscan` answers `stone`, `gunHit` never reaches
+      `strikeBreakables`, and the thing stops ringing. Measured: a level
+      shot from six metres read `stone(obs r=1.5)` where it had read
+      `break(bell)`.
+      Every breakable now goes through **`addBreakable(b)`**, which tags
+      `b.obs.brk`, and `hitscan`'s obstacle loop skips anything tagged: the
+      obstacle is the BODY'S business, the breakable answers for the
+      bullet, and both carry the same crown. `breakPew` removes the pair
+      together so the tag cannot outlive its obstacle. Verified end to end
+      through `fireGun`: three rounds, tolls 0->1->2->3, the Bell-Called
+      summoned. Verified over 178 field occluders and 68 on the path:
       **0 still block a shot 20cm over their own crown**, and what passes
       through their middle is unchanged. `BP.obstacles.filter(o=>o.top==null)`
       must stay empty — **anything new that calls either producer has to
@@ -1149,23 +1184,39 @@ Known state of play:
     for a dark rim wide enough to save it — a shroud fat enough to see
     fills the hoop. It is `M.bead` (amber) now, which separates from a
     bright sky by HUE and from dark soil by VALUE, so it needs neither.
-    Measured at (410,231) with the ring dead centre: max channel difference
-    against the background 176 at clear noon, 201 sunrise, 207 dusk, 206
-    storm night, 196 snow.
+    Measured at (410,231) with the ring dead centre, the bead against the
+    picture just above it: 147 at clear noon, 207 storm night, 120 snow.
+    A warm DUSK sky is the one case the colour alone does not win (35), and
+    it is what the two-pixel dark bezel round the bead is for; check that
+    case before trimming the bezel away.
+    It is a 4x4 square of the frame — `.0048` in the gun's units, down
+    from `.0062`, which at eight pixels read as a blob filling the hoop
+    rather than a bead sitting in it.
   - **PROVE A SMALL PART IS MISSING BEFORE YOU MOVE IT.** Hours went on the
     assumption that the bead was being culled, occluded or snapped away —
     it was none of those. Repainting it red showed 48 pixels exactly where
     it should be. Recolour first; it is one line and it answers the
     question outright.
-  - **HOW HIGH IT RIDES IS `ay2`, WHICH IS THE WHOLE SIGHT LINE.** Lowering
-    it brings the eye down with the ring, so the deck rises in the picture.
-    It went .108 -> .0995 and the air between the ring's bottom and the
-    channel's lit caps measured 56px -> 36px, with the caps' visible run
-    18px -> 13px: that shortening of the trapezoid is what a low sight
-    costs, and it is the trade. An intermediate .1045 moved the gap only to
-    54px and is not worth having — it is nearly all tower. The rear notch
-    must come down by the same amount or it rises through the sight line it
-    is supposed to sit under.
+  - **HOW HIGH IT RIDES IS `ay2`, WHICH IS THE WHOLE SIGHT LINE**, and
+    there is a HARD FLOOR under it that is worth knowing before you try.
+    At ADS the ring is pinned to the screen's exact centre and cannot
+    move, so "lower" only ever means the DECK rising toward it — and the
+    deck's own crown is the limit. The ring's lowest point is `ay2` minus
+    its outer radius (.016), the channel's lit caps top out at .0805, so
+    below **ay2 .0965** the deck starts eating the ring's bottom arc.
+    Measured at .0925: the lower third of the hoop was gone and the
+    picture was solid gun from the middle down. It is .0975 now, which is
+    a millimetre and a half of clearance.
+    Getting there went .108 -> .0995 -> .0975, and the honest measurement
+    is that most of what reads as "the ring is too high" is the TOWER, not
+    the sight line: from .108 to .0995 the air under the ring closed
+    56px -> 36px, but from .0995 to .0975 the deck came up only two more
+    pixels. The tower went 40mm -> 20mm -> 12mm over the same three
+    passes and that is what actually changed the picture. If it is asked
+    to go lower again, shrink the RING (a smaller hoop clears the deck at
+    a lower `ay2`) — do not push `ay2` under .0965.
+    The rear notch comes down by the same amount every time, or it rises
+    through the sight line it is supposed to sit under.
   **And the REAR is what wants shrinking, never the front.** It sits a
   fifth of a metre from the eye and the front sight is five times further,
   so every millimetre at the back is worth five at the front. A .028 bed
