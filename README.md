@@ -528,7 +528,7 @@ the same as three blows). The nearest thing takes the round.
 | | calibre | magazine · start | damage (body / head) | rate | the feel |
 |---|---|---|---|---|---|
 | **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down |
-| **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. Its irons are an **HK drum**: a tall tower forward on the rail with the notch cut through its top, and a hooded post to match |
+| **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. Its irons are an **HK drum**, and they are **round**: a rear drum with a peep bored through it and a front post standing inside a ring, so what you see aimed is a circle at the far end sitting inside a circle at the near one with the post's tip between them |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Carry-handle aperture and a post on a triangular base |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
 | **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then four returns off the stone, each later and quieter and darker than the last, with a roll going away under them. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
@@ -673,11 +673,14 @@ times**, which is to say barely a magnification at all: the picture you
 were looking at is the picture you aim with, the rifle stays in your
 hands, and the eye is on the mark a shade faster. **ACOG**: a short
 scope on the rail at **two times** — a working magnification, not a
-sniper's. A red chevron over a post sits on the mark with a pair of
-stadia ticks either side; the eye goes into the glass, so the gun leaves
-the picture, but the housing FADES out into the edges of the screen
-rather than cutting to black, and you keep what is coming at you from
-the sides. The sniper's own scope is its iron option (four and eight
+sniper's — and it is a **scope you can see**, not a hole cut in the
+screen. The optic is modelled: a bell, a body, two rings clamping it to
+its mount, an elevation turret on top and a windage turret on the side,
+and you look **down the tube** at the world through it, with the gun
+still under you and the field still round the edges of the frame. A red
+donut sits on the mark with a post under it and a pair of stadia ticks
+either side. It used to go to black glass with the weapon taken away —
+which is what a sniper's scope does, and the ACOG is not one. The sniper's own scope is its iron option (four and eight
 times, the zoom button); give it a dot or an ACOG and it becomes a rifle
 you can fight close with.
 
@@ -698,11 +701,33 @@ a gun is in your hands.
 clicks and reloads on its own if there is a reserve to reload from
 (the sniper waits to be asked). The reload is the viewmodel: the gun
 drops and rolls, the magazine falls out of the grip and is driven home,
-the action is racked — three sounds at the three moments — and the
-rounds move from reserve to magazine only when it is all done. A swap
+the action is racked, and the rounds move from reserve to magazine only
+when it is all done.
+**And it sounds like a mechanism.** Each of the three moments used to be
+one soft blip, and a rounded attack is exactly what makes a sound read
+as plastic. Each is a small SEQUENCE now: a catch releases, a part
+travels along its rail, a part arrives and stops dead — and the arrival
+is always the loudest thing in the stage, because that is what tells you
+the magazine is home rather than merely near. Every impact in it is
+three layers inside forty milliseconds — the strike itself with no
+attack at all, the low knock of whatever was hit, and the high ring left
+in the part afterwards, held five times longer and very quiet. The
+bolt-action is four such motions and you hear all four: the handle up,
+the bolt back over the spent case, forward over a live round, and down
+into its lug. A swap
 mid-reload abandons it. The sniper's bolt is worked after every shot,
 the handle lifting and the bolt coming back and going home, and the next
 round waits on it.
+
+**The brass comes out.** Every round but the rocket throws its case out
+of the ejection port — the gun's own right and a little up, tumbling,
+under gravity, bouncing once off the soil and lying still — and each one
+rings small and bright as it lands. Fourteen are in the air at a time
+and a case lies where it fell for five seconds. The port is a point on
+each weapon's model, so the brass leaves the rifle at the rifle's port
+whether the eye is in the helm or behind the shoulder. One sound per
+case, on its first touch, throttled: a dozen cases a second each ringing
+twice is gravel, not brass.
 
 **Ammunition is dropped.** The horrors have to feed the guns, so in
 first person about half of them leave a **box of rounds** where they
@@ -723,7 +748,22 @@ when you are close, or when it is shot. The ambushes stay down; that is
 what they are for. So the sniper has patrols to watch through the glass,
 and a shot that does not kill still brings the thing.
 
-**Under the hood.** The viewmodel is three low-poly guns hung off the
+**The models.** Every weapon is built out of chamfered eight-sided
+prisms rather than boxes — one mesh and one draw each, sixteen more
+triangles, and a silhouette that stops reading as a brick — and every
+one of them is covered in the small hard furniture a real weapon has:
+an ejection port and its cover, a selector on both sides of the
+HK, a magazine catch, a bolt catch, a forward assist and a brass
+deflector on the carbine, the delta ring and the detent ridges the
+stock clicks along, a trigger in a guard that is a true loop, finger
+grooves in the grips, witness ribs down the magazines, slots in the
+flash hider, hoops of heat shield over the shotgun's barrel, sling
+swivels, the chequer on the rifle's wrist and fore-end, the turrets on
+its scope and the ball on its bolt handle. None of it is decoration —
+each piece is something a hand uses. The cost is about forty draw calls
+while a gun is held, and none of it while one is not.
+
+**Under the hood.** The viewmodel is a set of low-poly guns hung off the
 camera itself (the camera is in the scene for it) and drawn in the PSX
 frame with everything else, so they wobble and dither like the world;
 they bob with the stride, sway against the look, kick on fire, drop for

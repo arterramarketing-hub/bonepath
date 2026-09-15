@@ -283,30 +283,24 @@
     border-radius:50%;border:3px solid #050505;box-shadow:inset 0 0 46px rgba(0,0,0,.85);}
   #scope .mag{position:absolute;left:50%;top:calc(50% - var(--r) + 14px);transform:translateX(-50%);
     font-size:11px;letter-spacing:.3em;color:var(--bone-dim);text-shadow:0 1px 2px #000;}
-  /* the acog: a smaller glass, a red chevron with its point on the mark and a post under it */
-  /* THE ACOG. A two-power combat optic, not a sniper's tube: the glass
-     takes nearly the whole screen and the housing FADES out past it
-     rather than cutting to black, because at this magnification you are
-     meant to keep your situational awareness. The chevron and the post
-     are the reticle, with a pair of stadia ticks either side of it. */
-  #acog{position:absolute;inset:0;display:none;--r:min(43vh,43vw);
-    background:radial-gradient(circle at 50% 50%, transparent 0,
-      transparent calc(var(--r) - 2px),
-      rgba(4,5,6,.5) calc(var(--r) + 2px),
-      rgba(3,3,4,.86) calc(var(--r) + 11vh));}
+  /* THE ACOG'S RETICLE, AND THAT IS ALL THE HUD GIVES IT NOW. The scope
+     itself is modelled on the gun and stays in the picture — bell, body,
+     rings, turrets — so there is no black surround to draw and no hole to
+     cut. A red donut with a dot in it, a tick off its rim above and below
+     and a broken horizontal: what a combat optic lays over a target,
+     sized in the screen's own measure like every other reticle here. */
+  #acog{position:absolute;inset:0;display:none;}
   #acog.on{display:block;}
-  #acog .ring{position:absolute;left:50%;top:50%;width:calc(var(--r) * 2);height:calc(var(--r) * 2);transform:translate(-50%,-50%);
-    border-radius:50%;border:2px solid rgba(8,9,10,.92);
-    box-shadow:inset 0 0 30px rgba(0,0,0,.45);
-    background:radial-gradient(circle at 50% 44%,rgba(190,160,96,.055),rgba(0,0,0,0) 62%);}
-  #acog .ring::before,#acog .ring::after{content:'';position:absolute;top:50%;width:calc(var(--r) * .17);height:1px;
-    background:rgba(255,60,40,.75);box-shadow:0 0 3px rgba(255,60,40,.55);}
-  #acog .ring::before{left:calc(50% - var(--r) * .40);}
-  #acog .ring::after{left:calc(50% + var(--r) * .23);}
-  #acog .chev{position:absolute;left:50%;top:50%;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;
-    border-top:14px solid #ff3b2a;transform:translate(-50%,-100%);filter:drop-shadow(0 0 2px rgba(255,60,40,.7));}
-  #acog .post{position:absolute;left:50%;top:50%;width:2px;height:calc(var(--r) * .34);margin-left:-1px;
-    background:linear-gradient(180deg,#ff3b2a,rgba(255,59,42,.35));box-shadow:0 0 3px rgba(255,60,40,.6);}
+  #acog .ring{position:absolute;left:50%;top:50%;width:9vh;height:9vh;margin:-4.5vh 0 0 -4.5vh;border-radius:50%;
+    border:1px solid rgba(255,62,38,.72);box-shadow:0 0 6px rgba(255,50,26,.3),inset 0 0 8px rgba(255,50,26,.14);}
+  #acog .ring::before,#acog .ring::after{content:'';position:absolute;background:rgba(255,62,38,.72);
+    left:50%;width:1px;height:1.4vh;margin-left:-.5px;}
+  #acog .ring::before{top:-1.9vh;}
+  #acog .ring::after{bottom:-1.9vh;}
+  #acog .chev{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;
+    background:#ff3b2a;box-shadow:0 0 7px rgba(255,58,30,.9),0 0 16px rgba(255,40,20,.45);}
+  #acog .post{position:absolute;left:50%;top:50%;width:3.6vh;height:1px;margin:-.5px 0 0 -1.8vh;
+    background:linear-gradient(90deg,rgba(255,62,38,.65),rgba(255,62,38,0) 26%,rgba(255,62,38,0) 74%,rgba(255,62,38,.65));}
   /* THE RED DOT. The HOUSING IS THE GUN'S OWN — the optic is modelled on
      the rail and `applyAttachment` puts its sight line at the screen's
      exact centre, so a drawn tube on top of it is a second housing at the
@@ -1901,6 +1895,27 @@ const AudioSys=(()=>{
     o.start(t0);o.stop(t0+att+dec+.05);
   }
   const rr2=(a,b)=>a+Math.random()*(b-a);
+  /* THE MECHANISM. Every reload stage used to be ONE soft blip — a square
+     tone with a rounded attack — and a rounded attack is the whole reason
+     they read as bubbles rather than as steel. A real mechanism is three
+     things inside forty milliseconds: the IMPACT (wideband, no attack at
+     all), the BODY of whatever was struck (a short low knock, the alloy's
+     mass), and the RING left in the part afterwards (a high partial, very
+     quiet, held five times longer than the hit). `clack` is those three.
+     `mscrape` is metal sliding on metal: a filtered hiss with a handful of
+     tiny catches scattered through it, because a rail is not smooth.
+     Do not go back to a round tone. The roundness IS the plastic. */
+  function clack(t,{peak=.22,body=170,ring=3100,dec=.045,bright=1}={}){
+    noise(t,{peak:peak,att:.0004,dec:dec,f0:6000*bright,f1:1400,type:'bandpass',Q:.9});
+    noise(t,{peak:peak*.45,att:.0003,dec:.011,f0:9000*bright,f1:4200,type:'highpass',Q:.7});
+    tone(t,{f:body,f2:body*.45,type:'triangle',peak:peak*.38,att:.0004,dec:dec+.012});
+    tone(t+.0012,{f:ring,f2:ring*.87,type:'triangle',peak:peak*.09,att:.001,dec:.2});
+  }
+  function mscrape(t,{peak=.09,dur=.1,f0=1500,f1=3000}={}){
+    noise(t,{peak:peak,att:.012,dec:dur,f0:f0,f1:f1,type:'bandpass',Q:3.4});
+    const n=4+(Math.random()*3|0);
+    for(let i=0;i<n;i++)noise(t+dur*(i/n)+rr2(0,.01),{peak:peak*.5,att:.0004,dec:.007,f0:rr2(4200,6400),f1:2800,type:'bandpass',Q:5});
+  }
   /* a VOICE: a sawtooth (the cords) through three formant filters (the
      throat and mouth, shaped to a vowel), on a pitch line, with a breath
      of noise under it and a vibrato if wanted — the nearest a synth gets
@@ -2297,15 +2312,54 @@ const AudioSys=(()=>{
     boom(){if(!ac)return;const t=now();
       noise(t,{peak:.75,att:.002,dec:.28,f0:3000,f1:180});tone(t,{f:110,f2:26,type:'sawtooth',peak:.4,att:.004,dec:.8});
       noise(t+.06,{peak:.4,att:.05,dec:1.6,f0:380,f1:50});tone(t+.02,{f:40,f2:22,type:'sine',peak:.25,att:.08,dec:1.8});},
-    // the pump: the fore-end back, and forward
-    pump(){if(!ac)return;const t=now();noise(t,{peak:.24,att:.001,dec:.05,f0:2400,f1:900,type:'bandpass',Q:1.6});tone(t,{f:520,f2:260,type:'square',peak:.05,att:.001,dec:.06});
-      noise(t+.13,{peak:.26,att:.001,dec:.05,f0:2000,f1:800,type:'bandpass',Q:1.6});tone(t+.13,{f:420,f2:220,type:'square',peak:.06,att:.001,dec:.07});},
-    gunEmpty(){if(!ac)return;const t=now();noise(t,{peak:.1,att:.001,dec:.03,f0:2600,f1:1200,type:'bandpass',Q:3});tone(t,{f:1500,f2:900,type:'square',peak:.05,att:.001,dec:.035});},
-    // the reload in three sounds: the magazine out, the magazine home, and the action racked
-    magOut(){if(!ac)return;const t=now();noise(t,{peak:.16,att:.002,dec:.07,f0:1800,f1:500,type:'bandpass',Q:1.4});tone(t,{f:340,f2:150,type:'square',peak:.04,att:.002,dec:.08});},
-    magIn(){if(!ac)return;const t=now();noise(t,{peak:.24,att:.001,dec:.05,f0:2400,f1:900,type:'bandpass',Q:1.6});tone(t,{f:520,f2:240,type:'square',peak:.06,att:.001,dec:.06});},
-    rack(){if(!ac)return;const t=now();noise(t,{peak:.2,att:.001,dec:.035,f0:3000,f1:1400,type:'bandpass',Q:2});noise(t+.07,{peak:.17,att:.001,dec:.04,f0:2300,f1:1000,type:'bandpass',Q:2});tone(t+.07,{f:900,f2:500,type:'square',peak:.04,att:.001,dec:.05});},
-    bolt(){if(!ac)return;const t=now();for(let i=0;i<3;i++){noise(t+i*.09,{peak:.18-i*.03,att:.001,dec:.04,f0:2200-i*300,f1:900,type:'bandpass',Q:2});tone(t+i*.09,{f:700-i*120,f2:400,type:'square',peak:.045,att:.001,dec:.05});}},
+    /* THE PUMP. Fore-end back — the rail, then the action opening and the
+       spent hull clearing it — and forward, which is the heavier of the
+       two because that stroke chambers a shell and locks. */
+    pump(){if(!ac)return;const t=now();
+      mscrape(t,{peak:.1,dur:.075,f0:1300,f1:2700});
+      clack(t+.072,{peak:.25,body:158,ring:2500,dec:.05});
+      clack(t+.104,{peak:.11,body:420,ring:3400,dec:.022,bright:1.2});      // the hull clears
+      mscrape(t+.13,{peak:.095,dur:.055,f0:2700,f1:1300});
+      clack(t+.192,{peak:.28,body:118,ring:2100,dec:.075,bright:1.15});     // and into battery
+      clack(t+.206,{peak:.12,body:300,ring:4200,dec:.018,bright:1.3});},
+    gunEmpty(){if(!ac)return;const t=now();clack(t,{peak:.1,body:640,ring:5200,dec:.018,bright:1.3});},
+    /* THE RELOAD, IN THREE MECHANISMS. Each stage is a small sequence, not
+       a sound: a catch releases, a part travels, a part arrives and stops
+       dead. The arrival is always the loudest thing in the stage — that is
+       what tells the ear the magazine is home and not merely near. */
+    magOut(){if(!ac)return;const t=now();
+      clack(t,{peak:.11,body:900,ring:5400,dec:.014,bright:1.35});          // the catch, thumbed
+      mscrape(t+.022,{peak:.075,dur:.085,f0:1700,f1:900});                  // the magazine dropping free
+      clack(t+.115,{peak:.12,body:132,ring:1500,dec:.055,bright:.8});},     // and clear of the well
+    magIn(){if(!ac)return;const t=now();
+      mscrape(t,{peak:.07,dur:.05,f0:1100,f1:2100});                        // lips finding the well
+      clack(t+.052,{peak:.28,body:126,ring:2200,dec:.07,bright:.95});       // SEATED — the weight of the reload
+      clack(t+.072,{peak:.12,body:820,ring:5000,dec:.016,bright:1.35});},   // the catch taking it
+    rack(){if(!ac)return;const t=now();
+      clack(t,{peak:.16,body:520,ring:3600,dec:.02,bright:1.2});            // the handle caught
+      mscrape(t+.012,{peak:.1,dur:.062,f0:1600,f1:3100});                   // drawn back
+      clack(t+.078,{peak:.2,body:240,ring:2800,dec:.03});                   // against the stop
+      mscrape(t+.1,{peak:.085,dur:.042,f0:3100,f1:1500});                   // released, running home
+      clack(t+.148,{peak:.30,body:104,ring:1900,dec:.085,bright:1.1});       // the bolt into battery
+      tone(t+.15,{f:2600,f2:1250,type:'triangle',peak:.045,att:.001,dec:.24});}, // the spring left ringing
+    /* A TURN-BOLT is four motions and you hear every one: the handle up,
+       the bolt back over the spent case, the bolt forward over a live
+       round, the handle down and locked. */
+    bolt(){if(!ac)return;const t=now();
+      clack(t,{peak:.19,body:380,ring:3200,dec:.026,bright:1.15});          // lifted out of its lug
+      mscrape(t+.03,{peak:.095,dur:.1,f0:1500,f1:2900});
+      clack(t+.135,{peak:.22,body:210,ring:2700,dec:.034});                 // hard against the stop
+      clack(t+.16,{peak:.1,body:560,ring:4600,dec:.016,bright:1.3});        // the case flicked out
+      mscrape(t+.2,{peak:.09,dur:.09,f0:2900,f1:1400});
+      clack(t+.3,{peak:.24,body:140,ring:2300,dec:.06,bright:1.05});         // a round stripped and chambered
+      clack(t+.36,{peak:.20,body:320,ring:3000,dec:.03,bright:1.1});        // and locked down
+      tone(t+.362,{f:2200,f2:1100,type:'triangle',peak:.035,att:.001,dec:.2});},
+    /* BRASS ON SOIL. Small, bright and gone — and it must stay under the
+       report that threw it, or a magazine reads as a bag of spoons. */
+    shellDrop(v){if(!ac)return;const t=now();v=v==null?1:v;
+      noise(t,{peak:.045*v,att:.0004,dec:.02,f0:7200,f1:3000,type:'bandpass',Q:2.2});
+      tone(t,{f:rr2(2500,3600),f2:1700,type:'triangle',peak:.035*v,att:.001,dec:.09});
+      tone(t+.004,{f:rr2(4600,6200),type:'sine',peak:.018*v,att:.001,dec:.13});},
     /* THE HITMARKER, THE WAY A SHOOTER DOES ONE. It has been both wrong
        ways round now: two quiet square blips that the .50's own report
        walked straight over, and then a CLACK loud enough to beat the gun,
@@ -5389,6 +5443,19 @@ function GSph(r,ws,hs){const k='s'+r+'|'+ws+'|'+hs;
   return geoCache[k]||(geoCache[k]=new THREE.SphereGeometry(r,ws,hs));}
 function GCone(r,h,seg){const k='k'+r+'|'+h+'|'+seg;
   return geoCache[k]||(geoCache[k]=new THREE.ConeGeometry(r,h,seg));}
+/* A BOX WITH ITS CORNERS TAKEN OFF, which is the cheapest honest way to
+   round anything at this resolution: a unit eight-sided prism lying along
+   z, turned an eighth of a turn so its flats are the top, the bottom and
+   the two sides. Scale it and it is a chamfered box — same one mesh, same
+   one draw, sixteen more triangles, and a silhouette that stops looking
+   like a brick. Every gun's body is built out of these now. */
+function GOct(){return geoCache.oct||(geoCache.oct=(()=>{
+  const g=new THREE.CylinderGeometry(.5,.5,1,8,1);g.rotateX(Math.PI/2);g.rotateZ(Math.PI/8);
+  const c=Math.cos(Math.PI/8);g.scale(1/c,1/c,1);return g;})());}
+function GTube(r,h,seg){const k='t'+r+'|'+h+'|'+seg;   // open at both ends: you see down it
+  return geoCache[k]||(geoCache[k]=new THREE.CylinderGeometry(r,r,h,seg,1,true));}
+function GRing(r,tb,seg){const k='r'+r+'|'+tb+'|'+seg; // a hoop, its hole down z
+  return geoCache[k]||(geoCache[k]=new THREE.TorusGeometry(r,tb,5,seg));}
 function M(geo,m,x,y,z){const me=new THREE.Mesh(geo,m);me.position.set(x||0,y||0,z||0);return me;}
 /* a turned profile, at world scale. buildHumanoid has its own GLathe that
    multiplies by the rig's scale and is local to it; this is the same turn
@@ -13655,7 +13722,7 @@ const ATT_FOV={reddot:61,acog:37};
 function attOf(g){g=g||gunOf();return FPS.att[g.key]||'iron';}
 function attLabel(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the scope';if(a==='iron'&&g.rocket)return 'the ladder sight';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[1];}
 function attNote(g){g=g||gunOf();const a=attOf(g);if(a==='iron'&&g.scope)return 'the rifle\'s own glass: four times, or eight on the zoom button. the gun leaves the picture while you are in it';return (ATTACH.find(o=>o[0]===a)||ATTACH[0])[2];}
-function inGlass(g){g=g||gunOf();const a=attOf(g);return a==='acog'||(!!g.scope&&a==='iron');}   // the eye goes into a lens: an overlay, and no viewmodel
+function inGlass(g){g=g||gunOf();const a=attOf(g);return !!g.scope&&a==='iron';}   // the sniper's own glass alone: an overlay, and no viewmodel
 function cycleAtt(d){const g=gunOf();let i=ATTACH.findIndex(o=>o[0]===attOf(g));i=(i+d+ATTACH.length)%ATTACH.length;FPS.att[g.key]=ATTACH[i][0];
   try{localStorage.setItem('bp_att',JSON.stringify(FPS.att));}catch(e){}applyAttachment();if(player.rig&&player.rig.gunModel)applyAttachmentTo(player.rig.gunModel,g);if(FPS.on)AudioSys.magIn();}
 /* HOW FAR THE EYE SITS BEHIND THE SIGHT, and it is the same for every gun
@@ -13721,11 +13788,24 @@ const BLADE_NOTE_FPS='fire (either thumb) — strike · hold aim, let go — the
 function vmMat(hex,extra){return lam(Object.assign({color:new THREE.Color(hex).convertSRGBToLinear()},extra||{}));}
 function vmBox(w,h,d,m,x,y,z){const me=new THREE.Mesh(GBox(w,h,d),m);me.position.set(x,y,z);return me;}
 function vmCyl(r,h,seg,m,x,y,z,rt){const me=new THREE.Mesh(GCyl(rt===undefined?r:rt,r,h,seg),m);me.position.set(x,y,z);me.rotation.x=Math.PI/2;return me;}
+// the same box, with its corners off — see GOct
+function vmOct(w,h,d,m,x,y,z){const me=new THREE.Mesh(GOct(),m);me.scale.set(w,h,d);me.position.set(x,y,z);return me;}
+// a tube you look THROUGH (the scope), drawn on both faces so its inner wall is there
+function vmTube(r,h,seg,m,x,y,z){const me=new THREE.Mesh(GTube(r,h,seg),m);me.position.set(x,y,z);me.rotation.x=Math.PI/2;return me;}
+// a hoop, standing across the barrel: a sight's ring, a scope's rim
+function vmRing(r,tb,seg,m,x,y,z){const me=new THREE.Mesh(GRing(r,tb,seg),m);me.position.set(x,y,z);return me;}
+// a turret: a drum standing up out of the scope, or lying on its side
+function vmKnob(r,h,seg,m,x,y,z,rz){const me=new THREE.Mesh(GCyl(r,r,h,seg),m);me.position.set(x,y,z);if(rz)me.rotation.z=rz;return me;}
+// a hoop lying FORE-AND-AFT, its hole across the gun: a trigger guard, a sling loop
+function vmLoop(r,tb,seg,m,x,y,z){const me=new THREE.Mesh(GRing(r,tb,seg),m);me.position.set(x,y,z);me.rotation.y=Math.PI/2;return me;}
+// a ball: a bolt's knob, a screw's head
+function vmBall(r,m,x,y,z){const me=new THREE.Mesh(GSph(r,8,6),m);me.position.set(x,y,z);return me;}
 let _gunMats=null;
 function gunMats(){if(_gunMats)return _gunMats;return _gunMats={
-  gold:vmMat(0xd4ac44),dark:vmMat(0x2a2622),steel:vmMat(0x8a8478),
+  gold:vmMat(0xd4ac44),goldM:vmMat(0xb2903a),goldD:vmMat(0x8a6c24),dark:vmMat(0x2a2622),steel:vmMat(0x8a8478),
   gun:vmMat(0x2b2d2f),gunD:vmMat(0x1a1b1d),grey:vmMat(0x4a4c4e),wood:vmMat(0x4a3222),glove:vmMat(0x5b5148),sleeve:vmMat(0x4b4f52),
   olive:vmMat(0x4a5238),tan:vmMat(0x8a7a52),pale:vmMat(0xf4eedc),
+  tube:vmMat(0x232529,{side:THREE.DoubleSide}),   // a scope's body: you see its inside wall as well as its outside
   glass:new THREE.MeshBasicMaterial({color:0x223a48,transparent:true,opacity:.28,depthWrite:false})};}
 /* THE SIGHTS. A rail height in, a group out, with `h` the height of its
    sight line — the one number the aim needs. The red dot is an open hood
@@ -13748,13 +13828,79 @@ function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.0
   const dot=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff2a1a,transparent:true,opacity:.95,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
   dot.scale.set(.0095,.0095,1);dot.position.set(0,wy,zf-.004);s.add(dot);
   s.h=wy;return s;}
-function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.036;zc=zc||0;
-  s.add(vmBox(.024,.012,.05,M.gunD,0,railY+.006,zc));
-  s.add(vmCyl(.017,.085,10,M.gunD,0,ay,zc-.01));
-  s.add(vmCyl(.023,.03,10,M.gunD,0,ay,zc-.062,.018));
-  s.add(vmCyl(.019,.022,10,M.gunD,0,ay,zc+.04,.017));
-  const gl=new THREE.Mesh(GCyl(.014,.014,.003,10),M.glass);gl.rotation.x=Math.PI/2;gl.position.set(0,ay,zc+.052);s.add(gl);
+/* THE ACOG IS A SCOPE YOU LOOK THROUGH, NOT A HOLE CUT IN THE SCREEN.
+   It used to hide the weapon and draw a black surround with a small
+   circle in it — a sniper's tunnel, which is not what a two-power combat
+   optic looks like from behind. In the reference you see the THING: the
+   bell out at the front, the body between its rings, the turrets, the
+   mount, the rail under it — and the picture through the middle. So it is
+   modelled and the gun stays in the frame; the tube is open at both ends
+   and drawn on both faces, so what is inside it is its own wall, and the
+   HUD adds the reticle over the middle and nothing else. */
+function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.046;zc=zc||0;
+  s.add(vmOct(.026,.012,.056,M.gunD,0,railY+.006,zc));                       // the mount on the rail
+  s.add(vmOct(.040,.024,.016,M.gunD,0,railY+.022,zc-.030));                  // the rings that clamp the body
+  s.add(vmOct(.040,.024,.016,M.gunD,0,railY+.022,zc+.030));
+  s.add(vmTube(.024,.118,12,M.tube,0,ay,zc-.004));                           // the body — wide, the way a combat optic is
+  s.add(vmTube(.031,.032,12,M.tube,0,ay,zc-.076));                           // the bell, flaring out at the front
+  s.add(vmRing(.031,.004,12,M.gunD,0,ay,zc-.092));                           // its rim
+  s.add(vmTube(.028,.026,12,M.tube,0,ay,zc+.048));                           // the eyepiece
+  s.add(vmRing(.028,.004,12,M.gunD,0,ay,zc+.061));                           // and its
+  s.add(vmKnob(.009,.017,8,M.gun,0,ay+.026,zc-.006));                        // the elevation turret
+  s.add(vmKnob(.008,.015,8,M.gun,.026,ay,zc-.006,Math.PI/2));                // the windage, on the side
   s.h=ay;return s;}
+/* SPENT BRASS. A pool of fourteen, because a magazine's worth of them all
+   at once is thirty draws nobody asked for; the oldest is recycled. They
+   are thrown along the GUN'S OWN right and up — which in first person is
+   the camera's, and in third the hand's — tumble, bounce once off the
+   soil and lie down. Where they leave is `g.port`, an anchor on each gun,
+   and that anchor must be kept out of `vmParts` or the ADS split will
+   reparent it and the brass will start pouring out of thin air. */
+const SHELLS={m:[],i:0};
+function shellPool(){
+  if(SHELLS.m.length)return;
+  const geo=GCyl(.0058,.0052,.021,6),mat=vmMat(0xc9a24a);
+  for(let i=0;i<14;i++){const me=new THREE.Mesh(geo,mat);me.visible=false;me.frustumCulled=false;scene.add(me);
+    SHELLS.m.push({me,t:-1,vx:0,vy:0,vz:0,sx:0,sy:0,sz:0,rest:false,hit:false});}
+}
+const _sh1=new THREE.Vector3(),_shq=new THREE.Quaternion(),_shr=new THREE.Vector3(),_shu=new THREE.Vector3(),_shf=new THREE.Vector3();
+function ejectShell(){
+  const g=gunOf();if(g.rocket)return;
+  shellPool();
+  const V=FPS.on?(FPS.vm&&FPS.vm.guns[g.key]):(player.rig&&player.rig.gunModel);
+  if(!V||!V.port)return;
+  (FPS.on?camera:player.rig.root).updateMatrixWorld(true);
+  V.port.getWorldPosition(_sh1);V.port.getWorldQuaternion(_shq);
+  _shr.set(1,0,0).applyQuaternion(_shq);_shu.set(0,1,0).applyQuaternion(_shq);_shf.set(0,0,-1).applyQuaternion(_shq);
+  SHELLS.i=(SHELLS.i+1)%SHELLS.m.length;
+  const s=SHELLS.m[SHELLS.i],sp=rr3(1.6,2.5),up=rr3(1.2,1.9),fw=rr3(-.5,.3);
+  s.me.position.copy(_sh1);s.me.visible=true;s.t=0;s.rest=false;s.hit=false;
+  s.me.rotation.set(rr3(0,TAU),rr3(0,TAU),rr3(0,TAU));
+  s.vx=_shr.x*sp+_shu.x*up+_shf.x*fw;s.vy=_shr.y*sp+_shu.y*up+_shf.y*fw;s.vz=_shr.z*sp+_shu.z*up+_shf.z*fw;
+  s.sx=rr3(-16,16);s.sy=rr3(-16,16);s.sz=rr3(-16,16);
+}
+let _shTink=0;
+function updateShells(dt){
+  _shTink-=dt;
+  for(const s of SHELLS.m){
+    if(s.t<0)continue;
+    s.t+=dt;
+    if(!s.rest){
+      s.vy-=9.8*dt;
+      s.me.position.x+=s.vx*dt;s.me.position.y+=s.vy*dt;s.me.position.z+=s.vz*dt;
+      s.me.rotation.x+=s.sx*dt;s.me.rotation.y+=s.sy*dt;s.me.rotation.z+=s.sz*dt;
+      const gy=heightAt(s.me.position.x,s.me.position.z)+.011;
+      if(s.me.position.y<=gy){
+        s.me.position.y=gy;
+        if(_shTink<=0){_shTink=.05;AudioSys.shellDrop(s.hit?.6:1);}   // once per case, and never two in a frame's breath
+        s.hit=true;
+        if(Math.abs(s.vy)>1.0){s.vy=-s.vy*.34;s.vx*=.5;s.vz*=.5;s.sx*=.4;s.sy*=.4;s.sz*=.4;}
+        else{s.rest=true;s.sx=s.sy=s.sz=0;s.me.rotation.set(Math.PI/2,rr3(0,TAU),0);}
+      }
+    }
+    if(s.t>5){s.t=-1;s.me.visible=false;}
+  }
+}
 function gunFlash(g,x,y,z){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffd27a,transparent:true,opacity:.95,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
   s.position.set(x,y,z);s.scale.set(.16,.16,1);s.visible=false;s.renderOrder=8;g.add(s);return s;}
 /* a gun, barrel along -z, sights up +y, the grip at the origin. `body` is a
@@ -13766,20 +13912,48 @@ function buildGunModel(key,o){o=o||{};
     g.add(vmBox(.05,.062,.058,M.glove,gx,gy,gz));
     const fa=vmBox(.056,.05,.2,M.sleeve,gx+.015,gy-.06,gz+.12);fa.rotation.x=.55;g.add(fa);};
   const grip=new THREE.Group();g.add(grip);g.grip=grip;
+  const port=new THREE.Group();port.position.set(.028,.046,-.02);g.add(port);g.port=port;   // where the brass leaves (each gun moves it)
   const muzzle=new THREE.Group();g.add(muzzle);g.muzzle=muzzle;
+  /* ROUNDED, AND WITH SOMETHING ON IT. Every main volume below is a
+     `vmOct` — the same box with its four long corners chamfered off, one
+     mesh, one draw, sixteen more triangles — because at this resolution a
+     hard corner is what makes a model read as a prop rather than a gun.
+     The detail is the second half of it: a real weapon is COVERED in
+     small hard-edged furniture (a port, a selector, a catch, a swivel, a
+     set of ribs), and it is those, not polygon count, that say the thing
+     is made of parts. None of it is decoration — each piece below is
+     something a hand uses. */
   if(key==='deagle'){
-    g.body=vmBox(.048,.05,.25,M.gold,0,.06,-.03);g.add(g.body);          // the slide
-    g.add(vmBox(.044,.038,.19,M.gold,0,.018,-.005));                    // the frame under it
-    const gr=vmBox(.036,.11,.05,M.dark,0,-.05,.06);gr.rotation.x=.28;g.add(gr);
-    const mag=vmBox(.026,.1,.038,M.steel,0,-.062,.062);mag.rotation.x=.28;g.add(mag);
-    g.add(vmBox(.03,.01,.06,M.gold,0,-.02,.01));g.add(vmBox(.008,.02,.006,M.dark,0,-.012,0));
-    g.add(vmCyl(.013,.03,8,M.dark,0,.06,-.165));g.add(vmBox(.012,.02,.014,M.dark,0,.075,.1));
+    /* THE DESERT EAGLE: a slab of a slide with a vented rib down its top,
+       serrations cut deep into its rear, the gas cylinder slung under the
+       barrel, and the hooked guard. */
+    g.body=vmOct(.048,.050,.250,M.gold,0,.060,-.030);g.add(g.body);              // the slide
+    g.add(vmOct(.034,.011,.250,M.gold,0,.0855,-.030));                           // the vented rib along its top
+    for(let i=0;i<4;i++)g.add(vmBox(.028,.005,.009,M.goldD,0,.0895,-.110+i*.044));// ...and the rib's slots, CUT INTO it: narrower than the rib and a step darker
+    for(let i=0;i<5;i++)g.add(vmBox(.0492,.030,.0035,M.goldD,0,.058,.082-i*.012));// the rear serrations, for the thumb
+    g.add(vmOct(.044,.038,.190,M.goldM,0,.018,-.005));                           // the frame, a step under the slide so the two read as two parts
+    g.add(vmOct(.050,.010,.030,M.goldM,0,.036,.058));                            // the tang, under the web of the hand
+    g.add(vmOct(.022,.020,.105,M.dark,0,.031,-.118));                            // the gas cylinder under the barrel
+    g.add(vmCyl(.0125,.028,10,M.dark,0,.060,-.166));                             // the crown
+    g.add(vmCyl(.0072,.030,8,M.grey,0,.060,-.168));                              // and the bore in it
+    const gr=vmOct(.036,.110,.050,M.dark,0,-.050,.060);gr.rotation.x=.28;g.add(gr);
+    for(let i=0;i<4;i++){const ck=vmBox(.0368,.004,.028,M.gun,0,-.022-i*.024,.053+i*.007);ck.rotation.x=.28;g.add(ck);}  // the panel's chequer
+    const mag=vmOct(.026,.100,.038,M.steel,0,-.062,.062);mag.rotation.x=.28;g.add(mag);
+    g.add(vmLoop(.026,.005,10,M.goldM,0,-.016,.006));                            // the guard, a true loop now
+    g.add(vmBox(.008,.022,.006,M.dark,0,-.014,.004));                            // the trigger in it
+    g.add(vmKnob(.005,.050,8,M.goldD,0,.062,.086,Math.PI/2));                    // the hammer's pin, through the frame — kept LOW, under the notch
+    g.add(vmOct(.012,.020,.015,M.dark,0,.072,.099));                             // and the spur standing off it
+    g.add(vmOct(.010,.014,.030,M.goldD,-.026,.048,.044));                        // the safety, on the slide
+    g.add(vmBall(.006,M.dark,-.026,.006,.030));                                  // the magazine catch
+    g.add(vmBox(.006,.026,.052,M.goldD,.0245,.062,-.040));                       // the ejection port, cut in the right side
     const iron=new THREE.Group();
-    iron.add(vmBox(.006,.014,.006,M.dark,0,.092,-.148));iron.add(vmBox(.004,.004,.002,M.pale,0,.096,-.1445));
-    iron.add(vmBox(.008,.012,.008,M.dark,-.009,.091,.092));iron.add(vmBox(.008,.012,.008,M.dark,.009,.091,.092));
+    iron.add(vmOct(.008,.016,.008,M.dark,0,.093,-.148));                         // the front blade on its base
+    iron.add(vmBox(.004,.004,.002,M.pale,0,.097,-.1445));
+    iron.add(vmOct(.010,.014,.010,M.dark,-.009,.091,.092));iron.add(vmOct(.010,.014,.010,M.dark,.009,.091,.092));
     iron.add(vmBox(.003,.003,.002,M.pale,-.009,.0945,.0965));iron.add(vmBox(.003,.003,.002,M.pale,.009,.0945,.0965));
     g.add(iron);const rd=sightRedDot(.086,.02),ac=sightAcog(.086,.02);g.add(rd);g.add(ac);
     hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.06,-.2);
+    port.position.set(.028,.068,-.030);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.06,-.2);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
     g.hip=[.13,-.20,-.46];g.hipRy=.05;g.hipRz=-.12;
@@ -13808,64 +13982,72 @@ function buildGunModel(key,o){o=o||{};
        of the screen it owns. Ending it at the notch puts that face 20cm
        out instead of 15, and what continues behind it is the tail, which
        is narrower, lower, sloping, and in the squashed half anyway. */
-    g.body=vmBox(.052,.046,.245,M.grey,0,.043,-.073);g.add(g.body);
+    g.body=vmOct(.052,.046,.245,M.grey,0,.043,-.073);g.add(g.body);
     g.add(vmBox(.052,.005,.245,M.steel,0,.0665,-.073));                      // the top FACE, its own mesh and a step lighter
-    g.add(vmBox(.026,.008,.245,M.grey,0,.0725,-.073));                       // the rail
+    g.add(vmOct(.026,.008,.245,M.grey,0,.0725,-.073));                       // the rail
     for(let i=0;i<7;i++)g.add(vmBox(.028,.005,.009,M.steel,0,.0785,-.175+i*.048));   // and its teeth: small light ticks running away, which is the depth cue
     // THE LOWER: the trigger group and the well, wider and darker
-    g.add(vmBox(.058,.042,.20,M.gun,0,.005,-.04));
-    g.add(vmBox(.050,.018,.062,M.gun,0,-.017,-.082));                        // the well's lip
-    const tail=vmBox(.042,.046,.115,M.gun,0,.030,.095);tail.rotation.x=-.10;g.add(tail);  // and the tail, narrower and lower than the receiver, sloping into the hinge
+    g.add(vmOct(.058,.042,.20,M.gun,0,.005,-.04));
+    g.add(vmOct(.050,.018,.062,M.gun,0,-.017,-.082));                        // the well's lip
+    const tail=vmOct(.042,.046,.115,M.gun,0,.030,.095);tail.rotation.x=-.10;g.add(tail);  // and the tail, narrower and lower than the receiver, sloping into the hinge
     // THE FRONT: a short rail section, the nut, the stubby barrel, the can
-    g.add(vmBox(.044,.040,.10,M.gun,0,.040,-.225));
-    g.add(vmBox(.024,.009,.095,M.grey,0,.0725,-.225));
-    g.add(vmCyl(.014,.022,8,M.gunD,0,.042,-.285));
-    g.add(vmCyl(.0105,.05,8,M.gunD,0,.042,-.318));
-    g.add(vmCyl(.0185,.012,10,M.gun,0,.042,-.350));                          // the can's collar
-    g.add(vmCyl(.017,.115,10,M.gunD,0,.042,-.408));
+    g.add(vmOct(.044,.040,.10,M.gun,0,.040,-.225));
+    g.add(vmOct(.024,.009,.095,M.grey,0,.0725,-.225));
+    for(let i=0;i<3;i++)g.add(vmBox(.026,.005,.009,M.steel,0,.0785,-.258+i*.040));   // the front rail has teeth too
+    g.add(vmCyl(.014,.022,10,M.gunD,0,.042,-.285));
+    g.add(vmCyl(.0105,.05,10,M.gunD,0,.042,-.318));
+    g.add(vmCyl(.0185,.012,12,M.gun,0,.042,-.350));                          // the can's collar
+    g.add(vmCyl(.017,.115,12,M.gunD,0,.042,-.408));
+    for(let i=0;i<4;i++)g.add(vmRing(.0178,.0022,12,M.gun,0,.042,-.362-i*.030));     // the can's bands
+    g.add(vmRing(.0176,.003,12,M.gun,0,.042,-.464));                         // and its cap
     // THE MAGAZINE, raked forward out of its well
-    const mag=vmBox(.029,.185,.05,M.gunD,0,-.082,-.10);mag.rotation.x=-.17;g.add(mag);
-    const mw=vmBox(.038,.052,.06,M.gun,0,-.010,-.094);mw.rotation.x=-.17;g.add(mw);
-    const mb=vmBox(.033,.012,.056,M.grey,0,-.172,-.118);mb.rotation.x=-.17;g.add(mb);     // the floor plate
+    const mag=vmOct(.029,.185,.05,M.gunD,0,-.082,-.10);mag.rotation.x=-.17;g.add(mag);
+    for(let i=0;i<4;i++){const rb=vmBox(.031,.004,.052,M.gun,0,-.026-i*.036,-.094-i*.0062);rb.rotation.x=-.17;g.add(rb);}  // its witness ribs
+    const mw=vmOct(.038,.052,.06,M.gun,0,-.010,-.094);mw.rotation.x=-.17;g.add(mw);
+    const mb=vmOct(.033,.012,.056,M.grey,0,-.172,-.118);mb.rotation.x=-.17;g.add(mb);     // the floor plate
     // THE GRIP, and the guard in front of it
-    const gr=vmBox(.034,.105,.044,M.gunD,0,-.062,.062);gr.rotation.x=.24;g.add(gr);
-    g.add(vmBox(.030,.007,.052,M.gunD,0,-.030,.012));
+    const gr=vmOct(.034,.105,.044,M.gunD,0,-.062,.062);gr.rotation.x=.24;g.add(gr);
+    for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.032-i*.028,.036+i*.007);fg.rotation.x=.24;g.add(fg);}   // the finger grooves
+    g.add(vmLoop(.024,.005,10,M.gunD,0,-.030,.014));
+    g.add(vmBox(.008,.020,.006,M.grey,0,-.028,.010));                        // the trigger
+    g.add(vmOct(.010,.016,.028,M.grey,-.030,.012,.012));                     // the selector — an HK's is on BOTH sides
+    g.add(vmOct(.010,.016,.028,M.grey,.030,.012,.012));
+    g.add(vmBox(.007,.020,.030,M.gunD,.027,.050,-.058));                     // the ejection port
+    g.add(vmOct(.008,.012,.014,M.grey,-.028,-.008,-.046));                   // the magazine catch, a paddle
     // THE STOCK: the side-folder, an open rectangle, and half the gun's profile
     const st=new THREE.Group();st.position.set(0,.034,.145);st.rotation.x=-.05;g.add(st);
-    st.add(vmBox(.032,.058,.032,M.gunD,0,0,0));                              // the hinge block
-    st.add(vmBox(.016,.016,.145,M.gunD,0,.036,.077));                        // the top rail
-    st.add(vmBox(.014,.013,.132,M.gunD,0,-.036,.072));                       // the bottom strut
-    st.add(vmBox(.032,.100,.016,M.gunD,0,0,.146));                           // the butt, closing the frame
-    g.add(vmBox(.009,.011,.05,M.grey,-.031,.052,-.11));                      // the charging handle, on the left
-    /* THE SIGHTS, OFF THE REFERENCE'S OUTLINE. Two things make that
-       picture, and only one of them is the sight itself.
-       FIRST, THE REAR SIGHT STANDS TALL. What fills the bottom of a
-       shooter's aimed frame is the receiver's TOP running away from the
-       eye — a trapezoid, wide at the bottom edge and narrowing to the
-       sight at its far end — and how much of that you see is set by how
-       far the eye rides ABOVE the top face. At 25mm of sight height the
-       band was a sliver and the gun read as a wall. This is an HK drum:
-       a tall tower on the rail with the notch cut through its top, which
-       puts the eye 57mm up, and the trapezoid runs off the bottom of the
-       screen the way the reference's does.
-       SECOND, THE SIGHT SITS FORWARD. There has to be receiver BETWEEN
-       your eye and the rear sight or there is no trapezoid to see. It can
-       only come forward as far as the near plane allows — past that the
-       receiver itself starts being squashed and the gun comes apart at
-       the seam — which is z=.04 here, 7cm of rail behind the notch.
-       The front post is raised to match and hooded, HK-fashion. */
+    st.add(vmOct(.032,.058,.032,M.gunD,0,0,0));                              // the hinge block
+    st.add(vmKnob(.011,.036,8,M.grey,0,.010,-.008,Math.PI/2));               // its pin, across the gun
+    st.add(vmOct(.016,.016,.145,M.gunD,0,.036,.077));                        // the top rail
+    st.add(vmOct(.014,.013,.132,M.gunD,0,-.036,.072));                       // the bottom strut
+    st.add(vmOct(.032,.100,.016,M.gunD,0,0,.146));                           // the butt, closing the frame
+    st.add(vmOct(.036,.036,.008,M.gun,0,0,.155));                            // and its pad
+    g.add(vmOct(.009,.011,.05,M.grey,-.031,.052,-.11));                      // the charging handle, on the left
+    g.add(vmKnob(.0085,.014,8,M.grey,-.040,.052,-.128,Math.PI/2));           // its knob
+    g.add(vmLoop(.008,.0022,8,M.gunD,-.026,.014,.100));                      // the sling loop, at the hinge
+    /* THE SIGHTS, AND THEY ARE ROUND. An HK's are: the front post stands
+       inside a RING — a hooded donut, not a square cage with a bar over
+       it — and the rear is a DRUM with a round peep bored through it.
+       Aimed, what you see is a circle at the far end sitting inside a
+       circle at the near one with the post's tip between them, which is
+       the reference's picture exactly.
+       The rest of the outline is the three things under THE AIMED
+       SILHOUETTE: the sight stands tall so the receiver's top runs away
+       beneath it, it sits forward so there IS receiver to run, and the
+       receiver ends at the drum so its square end-face is not the
+       picture. */
     const iron=new THREE.Group(),ay=.126,rz=.04;
-    iron.add(vmBox(.007,.048,.006,M.gunD,0,.101,-.27));                       // the front post's tower
-    iron.add(vmBox(.005,.010,.005,M.dark,0,.1265,-.27));iron.add(vmBox(.004,.004,.003,M.pale,0,.1285,-.2672));
-    iron.add(vmBox(.004,.040,.008,M.gun,-.014,.106,-.27));iron.add(vmBox(.004,.040,.008,M.gun,.014,.106,-.27));   // its hood
-    iron.add(vmBox(.032,.004,.008,M.gun,0,.1275,-.27));
-    iron.add(vmBox(.026,.040,.016,M.gun,0,.099,rz));                          // the rear tower, narrow so the rail runs past it
-    iron.add(vmBox(.011,.030,.016,M.gunD,-.0175,.126,rz));iron.add(vmBox(.011,.030,.016,M.gunD,.0175,.126,rz));   // the drum either side of the notch
-    iron.add(vmBox(.046,.005,.016,M.grey,0,.1425,rz));                        // its flat top, shoulder to shoulder
-    iron.add(vmBox(.024,.005,.016,M.gunD,0,.1185,rz));                        // the floor of the notch
+    iron.add(vmOct(.010,.048,.008,M.gun,0,.101,-.27));                        // the front tower
+    iron.add(vmRing(.0175,.0032,10,M.gun,0,ay,-.27));                         // ...and the ring hooding the post
+    iron.add(vmBox(.0045,.013,.004,M.dark,0,ay-.007,-.27));
+    iron.add(vmBox(.004,.004,.003,M.pale,0,ay+.0005,-.2672));                 // the bead on its tip
+    iron.add(vmOct(.026,.040,.016,M.gun,0,.100,rz));                          // the rear drum's tower
+    iron.add(vmRing(.016,.0035,10,M.gun,0,ay,rz+.008));                       // the peep bored through it — a RIM, not a blob
+    iron.add(vmOct(.030,.010,.016,M.grey,0,ay+.020,rz));                      // the drum's flat top
     g.add(iron);const rd=sightRedDot(.077,-.02),ac=sightAcog(.077,-.02);g.add(rd);g.add(ac);
     hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
     grip.position.set(0,-.004,-.215);muzzle.position.set(0,.042,-.466);
+    port.position.set(.030,.050,-.058);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.042,-.466);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.46];g.hipRy=.06;g.hipRz=-.15;
@@ -13873,24 +14055,44 @@ function buildGunModel(key,o){o=o||{};
     /* THE M4A1: an upper with a carry handle, a round handguard with its
        vents, a curved thirty on a straight well, a collapsing stock. Its
        iron sights are the handle's aperture and a post on a triangular base */
-    g.body=vmBox(.056,.06,.26,M.gun,0,.035,-.04);g.add(g.body);           // the upper and lower
-    g.add(vmBox(.05,.05,.1,M.gunD,0,.015,.04));                          // the lower's well and trigger group
-    g.add(vmCyl(.026,.2,8,M.gunD,0,.04,-.27));                           // the handguard
-    for(const zz of[-.21,-.26,-.31])g.add(vmBox(.058,.006,.012,M.gun,0,.04,zz));   // its vents
-    g.add(vmCyl(.01,.14,8,M.grey,0,.04,-.44));g.add(vmCyl(.014,.05,6,M.gunD,0,.04,-.52));   // the barrel and its flash hider
-    const mag=vmBox(.028,.15,.06,M.gunD,0,-.06,-.03);mag.rotation.x=-.18;g.add(mag);   // the thirty, curved forward
-    const gr=vmBox(.034,.1,.045,M.gunD,0,-.06,.1);gr.rotation.x=.32;g.add(gr);
-    g.add(vmCyl(.016,.14,6,M.gunD,0,.05,.18));g.add(vmBox(.03,.07,.09,M.gunD,0,.03,.29));   // the buffer tube and the stock on it
-    g.add(vmBox(.012,.012,.03,M.grey,.03,.05,.04));                       // the charging handle's latch
+    g.body=vmOct(.056,.06,.26,M.gun,0,.035,-.04);g.add(g.body);           // the upper and lower
+    g.add(vmOct(.05,.05,.1,M.gunD,0,.015,.04));                          // the lower's well and trigger group
+    g.add(vmCyl(.026,.2,12,M.gunD,0,.04,-.27));                          // the handguard
+    for(const zz of[-.205,-.255,-.305,-.355])g.add(vmRing(.0272,.0038,12,M.gun,0,.04,zz));   // its vents, as bands round it
+    g.add(vmRing(.031,.006,12,M.grey,0,.04,-.172));                      // the delta ring, where it meets the upper
+    g.add(vmCyl(.01,.14,8,M.grey,0,.04,-.44));g.add(vmCyl(.014,.05,8,M.gunD,0,.04,-.52));   // the barrel and its flash hider
+    for(let i=0;i<3;i++)g.add(vmBox(.030,.004,.008,M.grey,0,.0535,-.508+i*.013));  // the hider's slots
+    g.add(vmOct(.020,.020,.020,M.gunD,0,.04,-.372));                     // the gas block under the sight
+    const mag=vmOct(.028,.15,.06,M.gunD,0,-.06,-.03);mag.rotation.x=-.18;g.add(mag);   // the thirty, curved forward
+    for(let i=0;i<3;i++){const rb=vmBox(.030,.004,.062,M.gun,0,-.022-i*.040,-.023-i*.0073);rb.rotation.x=-.18;g.add(rb);}
+    const mf=vmOct(.031,.012,.064,M.grey,0,-.136,-.016);mf.rotation.x=-.18;g.add(mf);  // the floor plate
+    const gr=vmOct(.034,.1,.045,M.gunD,0,-.06,.1);gr.rotation.x=.32;g.add(gr);
+    for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.030-i*.026,.074+i*.009);fg.rotation.x=.32;g.add(fg);}
+    g.add(vmLoop(.026,.005,10,M.gunD,0,-.026,.046));                      // the guard
+    g.add(vmBox(.008,.020,.006,M.grey,0,-.024,.044));                     // the trigger
+    g.add(vmCyl(.016,.14,10,M.gunD,0,.05,.18));                           // the buffer tube
+    for(let i=0;i<4;i++)g.add(vmRing(.0175,.003,10,M.gun,0,.05,.140+i*.028));   // its detent ridges, which is what a stock clicks along
+    g.add(vmOct(.03,.07,.09,M.gunD,0,.03,.29));                           // the stock on it
+    g.add(vmOct(.046,.018,.028,M.gunD,0,.008,.318));                      // its toe
+    g.add(vmOct(.012,.012,.03,M.grey,.03,.05,.04));                       // the charging handle's latch
+    g.add(vmKnob(.011,.018,8,M.gun,.032,.05,.012,Math.PI/2));             // the forward assist
+    g.add(vmOct(.016,.020,.014,M.gun,.030,.058,-.020));                   // the brass deflector behind the port
+    g.add(vmBox(.006,.026,.060,M.gunD,.029,.042,-.058));                  // the ejection port's cover
+    g.add(vmBall(.007,M.grey,.030,.004,.014));                            // the magazine catch
+    g.add(vmOct(.008,.016,.024,M.grey,-.028,.028,.046));                  // the selector
+    g.add(vmOct(.008,.014,.026,M.grey,-.028,.002,.008));                  // the bolt catch
+    g.add(vmLoop(.008,.0022,8,M.gunD,-.026,.012,.086));                   // the sling loop at the castle nut
     const iron=new THREE.Group();                                         // the carry handle, its aperture, and the front post on its base
-    iron.add(vmBox(.02,.012,.1,M.gunD,0,.071,.02));iron.add(vmBox(.02,.014,.012,M.gunD,0,.084,-.02));iron.add(vmBox(.02,.014,.012,M.gunD,0,.084,.06));
+    iron.add(vmOct(.02,.012,.1,M.gunD,0,.071,.02));iron.add(vmOct(.02,.014,.012,M.gunD,0,.084,-.02));iron.add(vmOct(.02,.014,.012,M.gunD,0,.084,.06));
     const ay=.091;iron.add(vmBox(.024,.003,.006,M.gunD,0,ay+.011,.06));iron.add(vmBox(.024,.003,.006,M.gunD,0,ay-.011,.06));
     iron.add(vmBox(.003,.025,.006,M.gunD,-.0105,ay,.06));iron.add(vmBox(.003,.025,.006,M.gunD,.0105,ay,.06));
-    iron.add(vmBox(.02,.03,.02,M.gunD,0,.07,-.36));iron.add(vmBox(.004,.02,.004,M.dark,0,.089,-.36));iron.add(vmBox(.003,.003,.002,M.pale,0,.091,-.3575));
+    iron.add(vmKnob(.008,.012,8,M.grey,0,.079,.03));                      // the handle's elevation drum
+    iron.add(vmOct(.02,.03,.02,M.gunD,0,.07,-.36));iron.add(vmBox(.004,.02,.004,M.dark,0,.089,-.36));iron.add(vmBox(.003,.003,.002,M.pale,0,.091,-.3575));
     iron.add(vmBox(.003,.03,.006,M.gunD,-.011,.09,-.36));iron.add(vmBox(.003,.03,.006,M.gunD,.011,.09,-.36));
     g.add(iron);const rd=sightRedDot(.066,-.02),ac=sightAcog(.066,-.02);g.add(rd);g.add(ac);
     hands(0,-.065,.11);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.01,-.005,-.26));
     grip.position.set(0,.01,-.26);muzzle.position.set(0,.04,-.55);
+    port.position.set(.032,.048,-.040);
     g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.04,-.55);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.091,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.48];g.hipRy=.06;g.hipRz=-.15;
@@ -13898,39 +14100,74 @@ function buildGunModel(key,o){o=o||{};
     /* THE SPAS-12: a long receiver over a tube magazine, a ribbed pump
        fore-end that works after every shell, a folding hook stock. The
        sights are a post and a notch on the receiver's rib */
-    g.body=vmBox(.05,.06,.34,M.gun,0,.03,-.06);g.add(g.body);            // the receiver
-    g.add(vmCyl(.013,.4,8,M.grey,0,.055,-.42));                          // the barrel
-    g.add(vmCyl(.015,.36,8,M.gunD,0,.02,-.4));                           // the tube magazine under it
-    const pump=vmBox(.05,.05,.13,M.gunD,0,.035,-.33);g.add(pump);        // the fore-end, on the tube
-    for(const zz of[-.29,-.33,-.37])g.add(vmBox(.052,.052,.006,M.gun,0,.035,zz));   // its ribs — carried on the pump
-    const gr=vmBox(.036,.1,.045,M.gunD,0,-.06,.1);gr.rotation.x=.3;g.add(gr);
-    g.add(vmBox(.014,.05,.22,M.grey,0,.05,.22));g.add(vmBox(.05,.08,.02,M.gunD,0,.03,.34));   // the folding stock and its hook
-    g.add(vmBox(.05,.014,.05,M.gunD,0,.07,-.04));                        // the rib's rear block
+    g.body=vmOct(.05,.06,.34,M.gun,0,.03,-.06);g.add(g.body);            // the receiver
+    g.add(vmOct(.046,.014,.290,M.gunD,0,.066,-.070));                    // the rib running along its top
+    g.add(vmCyl(.013,.4,10,M.grey,0,.055,-.42));                         // the barrel
+    for(let i=0;i<5;i++)g.add(vmRing(.0168,.0035,10,M.gun,0,.055,-.435-i*.042));   // the heat shield's hoops over it
+    g.add(vmCyl(.015,.36,10,M.gunD,0,.02,-.4));                          // the tube magazine under it
+    g.add(vmRing(.0175,.004,10,M.gun,0,.02,-.576));                      // the tube's cap
+    g.add(vmCyl(.0165,.030,10,M.gun,0,.055,-.620));                      // and the choke on the muzzle
+    const pump=vmOct(.05,.05,.13,M.gunD,0,.035,-.33);g.add(pump);        // the fore-end, on the tube
+    for(let i=0;i<5;i++)pump.add(vmOct(.054,.054,.007,M.gun,0,0,-.048+i*.024));    // its ribs — CARRIED ON THE PUMP, so they work with it
+    const gr=vmOct(.036,.1,.045,M.gunD,0,-.06,.1);gr.rotation.x=.3;g.add(gr);
+    for(let i=0;i<3;i++){const fg=vmBox(.038,.009,.010,M.gun,0,-.030-i*.026,.074+i*.008);fg.rotation.x=.3;g.add(fg);}
+    g.add(vmLoop(.026,.005,10,M.gunD,0,-.026,.048));
+    g.add(vmBox(.008,.020,.006,M.grey,0,-.024,.046));                    // the trigger
+    g.add(vmOct(.012,.034,.22,M.gun,0,.052,.22));                        // the folding strut — a tube over the receiver, not a second barrel
+    g.add(vmOct(.05,.08,.02,M.gunD,0,.03,.34));                          // and the hook that closes over the arm
+    g.add(vmKnob(.012,.020,8,M.gunD,0,.050,.108,Math.PI/2));             // the stock's hinge pin
+    g.add(vmOct(.05,.014,.05,M.gunD,0,.07,-.04));                        // the rib's rear block
+    g.add(vmBox(.006,.024,.070,M.gunD,.026,.040,-.100));                 // the ejection port
+    g.add(vmBox(.030,.010,.090,M.gunD,0,-.004,-.120));                   // and the loading port under it
+    g.add(vmBall(.007,M.grey,.026,.006,-.026));                          // the shell release
+    g.add(vmKnob(.009,.016,8,M.grey,-.028,.040,-.060,Math.PI/2));        // the safety, a cross-bolt through the receiver
+    g.add(vmLoop(.009,.0025,8,M.gunD,0,-.016,-.380));                    // the swivels
+    g.add(vmLoop(.009,.0025,8,M.gunD,0,-.004,.150));
     const iron=new THREE.Group();
-    iron.add(vmBox(.004,.014,.004,M.dark,0,.083,-.24));iron.add(vmBox(.003,.003,.002,M.pale,0,.088,-.2375));
-    iron.add(vmBox(.008,.012,.008,M.dark,-.009,.082,-.04));iron.add(vmBox(.008,.012,.008,M.dark,.009,.082,-.04));
+    iron.add(vmOct(.006,.016,.006,M.dark,0,.082,-.24));iron.add(vmBox(.003,.003,.002,M.pale,0,.088,-.2375));
+    iron.add(vmOct(.010,.014,.010,M.dark,-.009,.082,-.04));iron.add(vmOct(.010,.014,.010,M.dark,.009,.082,-.04));
     g.add(iron);const rd=sightRedDot(.06,-.05),ac=sightAcog(.06,-.05);g.add(rd);g.add(ac);
     hands(0,-.065,.11);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.005,-.005,-.33));
     grip.position.set(0,.01,-.33);muzzle.position.set(0,.055,-.63);
+    port.position.set(.028,.048,-.100);
     g.pump=pump;g.pumpZ=pump.position.z;g.flash=gunFlash(g,0,.055,-.63);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.088,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.47];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='sniper'){
-    g.add(vmCyl(.016,.62,8,M.steel,0,.05,-.42,.012));
-    g.body=vmBox(.05,.06,.22,M.gun,0,.045,-.04);g.add(g.body);
-    g.add(vmBox(.05,.075,.32,M.wood,0,.02,.2));g.add(vmBox(.045,.05,.16,M.wood,0,.07,.22));g.add(vmBox(.055,.1,.03,M.gunD,0,.02,.37));
-    g.add(vmBox(.052,.055,.3,M.wood,0,.015,-.24));
+    /* A TURN-BOLT RIFLE IN WOOD: a heavy tapered barrel, a receiver
+       bedded into a one-piece stock, the scope up on two rings with its
+       turrets standing out of it, and the bolt out to the right. */
+    g.add(vmCyl(.016,.62,10,M.steel,0,.05,-.42,.012));                   // the barrel, tapering
+    g.add(vmRing(.0172,.003,10,M.grey,0,.05,-.722));                     // its crown
+    g.body=vmOct(.05,.06,.22,M.gun,0,.045,-.04);g.add(g.body);           // the receiver
+    g.add(vmOct(.05,.075,.32,M.wood,0,.02,.2));g.add(vmOct(.045,.05,.16,M.wood,0,.07,.22));g.add(vmOct(.055,.1,.03,M.gunD,0,.02,.37));
+    for(let i=0;i<5;i++)g.add(vmBox(.046,.004,.006,M.gunD,0,.056,.090+i*.011));   // the wrist's chequer, where the hand closes
+    g.add(vmOct(.052,.055,.3,M.wood,0,.015,-.24));                       // the fore-end
+    for(let i=0;i<4;i++)g.add(vmBox(.0505,.004,.006,M.gunD,0,.0435,-.300+i*.011));// and its chequer, standing just proud of the wood
+    g.add(vmLoop(.026,.005,10,M.gunD,0,-.016,-.020));                    // the guard
+    g.add(vmBox(.007,.020,.006,M.grey,0,-.014,-.024));                   // the trigger
+    g.add(vmOct(.030,.014,.075,M.gunD,0,-.030,.020));                    // the floorplate
+    g.add(vmLoop(.009,.0025,8,M.gunD,0,-.016,-.330));                    // the swivels
+    g.add(vmLoop(.009,.0025,8,M.gunD,0,-.022,.300));
     const scope=new THREE.Group();
-    scope.add(vmBox(.02,.02,.03,M.gunD,0,.085,-.08));scope.add(vmBox(.02,.02,.03,M.gunD,0,.085,.02));
-    scope.add(vmCyl(.024,.24,10,M.gunD,0,.11,-.03));scope.add(vmCyl(.032,.06,10,M.gunD,0,.11,-.17,.026));scope.add(vmCyl(.028,.04,10,M.gunD,0,.11,.1,.024));
+    scope.add(vmOct(.022,.024,.030,M.gunD,0,.083,-.08));scope.add(vmOct(.022,.024,.030,M.gunD,0,.083,.02));   // the bases
+    scope.add(vmRing(.0275,.006,12,M.grey,0,.11,-.08));scope.add(vmRing(.0275,.006,12,M.grey,0,.11,.02));     // the rings clamping the body
+    scope.add(vmCyl(.024,.24,12,M.gunD,0,.11,-.03));scope.add(vmCyl(.032,.06,12,M.gunD,0,.11,-.17,.026));scope.add(vmCyl(.028,.04,12,M.gunD,0,.11,.1,.024));
+    scope.add(vmRing(.0325,.004,12,M.grey,0,.11,-.198));                 // the bell's rim
+    scope.add(vmRing(.0288,.004,12,M.grey,0,.11,.119));                  // the eyepiece's
+    scope.add(vmKnob(.010,.018,8,M.gun,0,.140,-.03));                    // the elevation turret
+    scope.add(vmKnob(.009,.016,8,M.gun,.028,.11,-.03,Math.PI/2));        // and the windage
     scope.add(vmCyl(.021,.004,10,vmMat(0x4a6a80),0,.11,-.201));
     g.add(scope);
     const bolt=new THREE.Group();bolt.position.set(.03,.06,.03);
-    bolt.add(vmBox(.06,.01,.01,M.steel,.03,0,0));bolt.add(vmBox(.016,.016,.016,M.gunD,.062,0,0));g.add(bolt);
-    g.add(vmBox(.03,.06,.07,M.gunD,0,-.01,-.04));g.add(vmBox(.03,.012,.06,M.gunD,0,-.03,.02));
+    bolt.add(vmKnob(.006,.056,8,M.steel,.030,0,0,Math.PI/2));            // the handle, out to the right
+    bolt.add(vmBall(.012,M.gunD,.062,0,0));                              // and the ball on the end of it
+    g.add(bolt);
+    g.add(vmOct(.03,.06,.07,M.gunD,0,-.01,-.04));g.add(vmOct(.03,.012,.06,M.gunD,0,-.03,.02));
     const rd=sightRedDot(.076,-.03),ac=sightAcog(.076,-.03);g.add(rd);g.add(ac);
     hands(0,-.04,.08);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.005,-.02,-.26));
     grip.position.set(0,-.01,-.26);muzzle.position.set(0,.05,-.74);
+    port.position.set(.028,.058,.006);
     g.bolt=bolt;g.boltZ=bolt.position.z;g.flash=gunFlash(g,0,.05,-.74);
     g.iron=scope;g.reddot=rd;g.acog=ac;g.sightH={iron:.11,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.19,-.44];g.hipRy=.05;g.hipRz=-.14;
@@ -13939,17 +14176,34 @@ function buildGunModel(key,o){o=o||{};
        under the hand, the flared venturi at the back, and the warhead
        standing out of the front — gone once it is fired, back when the
        tube is loaded again. A ladder sight folds up off the tube */
-    g.body=vmCyl(.038,.7,10,M.olive,0,.02,-.05);g.add(g.body);           // the tube
-    g.add(vmCyl(.05,.09,10,M.gunD,0,.02,.36,.04));                       // the venturi, flaring back
-    g.add(vmCyl(.044,.16,10,M.wood,0,.02,.02));                          // the heat shield
-    const gr=vmBox(.034,.1,.045,M.gunD,0,-.06,.02);gr.rotation.x=.3;g.add(gr);   // the pistol grip
-    g.add(vmBox(.03,.04,.06,M.gunD,0,-.045,-.14));                       // the fore grip
+    g.body=vmCyl(.038,.7,12,M.olive,0,.02,-.05);g.add(g.body);           // the tube
+    g.add(vmCyl(.05,.09,12,M.gunD,0,.02,.36,.04));                       // the venturi, flaring back
+    g.add(vmRing(.0505,.005,12,M.gun,0,.02,.402));                       // its lip
+    g.add(vmCyl(.044,.16,12,M.wood,0,.02,.02));                          // the heat shield
+    for(let i=0;i<4;i++)g.add(vmRing(.0455,.004,12,M.gunD,0,.02,-.045+i*.043));    // and the straps holding it on
+    g.add(vmCyl(.042,.10,12,M.wood,0,.02,-.23));                         // the forward shield, under the other hand
+    g.add(vmRing(.0435,.004,12,M.gunD,0,.02,-.187));g.add(vmRing(.0435,.004,12,M.gunD,0,.02,-.272));
+    g.add(vmRing(.0395,.004,12,M.gunD,0,.02,.180));                      // the tube's own welded bands
+    g.add(vmRing(.0395,.004,12,M.gunD,0,.02,-.330));
+    const gr=vmOct(.034,.1,.045,M.gunD,0,-.06,.02);gr.rotation.x=.3;g.add(gr);   // the pistol grip
+    for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.030-i*.026,-.006+i*.008);fg.rotation.x=.3;g.add(fg);}
+    g.add(vmLoop(.024,.005,10,M.gunD,0,-.026,-.030));                    // the guard
+    g.add(vmBox(.008,.020,.006,M.grey,0,-.024,-.032));                   // the trigger
+    g.add(vmOct(.014,.026,.030,M.gunD,0,-.020,.020));                    // the neck joining grip to tube
+    g.add(vmOct(.03,.04,.06,M.gunD,0,-.045,-.14));                       // the fore grip
+    g.add(vmOct(.014,.022,.030,M.gunD,0,-.016,-.14));
+    g.add(vmOct(.016,.012,.040,M.gun,-.040,.038,-.100));                 // the firing mechanism's housing, on the left
     const head=new THREE.Group();g.add(head);g.warhead=head;
-    head.add(vmCyl(.045,.14,10,M.olive,0,.02,-.42,.03));head.add(vmCyl(.03,.12,8,M.tan,0,.02,-.55,.005));   // the booster and the cone
+    head.add(vmCyl(.056,.10,12,M.olive,0,.02,-.400,.036));               // the bulb: a PG-7's warhead is FAT, and the fat is its whole silhouette
+    head.add(vmCyl(.030,.115,12,M.olive,0,.02,-.508,.056));              // its shoulder, drawing down to the nose
+    head.add(vmCyl(.026,.10,10,M.tan,0,.02,-.600,.008));                 // and the cone
+    head.add(vmRing(.0525,.004,12,M.gunD,0,.02,-.372));                  // the band round its base
+    head.add(vmCyl(.0105,.022,8,M.gunD,0,.02,-.660));                    // and the fuze on its nose
     const iron=new THREE.Group();                                         // the ladder sight, and the front post
     iron.add(vmBox(.003,.05,.006,M.gunD,-.012,.084,.02));iron.add(vmBox(.003,.05,.006,M.gunD,.012,.084,.02));
     for(const yy of[.07,.085,.1])iron.add(vmBox(.024,.003,.006,M.gunD,0,yy,.02));
-    iron.add(vmBox(.004,.026,.004,M.dark,0,.072,-.25));iron.add(vmBox(.003,.003,.002,M.pale,0,.083,-.2475));
+    iron.add(vmOct(.006,.028,.006,M.dark,0,.072,-.25));iron.add(vmBox(.003,.003,.002,M.pale,0,.083,-.2475));
+    iron.add(vmOct(.022,.016,.008,M.gunD,0,.054,-.25));                   // the post's base on the tube
     g.add(iron);const rd=sightRedDot(.058,-.05),ac=sightAcog(.058,-.05);g.add(rd);g.add(ac);
     hands(0,-.065,.03);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.005,-.02,-.14));
     grip.position.set(0,-.02,-.14);muzzle.position.set(0,.02,-.62);
@@ -13980,7 +14234,7 @@ function buildGunModel(key,o){o=o||{};
   {const aft=new THREE.Group();g.add(aft);g.aft=aft;
    const parts=[],bb=new THREE.Box3();
    for(const o of g.children.slice()){
-     if(o===aft||o===grip||o===muzzle||o.isSprite)continue;
+     if(o===aft||o===grip||o===muzzle||o===port||o.isSprite)continue;
      bb.setFromObject(o);o.userData.vmZ0=bb.max.z;o.userData.vmZ1=bb.min.z;parts.push(o);
    }
    g.vmParts=parts;g.splitAt=null;}
@@ -14340,7 +14594,7 @@ function fireGun(){
   AudioSys.gun(g.key);G.vibr(g.rocket?60:g.key==='sniper'||g.pump?40:g.suppressed?5:18);
   G.camShake=Math.max(G.camShake,R.cam*4);G.glowFlash=Math.max(G.glowFlash||0,g.suppressed?.12:.45);
   const mp=muzzleWorld().clone();
-  if(!g.rocket){boneBurst(mp.x+rr3(-.05,.05),mp.y-.05,mp.z+rr3(-.05,.05),0xc9a34a,1,1.4);smokePuff(mp.x,mp.y+.02,mp.z,1);}   // the casing
+  if(!g.rocket){ejectShell();smokePuff(mp.x,mp.y+.02,mp.z,1);}   // the brass, and the smoke off the muzzle
   const o=FPS.on?camera.position.clone():mp.clone();
   const base=FPS.on?null:gunAimBase(o);
   if(g.rocket){smokePuff(mp.x,mp.y,mp.z,6);fireRocket(o,gunRay(coneNow(),base),g);FPS.lastHit='rocket';
@@ -14611,7 +14865,8 @@ function updateGunHud(){
   const g=gunOf(),A=gunAmmo(g),P=player,dead=P.state==='dead'||G.mode!=='play',gun=gunHeld();
   const xh=$('xhair'),hm=$('hitmark'),att=attOf(g);
   const glass=FPS.on&&gun&&inGlass(g)&&FPS.ads>.85&&!dead;
-  const scoped=glass&&att==='iron',acog=glass&&att==='acog',dot=FPS.on&&gun&&att==='reddot'&&FPS.ads>.85&&!dead;
+  const scoped=glass&&att==='iron',dot=FPS.on&&gun&&att==='reddot'&&FPS.ads>.85&&!dead,
+        acog=FPS.on&&gun&&att==='acog'&&FPS.ads>.85&&!dead;   // (the scope is MODELLED: the HUD only lays its reticle over it)
   if(scoped!==FHUD.scope){FHUD.scope=scoped;$('scope').classList.toggle('on',scoped);}
   if(acog!==FHUD.acog){FHUD.acog=acog;$('acog').classList.toggle('on',acog);}
   if(dot!==FHUD.dot){FHUD.dot=dot;$('reddot').classList.toggle('on',dot);}
@@ -15127,6 +15382,7 @@ function frame(now){
   }
 
   if(G.mode==='play'||G.mode==='dead'){
+    updateShells(wdt);                                         // the brass, still falling — it does not care that you died
     if(G.mode==='play'){
       if(IN.swipe)$('swipeHint').style.opacity=0;
       player.update(wdt);
@@ -15241,7 +15497,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

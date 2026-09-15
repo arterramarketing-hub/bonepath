@@ -904,9 +904,88 @@ Known state of play:
     between the sides, and the reticle is a red dot and ONLY a red dot: no
     ring around it, in the model or in the HUD. Do not put back the pane,
     the second hoop, or the ring.
-  - The ACOG stays in `inGlass` — the eye goes into the lens and the gun
-    leaves the picture — but its surround FADES rather than cutting to
-    black, which is what keeps 2x from reading as a scope.
+  - **THE ACOG IS OUT OF `inGlass` AND IS A MODELLED SCOPE.** It used to
+    take the eye into the lens and put the gun away, which is what a
+    SNIPER'S scope does; at 2x it read as a black tunnel with a chevron
+    in it. `sightAcog` builds the real thing now — a bell, a body, two
+    rings clamping it to its mount, an elevation turret on top and a
+    windage turret on the side — out of `vmTube` (open at both ends and
+    `side:DoubleSide`, so its inner wall is there and you look DOWN it)
+    and `vmRing`. The gun stays under it and the field stays round the
+    edges. `inGlass` is the SNIPER'S OWN scope alone now
+    (`!!g.scope&&attOf(g)==='iron'`), and `#acog` in the CSS is a
+    reticle only — a ring, four ticks and a centre dot over the middle
+    of the screen — with no housing drawn, because the housing is the
+    model's.
+    If the picture through it ever looks like a hole, check that
+    `M.tube` still has `side:THREE.DoubleSide`: a single-sided tube seen
+    from inside draws nothing and the scope becomes a window onto the
+    skybox.
+- **EVERY GUN IS BUILT OUT OF `vmOct`, AND THE FURNITURE FOLLOWS ONE
+  RULE.** `GOct` is a unit eight-sided prism lying along z, turned an
+  eighth of a turn so its flats land exactly where a box's faces would —
+  so `vmOct` is a drop-in for `vmBox` with its four long corners
+  chamfered, one mesh, one draw, sixteen more triangles. Every receiver,
+  grip, magazine, stock and handguard is one. At this resolution the
+  chamfer is the whole difference between a prop and a gun.
+  **A piece of furniture cut INTO a surface must be NARROWER than the
+  surface and only a step off its colour.** Both halves of that were got
+  wrong on the Desert Eagle first time: the slide's serrations were
+  drawn .051 wide on a .048 slide in near-black, so instead of cuts in
+  gold they were black fins standing off the sides, and the pistol read
+  as a yellow blob with holes punched through it. `goldM`/`goldD` exist
+  for this — the frame is a step under the slide so the two read as two
+  parts, and every cut in either is that part's own colour darkened.
+  A rib that stands PROUD (a rail's teeth, a magazine's witness ribs) is
+  the opposite and may be a millimetre wider; know which you are making.
+  And a detail buried INSIDE its parent renders nothing while looking
+  perfect in the source — the rifle's fore-end chequer sat 6mm inside the
+  wood for a while. If a detail is invisible, check it is at the surface
+  before you touch its colour.
+  Measured, first person, gun in hand: the pass costs **24–58 draw calls**
+  a weapon (deagle 26→52 meshes, ump 53→78, m4 38→71) and nothing at all
+  while a blade is held. That is the price of the detail and it was paid
+  deliberately; do not pay it twice by adding more.
+- **THE BRASS** (`SHELLS`, `shellPool`, `ejectShell`, `updateShells`).
+  Fourteen cases in a ring buffer, thrown along the GUN'S OWN right and
+  up — which in first person is the camera's and in third the hand's —
+  tumbling under gravity, bouncing once off `heightAt` and lying down.
+  - Where they leave is **`g.port`**, an anchor group on every gun model
+    that each gun positions at its own ejection port. It must stay out
+    of `vmParts` (the line in `buildGunModel` that collects the split's
+    parts skips it explicitly) or the ADS squash reparents it and the
+    brass starts pouring out of thin air.
+  - `updateShells(dt)` runs in `frame()` under `G.mode==='play'||'dead'`,
+    not inside the play branch: brass in the air does not care that you
+    have just died.
+  - **One sound per case, on its FIRST touch, and throttled** (`_shTink`,
+    50ms). It rang on the bounce AND on the lie-down to begin with, which
+    at a carbine's rate is twenty-four tinks a second and reads as
+    gravel. `AudioSys.shellDrop` is deliberately tiny (peak .045) — it
+    must sit under the report that threw it.
+  - The rocket has no case: `ejectShell` returns on `g.rocket`.
+- **THE RELOAD IS A MECHANISM, AND THE SHAPE IS WHAT MAKES IT ONE.**
+  `clack(t,{peak,body,ring,dec,bright})` and `mscrape(t,{...})` are
+  declared beside `tone` inside the AudioSys closure, and every reload
+  sound is built out of them. A clack is three layers inside forty
+  milliseconds: the IMPACT (wideband, attack .0004 — no attack at all),
+  the BODY of what was struck (a short low knock, the alloy's mass), and
+  the RING left in the part (a high partial at a tenth the level, held
+  five times longer). `mscrape` is metal on metal: a filtered hiss with
+  a handful of tiny catches scattered through it, because a rail is not
+  smooth.
+  **Do not go back to a round tone.** Every stage used to be ONE square
+  blip with a rounded attack, and the roundness IS the plastic.
+  Each stage is now a small sequence — a catch releases, a part travels,
+  a part arrives and stops dead — and **the arrival is always the
+  loudest thing in the stage**, because that is what says the magazine
+  is home rather than near.
+  **A clack's three layers SUM**, so its true peak is about twice the
+  number you pass. The seat of `magIn` was written at .38 and was
+  therefore louder than the gun that needed reloading; the call peaks
+  are all around .1–.3 now and the loudest moment of a reload sits under
+  `AudioSys.gun`'s .58. If a reload ever shouts, look at the sum, not at
+  one layer.
 - **`AudioSys.hitmark(kill,head)` has been wrong in BOTH directions, and
   the answer is neither.** First it was two soft square blips, which the
   .50's own report walked straight over — a hitmarker that cannot be heard
