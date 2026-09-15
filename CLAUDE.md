@@ -265,11 +265,25 @@ Known state of play:
   about the lobe's own centre (translate out, scale, translate back) or the
   gradient slides off the shape and the whole thing paints in its own
   transparent edge colour — silently, with no error.
-- **Never drive a material colour above 1.** The grade's S-curve is
-  `mix(c, c*c*(3-2c), .62)`; past ~1.2 the second term goes negative and the
-  pixel renders BLACK. Brightening a textured (white-based) material has to
-  be done with `emissive`, which adds after the map multiply. This bit
-  `wearSnow` twice before it was understood.
+- **The grade's S-curve is a smoothstep, and IT IS ONLY A CURVE ON [0,1].**
+  `mix(c, c*c*(3-2c), .62)` turns over past 1 and then dives: measured, a
+  channel at 1.2 comes out 0.99 (DARKER than one at 1.0), 1.6 comes out
+  0.29, and 1.8 is already −0.52, which clamps to black. Feed it a warm
+  over-bright pixel — rgb 2.2/1.7/1.1, which is what an additive muzzle
+  flash over a lit sky is — and the old grade rendered it **pure blue
+  (0,0,255)**. That is the whole explanation for the rainbow speckle
+  around a muzzle flash: each pixel's own dither put it at a different
+  point on a curve that is not monotonic, so neighbours came out magenta,
+  cyan, lime and black.
+  It is shaped on `min(c,1)` now with the overflow carried through and
+  clamped later, so anything over 1 goes WHITE. **Identical below 1** —
+  verified value by value — so nothing that was in range has changed.
+  Measured in the renderer with the frame driven over the cliff: 383
+  wrong-coloured pixels before, **0** after.
+  The old rule still holds for MATERIALS (brighten a textured, white-based
+  one with `emissive`, which adds after the map multiply — this bit
+  `wearSnow` twice), but an additive EFFECT over a bright sky can always
+  exceed 1 and no longer punishes the frame for it.
 - The hero's death branches on what killed him (`die(kx,kz,force,kind)`,
   kinds `blade`/`bone`/`heavy`/`poison`); `takeHit` carries the kind in.
   Three use the hollows' ragdoll, `heavy` also calls `severLimb` — which
@@ -694,10 +708,20 @@ Known state of play:
      `fpsRespawn()` (called from `respawn()`, also at boot) is a function
      DECLARATION reaching `GUNS` — fine only because the module's line is
      above `player.init()`. Do not move either.
-  2. **The eye is at 1.42 m** (`FPS.eyeY`), where the third-person gaze
-     and the bow's loose already put the head. It was 1.58 and every level
-     shot passed clean over a hollow's skull (its head sphere tops out at
-     ~1.67; its body at ~1.52).
+  2. **The eye is at 1.74 m** (`FPS.eyeY`), INSIDE the pilgrim's own head.
+     Measured, the hero's head box runs 1.56 to 2.08 above the soil and the
+     crown is 2.08 — so the old 1.42 was thirty centimetres below his chin
+     and the view read, correctly, as coming from the belt.
+     It was 1.42 because of a note saying that at 1.58 every level shot
+     passed over a hollow's skull. **That note is stale and the spheres
+     have since changed.** Re-measured on a standing hollow: head
+     1.69..2.53, trunk 0.55..2.09, hips 0.06..1.40 — they OVERLAP, and a
+     level ray connects at every height from 0.2 to 2.1 (body up to 1.7,
+     head above it). There is no gap to fall through, and 1.74 sits just
+     under the head band so a level hip shot still takes the body rather
+     than handing out free headshots. If you move it again, re-measure the
+     spheres first: `BP.gunSpheres(e)` and a level `hitscan` at each
+     height is the whole test.
   3. The viewmodel is a child of `camera`, so `buildViewmodel` does
      `scene.add(camera)` — nothing else in the game ever put it there.
      Its materials are `lam()` (Lambert has no `flatShading` in r128;
@@ -715,6 +739,21 @@ Known state of play:
      and breakables are closest-approach tests, the soil and `camStone`
      are stepped. The muzzle flash is a sprite plus `G.glowFlash` — NEVER
      a light (see LPOOL).
+     **THE FLASH KEEPS `depthTest:false`, AND THE FIX IS ITS SIZE.** Aimed,
+     it read as a lamp burning in the middle of the rifle rather than a
+     flash at the muzzle, and the obvious cure — let the gun occlude it —
+     makes it vanish OUTRIGHT: the handguard sits between the eye and the
+     muzzle and its silhouette is wider than the sprite's whole disc
+     (about 25% of the screen's height against the flash's 20%), so every
+     fragment fails the test. It was tried; the aimed frame had no flash
+     in it at all.
+     What was wrong is that the sprite is sized in WORLD units for the
+     hip. Aimed, two things multiply: the lens narrows, which magnifies it
+     (`camera.fov/VIEW.fov` undoes that, the share the crosshair uses),
+     and the muzzle stops being off to one side and becomes the exact
+     centre of the picture. `lerp(1,.5,ads)` on top of the fov share makes
+     it a point of light at the end of the barrel. **The hip is untouched
+     — do not change the base sizes to fix an aimed complaint.**
   7. The right-thumb gesture is born in mode `cam` when `Input.setFps` is
      on — there is no flick and no tap on that side in first person; the
      dodge is a button, and it writes the same `st.swipe` a flick would.

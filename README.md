@@ -466,7 +466,10 @@ the pause screen) moves the eye into the helm mid-run, without a reload —
 the pilgrim's body is hidden, the whole of the right thumb becomes the
 look, and the buttons come up the way a phone shooter lays them. **The
 weapon** is the loadout's, as it always was — and the loadout now holds
-six guns beside the blades. So a **gun is carried in third person** too,
+six guns beside the blades. **The eye is in the helm**, 1.74m up, inside
+the pilgrim's own head (his head runs 1.56 to 2.08 above the soil): it
+used to sit at 1.42, which is his belt, and the view read exactly like
+that. So a **gun is carried in third person** too,
 over the shoulder at the chest, the eye's mark doing the aiming and the
 tap the firing (a held thumb runs the automatics); and a **greatsword is
 swung from behind the eyes** in first, its arc drawn across the screen by
@@ -579,7 +582,11 @@ climbs on the viewmodel and jumps back, and the *eye* climbs with it, a
 little to one side, so the sight is somewhere else for the next round; a
 share of the climb settles back on its own, the rest you pull down. The
 sway and the bob are held off entirely while the sights are up, which is
-what keeps them true. Aiming narrows the field of view, slows the look
+what keeps them true. The **muzzle flash** is at the muzzle, and aimed it
+is cut down to a point of light at the end of the barrel rather than the
+lamp it used to be: the sprite is sized for the hip, where the muzzle is
+off to one side, and on the sights that same disc lands dead centre of the
+picture with the lens narrowed on top of it. Aiming narrows the field of view, slows the look
 with it, and **caps you to a walk**: you keep the sights while you move,
 and the only way to sprint is to bring them down. (It used to be the
 other way about — a sprint dropped the sights — and since a thumbstick's
