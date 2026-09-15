@@ -530,7 +530,7 @@ the same as three blows). The nearest thing takes the round.
 
 | | calibre | magazine · start | damage (body / head) | rate | the feel |
 |---|---|---|---|---|---|
-| **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down |
+| **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down. The gold is a RANGE and not a colour — cream along the rib and the top edges where a light overhead finds them, a mid body, cuts nearly brown — because a flat yellow is what a toy is made of. Its slide is long and its frame short and stepped down off it, so the outline is an L rather than an equals sign, and the grip is dark, which is what stops the gold halfway down |
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. Its irons are an **HK drum**, and they are **round**: a rear drum with a peep bored through it and a front post standing inside a ring, so what you see aimed is a circle at the far end sitting inside a circle at the near one with the post's tip between them |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Built as a RIFLE rather than a compact: a twenty-seven centimetre quad rail with its rungs running the length of it, a barrel carrying well past that to a gas block and front sight, a flat-topped receiver with one rail unbroken from the stock to the muzzle, and a collapsing stock on a ribbed buffer tube. Its irons are a **ghost ring** — a fat hoop on the back of the rail with the post half a metre in front of it, which is what an aperture is for |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
@@ -742,7 +742,11 @@ round waits on it.
 **The brass comes out.** Every round but the rocket throws its case out
 of the ejection port — the gun's own right and a little up, tumbling,
 under gravity, bouncing once off the soil and lying still — and each one
-rings small and bright as it lands. Fourteen are in the air at a time
+**ticks** as it lands: mostly impact, the case's own small mass under it,
+and a brief ring over the top whose two partials are deliberately not an
+octave apart, so the ear hears metal rather than a note. All of it is gone
+inside seventy milliseconds — held longer and higher, as it was, a case
+landing is a whistle. Fourteen are in the air at a time
 and a case lies where it fell for five seconds. The port is a point on
 each weapon's model, so the brass leaves the rifle at the rifle's port
 whether the eye is in the helm or behind the shoulder. One sound per
@@ -1028,6 +1032,12 @@ them the seed decides:
     wading and starts reading as a cart track. And no mark appears: a boot
     presses in over a third of a second, which is the difference between a
     footfall and a decal being switched on behind you.
+  - **and the steel wears none of it.** Snow settles on the pilgrim, blood
+    darkens him as his life runs down and poison melts him green, and the
+    weapon in his hands takes none of the three. A gun's materials are not
+    its own — the same ones are in his hands, down the sights and in the
+    pause portrait at once — so a rifle that reddened with his wounds
+    reddened everywhere, and stayed that way.
   - **stone takes no print.** The cathedral's flags, its stair and the
     apron around it are cut geometry standing on the soil — nothing
     presses into a flagstone, so no boot dish, no ploughed furrow, no

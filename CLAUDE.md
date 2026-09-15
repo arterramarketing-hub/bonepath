@@ -1039,6 +1039,43 @@ Known state of play:
   `M.pale` bead at its tip — test the sight picture against open SKY as
   well as against the nave, or you will not know whether the post is
   missing or merely unlit.
+- **A WEAPON'S MATERIALS ARE NEVER THE WARDROBE'S TO PAINT.** `dressSnow`
+  lists every mesh on the rig; weapon meshes are marked `wep` and
+  `wearSnow` and `meltHero` skip them outright. They stay IN the list
+  because `dashGhost` walks exactly that array and the thief's fade has to
+  reach the sword — only the COLOUR is out of bounds.
+  The reason is that those materials are not the rig's own: `gunMats()` is
+  a memoised singleton shared by the pilgrim's hands, the first-person
+  viewmodel AND the pause portrait, and a blade's are shared with its own
+  viewmodel clone. Anything written here is written to all of them and it
+  STAYS — `rebuild()` makes a fresh rig and hands it back the same cached
+  materials. Measured: at 15hp the rifle's material went `#060607` to
+  `#3d0706`, in the hands, down the sights and in the portrait at once,
+  and the melt would have left one poison-green for the rest of the run
+  the same way. `sh=0` was supposed to mean this and did not — it only
+  zeroed the SNOW share, while the blood lerp used `1-sh*.45`, which at
+  sh=0 is the full tint.
+- **GOLD IS A SATURATION RAMP, NOT A VALUE RAMP, AND YOU CAN MEASURE IT.**
+  The Desert Eagle read as a yellow plastic toy, and three passes of
+  darkening the palette did almost nothing. Sampling the rendered pixels
+  inside the gun's own box said why: saturation ran **0.72 / 0.75 / 0.57**
+  across shadow, body and highlight — essentially FLAT, which is precisely
+  what plastic does. Metal's highlights blow out toward WHITE while its
+  shadows stay saturated and go redder. The palette is `goldHi` 0xf2e6c2
+  (a cream with a fifth of the saturation left), `gold`, `goldM`, and
+  `goldD` 0x4a3410 (nearly brown). Now: **0.77 / 0.80 / 0.24**, median
+  216 → 146, spread 108 → 176.
+  **If a metal ever looks like plastic, measure the saturation across the
+  value range before you touch the value.** Two traps found doing it:
+  a filter of `g > b*1.25` silently excludes the cream highlights, so the
+  one number you care about never moves; and sampling the whole frame
+  measures the sky, which is pale and warm and swamps everything.
+  Two model lessons came with it: a darker PANEL laid over a flank stands
+  proud of the serrations and buries every one of them — choose the body's
+  value, do not paper over it; and a pistol whose slide and frame are the
+  same length and height is an equals sign, not an L. The frame is 150
+  against the slide's 262 and steps down off it, and the grip is DARK,
+  which is what stops the gold halfway down.
 - **THE BRASS** (`SHELLS`, `shellPool`, `ejectShell`, `updateShells`).
   Fourteen cases in a ring buffer, thrown along the GUN'S OWN right and
   up — which in first person is the camera's and in third the hand's —
@@ -1051,6 +1088,14 @@ Known state of play:
   - `updateShells(dt)` runs in `frame()` under `G.mode==='play'||'dead'`,
     not inside the play branch: brass in the air does not care that you
     have just died.
+  - **IT WAS A SQUEAK, AND THE SHAPE WAS THE FAULT, NOT THE LEVEL.**
+    `shellDrop` was two nearly-pure partials at 3kHz and 5kHz, each held
+    around a tenth of a second — a sine that high, that clean and that
+    long is a whistle at any volume. A case is mostly IMPACT (a broadband
+    tick), its own small mass under it, and a brief ring over the top; the
+    ring's partials are 2.37 apart, deliberately INHARMONIC, or the ear
+    hears a note rather than metal. Nothing in it runs past 70ms. Shorten
+    and lower the partials; never reach for the level.
   - **One sound per case, on its FIRST touch, and throttled** (`_shTink`,
     50ms). It rang on the bounce AND on the lie-down to begin with, which
     at a carbine's rate is twenty-four tinks a second and reads as

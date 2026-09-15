@@ -2423,11 +2423,24 @@ const AudioSys=(()=>{
       clack(t+.36,{peak:.20,body:320,ring:3000,dec:.03,bright:1.1});        // and locked down
       tone(t+.362,{f:2200,f2:1100,type:'triangle',peak:.035,att:.001,dec:.2});},
     /* BRASS ON SOIL. Small, bright and gone — and it must stay under the
-       report that threw it, or a magazine reads as a bag of spoons. */
+       report that threw it, or a magazine reads as a bag of spoons.
+       IT WAS A SQUEAK, and the reason was the shape rather than the level:
+       two nearly-pure partials at three and five kilohertz, each held for
+       around a tenth of a second. A sine that high, that clean and that
+       long is a whistle — it does not matter how quiet you make it.
+       What a case actually is: mostly IMPACT (a broadband tick), the small
+       mass of the case under it, and a brief ring over the top — and the
+       ring must be INHARMONIC (the partials here are 2.37 apart, not an
+       octave) or the ear hears a note instead of metal. Nothing in it runs
+       past seventy milliseconds. If it ever squeaks again, shorten the
+       partials and pull them down; do not reach for the level. */
     shellDrop(v){if(!ac)return;const t=now();v=v==null?1:v;
-      noise(t,{peak:.045*v,att:.0004,dec:.02,f0:7200,f1:3000,type:'bandpass',Q:2.2});
-      tone(t,{f:rr2(2500,3600),f2:1700,type:'triangle',peak:.035*v,att:.001,dec:.09});
-      tone(t+.004,{f:rr2(4600,6200),type:'sine',peak:.018*v,att:.001,dec:.13});},
+      noise(t,{peak:.060*v,att:.0004,dec:.028,f0:5200,f1:1100,type:'bandpass',Q:1.1});   // the tick
+      noise(t,{peak:.025*v,att:.0004,dec:.008,f0:9000,f1:5000,type:'highpass',Q:.7});    // and its edge
+      tone(t,{f:rr2(380,520),f2:220,type:'triangle',peak:.026*v,att:.0006,dec:.045});    // the case's own small mass
+      const f=rr2(1500,2100);
+      tone(t+.001,{f:f,f2:f*.9,type:'triangle',peak:.018*v,att:.001,dec:.055});
+      tone(t+.002,{f:f*2.37,f2:f*2.2,type:'sine',peak:.008*v,att:.001,dec:.032});},
     /* THE HITMARKER, THE WAY A SHOOTER DOES ONE. It has been both wrong
        ways round now: two quiet square blips that the .50's own report
        walked straight over, and then a CLACK loud enough to beat the gun,
@@ -5197,10 +5210,24 @@ function dressSnow(rig){
   rig.root.traverse(o=>{
     if(!o.isMesh||!o.material||!o.material.color||Array.isArray(o.material))return;
     o.getWorldPosition(v);
-    const sh=onWeapon(o)?0:clamp((.88-(v.y-y0))/.5,0,1);
+    const wep=onWeapon(o);
+    const sh=wep?0:clamp((.88-(v.y-y0))/.5,0,1);
     let m=o.material;
     if(sh>0){m=m.clone();psx(m);m.needsUpdate=true;o.material=m;}   // its own steel, and its wobble back
-    list.push({m,sh,mesh:o,base:m.color.clone()});
+    /* THE WEAPON IS LISTED BUT NEVER PAINTED. It has to be in the list or
+       the thief's dash ghost fades a body and leaves a solid sword hanging
+       in it — `dashGhost` walks exactly this array. But its COLOUR is out
+       of bounds to the wardrobe, and the reason is that a weapon's
+       materials are not its own: `gunMats()` is a memoised singleton
+       shared by the pilgrim's hands, the first-person viewmodel and the
+       pause portrait, and a blade's are shared with its own viewmodel
+       clone. Any tint written here is written to all of them and STAYS —
+       `rebuild()` makes a new rig but hands it back the same cached
+       materials. That is how a rifle came to turn red as the pilgrim's
+       health fell, in the hands, down the sights and in the portrait at
+       once; the melt would have left one poison-green for the rest of the
+       run the same way. Marked, and skipped in `wearSnow` and `meltHero`. */
+    list.push({m,sh,wep,mesh:o,base:m.color.clone()});
   });
   rig.snowDress=list;rig.snowAt=-1;rig.snowBootAt=-1;rig.bloodAt=-1;rig.ghostAt=-1;
   /* the thief is made ABLE to fade here and never again — flipping
@@ -5264,6 +5291,7 @@ function wearSnow(rig,body,boot,blood){
      painted on it — kept low enough that nothing is driven past the curve —
      and the tint does the rest, which is all a dark leather needs. */
   for(const e of D){
+    if(e.wep)continue;                                        // steel wears neither (see dressSnow)
     const a=Math.max(body,boot*e.sh);
     e.m.color.copy(e.base).lerp(SNOW_COAT,a*.72);
     if(blood)e.m.color.lerp(BLOOD_COL,blood*(1-e.sh*.45));    // heaviest where a blow lands
@@ -13888,7 +13916,27 @@ function vmLoop(r,tb,seg,m,x,y,z){const me=new THREE.Mesh(GRing(r,tb,seg),m);me.
 function vmBall(r,m,x,y,z){const me=new THREE.Mesh(GSph(r,8,6),m);me.position.set(x,y,z);return me;}
 let _gunMats=null;
 function gunMats(){if(_gunMats)return _gunMats;return _gunMats={
-  gold:vmMat(0xd4ac44),goldM:vmMat(0xb2903a),goldD:vmMat(0x8a6c24),dark:vmMat(0x2a2622),steel:vmMat(0x8a8478),
+  /* GOLD IS A RANGE, NOT A COLOUR. These were 0xd4ac44 / 0xb2903a /
+     0x8a6c24 — three shades of one mid yellow — and under a noon sun with
+     per-vertex Lambert and the grade's S-curve over the top, all three
+     lifted to the same flat banana. The pistol read as plastic. What makes
+     metal read as metal here is VALUE SPREAD painted into the model, since
+     there is no specular to do it: a shadow gold that is nearly brown, a
+     body two steps over it, and a highlight for the edges the light
+     actually catches. Start DARKER than the colour you want — the sun does
+     the lifting.
+     AND THE RAMP IS IN SATURATION, NOT ONLY IN VALUE — this is the half
+     that was missed, and it is measurable. Sampling the rendered pistol,
+     the old palette held saturation at 0.72 / 0.77 / 0.75 across shadow,
+     body and highlight: DEAD FLAT, which is exactly what plastic does and
+     why it read as a toy however dark the shadows got. Metal does the
+     opposite — its highlights blow out toward WHITE while its shadows stay
+     saturated and go redder. So the highlight here is a cream with barely
+     a fifth of the saturation left in it, and the shadow is nearly brown.
+     If gold ever looks like yellow plastic again, measure the saturation
+     across the value range before you touch the value. */
+  goldHi:vmMat(0xf2e6c2),gold:vmMat(0xb5913c),goldM:vmMat(0x8a6a22),goldD:vmMat(0x4a3410),
+  dark:vmMat(0x2a2622),steel:vmMat(0x8a8478),
   gun:vmMat(0x2b2d2f),gunD:vmMat(0x1a1b1d),grey:vmMat(0x4a4c4e),wood:vmMat(0x4a3222),glove:vmMat(0x5b5148),sleeve:vmMat(0x4b4f52),
   olive:vmMat(0x4a5238),tan:vmMat(0x8a7a52),pale:vmMat(0xf4eedc),
   tube:vmMat(0x232529,{side:THREE.DoubleSide}),   // a scope's body: you see its inside wall as well as its outside
@@ -14010,37 +14058,75 @@ function buildGunModel(key,o){o=o||{};
      is made of parts. None of it is decoration — each piece below is
      something a hand uses. */
   if(key==='deagle'){
-    /* THE DESERT EAGLE: a slab of a slide with a vented rib down its top,
-       serrations cut deep into its rear, the gas cylinder slung under the
-       barrel, and the hooked guard. */
-    g.body=vmOct(.048,.050,.250,M.gold,0,.060,-.030);g.add(g.body);              // the slide
-    g.add(vmOct(.034,.011,.250,M.gold,0,.0855,-.030));                           // the vented rib along its top
-    for(let i=0;i<4;i++)g.add(vmBox(.028,.005,.009,M.goldD,0,.0895,-.110+i*.044));// ...and the rib's slots, CUT INTO it: narrower than the rib and a step darker
-    for(let i=0;i<5;i++)g.add(vmBox(.0492,.030,.0035,M.goldD,0,.058,.082-i*.012));// the rear serrations, for the thumb
-    g.add(vmOct(.044,.038,.190,M.goldM,0,.018,-.005));                           // the frame, a step under the slide so the two read as two parts
-    g.add(vmOct(.050,.010,.030,M.goldM,0,.036,.058));                            // the tang, under the web of the hand
-    g.add(vmOct(.022,.020,.105,M.dark,0,.031,-.118));                            // the gas cylinder under the barrel
-    g.add(vmCyl(.0125,.028,10,M.dark,0,.060,-.166));                             // the crown
-    g.add(vmCyl(.0072,.030,8,M.grey,0,.060,-.168));                              // and the bore in it
-    const gr=vmOct(.036,.110,.050,M.dark,0,-.050,.060);gr.rotation.x=.28;g.add(gr);
-    for(let i=0;i<4;i++){const ck=vmBox(.0368,.004,.028,M.gun,0,-.022-i*.024,.053+i*.007);ck.rotation.x=.28;g.add(ck);}  // the panel's chequer
-    const mag=vmOct(.026,.100,.038,M.steel,0,-.062,.062);mag.rotation.x=.28;g.add(mag);
-    g.add(vmLoop(.026,.005,10,M.goldM,0,-.016,.006));                            // the guard, a true loop now
-    g.add(vmBox(.008,.022,.006,M.dark,0,-.014,.004));                            // the trigger in it
-    g.add(vmKnob(.005,.050,8,M.goldD,0,.062,.086,Math.PI/2));                    // the hammer's pin, through the frame — kept LOW, under the notch
-    g.add(vmOct(.012,.020,.015,M.dark,0,.072,.099));                             // and the spur standing off it
-    g.add(vmOct(.010,.014,.030,M.goldD,-.026,.048,.044));                        // the safety, on the slide
-    g.add(vmBall(.006,M.dark,-.026,.006,.030));                                  // the magazine catch
-    g.add(vmBox(.006,.026,.052,M.goldD,.0245,.062,-.040));                       // the ejection port, cut in the right side
+    /* THE DESERT EAGLE. It was two yellow bars of the same height stacked
+       one on the other, and that silhouette is a toy however much
+       furniture is hung on it. A pistol reads as a pistol from three
+       things: the SLIDE is long and the FRAME under it is short and steps
+       down, so the outline is an L and not an equals sign; the barrel's
+       rib and the gas cylinder give it a top line and a bottom line that
+       are not parallel to each other; and the grip is DARK, which stops
+       the gold dead halfway down and is what the real ones do even when
+       they are plated. */
+    // THE SLIDE, and the barrel's vented rib standing along the whole of it
+    /* THE MASS SITS AT THE MIDDLE OF THE RAMP AND THE EDGES CARRY THE TOP
+       OF IT. The slide was `gold` with a darker panel laid over each flank
+       to bring it down, and that was the wrong way round twice over: the
+       panels stood proud of the serrations and buried every one of them,
+       and papering over a surface is not the same as choosing its value.
+       The body IS the mid tone now, and only the rib, the top edge and the
+       beavertail — the three things a light overhead actually finds — are
+       given the cream. */
+    g.body=vmOct(.046,.048,.262,M.goldM,0,.059,-.046);g.add(g.body);           // z .085 .. -.177
+    g.add(vmOct(.030,.012,.272,M.goldHi,0,.088,-.041));                        // the rib
+    g.add(vmBox(.0475,.005,.256,M.gold,0,.0805,-.046));                        // the slide's top edge under it
+    for(let i=0;i<4;i++)g.add(vmBox(.024,.005,.010,M.goldD,0,.0925,-.126+i*.046));  // the rib's slots, CUT: narrower than it and a step down
+    for(let i=0;i<6;i++)g.add(vmBox(.0492,.034,.005,M.goldD,0,.057,.070-i*.013));   // the serrations at the rear, PROUD of the flank
+    for(let i=0;i<3;i++)g.add(vmBox(.0492,.028,.005,M.goldD,0,.057,-.126-i*.013));  // ...and the set at the front
+    // THE BARREL out of it, and the GAS CYLINDER slung under — the bottom line
+    g.add(vmOct(.030,.030,.030,M.gold,0,.058,-.192));                          // the muzzle block, square off the slide's face
+    g.add(vmCyl(.0072,.034,8,M.dark,0,.058,-.196));                            // the bore
+    g.add(vmOct(.020,.020,.110,M.goldD,0,.024,-.120));
+    g.add(vmRing(.0115,.0028,10,M.goldM,0,.024,-.176));                        // its collar
+    /* THE FRAME: a hundred and fifty long against the slide's two-fifty,
+       and stepped DOWN off it. This is the whole of the silhouette fix. */
+    g.add(vmOct(.042,.032,.150,M.goldM,0,.017,.008));                          // z .083 .. -.067
+    g.add(vmBox(.0435,.005,.140,M.gold,0,.032,.008));                          // its top edge, where the slide's shadow ends
+    g.add(vmOct(.044,.012,.052,M.goldHi,0,.037,.070));                         // the beavertail under the web of the hand
+    // THE GUARD, squared and part of the frame — a thin hoop reads as a toy
+    g.add(vmOct(.026,.040,.012,M.goldM,0,-.019,-.014));                        // its front strap
+    g.add(vmOct(.026,.010,.060,M.goldM,0,-.038,.014));                         // and the flat underneath
+    g.add(vmBox(.008,.024,.007,M.dark,0,-.021,.006));                          // the trigger in it
+    /* THE GRIP, DARK, and raked. The gold stops here: a pistol that is one
+       colour from the muzzle to the heel is a water pistol. */
+    const gr=vmOct(.036,.112,.052,M.dark,0,-.052,.062);gr.rotation.x=.30;g.add(gr);
+    for(let i=0;i<5;i++){const ck=vmBox(.0368,.004,.030,M.gun,0,-.018-i*.021,.048+i*.0065);ck.rotation.x=.30;g.add(ck);}
+    const mag=vmOct(.028,.100,.040,M.steel,0,-.058,.070);mag.rotation.x=.30;g.add(mag);
+    const mb=vmOct(.040,.012,.050,M.goldM,0,-.110,.088);mb.rotation.x=.30;g.add(mb);   // the base plate closing the grip
+    // THE CONTROLS, and every one of them a step off the gold it sits on
+    g.add(vmOct(.010,.016,.032,M.goldD,-.025,.052,.046));                      // the safety, on the slide
+    g.add(vmOct(.008,.012,.042,M.dark,-.023,.026,.008));                       // the slide stop
+    g.add(vmBall(.006,M.goldD,-.022,.018,-.040));                              // the takedown pin
+    g.add(vmBall(.0065,M.dark,-.023,-.004,.030));                              // the magazine catch
+    g.add(vmBox(.005,.024,.056,M.dark,.0235,.062,-.030));                      // the ejection port, cut in the right side
+    g.add(vmKnob(.005,.050,8,M.goldD,0,.062,.086,Math.PI/2));                  // the hammer's pin, kept LOW — see below
+    g.add(vmOct(.012,.022,.014,M.dark,0,.072,.099));                           // and the spur standing off it
+    /* THE SIGHTS ARE UNCHANGED AND STAY THAT WAY. `sightZ.iron` is the rear
+       notch's own z, which is what sets where the eye sits at ADS, so
+       moving any of this moves the aimed picture. It was asked for as it
+       stands. The hammer is the one thing near it and it is deliberately
+       under the sight line (.097): at ADS the eye is a hand's width behind
+       the notch, so anything at the tang is the nearest thing in the frame
+       and is magnified accordingly — a spur level with the notch put a
+       dark lozenge through the middle of the picture. */
     const iron=new THREE.Group();
-    iron.add(vmOct(.008,.016,.008,M.dark,0,.093,-.148));                         // the front blade on its base
+    iron.add(vmOct(.008,.016,.008,M.dark,0,.093,-.148));                       // the front blade on its base
     iron.add(vmBox(.004,.004,.002,M.pale,0,.097,-.1445));
     iron.add(vmOct(.010,.014,.010,M.dark,-.009,.091,.092));iron.add(vmOct(.010,.014,.010,M.dark,.009,.091,.092));
     iron.add(vmBox(.003,.003,.002,M.pale,-.009,.0945,.0965));iron.add(vmBox(.003,.003,.002,M.pale,.009,.0945,.0965));
-    g.add(iron);const rd=sightRedDot(.086,.02),ac=sightAcog(.086,.02);g.add(rd);g.add(ac);
-    hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.06,-.2);
-    port.position.set(.028,.068,-.030);
-    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.06,-.2);
+    g.add(iron);const rd=sightRedDot(.094,.02),ac=sightAcog(.094,.02);g.add(rd);g.add(ac);
+    hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.058,-.212);
+    port.position.set(.028,.066,-.030);
+    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.058,-.212);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
     g.hip=[.13,-.20,-.46];g.hipRy=.05;g.hipRz=-.12;
   }else if(key==='ump'){
@@ -15332,6 +15418,7 @@ function meltHero(dt){
   // and it goes the colour of what killed it
   if(r.snowDress){const a=Math.min(.85,k*1.1);
     for(const en of r.snowDress){
+      if(en.wep)continue;                                     // ...nor does it melt with him
       en.m.color.copy(en.base).lerp(MELT_COL,a);
       if(en.m.emissive)en.m.emissive.copy(MELT_COL).multiplyScalar(a*.25);
     }}
@@ -15662,7 +15749,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
