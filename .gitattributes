@@ -1,2 +1,5 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
+
+# Icons are painted by tools/make_icons.py; never diff them as text.
+*.png binary

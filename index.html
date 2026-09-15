@@ -5,7 +5,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#070a09">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Bonepath","short_name":"Bonepath","display":"fullscreen","orientation":"landscape","background_color":"%23070a09","theme_color":"%23070a09"}'>
+<link rel="manifest" href="manifest.webmanifest">
+<!-- The icon is the one thing in here that is not generated at boot, because a
+     home screen reads it before the page ever runs. It is still not an art
+     file: tools/make_icons.py paints it and rewrites icons/ from scratch. -->
+<link rel="icon" type="image/png" sizes="64x64" href="icons/icon-64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Bonepath">
+<meta name="application-name" content="Bonepath">
+<meta name="description" content="A haunted PSX-style souls-like that runs in a phone browser.">
 <style>
   /* BONEPATH — haunted PSX souls-like. Single committed theme: bone ivory on grave fog. */
   :root{

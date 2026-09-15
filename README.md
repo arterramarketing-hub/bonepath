@@ -2069,6 +2069,46 @@ ember in its chest guttering out, then the whole mass pitching forward
 onto its face, and only then to bone. Fell it, claim the altar,
 and the field is yours.
 
+## The icon
+
+Add it to a home screen and what you get is a hollow's skull under the
+cathedral's arch, the ember still burning in its sockets.
+
+It is painted in code like everything else here. `tools/make_icons.py`
+holds no image — it holds a description of one, a 64-cell grid scaled up
+nearest-neighbour exactly the way the game upscales its own 383x216
+buffer, so the icon is pixel art on purpose rather than a shrunken
+render. The palette is the game's own (`:root` in `index.html`) and
+every gradient is ordered-dithered, because a smooth ramp is the one
+thing the console could not do. Run it and it rewrites `icons/` from
+scratch.
+
+The shapes are measured, not drawn. The cranium is a superellipse and
+the mandible another; the temples are bitten in by a circle struck from
+a long way out, because a small circle cuts a *notch* and a notch in a
+silhouette reads as an ear. The face is lit by a distance field — the
+depth of each cell inside the silhouette gives a surface normal, so a
+skull seen head-on still has a near side — and then lit again from
+inside by its own sockets, which is what stops it reading as a pale
+cut-out. A hollow under each cheekbone puts the bones back in the face.
+There is one old crack across the left parietal, because a skull with
+no history is a prop.
+
+**A gap thinner than one cell is not there at all.** The first pass gave
+the teeth their true proportions — a hairline between each — and every
+one of them fell between the grid's sample points: the jaw rendered as a
+blank pale slab and nothing in the source was wrong. One cell is 1.32
+skull units, so the gaps are 1.4 wide on a 4.0 pitch, five teeth to the
+row. If a detail vanishes here, measure it against the cell before you
+touch anything else.
+
+Five files come out: 64 for a browser tab, 180 for iOS, 192 and 512 for
+the manifest, and a maskable 512 whose whole picture is drawn at 78% so
+that a launcher cropping it to a circle takes only the arch's legs.
+`manifest.webmanifest` is a real file rather than the old inline
+`data:` URI, because relative icon paths have nothing to resolve against
+inside a data URI.
+
 ## How it's built
 
 Everything is generated at boot inside the one file:

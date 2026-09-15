@@ -83,6 +83,11 @@ look dated. Preserve it:
 - Everything procedural, generated at boot: textures are 256px canvases,
   audio is synthesized WebAudio, geometry is built in code. **No external
   asset files.** The single-file property is non-negotiable.
+  The one exception is the HOME-SCREEN ICON, and it is not a loophole: a
+  launcher reads that file before the page has ever run, so it cannot be
+  generated at boot. It is still not an art file — `tools/make_icons.py`
+  paints it and rewrites `icons/` from scratch. Nothing the GAME draws may
+  come from disk. See *The icon* below.
 
 When asked to improve graphics, improve *art direction within the
 constraint* — lighting, colour, silhouette, texture design. Do not
@@ -1609,6 +1614,38 @@ Known state of play:
   burns a hole in the middle of the picture otherwise) — cloned because
   the material is SHARED with the rig, and `Material.clone()` drops
   `onBeforeCompile`, so that copy no longer wobbles with `psx()`.
+
+- **THE ICON IS PAINTED BY A SCRIPT, NOT DRAWN** (`tools/make_icons.py`,
+  output in `icons/`, wired up in the `<head>` and in
+  `manifest.webmanifest`). It is the only thing beside `index.html` that
+  the site serves, and it exists because a home screen reads an icon
+  before the page runs — so it cannot be built at boot like everything
+  else. It is still procedural: a 64-cell grid of superellipses, distance
+  fields and ordered dither, scaled up nearest-neighbour the same way the
+  game upscales its 383x216 buffer. Re-run the script rather than editing
+  a PNG; nothing else should ever write into `icons/`.
+  - **A GAP THINNER THAN ONE CELL IS NOT THERE AT ALL.** The teeth were
+    given their true proportions first time — a hairline between each —
+    and at 64 cells every gap fell between the sample points: the jaw
+    rendered as a blank pale slab with nothing wrong in the source. One
+    cell is `1/SKS` = 1.32 skull units, so a gap must be at least that
+    wide. Same trap waits for the bite line and any suture. If a detail
+    is missing, measure it against the cell before anything else.
+  - **A SMALL CIRCLE CUTS A NOTCH, AND A NOTCH READS AS AN EAR.** The
+    temple pinch is struck from (±24, −3) with r 9.2 — a long way out, so
+    the arc is nearly flat where it bites. At (±21.5, −3) r 7.2 it took
+    the same 3-cell bite out of the silhouette but left a visible step,
+    and the skull grew ears.
+  - The face is lit twice: once by a distance field (depth inside the
+    silhouette → surface normal, so a head-on skull still has a near
+    side) and once from inside by its own sockets. Drop the second and it
+    reads as a pale cut-out rather than a lit thing.
+  - `manifest.webmanifest` is a real file now. It was an inline
+    `data:application/manifest+json` URI, and a data URI has no base, so
+    relative icon paths in it resolve against nothing. Do not put it back.
+  - The maskable variant paints the WHOLE picture at 78% (`paint(0.78)`),
+    not just the skull — a launcher may crop to the middle 80%, and what
+    it is allowed to take is the arch's legs.
 
 ## Conventions
 
