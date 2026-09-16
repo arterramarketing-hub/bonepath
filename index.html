@@ -3422,7 +3422,7 @@ const BUILD={offZ:0,tile:-1};   // while a tile is built in the origin's frame: 
    push for the house; between rounds the marrow mends it, or arms you.
    Endless, a boss to close every round, and the run ends where you fall.
    `?mode=defend` loads it; a mode is a page. */
-const DEF={on:false,round:0,phase:'lull',t:0,lullT:0,toSpawn:0,spawnT:0,kills:0,bossE:null,bossKind:'',
+const DEF={on:false,round:0,phase:'lull',t:0,lullT:0,toSpawn:0,spawnT:0,kills:0,bossE:null,bossKind:'',heavy:0,tellT:0,tellSpot:null,tellK:'',
   house:null,houseGone:false,owned:{sword:true},might:1,hearts:0,best:null,shopOpen:false,called:false,extraQ:[]};
 const DEF_FOG=[11,54];                 // the Mire's own haze: closer than any weather's
 // the Mire's bought might, applied where every horror takes the pilgrim's blow — blade, round, shaft, bubble and bolt alike
@@ -3577,7 +3577,7 @@ const keepInside=(p,hw,hl,m)=>{p.x=clamp(p.x,-(hw-m),hw-m);p.z=clamp(p.z,-(hl-m)
    a dry rise that runs south of it into a YARD — the fighting ground —
    and everything comes at it from the south, out of the water, up three
    causeways that fan from the yard to the rim. Nothing comes from behind. */
-const MIRE={hx:0,hz:-27,yardZ:-8,lanes:[Math.PI/2,Math.PI/2-.62,Math.PI/2+.62],pad:.9};
+const MIRE={hx:0,hz:-27,yardZ:-8,lanes:[Math.PI/2,Math.PI/2-.62,Math.PI/2+.62],pad:.9,laneLamps:[]};
 function mireGround(x,z){
   // the rise: an oval under the house and the yard
   const rx=(x-MIRE.hx)/1.0,rz=(z-MIRE.hz-9)/1.55,dr=Math.hypot(rx,rz),kq=clamp((dr-15)/13,0,1),kr=1-kq*kq*(3-2*kq);
@@ -3895,8 +3895,8 @@ function buildMire(M,H){
   const lantern=(px,pz)=>{const gy=heightAt(px,pz);
     world.add(cyl(.05,.07,2.0,5,M.iron,px,gy+1.0,pz));world.add(box(.32,.3,.32,M.iron,px,gy+1.85,pz));
     addWisp(px,gy+1.85,pz,0xf0a648,.4);const l=new THREE.PointLight(0xe8a050,1.2*RUN.lamp,11,2);l.position.set(px,gy+1.9,pz);addLight(l);
-    lanternLights.push({l,ph:Math.random()*TAU,hz:addHaze(px,gy+1.85,pz,0xffd9a0,4,.2),base:1.2*RUN.lamp,lamp0:1.2});addObstacle(px,pz,.24,false,gy+1.85);};
-  for(const a of MIRE.lanes)lantern(hx+Math.cos(a)*11-Math.sin(a)*2.2,yardZ+Math.sin(a)*11+Math.cos(a)*2.2);
+    const L={l,ph:Math.random()*TAU,hz:addHaze(px,gy+1.85,pz,0xffd9a0,4,.2),base:1.2*RUN.lamp,lamp0:1.2};lanternLights.push(L);addObstacle(px,pz,.24,false,gy+1.85);return L;};
+  MIRE.laneLamps=MIRE.lanes.map(a=>lantern(hx+Math.cos(a)*11-Math.sin(a)*2.2,yardZ+Math.sin(a)*11+Math.cos(a)*2.2));
   lantern(hx+3.4,hz+HOUSE.HZ+1.6);lantern(hx-3.4,hz+HOUSE.HZ+1.6);
   buildHouse(M);
 }
@@ -3916,7 +3916,9 @@ function defBest(save){
    it stands and stops rounds at its own crown; the player's own blade
    and rounds never touch it (`noPlayer`). Marrow mends a segment back to
    whole between rounds (`mendSeg`). */
-const HOUSE={HX:6.6,HZ:11,WH:3.0,RIDGE:2.4,segs:[],roof:[],group:null,ox:0,oz:0,oy:0};
+const HOUSE={HX:6.6,HZ:11,WH:3.0,RIDGE:2.4,segs:[],roof:[],group:null,ox:0,oz:0,oy:0,stakes:[null,null,null],hearth:null};
+const LANE_NAMES=['middle','east','west'];
+function siegeTargets(){const t=houseStanding();for(const q of HOUSE.stakes)if(q&&q.state<2)t.push(q);return t;}
 function buildHouse(M){
   const ox=MIRE.hx,oz=MIRE.hz,oy=MIRE.pad;HOUSE.ox=ox;HOUSE.oz=oz;HOUSE.oy=oy;
   const g=new THREE.Group();g.position.set(ox,oy,oz);world.add(g);HOUSE.group=g;
@@ -3958,13 +3960,24 @@ function buildHouse(M){
     for(let k=0;k<4;k++){const z0=-HZ-.4+k*(HZ*2+.8)/4,z1=z0+(HZ*2+.8)/4,zc=(z0+z1)/2,L=z1-z0+.02,sec={k,z0,z1,meshes:[],alive:true};
       for(const sx of[1,-1]){const m=box(slope,.14,L,shingle,sx*run/2,WH+RIDGE/2+.08,zc);m.rotation.z=-sx*ang;g.add(m);sec.meshes.push(m);}
       const r=box(.3,.22,L,woodD,0,WH+RIDGE+.1,zc);g.add(r);sec.meshes.push(r);   // the ridge beam
-      HOUSE.roof.push(sec);}
+      sec.hp=7;HOUSE.roof.push(sec);}
     for(const sz of[1,-1]){   // the gables: a triangle of planks, DoubleSide
       const geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.Float32BufferAttribute([-HX,WH,0, HX,WH,0, 0,WH+RIDGE,0],3));
       geo.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,.5,1],2));geo.computeVertexNormals();
       const gm=mat('bark',{side:THREE.DoubleSide});const tri=new THREE.Mesh(geo,gm);tri.position.z=sz*(HZ-.02);g.add(tri);}
     const ch=box(1.0,2.4,1.0,mat('cathedral'),-3.2,WH+RIDGE*.5+.9,-3.0);g.add(ch);
+  }
+  // ---- the hearth: a fire under the chimney, and the one place in the Mire that gives anything back
+  {
+    const hx=-3.2,hz=-2.1;
+    g.add(box(1.1,.5,.7,mat('cathedral'),hx,.25,hz));g.add(box(1.3,.12,.9,mat('cathedral'),hx,.56,hz));
+    const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.flame,color:0xffa040,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
+    fl.scale.set(.9,1.1,1);fl.position.set(hx,1.05,hz);g.add(fl);fl.userData.lodKeep=true;
+    const wx=ox+hx,wz=oz+hz;
+    addHaze(wx,oy+1.1,wz,0xff9a40,4.2,.22);
+    const l=new THREE.PointLight(0xff9a3c,1.25,10,2);l.position.set(wx,oy+1.2,wz);addLight(l);
+    HOUSE.hearth={x:wx,z:wz,fl,l,on:true};
   }
   // fold the permanent timber: the walls are registered and stay their own
   {const roofSet=new Set();for(const sec of HOUSE.roof)for(const m of sec.meshes)roofSet.add(m);
@@ -3979,6 +3992,11 @@ function segNear(s,x,z){const cx=clamp(x,s.x-s.hw,s.x+s.hw),cz=clamp(z,s.z-s.hd,
 function segSplinter(s,px,pz,n){boneBurst(px,HOUSE.oy+1.1+Math.random()*1.2,pz,0x5a4326,n,2.2);}
 /* one blow on a wall: knock, splinters, and the stage it is in */
 function bashSeg(s,power,px,pz){
+  if(s&&s.roof){   // the beams over a bay, from inside
+    const sec=s.roof;if(!sec.alive)return;sec.hp-=power||1;
+    boneBurst(px!==undefined?px:s.x,HOUSE.oy+HOUSE.WH+.6,pz!==undefined?pz:s.z,0x5a4326,6,2.4);AudioSys.woodKnock();G.camShake=Math.max(G.camShake,.08);
+    if(sec.hp<=0){roofFall(sec);toast('a bay of the roof is down');}
+    return;}
   if(!s||s.state>=2)return;
   s.hp-=power||1;
   const p=px!==undefined?{x:px,z:pz}:{x:s.x,z:s.z};
@@ -4001,6 +4019,8 @@ function segFall(s){
   const oi=obstacles.indexOf(s.obs);if(oi>=0)obstacles.splice(oi,1);
   segSplinter(s,s.x,s.z,14);AudioSys.woodFall();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.32);G.vibr(30);
   for(const e of enemies)if(e.zombie&&e.segT===s)e.segT=null;   // whoever was at it looks for the next
+  if(s.kind==='stake'){   // the stakes are not mended: they are gone, and bought again
+    HOUSE.stakes[s.lane]=null;setTimeout(()=>{if(s.g.parent)s.g.parent.remove(s.g);},50);toast('the '+LANE_NAMES[s.lane]+' stakes are down');return;}
   // the roof over a bay comes down once both walls under it are gone
   for(const sec of HOUSE.roof){if(!sec.alive)continue;
     const under=HOUSE.segs.filter(q=>q.ry!==0&&q.z-HOUSE.oz>sec.z0-.1&&q.z-HOUSE.oz<sec.z1+.1);
@@ -4010,10 +4030,32 @@ function segFall(s){
 }
 function roofFall(sec){
   sec.alive=false;
+  if(HOUSE.hearth&&HOUSE.hearth.on&&HOUSE.hearth.z-HOUSE.oz>sec.z0&&HOUSE.hearth.z-HOUSE.oz<sec.z1)hearthOut();   // the rain gets in and the fire goes out
   for(const m of sec.meshes){const wp=new THREE.Vector3();m.getWorldPosition(wp);m.visible=false;
     for(let i=0;i<3;i++)planetPiece(new THREE.BoxGeometry(rr3(1.2,2.6),.14,rr3(1,2.2)),m.material,wp.x+rr3(-2,2),wp.y+rr3(-.3,.3),wp.z+rr3(-2,2),.08,2.8,'wood');}
   boneBurst(HOUSE.ox,HOUSE.oy+HOUSE.WH+1,HOUSE.oz+(sec.z0+sec.z1)/2,0x3a3430,26,3.4);smokePuff(HOUSE.ox,HOUSE.oy+HOUSE.WH,HOUSE.oz+(sec.z0+sec.z1)/2,6);
   AudioSys.woodFall();AudioSys.quake();G.camShake=Math.max(G.camShake,.7);G.vibr([40,30,80]);
+}
+function hearthOut(){const h=HOUSE.hearth;if(!h||!h.on)return;h.on=false;h.fl.visible=false;h.l.intensity=0;smokePuff(h.x,HOUSE.oy+1,h.z,5);toast('the hearth is out');}
+/* STAKES across a lane: a row of sharpened timber leaning at the swamp,
+   bought in the lull, bashed down like a wall, gone when it falls. The
+   Drowned coming up that lane meet it first. */
+function buildStakes(i){
+  if(HOUSE.stakes[i])return false;
+  const a=MIRE.lanes[i],sx=MIRE.hx+Math.cos(a)*8.6,sz=MIRE.yardZ+Math.sin(a)*8.6,ry=-(a+Math.PI/2),len=5.2,gy=heightAt(sx,sz);
+  const wood=mat('bark'),woodD=mat('bark',{color:new THREE.Color(0x8a8a8a).convertSRGBToLinear()});
+  const g=new THREE.Group();g.position.set(sx,gy,sz);g.rotation.y=ry;world.add(g);
+  const planks=[];
+  for(let k=0;k<7;k++){const st=cyl(.05,.1,1.9,5,woodD,(k-3)*.78+rr3(-.08,.08),.8,0);st.rotation.x=-.55+rr3(-.08,.08);st.rotation.z=rr3(-.06,.06);g.add(st);planks.push(st);}
+  const beam=box(len,.16,.16,wood,0,.95,.28);g.add(beam);planks.push(beam);
+  const lx=Math.cos(ry),lz=-Math.sin(ry),nx=Math.cos(a),nz=Math.sin(a);
+  addWall(sx-lx*len/2,sz-lz*len/2,sx+lx*len/2,sz+lz*len/2,.34,false,gy+1.7);
+  const obs=obstacles[obstacles.length-1];
+  const b=addBreakable({g,x:sx,z:sz,hw:Math.abs(lx)>.5?len/2:.3,hd:Math.abs(lx)>.5?.3:len/2,hp:6,maxHp:6,obs,parent:world,kind:'stake',noPlayer:true,tough:true,
+    planks,state:0,nx,nz,len,ry,win:false,lane:i});
+  HOUSE.stakes[i]=b;
+  boneBurst(sx,gy+1,sz,0xa08a5a,10,1.6);AudioSys.woodKnock();setTimeout(()=>AudioSys.woodKnock(),160);
+  return true;
 }
 function mendSeg(s){
   if(!s||s.hp>=s.maxHp)return false;
@@ -4026,6 +4068,7 @@ function mendSeg(s){
 function houseFallen(){
   DEF.houseGone=true;
   for(const sec of HOUSE.roof)if(sec.alive)roofFall(sec);
+  hearthOut();
   bannerShow('THE HOUSE IS DOWN','nothing left to mend — hold out');
   AudioSys.deathGong();
 }
@@ -4046,12 +4089,13 @@ function shopBtnSync(){$('shopBtn').classList.toggle('on',DEF.on&&DEF.phase==='l
 /* one of the Drowned, up out of the water at the rim of the world along
    one of the four causeways' quarters — or one of the field's host, which
    hunts the pilgrim wherever he is */
-function spawnDrowned(n,kind){
+function spawnDrowned(n,kind,variant){
   // out of the south: on one of the three lanes six times in ten (they arrive as a column), else in the water between
-  const lane=Math.random()<.6,a=lane?MIRE.lanes[(Math.random()*3)|0]+rr3(-.06,.06):Math.PI/2+rr3(-.8,.8),d=rr3(30,38);
+  // ...and six in ten of the lane-walkers take the round's HEAVY lane (see defNextRound)
+  const lane=Math.random()<.6,li=Math.random()<.6?DEF.heavy:(Math.random()*3)|0,a=lane?MIRE.lanes[li]+rr3(-.06,.06):Math.PI/2+rr3(-.8,.8),d=rr3(30,38);
   const p={x:MIRE.hx+Math.cos(a)*d+(lane?0:rr3(-2,2)),z:MIRE.yardZ+Math.sin(a)*d};constrain(p,false);
   kind=kind||'zombie';
-  const e=new Enemy(kind,p.x,p.z,{spawned:true,round:n,red:kind==='zombie'?Math.random()<Math.min(.5,.05*(n-1)):Math.random()<.15+.03*n});
+  const e=new Enemy(kind,p.x,p.z,{spawned:true,round:n,variant:kind==='zombie'?variant:'',red:kind==='zombie'?Math.random()<Math.min(.5,.05*(n-1)):Math.random()<.15+.03*n});
   if(kind!=='zombie'){e.aggroR=48;e.homeX=MIRE.hx+rr3(-3,3);e.homeZ=MIRE.yardZ+2;}
   enemies.push(e);return e;
 }
@@ -4059,18 +4103,30 @@ function defNextRound(){
   DEF.round++;const n=DEF.round;
   DEF.phase='wave';DEF.called=false;DEF.t=0;
   DEF.toSpawn=Math.min(42,6+3*n);DEF.batch=Math.min(4,1+Math.floor(n/3));DEF.gap=Math.max(2.2,6.5-.35*n);DEF.cap=Math.min(22,11+n);DEF.spawnT=2.0;
-  const lines=['they come up out of the bog','more of them this time','the water is moving','hold the doors','they know the way now','the bog is emptying itself','no end to them'];
-  bannerShow('ROUND '+n,lines[Math.min(lines.length-1,n-1)]);
+  /* ONE LANE IS HEAVY. Each round most of the column comes up one of the
+     three causeways, and the lantern at its head burns RED for the round
+     — so the same yard is a different fight every time, and you know
+     where to stand before the first of them is out of the water. */
+  DEF.heavy=(Math.random()*3)|0;laneLamps(DEF.heavy);
+  bannerShow('ROUND '+n,'the '+LANE_NAMES[DEF.heavy]+' lane is thick with them');
   AudioSys.bellToll();G.camShake=Math.max(G.camShake,.2);
   shopBtnSync();
 }
 function defSpawnBatch(){
   const n=DEF.round;
   for(let i=0;i<DEF.batch&&DEF.toSpawn>0;i++){
-    let kind='zombie';const r=Math.random();
+    let kind='zombie',variant='';const r=Math.random(),v=Math.random();
     if(n>=3&&r<.16)kind='hollow';else if(n>=4&&r<.22)kind='caster';else if(n>=5&&r<.29)kind='big';
-    spawnDrowned(n,kind);DEF.toSpawn--;
+    else if(n>=2&&v<Math.min(.26,.08+.03*(n-2)))variant='runner';
+    else if(n>=4&&v<Math.min(.42,.08+.03*(n-2)+.06+.025*(n-4)))variant='hulk';
+    spawnDrowned(n,kind,variant);DEF.toSpawn--;
   }
+}
+// the lane-head lanterns: the heavy lane's burns red for the round
+function laneLamps(heavy){
+  MIRE.laneLamps.forEach((L,i)=>{const red=i===heavy;
+    L.l.color.setHex(red?0xff3a14:0xe8a050);if(L.hz&&L.hz.material)L.hz.material.color.setHex(red?0xff5a2a:0xffd9a0);
+    L.base=(red?1.6:1.2)*RUN.lamp;L.lamp0=red?1.6:1.2;});
 }
 /* where a boss is put: `d` metres from the pilgrim, off the footing */
 function defBossSpot(d,away){
@@ -4082,16 +4138,27 @@ function defBossSpot(d,away){
     a+=.9;}
   const p={x:player.x,z:player.z+d};constrain(p,false);return p;
 }
+/* THE TELL. A boss is announced, not summoned: three and a half seconds
+   before it comes the water stirs where it will rise — rings on the
+   surface, a low roll under the field, THE WATER STIRS across the screen
+   — and then the thing itself. */
 function defBoss(){
-  DEF.phase='boss';const n=DEF.round,k=DEF_BOSSES[(n-1)%DEF_BOSSES.length],cycle=Math.floor((n-1)/DEF_BOSSES.length);DEF.bossKind=k;
+  const n=DEF.round,k=DEF_BOSSES[(n-1)%DEF_BOSSES.length];DEF.bossKind=k;
+  DEF.phase='tell';DEF.tellT=3.6;DEF.tellK=k;
+  DEF.tellSpot=k==='ghoul'?defBossSpot(7):k==='angel'?defBossSpot(8,true):defBossSpot(k==='bell'?14:k==='warden'?13:16,true);
+  bannerShow('THE WATER STIRS','something is coming up');AudioSys.rumble();G.camShake=Math.max(G.camShake,.25);
+  shopBtnSync();
+}
+function defSummon(){
+  DEF.phase='boss';const n=DEF.round,k=DEF.tellK,cycle=Math.floor((n-1)/DEF_BOSSES.length),p=DEF.tellSpot;
   let e=null;
-  if(k==='ghoul'){const p=defBossSpot(7);e=new GraveGhoul(p.x,p.z);enemies.push(e);}
+  if(k==='ghoul'){e=new GraveGhoul(p.x,p.z);enemies.push(e);}
   else if(k==='angel'){e=summonAngel();}
-  else if(k==='bell'){const p=defBossSpot(14,true);e=summonBellHorror(p.x,p.z);}
-  else if(k==='warden'){const p=defBossSpot(13,true);e=new Enemy('boss',p.x,p.z,{});
+  else if(k==='bell'){e=summonBellHorror(p.x,p.z);}
+  else if(k==='warden'){e=new Enemy('boss',p.x,p.z,{});
     e.mini=true;e.name='THE GRAVEWARDEN';e.engaged=true;e.state='rise';e.t=0;e.rig.root.position.y=heightAt(p.x,p.z);
     e.facing=Math.atan2(player.x-p.x,player.z-p.z);enemies.push(e);cutWardenAt(e);}
-  else{const p=defBossSpot(16,true);e=new Enemy('zombie',p.x,p.z,{mother:true,round:n,spawned:true});enemies.push(e);cutMother(e);}
+  else{e=new Enemy('zombie',p.x,p.z,{mother:true,round:n,spawned:true});enemies.push(e);cutMother(e);}
   if(e&&e.maxHp&&cycle>0){e.maxHp=Math.round(e.maxHp*(1+.3*cycle));e.hp=e.maxHp;}
   DEF.bossE=e;
   AudioSys.bossMusic(1);
@@ -4100,7 +4167,7 @@ function defBoss(){
 function defRoundHeld(){
   DEF.phase='lull';DEF.lullT=DEF_LULL;DEF.called=false;DEF.bossE=null;DEF.t=0;
   const bonus=60+30*DEF.round;player.marrow+=bonus;
-  AudioSys.bossMusic(0);AudioSys.victory();
+  AudioSys.bossMusic(0);AudioSys.victory();laneLamps(-1);
   toast('+'+bonus+' marrow for the round');
   bannerShow('ROUND '+DEF.round+' HELD',DEF.houseGone?'nothing left to mend — breathe while you can':'spend the marrow: mend the house, or arm yourself');
   defBest(true);shopBtnSync();
@@ -4127,6 +4194,7 @@ function shopItems(){
       act(){mendSeg(worstSeg());}});
     it.push({col:'house',k:'mendAll',label:'mend the whole house',note:'every wall back to whole',price:dmgd.length*(55+8*n),can:dmgd.length>0,
       act(){for(const q of HOUSE.segs)mendSeg(q);}});
+    for(let i=0;i<3;i++)if(!HOUSE.stakes[i])it.push({col:'house',k:'stake'+i,label:'stakes across the '+LANE_NAMES[i]+' lane',note:'a row of sharpened timber; they meet it first',price:140+10*n,can:true,act(){buildStakes(i);}});
   }else it.push({col:'house',k:'none',label:'the house is down',note:'nothing left to mend',price:0,can:false,act(){}});
   it.push({col:'body',k:'eat',label:'eat',note:'the hearts back to full',price:50,can:player.hp<player.maxHp,act(){player.hp=player.maxHp;AudioSys.flask();}});
   it.push({col:'body',k:'heart',label:'a heart container',note:'one more heart, and all of them full',price:Math.round(200*Math.pow(1.35,DEF.hearts)),can:true,
@@ -4178,11 +4246,23 @@ function updateDefend(dt){
     if(DEF.toSpawn>0&&DEF.spawnT<=0&&alive<DEF.cap){defSpawnBatch();DEF.spawnT=DEF.gap;}
     if(DEF.toSpawn<=0&&alive===0&&DEF.t>4)defBoss();
     H.innerHTML='round <b>'+DEF.round+'</b> &middot; <b>'+(alive+DEF.toSpawn)+'</b> to come &middot; <span class="h">house <b>'+Math.round(houseFrac()*100)+'%</b></span>';
+  }else if(DEF.phase==='tell'){
+    DEF.tellT-=dt;const p=DEF.tellSpot;
+    if(p&&Math.random()<dt*7)boneBurst(p.x+rr3(-1.2,1.2),heightAt(p.x,p.z)+.15,p.z+rr3(-1.2,1.2),0x93aa9c,3,1.6);
+    if(p&&(DEF.tellT%.55)<dt)shockRing(p.x,p.z,0x8fa89a,2.6,.9);
+    if(DEF.tellT<=0)defSummon();
+    H.innerHTML='round <b>'+DEF.round+'</b> &middot; <b>the water stirs</b> &middot; <span class="h">house <b>'+Math.round(houseFrac()*100)+'%</b></span>';
   }else if(DEF.phase==='boss'){
     const e=DEF.bossE;
     if(!e||e.hp<=0)defRoundHeld();
     H.innerHTML='round <b>'+DEF.round+'</b> &middot; <b>'+(e&&e.name?e.name.toLowerCase():'the boss')+'</b> &middot; <span class="h">house <b>'+Math.round(houseFrac()*100)+'%</b></span>';
   }
+  // the hearth: stand by the fire and the hearts come back, slowly — while it burns
+  {const h=HOUSE.hearth;
+    if(h&&h.on&&player.hp>0&&player.hp<player.maxHp&&Math.hypot(player.x-h.x,player.z-h.z)<3.2){
+      player.hp=Math.min(player.maxHp,player.hp+dt*2.2);
+      if(Math.random()<dt*5)elemFleck('fire',player.x+rr3(-.4,.4),heightAt(player.x,player.z)+rr3(.3,1.4),player.z+rr3(-.4,.4));}
+    if(h&&h.on)h.fl.scale.set(.85+Math.sin(G.time*13)*.08,1.05+Math.sin(G.time*9.3)*.12,1);}
   // the water: anything standing in it is slowed, and it shows
   if(waterMesh){waterMesh.material.map.offset.x+=dt*.004;waterMesh.material.map.offset.y+=dt*.0025;}
   if(wading(player.x,player.z)&&player.moveAmt>.2&&Math.random()<dt*6)boneBurst(player.x+rr3(-.3,.3),WATER_Y+.05,player.z+rr3(-.3,.3),0x93aa9c,2,1.2);
@@ -11314,7 +11394,7 @@ class Enemy{
     opts=opts||{};
     this.kind=kind;
     this.big=kind==='big';this.boss=kind==='boss';this.caster=kind==='caster';
-    this.zombie=kind==='zombie';this.crawler=!!opts.crawler;this.mother=!!opts.mother;
+    this.zombie=kind==='zombie';this.crawler=!!opts.crawler;this.mother=!!opts.mother;this.variant=opts.variant||'';
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=opts.facing||Math.PI;
     this.radius=this.boss?.8:this.big?.55:.4;
     this.startleT=0;this.startleCd=0;this.lookX=x;this.lookZ=z;
@@ -11337,28 +11417,36 @@ class Enemy{
        The round scales the life and, slowly, the pace. A crawler is the
        Mother's get, a third of a body on two arms; the Mother herself is
        a round's boss. */
-    if(this.zombie){const n=opts.round||1;
-      this.maxHp=Math.round((this.crawler?40:this.mother?520:100)*(1+.11*(n-1)));
-      this.speed=this.crawler?2.3:this.mother?1.35:Math.min(2.4,1.9+.045*(n-1));}
+    if(this.zombie){const n=opts.round||1,V=this.variant;
+      /* two more of them: the RUNNER, thin and quick, that never looks at
+         the house and only ever comes for you; and the HULK, half again
+         the size, slow, unshakeable, three blows to a wall where a
+         Drowned lands one. */
+      this.maxHp=Math.round((this.crawler?40:this.mother?520:V==='runner'?55:V==='hulk'?260:100)*(1+.11*(n-1)));
+      this.speed=this.crawler?2.3:this.mother?1.35:V==='runner'?3.3:V==='hulk'?1.45:Math.min(2.4,1.9+.045*(n-1));}
     this.hp=this.maxHp;
     // in halves of a heart: a hollow one, a brute two, a caster a half,
     // the boss two and a half
     this.dmg=this.boss?25:this.big?20:this.caster?5:10;
     this.aggroR=opts.ambush?4.2:this.caster?11:10;
-    if(this.zombie){this.dmg=this.mother?15:this.crawler?5:10+5*Math.floor(((opts.round||1)-1)/4);this.aggroR=this.mother?40:7.5;
-      this.radius=this.mother?.7:this.crawler?.3:.42;this.crawl=this.crawler;this.huntT=0;this.segT=null;this.segRe=0;}
+    if(this.zombie){const V=this.variant;this.dmg=this.mother?15:this.crawler?5:V==='runner'?5:V==='hulk'?15:10+5*Math.floor(((opts.round||1)-1)/4);this.aggroR=this.mother||V==='runner'?60:7.5;
+      this.radius=this.mother?.7:this.crawler?.3:V==='hulk'?.55:V==='runner'?.36:.42;this.crawl=this.crawler;this.huntT=0;this.segT=null;this.segRe=0;
+      this.bashPower=this.mother||V==='hulk'?3:1;if(V==='hulk')this.heavyHitter=true;}
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
     this.marrow=this.boss?800:this.big?120:this.caster?45:35;
-    if(this.zombie){this.poiseMax=this.mother?40:this.crawler?2:7;this.marrow=this.mother?400:this.crawler?8:40;
+    if(this.zombie){const V=this.variant;this.poiseMax=this.mother?40:this.crawler?2:V==='hulk'?22:V==='runner'?2:7;this.marrow=this.mother?400:this.crawler?8:V==='hulk'?90:V==='runner'?25:40;
       if(this.mother){this.mini=true;this.name='THE CARRION MOTHER';this.engaged=true;this.spawnT=4;this.brood=[];}}
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
     this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;this.chillT=0;
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
-    this.rig=this.boss?makeWardenRig():this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:undefined}):makeHollowRig(this.big,this.caster);
+    this.rig=this.boss?makeWardenRig():this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
     this.reach=this.boss?3.4:this.big?2.4:2.15;
-    if(this.zombie)this.reach=this.mother?2.7:this.crawler?1.5:1.95;
+    if(this.zombie){this.reach=this.mother?2.7:this.crawler?1.5:this.variant==='hulk'?2.3:1.95;
+      // the variants wear it: the runner paler, the hulk dark and waterlogged
+      const tint=this.variant==='runner'?0xb9c9b0:this.variant==='hulk'?0x5e6a5a:0;
+      if(tint)this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&o.material.map){o.material=psx(o.material.clone());o.material.color.setHex(tint);}});}
     // some of the host burns hotter: red-boned, worth double the marrow —
     // and twice the life, not three times: a red hollow at the old
     // multiplier would now be 285, which is not a harder fight, it is the
@@ -11478,9 +11566,7 @@ class Enemy{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;
-    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;
-    AudioSys.marrow();
-    toast('+'+this.marrow+' marrow');
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
     // sometimes the power that moved them stays behind — or a little
     // of the life it stole
     if(!this.boss){
@@ -11692,8 +11778,8 @@ class Enemy{
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             const arc=this.attack==='sweep'?1.9:1.05;
             if(dist<this.reach&&ang<arc)P.takeHit(this.dmg,this.x,this.z,this.heavyHitter,this.big||this.boss?'heavy':'blade');
-            if(this.attack==='bash'&&this.segT&&this.segT.state<2){   // and the wall, if it is the wall it was at
-              const n=segNear(this.segT,this.x,this.z);if(n.d<this.reach+.4)bashSeg(this.segT,this.mother?3:1,n.x,n.z);}
+            if(this.attack==='bash'&&this.segT&&(this.segT.roof?this.segT.roof.alive:this.segT.state<2)){   // and the wall, if it is the wall it was at
+              const n=segNear(this.segT,this.x,this.z);if(n.d<this.reach+.4)bashSeg(this.segT,this.bashPower||1,n.x,n.z);}
           }
         }
         if(this.t>=sd){
@@ -11897,7 +11983,16 @@ class Enemy{
      bashes. A crawler is faster and lower; everything in the water is
      slowed. The Mother never sieges: she is a fight, and she breeds. */
   pickSeg(){
-    const st=houseStanding();if(!st.length)return null;
+    /* FROM THE SIXTH ROUND THE ROOF COMES DOWN FROM INSIDE. A Drowned
+       that has got in through a door — or a hole — stands under a bay and
+       bashes the beams instead of the wall it has already passed; seven
+       blows and the bay drops. */
+    const inside=Math.abs(this.x-HOUSE.ox)<HOUSE.HX-.3&&Math.abs(this.z-HOUSE.oz)<HOUSE.HZ-.3;
+    if(inside&&DEF.round>=6&&Math.random()<.6){
+      const bays=HOUSE.roof.filter(r=>r.alive);
+      if(bays.length){const sec=bays[(Math.random()*bays.length)|0];
+        return {roof:sec,x:HOUSE.ox,z:HOUSE.oz+(sec.z0+sec.z1)/2,hw:HOUSE.HX-.6,hd:(sec.z1-sec.z0)/2-.3,state:0,nx:0,nz:0};}}
+    const st=siegeTargets();if(!st.length)return null;
     let best=null,bd=1e9;
     for(const q of st){const n=segNear(q,this.x,this.z),d=n.d+(q.state===1?-2:0)+Math.random()*2;if(d<bd){bd=d;best=q;}}
     return best;
@@ -11906,17 +12001,19 @@ class Enemy{
     const P=player;
     this.huntT=Math.max(0,(this.huntT||0)-dt);
     const sp=this.speed*(wading(this.x,this.z)?.82:1)*(this.crawl&&!this.crawler?.55:1)*(this.startleT>0?.45:1);
-    const hunting=this.mother||DEF.houseGone||dist<this.aggroR||this.huntT>0;
+    const hunting=this.mother||this.variant==='runner'||DEF.houseGone||dist<this.aggroR||this.huntT>0;
     if(hunting){
       if(dist>this.reach*.72){const v=packSteer(this,dx,dz,dist);this.x+=v.x*sp*dt;this.z+=v.z*sp*dt;}
       if(dist<this.reach*.85&&this.t>.25)this.begin(this.mother?(Math.random()<.5?'sweep':'chop'):'chop');
       return;
     }
     this.segRe-=dt;
-    if(!this.segT||this.segT.state>=2||this.segRe<=0){this.segRe=2;this.segT=this.pickSeg();}
+    const gone=(q)=>q.roof?!q.roof.alive:q.state>=2;
+    if(!this.segT||gone(this.segT)||(this.segRe<=0&&!this.segT.roof)){this.segRe=2;this.segT=this.pickSeg();}   // (a bay once chosen is seen through)
     const s=this.segT;if(!s)return;
     const n=segNear(s,this.x,this.z);
-    const inside=Math.abs(this.x-HOUSE.ox)<HOUSE.HX-.2&&Math.abs(this.z-HOUSE.oz)<HOUSE.HZ-.2,side=inside?-1:1;
+    // which side of the wall it is on decides which side it stands to bash from — the wall's own outward normal says
+    const side=((this.x-s.x)*s.nx+(this.z-s.z)*s.nz)>=0?1:-1;
     const tx=n.x+s.nx*side*.95,tz=n.z+s.nz*side*.95;let ex=tx-this.x,ez=tz-this.z;const el=Math.hypot(ex,ez);
     /* STUCK ON A TREE. A body walked straight at a wall through a wood is
        pushed out of every trunk it meets and steps straight back into it,
@@ -11980,7 +12077,7 @@ class Crow{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.crumbled=false;
-    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
     toast('+'+this.marrow+' marrow');
     boneBurst(this.x,this.y,this.z,0x23232c,12,2.6);
     if(Math.random()<.4)
@@ -12184,7 +12281,7 @@ class FallenAngel{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
-    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
     AudioSys.sob(true);G.hitstop=.3;G.camShake=.4;
     setTimeout(()=>bannerShow('THE FALLEN ONE IS STILL','its halo lies in the dirt'),600);
     spawnElemDrop(this.x,this.z,'health');
@@ -12373,7 +12470,7 @@ class GraveGhoul{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
-    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
     AudioSys.retch();G.hitstop=.3;G.camShake=.35;
     setTimeout(()=>bannerShow('THE UNBURIED LIES STILL','the grave rows are quiet'),600);
     spawnElemDrop(this.x,this.z,'health');
@@ -12647,7 +12744,7 @@ class BoneHand{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
-    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
     AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.4);G.hitstop=Math.max(G.hitstop,.1);
     const gy=heightAt(this.x,this.z);
     boneBurst(this.x,gy+.5,this.z,0xcfc4a3,22,3.2);scatterBones(this.x,this.z,0,0,2.4,false);
@@ -12869,7 +12966,7 @@ class GiantSkull{
   }
   die(){
     this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
-    player.marrow+=this.marrow;G.kills=(G.kills||0)+1;AudioSys.marrow();toast('+'+this.marrow+' marrow');
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
     AudioSys.bellToll(3);G.hitstop=.34;G.camShake=.9;
     setTimeout(()=>bannerShow('THE BELL-CALLED IS QUIET','nothing will call it again'),700);
     spawnElemDrop(this.x,this.z,'skull');spawnElemDrop(this.x+rr3(-1.4,1.4),this.z+rr3(-1.4,1.4),'health');
@@ -15569,6 +15666,9 @@ function hitscan(o,d,range){
     if(across(b.x,b.z)>r)continue;
     const top=b.obs&&b.obs.top!=null?b.obs.top:heightAt(b.x,b.z)+(b.tough?2.6:1.5);
     if(yAt(t)>top)continue;
+    if(b.win){   // the house's window walls: a round through the open pane goes on — you can shoot from indoors
+      const py=yAt(t),px=o.x+d.x*t,pz=o.z+d.z*t,lx=Math.cos(b.ry),lz=-Math.sin(b.ry),off=(px-b.x)*lx+(pz-b.z)*lz;
+      if(Math.abs(off)<.8&&py>HOUSE.oy+1.72&&py<HOUSE.oy+2.58)continue;}
     bt=t;best={kind:'break',b,t};
   }
   { // the soil, and the cathedral's stone: stepped
@@ -16406,6 +16506,64 @@ function endGame(won){
 }
 $('again').addEventListener('click',()=>location.reload());
 
+/* ======================= MARROW, AS ESSENCE ========================
+   A horror's marrow is no longer a number added the instant it dies. It
+   is SHED: a dozen pale motes thrown up and out of the body, and each one
+   of them is then one of three things. Near the pilgrim (seven metres) it
+   streams to him, gathering speed, and is taken at the chest. Further off
+   it falls, and lies where it landed, a small light in the grass, until
+   he comes within a few strides — then it is drawn to him and flies.
+   Every mode pays out this way; the cathedral's gate and the path's six
+   thousand count what is CAUGHT, not what was killed. One draw call: a
+   single Points buffer, the unused slots parked far under the world. */
+const MARROW={N:200,motes:[],pts:null,pos:null,pending:0,pendT:0,sndT:0,HOME:7,MAG:3.8};
+function marrowInit(){
+  const pos=new Float32Array(MARROW.N*3);for(let i=0;i<MARROW.N;i++){pos[i*3+1]=-999;}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const pm=new THREE.PointsMaterial({map:texCache.glow,color:0xf3e0ae,size:.62,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending});
+  const P=new THREE.Points(geo,pm);P.frustumCulled=false;P.renderOrder=5;scene.add(P);MARROW.pts=P;MARROW.pos=pos;
+}
+function shedMarrow(e,amount){
+  amount=Math.round(amount||0);if(amount<=0)return;
+  const x=e.x,z=e.z,y=(e.y!==undefined&&e.y>heightAt(x,z)+.3)?e.y:heightAt(x,z)+(e.boss?1.7:e.big||e.mini?1.3:1.0);
+  const n=clamp(Math.round(amount/6),4,16);let left=amount;
+  for(let i=0;i<n;i++){
+    const v=i===n-1?left:Math.round(amount/n);left-=v;if(v<=0)continue;
+    const a=Math.random()*TAU,sp=1.4+Math.random()*2.8;
+    MARROW.motes.push({x,y,z,vx:Math.cos(a)*sp,vz:Math.sin(a)*sp,vy:2.4+Math.random()*3.2,v,ph:'fly',t:0,spd:0,bob:Math.random()*TAU});
+  }
+  while(MARROW.motes.length>MARROW.N){const old=MARROW.motes.find(m=>m.ph==='rest')||MARROW.motes[0];old.ph='home';}   // (too many lying about: the eldest comes of its own accord)
+}
+function updateMarrow(dt){
+  const M=MARROW;if(!M.pts)return;
+  const P=player,alive=G.mode==='play'&&P.state!=='dead',hx=P.x,hz=P.z,hy=heightAt(P.x,P.z)+1.05;
+  let got=0;
+  for(let i=M.motes.length-1;i>=0;i--){
+    const m=M.motes[i];m.t+=dt;
+    const dx=hx-m.x,dy=hy-m.y,dz=hz-m.z,d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(m.ph==='fly'){
+      m.vy-=9.5*dt;m.x+=m.vx*dt;m.y+=m.vy*dt;m.z+=m.vz*dt;
+      if(alive&&d<M.HOME&&m.t>.18)m.ph='home';
+      else{const g=heightAt(m.x,m.z)+.24;if(m.y<=g&&m.vy<0){m.y=g;m.ph='rest';m.vx=m.vz=0;m.gy=g;}}
+    }else if(m.ph==='rest'){
+      m.y=m.gy+Math.sin(G.time*2.2+m.bob)*.05;
+      if(alive&&d<M.MAG)m.ph='home';
+    }
+    if(m.ph==='home'){
+      if(!alive){m.ph='rest';m.gy=heightAt(m.x,m.z);continue;}   // (nobody to go to: it settles where it is)
+      m.spd=Math.min(17,m.spd+34*dt);
+      const k=Math.min(1,m.spd*dt/(d||1e-3));m.x+=dx*k;m.y+=dy*k;m.z+=dz*k;
+      if(d<.55||k>=1){got+=m.v;M.motes.splice(i,1);}
+    }
+  }
+  if(got){P.marrow+=got;M.pending+=got;M.sndT-=dt;if(M.sndT<=0){AudioSys.marrow();M.sndT=.11;}}
+  if(M.pending){M.pendT+=dt;if(M.pendT>.32){toast('+'+M.pending+' marrow');M.pending=0;M.pendT=0;}}
+  const pos=M.pos;let n=0;
+  for(const m of M.motes){pos[n*3]=m.x;pos[n*3+1]=m.y;pos[n*3+2]=m.z;n++;}
+  for(;n<M.N;n++)pos[n*3+1]=-999;
+  M.pts.geometry.attributes.position.needsUpdate=true;
+}
+
 /* ---------------- marrow drop pickup ---------------- */
 function clearMarrowDrop(){
   const d=G.marrowDrop;if(!d)return;
@@ -16470,6 +16628,7 @@ if(PATH.on){$('titleHint').innerHTML='the path runs north, hex after hex, withou
 if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
 spawnEnemies();
+marrowInit();
 makeGrain();
 // the finishing mark hangs over a stunned foe you can reach
 const execMark=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.mark,color:0xffe9b0,
@@ -16825,6 +16984,7 @@ function frame(now){
 
   if(G.mode==='play'||G.mode==='dead'){
     updateShells(wdt);                                         // the brass, still falling — it does not care that you died
+    updateMarrow(wdt);                                         // and the marrow in the air, or lying where it fell
     if(G.mode==='play'){
       if(IN.swipe)$('swipeHint').style.opacity=0;
       player.update(wdt);
@@ -16939,7 +17099,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={G,player,IN,Input,enemies,DEF,HOUSE,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={G,player,IN,Input,enemies,DEF,HOUSE,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

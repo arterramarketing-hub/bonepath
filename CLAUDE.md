@@ -1722,6 +1722,36 @@ Known state of play:
     wave took forty seconds to arrive, which is a long time to look at
     water. The bog slows the Drowned to .82, the pilgrim to .6.
 
+- **MARROW IS ESSENCE (`MARROW`, `shedMarrow`, `updateMarrow`, beside the
+  marrow drop).** Every horror's `die()` calls `shedMarrow(this,amount)`
+  in place of `player.marrow+=`; nothing else may add marrow for a kill.
+  The motes are one `Points` buffer (`MARROW.N` slots, unused parked at
+  y −999), three phases — `fly`, `rest`, `home` — and a toast and a sound
+  are throttled over the collections rather than fired per mote. Home
+  motes ignore walls (it is essence). If the field ever feels short of
+  marrow, motes are lying out in the water or over the rim: the cap
+  (`N`) sends the eldest resting mote home of its own accord, and the
+  wade is deliberate.
+- **The Mire's second pass, for whoever tunes it:** stakes are
+  `HOUSE.stakes[lane]`, built by `buildStakes(i)` and never mended —
+  `segFall` nulls the slot and drops the group; `siegeTargets()` is what
+  the Drowned pick from (walls plus stakes). Which side of a target a
+  body stands on is the sign of `dot(body − target, outward normal)` —
+  no house-rect test, so the same rule serves a stake in the yard and a
+  wall with a Drowned already indoors. A ROOF target is a pseudo-segment
+  `{roof:sec,…}` with a zero normal, so the near point is the body's own
+  feet and it bashes where it stands; `bashSeg` branches on `s.roof`
+  first. `DEF.heavy` is the round's lane and `laneLamps(i)` recolours
+  the lane-head lanterns (`MIRE.laneLamps`, returned by `lantern()`).
+  Variants are `opts.variant` on a zombie (`runner`/`hulk`) and read in
+  five places in the constructor; the runner is `hunting` always. The
+  hearth is `HOUSE.hearth`, healed in `updateDefend`, put out by
+  `hearthOut()` from `roofFall` (its own bay) and `houseFallen`. The
+  window pass is in `hitscan`'s breakable loop, keyed on `b.win` and the
+  pane's band (`oy+1.72..2.58`, `|off|<.8`). `defBoss` is the TELL and
+  `defSummon` the summon; `DEF.tellSpot` is chosen once so the rings and
+  the thing agree.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,

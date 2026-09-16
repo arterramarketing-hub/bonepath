@@ -887,6 +887,17 @@ and every timing live in `GUNS` and `FPS`, beside the camera code.
 
 ## Marrow
 
+**Marrow is shed, not scored.** A horror's marrow does not appear on the
+counter the instant it dies. It comes OUT of the body — a dozen pale
+motes thrown up and out — and each one is then one of three things.
+Near the pilgrim (seven metres) it streams to him, gathering speed, and
+is taken at the chest. Further off it falls and lies where it landed, a
+small light in the grass, until he comes within a few strides — then it
+is drawn to him and flies. Kill something in the water and you wade out
+for what it was worth. Every mode pays this way: the cathedral's gate
+and the path's six thousand count what is CAUGHT. One draw call for all
+of it.
+
 Some of the host burns hotter: **red-boned** hollows, throwers and
 brutes, one in seven or so, with a bit over twice the life and worth
 double
@@ -1481,6 +1492,34 @@ same instant, stumps spurting, the rest thrown. The blade takes their
 legs as readily as their arms, and **a Drowned with a leg off crawls**:
 prone, chest to the ground, dragging itself on its arms at half pace,
 and still comes.
+
+**Two more of the Drowned join from the second and fourth rounds.** The
+RUNNER — thin, pale, quick, fifty-five life — never looks at the house:
+it comes for you, wherever you are, and it is what stops you standing in
+a doorway for ever. The HULK — half again the size, dark and
+waterlogged, two hundred and sixty life, unshakeable — lands three blows
+on a wall where a Drowned lands one, and hits like a brute.
+
+**One lane is heavy.** Every round most of the column comes up one of
+the three causeways, and the lantern at its head burns RED for the
+round, so you know where to stand before the first of them is out of
+the water. STAKES can be bought across any lane in the lull — a row of
+sharpened timber leaning at the swamp — and whatever comes up that lane
+meets it first; six blows and it is gone, and bought again.
+
+**The house earns its keep.** Under the chimney a hearth burns, and
+standing by it brings the hearts back, slowly — the one thing in the
+Mire that gives anything back — for as long as it burns: the bay over it
+falling puts it out, and so does the house. The window walls can be shot
+THROUGH from indoors: a round through the open pane goes on, a round
+into the planks stops. From the sixth round a Drowned that has got
+inside stands under a bay and bashes the beams instead: seven blows and
+the roof comes down on you.
+
+**A boss is announced, not summoned.** Three and a half seconds before
+it comes the water stirs where it will rise — rings on the surface, a
+roll under the field, THE WATER STIRS across the screen — and then the
+thing itself.
 
 **The house is twelve walls.** Each is a `breakables` entry with eight
 blows in it, in three stages: whole, breached (the middle planks knocked
