@@ -1782,6 +1782,17 @@ Known state of play:
   middle CARD and reloads into the path**; press `#modeDefend` (or the
   card you mean) by id.
 
+- **THE WEAPON VANISHED AFTER A BACKSTAB, AND IT WAS A THREE-ENTRY
+  ARRAY.** The pose springs keep `rig._sm[joint]` as SIX numbers — the
+  pose and its velocity. The backstab's aim (and the arm IK's two
+  snapshots) wrote `[x,y,z]`, so `p[3]` was `undefined`, one spring step
+  made the joint NaN, and a NaN matrix draws nothing, silently, for the
+  rest of the run. Reproduced: after a backstab `rig.weapon.quaternion`
+  read null/null/null/null and so did `_sm.weapon`. Every snapshot is
+  six wide now and the spring rebuilds any state that is short or
+  non-finite from the pose. **If a limb or a blade ever vanishes with no
+  error, read `rig._sm[k]` for NaN before anything else.**
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,

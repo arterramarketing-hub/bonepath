@@ -8104,8 +8104,12 @@ function solveArm(r,side){
   arm.quaternion.setFromRotationMatrix(IK.M);
   fore.rotation.set(Math.PI-eIn,0,0);                      // hinge to the target
   if(r._sm){ // keep the smoothing filter honest about where the arm really is
-    r._sm[L?'armL':'armR']=[arm.rotation.x,arm.rotation.y,arm.rotation.z];
-    r._sm[L?'foreL':'foreR']=[fore.rotation.x,fore.rotation.y,fore.rotation.z];
+    // (SIX entries: the pose and its velocity. A three-entry snapshot leaves
+    //  the velocities undefined, and one spring step later the joint is NaN
+    //  for the rest of the run — which is a limb, or a blade, gone from the
+    //  picture with nothing in the console. The backstab's aim did this.)
+    r._sm[L?'armL':'armR']=[arm.rotation.x,arm.rotation.y,arm.rotation.z,0,0,0];
+    r._sm[L?'foreL':'foreR']=[fore.rotation.x,fore.rotation.y,fore.rotation.z,0,0,0];
   }
 }
 /* secondary motion, applied after the pose each frame */
@@ -8216,7 +8220,9 @@ function updateRigExtras(r,dt){
       if(ikR&&(k==='armR'||k==='foreR'))continue;
       const j=r[k];if(!j)continue;
       let p=r._sm[k];
-      if(!p){r._sm[k]=[j.rotation.x,j.rotation.y,j.rotation.z,0,0,0];continue;}
+      // a short or a poisoned state is rebuilt from the pose rather than
+      // spread: NaN in here is a part of the body that never draws again
+      if(!p||p.length<6||!isFinite(p[0]+p[1]+p[2]+p[3]+p[4]+p[5])){r._sm[k]=[j.rotation.x,j.rotation.y,j.rotation.z,0,0,0];continue;}
       let K=JOINT_K[k]||600,D=JOINT_D[k]||30;
       /* AND A SLAB OF IRON IS SLACKER STILL. The ultra greatsword carries
          its own rates out at the far end of the chain — the weapon and the
@@ -11332,7 +11338,7 @@ const player={
         if(BS.d.lengthSq()>1e-4){
           BS.d.normalize();BS.q.setFromUnitVectors(BS.down,BS.d);
           r.foreR.getWorldQuaternion(BS.pq);r.weapon.quaternion.copy(BS.pq.invert().multiply(BS.q));
-          if(r._sm)r._sm.weapon=[r.weapon.rotation.x,r.weapon.rotation.y,r.weapon.rotation.z];
+          if(r._sm)r._sm.weapon=[r.weapon.rotation.x,r.weapon.rotation.y,r.weapon.rotation.z,0,0,0];   // (six entries, or the spring goes NaN — see the arm IK)
         }
       }
     }
