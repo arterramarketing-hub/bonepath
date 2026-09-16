@@ -49,32 +49,56 @@
     background:rgba(6,7,8,.55);color:var(--bone);font:16px/36px Georgia,serif;text-align:center;
     letter-spacing:.1em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
   #pauseBtn.on{display:block;}
+  /* ---- THE PANELS: the pause screen and the Mire's shop share one dress.
+     A panel is TABBED: one section at a time, big enough to read and to
+     touch, rather than four columns of small print. ---- */
   #pause,#shop{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
-    background:rgba(4,5,6,.86);color:var(--bone);font-family:Georgia,'Times New Roman',serif;}
+    background:radial-gradient(ellipse at 50% 60%, rgba(12,15,13,.9), rgba(3,4,4,.94));color:var(--bone);font-family:Georgia,'Times New Roman',serif;}
   #pause.on,#shop.on{display:flex;}
-  #pause .panel,#shop .panel{width:min(94vw,960px);max-height:92vh;overflow:auto;padding:18px 24px;border:1px solid rgba(200,190,160,.28);
-    background:rgba(8,9,10,.7);}
-  #pause h2,#shop h2{margin:0 0 4px;font-weight:normal;letter-spacing:.5em;text-transform:uppercase;font-size:clamp(18px,4vw,30px);text-align:center;}
-  #pause .sub,#shop .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
-  #pause .cols,#shop .cols{display:flex;gap:22px;flex-wrap:wrap;}
-  #pause .col,#shop .col{flex:1 1 220px;font-size:12.5px;line-height:1.55;}
-  #pause h3,#shop h3{font-weight:normal;letter-spacing:.32em;text-transform:uppercase;font-size:11px;opacity:.75;margin:10px 0 6px;border-bottom:1px solid rgba(200,190,160,.2);padding-bottom:3px;}
-  #pause .stat{display:flex;justify-content:space-between;opacity:.9;}
-  #pause .stat b{font-weight:normal;color:#e6c97a;}
-  #pause .k{opacity:.65;}
-  #pause .btns,#shop .btns{display:flex;gap:14px;justify-content:center;margin-top:14px;}
-  #pause .col.hero{flex:0 0 212px;text-align:center;}
-  #heroView{width:200px;height:240px;border:1px solid rgba(200,190,160,.25);background:#0b0d12;image-rendering:pixelated;display:block;margin:0 auto;}
-  #pause .sel{display:flex;justify-content:space-between;align-items:center;margin-top:7px;}
-  #pause .sel>span{opacity:.65;font-size:11px;letter-spacing:.2em;text-transform:uppercase;}
-  #pause .pick{display:flex;align-items:center;}
-  #pause .arrow{padding:0 9px;cursor:pointer;font-size:20px;line-height:1;opacity:.75;user-select:none;}
-  #pause .arrow:active{opacity:1;}
-  #pause .sel b{font-weight:normal;color:#e6c97a;min-width:104px;text-align:center;font-size:12px;}
-  #pause .note{font-size:11px;opacity:.7;line-height:1.4;margin-top:6px;min-height:2.8em;}
-  #pause .btn2,#shop .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
+  #pause .panel,#shop .panel{width:min(94vw,840px);max-height:94vh;display:flex;flex-direction:column;padding:14px 22px 14px;border:1px solid rgba(200,190,160,.2);
+    background:linear-gradient(180deg,rgba(11,13,12,.94),rgba(6,7,8,.94));box-shadow:0 0 70px rgba(0,0,0,.75),inset 0 1px 0 rgba(200,190,160,.07);
+    -webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+  #pause h2,#shop h2{margin:0;font-weight:normal;letter-spacing:.52em;text-indent:.52em;text-transform:uppercase;font-size:clamp(17px,3.4vw,26px);text-align:center;color:var(--bone);
+    text-shadow:0 0 22px rgba(208,118,43,.18),0 2px 0 #000;}
+  #pause .sub,#shop .sub{text-align:center;color:var(--bone-dim);font-size:10px;letter-spacing:.34em;text-transform:uppercase;margin:4px 0 0;padding-bottom:10px;
+    background:linear-gradient(90deg,transparent,rgba(208,118,43,.55),transparent) bottom center/46% 1px no-repeat;}
+  .tabs{display:flex;gap:6px;justify-content:center;margin:10px 0 10px;flex-wrap:wrap;}
+  .tabs .tab{padding:8px 14px;font-size:10px;letter-spacing:.3em;text-indent:.3em;text-transform:uppercase;color:var(--bone-dim);cursor:pointer;user-select:none;-webkit-user-select:none;
+    border:1px solid transparent;border-bottom:1px solid rgba(200,190,160,.16);touch-action:manipulation;}
+  .tabs .tab.on{color:var(--ember-hi);border-color:rgba(240,166,72,.45);background:rgba(208,118,43,.08);}
+  .tabs .tab:active{background:rgba(200,190,160,.12);}
+  /* the sections scroll; the header and the buttons stay put, so Resume is never below the fold */
+  #pause .cols,#shop .cols{display:flex;gap:22px;flex-wrap:wrap;flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 2px 4px;}
+  #pause .col,#shop .col{display:none;flex:1 1 260px;font-size:12.5px;line-height:1.6;}
+  #pause .col.on,#shop .col.on{display:block;}
+  #pause h3,#shop h3{font-weight:normal;letter-spacing:.32em;text-transform:uppercase;font-size:10.5px;color:var(--bone-dim);margin:8px 0 6px;border-bottom:1px solid rgba(200,190,160,.16);padding-bottom:4px;}
+  #pause h3::before,#shop h3::before{content:"\2726";color:var(--ember);margin-right:8px;font-size:9px;}
+  #pause .stat{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted rgba(200,190,160,.13);}
+  #pause .stat b{font-weight:normal;color:#e6c97a;font-variant-numeric:tabular-nums;}
+  #pause .k{color:var(--bone);opacity:.8;}
+  #pause .col[data-t=ctl] div{padding:2px 0;color:var(--bone-dim);}
+  #pause .btns,#shop .btns{display:flex;gap:12px;justify-content:center;margin-top:10px;padding-top:10px;flex:0 0 auto;flex-wrap:wrap;
+    border-top:1px solid rgba(200,190,160,.12);}
+  #pause .col.hero.on{display:flex;gap:24px;align-items:flex-start;text-align:left;flex:1 1 100%;}
+  #pause .selWrap{flex:1 1 auto;min-width:0;}
+  #heroView{width:200px;height:240px;flex:0 0 200px;border:1px solid rgba(200,190,160,.22);background:#0b0d12;image-rendering:pixelated;display:block;margin:6px 0 0;
+    box-shadow:0 0 30px rgba(0,0,0,.6),inset 0 0 40px rgba(0,0,0,.5);}
+  #pause .sel{display:flex;justify-content:space-between;align-items:center;margin-top:6px;}
+  #pause .sel>span{color:var(--bone-dim);font-size:10px;letter-spacing:.22em;text-transform:uppercase;}
+  #pause .pick{display:flex;align-items:center;gap:6px;}
+  #pause .arrow{width:34px;height:34px;line-height:32px;text-align:center;padding:0;border:1px solid rgba(200,190,160,.22);border-radius:50%;
+    cursor:pointer;font-size:18px;color:var(--bone);user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+  #pause .arrow:active{background:rgba(208,118,43,.18);border-color:var(--ember);}
+  #pause .sel b{font-weight:normal;color:#e6c97a;min-width:128px;text-align:center;font-size:12px;}
+  #pause .note{font-size:11px;color:var(--bone-dim);line-height:1.45;margin-top:8px;min-height:2.8em;}
+  #pause .btn2,#shop .btn2{padding:11px 26px;border:1px solid rgba(200,190,160,.32);letter-spacing:.32em;text-indent:.32em;text-transform:uppercase;font-size:11.5px;cursor:pointer;
+    user-select:none;-webkit-user-select:none;color:var(--bone);touch-action:manipulation;background:rgba(6,7,8,.4);}
+  #pause .btn2.primary,#shop .btn2.primary{border-color:var(--ember);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.2);}
   #pause .btn2:active,#shop .btn2:active{background:rgba(200,190,160,.15);}
-  #pause .btn2.sm{padding:4px 10px;font-size:10px;margin-left:8px;}
+  #pause .btn2.sm{padding:5px 11px;font-size:10px;margin-left:8px;text-indent:0;}
+  @media (max-width:640px){#pause .col.hero.on{flex-direction:column;align-items:center;} #pause .selWrap{width:100%;} #heroView{width:150px;height:180px;flex-basis:150px;}}
+  @media (max-height:470px){#heroView{width:150px;height:180px;flex-basis:150px;} #pause h2,#shop h2{font-size:17px;} .tabs{margin:6px 0 6px;} .tabs .tab{padding:6px 12px;} #pause .sel{margin-top:3px;} #pause .arrow{width:30px;height:30px;line-height:28px;}}
+  @media (min-width:900px){#shop .col{display:block;} #shopTabs{display:none;}}
   /* A SLIDER STACKS: the label on its own line and the track under it,
      because the picker row is 104px of value and a 212px column has no
      room for both side by side. */
@@ -119,15 +143,17 @@
   #marrow .lbl{display:block;font-size:9px;letter-spacing:.4em;color:var(--bone-dim);text-transform:uppercase;}
   /* the shop's rows */
   #shop{z-index:11;}
-  #shop .shrow{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:12.5px;line-height:1.3;}
-  #shop .shrow>span{flex:1 1 auto;}
-  #shop .shrow small{display:block;opacity:.6;font-size:10.5px;}
-  #shop .shrow b{font-weight:normal;color:#e6c97a;margin:0 10px;white-space:nowrap;font-variant-numeric:tabular-nums;}
-  #shop .shbuy{padding:5px 12px;border:1px solid var(--ember);color:var(--ember-hi);font-size:10px;letter-spacing:.25em;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap;}
-  #shop .shbuy:active{background:rgba(208,118,43,.2);}
-  #shop .shbuy.no{opacity:.35;border-color:var(--bone-faint);color:var(--bone-dim);pointer-events:none;}
-  #shop .shbuy.own{border-color:var(--bone-dim);color:var(--bone);}
-  #shop .sub b{color:#e6c97a;font-weight:normal;}
+  #shop .shrow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;padding:9px 10px 9px 12px;font-size:12.5px;line-height:1.3;
+    border:1px solid rgba(200,190,160,.12);background:rgba(255,255,255,.025);}
+  #shop .shrow>span{flex:1 1 auto;min-width:0;}
+  #shop .shrow small{display:block;color:var(--bone-dim);font-size:10.5px;margin-top:2px;}
+  #shop .shrow b{font-weight:normal;color:#e6c97a;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:12px;}
+  #shop .shbuy{padding:9px 14px;min-width:60px;text-align:center;border:1px solid var(--ember);color:var(--ember-hi);font-size:10px;letter-spacing:.25em;text-indent:.25em;text-transform:uppercase;
+    cursor:pointer;user-select:none;-webkit-user-select:none;white-space:nowrap;touch-action:manipulation;background:rgba(208,118,43,.06);}
+  #shop .shbuy:active{background:rgba(208,118,43,.24);}
+  #shop .shbuy.no{opacity:.35;border-color:var(--bone-faint);color:var(--bone-dim);pointer-events:none;background:transparent;}
+  #shop .shbuy.own{border-color:var(--bone-dim);color:var(--bone);background:transparent;}
+  #shop .sub b{color:var(--ember-hi);font-weight:normal;font-size:13px;letter-spacing:.1em;}
   /* the Mire's readout: the round, what is left of the wave, what is left of the house */
   #defHud{position:absolute;left:50%;transform:translateX(-50%);top:calc(46px + env(safe-area-inset-top));display:none;
     font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--bone);text-align:center;text-shadow:0 1px 2px #000;
@@ -238,21 +264,33 @@
     z-index:8;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--bone);
     text-shadow:0 1px 3px #000;opacity:0;transition:opacity .5s;pointer-events:none;text-align:center;}
   /* title */
+  /* ---- THE TITLE: a name, and three ways laid out as cards ---- */
   #title{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;background:radial-gradient(ellipse at 50% 120%, #1a2019 0%, var(--pit) 70%);
-    text-align:center;padding:24px;}
-  #title h1{font-size:clamp(44px,11vw,96px);font-weight:400;letter-spacing:.3em;text-indent:.3em;
+    justify-content:center;background:radial-gradient(ellipse at 50% 118%, #1c241c 0%, #0b100e 42%, var(--pit) 74%);
+    text-align:center;padding:18px 24px 40px;}
+  #title::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 40%, transparent 46%, rgba(0,0,0,.55) 100%);}
+  #title>*{position:relative;z-index:1;}
+  #title h1{font-size:clamp(36px,9vw,80px);font-weight:400;letter-spacing:.32em;text-indent:.32em;line-height:1;
     text-transform:uppercase;color:var(--bone);
-    text-shadow:0 0 40px rgba(207,196,163,.18),0 3px 0 #000,0 4px 14px #000;}
-  #title .sub{margin-top:6px;font-size:clamp(10px,2.4vw,14px);letter-spacing:.5em;text-indent:.5em;
+    text-shadow:0 0 44px rgba(208,118,43,.22),0 0 18px rgba(207,196,163,.12),0 3px 0 #000,0 4px 14px #000;}
+  #title .sub{margin-top:8px;font-size:clamp(9px,2vw,12px);letter-spacing:.56em;text-indent:.56em;
     text-transform:uppercase;color:var(--bone-dim);}
-  #title .rule{width:min(46vw,260px);height:1px;margin:26px auto;
-    background:linear-gradient(90deg,transparent,var(--bone-faint),transparent);}
-  #modes{display:flex;gap:14px;justify-content:center;margin:2px 0 14px;flex-wrap:wrap;padding:0 12px;}
-  #modes .mode{padding:11px 16px;border:1px solid rgba(200,190,160,.35);color:var(--bone);font-size:11px;letter-spacing:.2em;text-indent:.2em;white-space:nowrap;
-    text-transform:uppercase;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:rgba(6,7,8,.5);}
-  #modes .mode.on{border-color:var(--ember-hi);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.25);}
-  #modes .mode:active{background:rgba(200,190,160,.15);}
+  #title .rule{width:min(46vw,300px);height:1px;margin:14px auto 16px;
+    background:linear-gradient(90deg,transparent,var(--ember),transparent);opacity:.7;}
+  #modes{display:flex;gap:12px;justify-content:center;align-items:stretch;width:min(96vw,880px);margin:0 0 12px;}
+  #modes .mode{flex:1 1 0;min-width:0;padding:13px 14px 12px;border:1px solid rgba(200,190,160,.2);text-align:left;position:relative;
+    background:linear-gradient(180deg,rgba(16,20,17,.78),rgba(6,7,8,.82));cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;
+    box-shadow:inset 0 1px 0 rgba(200,190,160,.06);transition:border-color .15s,box-shadow .15s;}
+  #modes .mode b{display:block;font-weight:normal;font-size:clamp(12px,1.9vw,15px);letter-spacing:.3em;text-transform:uppercase;color:var(--bone);}
+  #modes .mode i{display:block;font-style:normal;font-size:9px;letter-spacing:.36em;text-transform:uppercase;color:var(--ember);margin:4px 0 8px;}
+  #modes .mode span{display:block;font-size:10.5px;line-height:1.5;color:var(--bone-dim);}
+  #modes .mode em{display:block;margin-top:7px;font-style:normal;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ember-hi);opacity:.85;}
+  #modes .mode.on{border-color:var(--ember-hi);box-shadow:0 0 26px rgba(208,118,43,.22),inset 0 0 0 1px rgba(240,166,72,.28);}
+  #modes .mode.on b{color:var(--ember-hi);}
+  #modes .mode:active{background:rgba(200,190,160,.12);}
+  @media (max-height:470px){#title h1{font-size:clamp(30px,7.5vw,56px);} #title .rule{margin:9px auto 10px;} #modes .mode{padding:9px 12px 9px;} #modes .mode span{font-size:9.5px;line-height:1.4;} #modes .mode i{margin:2px 0 5px;}}
+  @media (max-width:560px){#modes{flex-wrap:wrap;} #modes .mode{flex:1 1 100%;} #modes .mode span{display:none;}}
   /* ---- first person: the shooter's controls and its HUD ----
      laid out the way a phone shooter lays them: a trigger under EACH
      thumb, the sights / reload / dodge in a cluster to the right of the
@@ -376,19 +414,20 @@
     color:rgba(200,190,160,.62);text-shadow:0 1px 2px #000;line-height:1.5;}
   #perf.on{display:block;}
   #perf b{font-weight:normal;color:#e8dcc0;}
-  #begin{margin-top:4px;font-size:14px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;
+  #begin{margin-top:2px;font-size:11.5px;letter-spacing:.46em;text-indent:.46em;text-transform:uppercase;
     color:var(--ember-hi);animation:breathe 2.6s ease-in-out infinite;}
   @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
-  #title .hint{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));left:0;right:0;
-    font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-faint);line-height:2;}
+  #title .hint{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));left:16px;right:16px;
+    font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-faint);line-height:1.8;}
   /* victory */
   #victory{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;
     justify-content:center;background:rgba(6,8,7,.92);text-align:center;padding:24px;}
-  #victory h2{font-size:clamp(26px,6vw,52px);font-weight:400;letter-spacing:.4em;text-indent:.4em;
-    text-transform:uppercase;color:var(--ember-hi);text-shadow:0 0 30px rgba(208,118,43,.5);}
-  #victory .stats{margin-top:22px;font-size:12px;letter-spacing:.3em;text-transform:uppercase;
-    color:var(--bone-dim);line-height:2.2;}
-  #again{margin-top:30px;padding:12px 34px;border:1px solid var(--bone-dim);color:var(--bone);
+  #victory h2{font-size:clamp(24px,5.5vw,46px);font-weight:400;letter-spacing:.42em;text-indent:.42em;
+    text-transform:uppercase;color:var(--ember-hi);text-shadow:0 0 30px rgba(208,118,43,.5),0 2px 0 #000;
+    padding-bottom:14px;background:linear-gradient(90deg,transparent,rgba(208,118,43,.6),transparent) bottom center/40% 1px no-repeat;}
+  #victory .stats{margin-top:18px;font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;
+    color:var(--bone-dim);line-height:2.2;max-width:min(92vw,620px);}
+  #again{margin-top:26px;padding:12px 34px;border:1px solid var(--ember);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.2);
     font-family:var(--serif);font-size:12px;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;
     background:transparent;}
   @media (prefers-reduced-motion: reduce){
@@ -437,10 +476,12 @@
 <div id="shopBtn">&#10022; spend</div>
 <div id="pause"><div class="panel">
   <h2>Paused</h2><div class="sub">the marrow remembers</div>
+  <div class="tabs" id="pauseTabs"><div class="tab on" data-t="hero">the pilgrim</div><div class="tab" data-t="run">this run</div><div class="tab" data-t="ctl">controls</div><div class="tab" data-t="fld">the field</div></div>
   <div class="cols">
-    <div class="col hero">
-      <h3>The pilgrim</h3>
+    <div class="col hero on" data-t="hero">
       <canvas id="heroView" width="200" height="240"></canvas>
+      <div class="selWrap">
+      <h3>The pilgrim</h3>
       <div class="sel"><span>weapon</span><div class="pick"><div class="arrow" data-k="weapon" data-d="-1">&lsaquo;</div><b id="selWeapon">greatsword</b><div class="arrow" data-k="weapon" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>armour</span><div class="pick"><div class="arrow" data-k="armour" data-d="-1">&lsaquo;</div><b id="selArmour">knight plate</b><div class="arrow" data-k="armour" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span id="selChargeLbl">charge</span><div class="pick"><div class="arrow" data-k="charge" data-d="-1">&lsaquo;</div><b id="selCharge">double slash</b><div class="arrow" data-k="charge" data-d="1">&rsaquo;</div></div></div>
@@ -448,8 +489,9 @@
       <div class="sel rng"><span>field of view</span><div class="pick"><input type="range" id="rngFov" min="60" max="100" step="1"><b id="lblFov">68&deg;</b></div></div>
       <div class="sel rng"><span>turn speed</span><div class="pick"><input type="range" id="rngSens" min="40" max="220" step="5"><b id="lblSens">1.00</b></div></div>
       <div class="note" id="selNote"></div>
+      </div>
     </div>
-    <div class="col">
+    <div class="col" data-t="run">
       <h3>This run</h3>
       <div class="stat"><span>marrow</span><b id="psMarrow">0</b></div>
       <div class="stat"><span>horrors felled</span><b id="psKills">0</b></div>
@@ -462,6 +504,8 @@
       <div class="stat"><span>the cathedral</span><b id="psCath">sealed</b></div>
       <div class="stat"><span>this field</span><b id="psRun">—</b></div>
       <div class="stat"><span>seed</span><b id="psSeed">—</b></div>
+    </div>
+    <div class="col" data-t="fld">
       <h3>The field (testing)</h3>
       <div class="sel"><span>hour</span><div class="pick"><div class="arrow fld" data-k="hour" data-d="-1">&lsaquo;</div><b id="selHour">night</b><div class="arrow fld" data-k="hour" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>weather</span><div class="pick"><div class="arrow fld" data-k="weather" data-d="-1">&lsaquo;</div><b id="selWeather">clear</b><div class="arrow fld" data-k="weather" data-d="1">&rsaquo;</div></div></div>
@@ -470,7 +514,7 @@
       <div class="sel"><span>frame counter</span><div class="pick"><div class="arrow fld" data-k="perf" data-d="1">&lsaquo;</div><b id="selPerf">off</b><div class="arrow fld" data-k="perf" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>go to seed</span><div class="pick"><input id="seedIn" inputmode="numeric" pattern="[0-9]*" placeholder="number"><div class="btn2 sm" id="btnSeed">Enter</div></div></div>
     </div>
-    <div class="col">
+    <div class="col" data-t="ctl">
       <h3>Touch</h3>
       <div><span class="k">left thumb</span> — move · <span class="k">push far</span> — sprint</div>
       <div id="heroTap"><span class="k">tap</span> — strike · keep tapping — the combo</div>
@@ -484,7 +528,7 @@
       <div><span class="k">time a swing into theirs</span> — clash: sparks, and they reel</div>
       <div><span class="k">first person</span> — the 3RD / 1ST switch by the pause button (or the view above): guns for blades · a trigger under each thumb, and the right one drags to turn while you fire · aim · reload · dodge · tap the bar to swap · the rail takes iron sights, a red dot or an acog (the attachment row above)</div>
     </div>
-    <div class="col">
+    <div class="col" data-t="ctl">
       <h3>Keyboard</h3>
       <div><span class="k">W A S D</span> — move · <span class="k">R</span> (hold) — sprint</div>
       <div><span class="k">J</span> or <span class="k">Space</span> — strike · repeat — the combo</div>
@@ -497,17 +541,18 @@
       <div>harvest 1000 marrow from the sleeping host · climb the stair · walk the nave to the altar · fell the Warden · claim it</div>
     </div>
   </div>
-  <div class="btns"><div class="btn2" id="btnResume">Resume</div><div class="btn2" id="btnRestart">Restart</div></div>
+  <div class="btns"><div class="btn2 primary" id="btnResume">Resume</div><div class="btn2" id="btnRestart">Restart</div></div>
 </div></div>
 
 <div id="shop"><div class="panel">
   <h2>The Lull</h2><div class="sub" id="shopSub">round 0 held &middot; marrow <b>0</b></div>
+  <div class="tabs" id="shopTabs"><div class="tab on" data-t="house">the house</div><div class="tab" data-t="body">the pilgrim</div><div class="tab" data-t="arms">the armoury</div></div>
   <div class="cols">
-    <div class="col"><h3>The house</h3><div id="shHouse"></div></div>
-    <div class="col"><h3>The pilgrim</h3><div id="shBody"></div></div>
-    <div class="col"><h3>The armoury</h3><div id="shArms"></div></div>
+    <div class="col on" data-t="house"><h3>The house</h3><div id="shHouse"></div></div>
+    <div class="col" data-t="body"><h3>The pilgrim</h3><div id="shBody"></div></div>
+    <div class="col" data-t="arms"><h3>The armoury</h3><div id="shArms"></div></div>
   </div>
-  <div class="btns"><div class="btn2" id="shopClose">Back to the house</div></div>
+  <div class="btns"><div class="btn2 primary" id="shopClose">Back to the house</div></div>
 </div></div>
 
 <div id="cine">
@@ -525,16 +570,13 @@
   <h1>Bonepath</h1>
   <div class="sub">the marrow remembers</div>
   <div class="rule"></div>
-  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div><div class="mode" id="modeDefend">the house &middot; defender</div></div>
-  <div id="begin">touch a way to begin</div>
-  <div class="hint" id="titleHint">
-    left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
-    tap &mdash; strike &middot; keep tapping &mdash; the combo climbs &middot; flick any way &mdash; roll that way<br>
-    survive the bonefield &middot; harvest 1000 marrow to open the cathedral<br>
-    no rest, no fires &mdash; only what the fallen shed: fire, lightning, frost, and life<br>
-    no flask, no stamina, only nerve &middot; best in landscape<br>
-    first person &mdash; the 3RD / 1ST switch by the pause button: the guns come out and the blade goes away
+  <div id="modes">
+    <div class="mode" id="modeField"><b>The field</b><i>the run</i><span>harvest a thousand marrow from the sleeping host, open the cathedral, and fell the Warden at its altar</span></div>
+    <div class="mode" id="modePath"><b>The path</b><i>survival</i><span>hex after hex northward without end, a cathedral every sixth; six thousand marrow wins, and death ends it where you fall</span></div>
+    <div class="mode" id="modeDefend"><b>The house</b><i>defender</i><span>hold a house in a drowned churchyard against the Drowned, round after endless round; the lull between is the shop<em id="bestDef"></em></span></div>
   </div>
+  <div id="begin">touch a way to begin</div>
+  <div class="hint" id="titleHint">left thumb &mdash; move &middot; tap &mdash; strike &middot; flick &mdash; roll &middot; hold &amp; drag &mdash; camera &middot; the 3RD / 1ST switch brings the guns out &middot; best in landscape</div>
 </div>
 
 <div id="perf"></div>
@@ -8946,8 +8988,10 @@ function bladeMeetsStone(x,z,fx,fz,reach,arc){
       consider(o.ax+sx*t,o.az+sz*t,o.r,o.stone,o);
     }else consider(o.x,o.z,o.r,o.stone,o);
   }
-  // the hall's walls, from either side, sparing the doorway
-  if(Math.abs(cathDist(x,z))<reach+1){
+  // the hall's walls, from either side, sparing the doorway — not in the
+  // Mire, where there is no hall and the rect would stand invisible across
+  // the yard (measured: every swing on the yard's flank bounced off nothing)
+  if(!DEF.on&&Math.abs(cathDist(x,z))<reach+1){
     const wx=HW+WALLT/2,wz=HL+WALLT/2;
     const cands=[[Math.sign(x||1)*wx,clamp(z,-wz,wz)],[clamp(x,-wx,wx),Math.sign(z||1)*wz]];
     for(const c of cands){
@@ -10081,7 +10125,8 @@ const player={
       // steel on steel: catch a horror's weapon mid-swing and the blades
       // clash — sparks, a clang, and its attack is broken
       let parry=false;
-      if(!e.boss&&!e.mini&&!e.crow&&e.attack&&e.attack!=='throw'&&
+      const atMe=Math.abs(wrapA(Math.atan2(this.x-e.x,this.z-e.z)-e.facing))<1.0;   // (its blow is coming at YOU — a Drowned pounding a wall is not parried, it is cut)
+      if(!e.boss&&!e.mini&&!e.crow&&e.attack&&e.attack!=='throw'&&e.attack!=='bash'&&atMe&&
          ((e.state==='windup'&&e.t/e.windDur()>.4)||e.state==='strike')){
         parry=true;
         clashSparks((this.x+e.x)/2,1.25,(this.z+e.z)/2,26);
@@ -16354,8 +16399,15 @@ function updateGunHud(){
       camera.getWorldDirection(_xhv);
       if(_xhv.dot(_xhd)>0){
         _xhv.copy(_xhp).project(camera);
-        dx=Math.round(clamp(_xhv.x,-1.2,1.2)*innerWidth/2);
-        dy=Math.round(clamp(-_xhv.y,-1.2,1.2)*innerHeight/2);
+        /* SMOOTHED. The ray meets the skull's sphere one frame and the
+           trunk's the next as the body bobs, and the mark leapt a head's
+           height with it (it read as a glitch, and it is not the round's
+           fault). The screen position eases toward the ray's answer at a
+           rate a thumb can follow; a big jump — a new target — still snaps. */
+        const k=Math.min(1,(G.frameDt||.016)*16),tx=clamp(_xhv.x,-1.2,1.2)*innerWidth/2,ty=clamp(-_xhv.y,-1.2,1.2)*innerHeight/2;
+        const big=Math.hypot(tx-(FHUD.sx||tx),ty-(FHUD.sy||ty))>innerHeight*.22;
+        FHUD.sx=big||FHUD.sx===undefined?tx:lerp(FHUD.sx,tx,k);FHUD.sy=big||FHUD.sy===undefined?ty:lerp(FHUD.sy,ty,k);
+        dx=Math.round(FHUD.sx);dy=Math.round(FHUD.sy);
         const rad=Math.tan(g.pellets?g.pellet:coneNow())*Math.max(.5,t);
         const dc=Math.max(.5,_xhd.length());
         gap=Math.round(clamp(rad/dc*f+g.gap,g.gap,110));
@@ -16623,8 +16675,7 @@ $('povBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagat
 buildTextures();
 buildWorld();
 $(PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
-if(DEF.on){$('titleHint').innerHTML='a house in a drowned churchyard, and the drowned coming for it, round after round<br>they push for the walls; every wall down is a way in &middot; a boss closes every round<br>the lull between is the shop: mend the house, or buy a blade, a gun, a heart, more might<br>death ends the run &middot; the best round held is remembered';}
-if(PATH.on){$('titleHint').innerHTML='the path runs north, hex after hex, without end &middot; every sixth hex the cathedral, its host within, a door at either end<br>six thousand marrow to win &middot; death ends the path &middot; no rest, no fires, only nerve &middot; best in landscape';}
+try{const b=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');if(b.round)$('bestDef').textContent='best \u00b7 round '+b.round+' held';}catch(e){}
 if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
 spawnEnemies();
@@ -16924,6 +16975,12 @@ function setPaused(on){
 }
 $('pauseBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();setPaused(!G.paused);});
 $('btnResume').addEventListener('pointerdown',e=>{e.preventDefault();setPaused(false);});
+// the panels' tabs: one section shown at a time, remembered per panel
+function panelTab(root,t){root.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===t));root.querySelectorAll('.col').forEach(c=>c.classList.toggle('on',c.dataset.t===t));
+  try{localStorage.setItem('bp_tab_'+root.id,t);}catch(e){}}
+for(const id of['pause','shop']){const r=$(id);if(!r)continue;
+  r.addEventListener('pointerdown',e=>{const tb=e.target.closest('.tab');if(tb&&tb.dataset.t){e.preventDefault();e.stopPropagation();panelTab(r,tb.dataset.t);}});
+  try{const t=localStorage.getItem('bp_tab_'+id);if(t&&r.querySelector('.tab[data-t="'+t+'"]'))panelTab(r,t);}catch(e){}}
 $('btnRestart').addEventListener('pointerdown',e=>{e.preventDefault();location.reload();});
 $('pause').addEventListener('pointerdown',e=>{e.stopPropagation();});
 
@@ -17099,7 +17156,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={G,player,IN,Input,enemies,DEF,HOUSE,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

@@ -18,6 +18,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   mouse: mouse look, left button fire, right button aim, R reload, Q and
   1–3 swap, F zoom, Shift sprint, Space dodge.
 - **Pause** — the **II** button top-right (or Esc) freezes the field and
+  opens a tabbed panel — *the pilgrim*, *this run*, *controls*, *the
+  field* — one section at a time, Resume always in reach; it
   shows the run's stats — marrow, horrors felled, host remaining,
   deaths, time, the state of the two mini-bosses, the Warden and the
   cathedral — with the full touch and keyboard control lists, and **the

@@ -1752,6 +1752,36 @@ Known state of play:
   `defSummon` the summon; `DEF.tellSpot` is chosen once so the rings and
   the thing agree.
 
+- **THE PHANTOM HALL, AND TWO MORE THINGS THAT WERE THE CATHEDRAL'S.**
+  `bladeMeetsStone` tests "the hall's walls" geometrically off HW/HL —
+  and in the Mire that rect stands invisible across the yard's flanks,
+  so every swing there bounced off nothing. Gated `!DEF.on`. **Any rule
+  that reasons from HW/HL/PW/PL/PH is a cathedral rule and needs the same
+  gate**; grep those names before trusting a new mode.
+- **A PARRY IS A BLOW AIMED AT YOU.** The rule was "the horror is
+  mid-windup or striking", and a Drowned pounding a WALL is exactly that
+  for most of its life — so every cut on one clanged, halved its damage
+  and froze the frame, and the blade read as bouncing off bodies. It now
+  also asks that the attack is not `bash` and that the horror is FACING
+  the pilgrim (within a radian). Tune that arc, not the state test.
+- **The over-the-shoulder mark is SMOOTHED** (`FHUD.sx/sy`): the ray
+  meets the skull's sphere one frame and the trunk's the next as a body
+  bobs, and the reticle leapt a head's height with it. It eases at 16/s
+  and snaps only on a jump over a fifth of the screen (a new target).
+- **THE PANELS ARE TABBED** (`.tabs`/`.tab[data-t]` and `.col[data-t]`,
+  `panelTab(root,t)`, remembered under `bp_tab_<id>`). The pause screen
+  is four sections — the pilgrim (portrait beside its selectors), this
+  run, controls, the field — and the shop three; one shows at a time.
+  The `.panel` is a flex column: `.cols` scrolls and `.btns` is pinned,
+  so Resume is never below the fold on a 390px phone. Every id the JS
+  reaches (`heroView`, `sel*`, `ps*`, `sh*`) is unchanged; the second
+  pause column was split at "The field (testing)" into its own tab. The
+  title's three ways are CARDS with their own blurbs, so the two JS
+  writes into `#titleHint` are gone and the hint is one generic line.
+  **A harness that clicks the middle of the title screen now presses the
+  middle CARD and reloads into the path**; press `#modeDefend` (or the
+  card you mean) by id.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,
