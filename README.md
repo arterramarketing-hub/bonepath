@@ -1443,6 +1443,89 @@ crumbling off it the whole way, and three heaves audible in it, the two that
 fail and the one that does not. The earth keeps breaking around it until it
 is out.
 
+## The house — defender
+
+The title's third way. `?mode=defend` loads it; like the path, a mode is
+a page.
+
+**The Mire.** The one hexagon again, but the cathedral is gone and its
+stone footing is kept — the plinth, with a stair at both ends now — and
+a long timber house stands on it: posts, plank walls between them, a
+pitched roof in four bays, a door in each gable, a chimney. Round it the
+churchyard has drowned: a low dry rise carries the house, and past it
+the land goes under black water to the rim of the world, dead trees
+standing in it, a few graves leaning on the rise. Four causeways run out
+along the roads, just clear of the water, a lantern at the foot of each
+and one by each door. It is never day here (dusk or night) and never
+snow (clear, rain or a storm), and the haze closes to fifty metres
+whatever the weather. **Standing in the water slows everything** — the
+pilgrim to six tenths, the Drowned to eight — and the pilgrim leaves a
+wake in it.
+
+**The Drowned.** A new horror. A hollow's frame with the flesh still on
+it, grey-green and split, pale-eyed, unarmed — a hundred life (six
+swings of the greatsword), slow, heavy in the hand, and barely rocked
+by a blow. It **does not much care about you**: inside eight metres, or
+for five seconds after anything hurts it, it comes for you like any
+other; otherwise it picks a standing wall of the house — the nearest, a
+breached one preferred — walks to a stride outside it and **bashes**,
+both arms into the planks. It clambers straight up the footing's rim
+where everything else has to use the stairs. A body walking at a wall
+through a wood gets stuck on a trunk; one that has gone nowhere for a
+second and a half takes a short detour sideways.
+
+They come apart. Every one goes down in a sheet of blood; one killed by
+a blow worth half its life bursts — the head and an arm off it in the
+same instant, stumps spurting, the rest thrown. The blade takes their
+legs as readily as their arms, and **a Drowned with a leg off crawls**:
+prone, chest to the ground, dragging itself on its arms at half pace,
+and still comes.
+
+**The house is twelve walls.** Each is a `breakables` entry with eight
+blows in it, in three stages: whole, breached (the middle planks knocked
+out — a hole you see them through), gone (posts and air). A standing
+wall is a collider and stops rounds at its own crown; a fallen one is
+neither, and is a new way in. When both walls under a roof bay are gone
+the bay comes down. The pilgrim's own blade and rounds never touch the
+house. **When the last wall falls the mending is over**: the shop closes
+for good, every bay drops, and it is survive-until-dead in the open —
+which is not a loss, only the end coming.
+
+**The rounds.** Endless, numbered. A round is a WAVE of the Drowned let
+up out of the bog a few at a time (six plus three a round, in batches
+that grow and quicken), with the field's own host mixed in from the
+third round — hollows, throwers, from the fifth a brute — hunting the
+pilgrim wherever he is; a share of the Drowned burns red, rising with
+the round. Their life climbs eleven per cent a round and their bite a
+half-heart every four. When the last of the wave is down a **boss closes
+the round**: the Unburied, then the Fallen One, then the Bell-Called,
+then the Gravewarden — each with its own introduction, the Warden come
+out of its nave for the house — and fifth **the Carrion Mother**, a
+bloated Drowned half again the size that never sieges, only hunts, and
+**breeds** as she goes: a crawler every few seconds, six at a time, all
+of them bursting when she dies. Then round again, every boss carrying
+thirty per cent more life each cycle. A held round pays a bonus
+(sixty, plus thirty a round) and opens a **lull** of forty-eight
+seconds — the readout counts it down, and the prompt (E, or a tap)
+calls the next round early.
+
+**The lull is the shop.** SPEND, by the pause button, opens it (its own
+pause; Esc closes it). Everything is bought with marrow:
+
+| the house | mend the worst wall (80 + 12 a round) · mend the whole house (per hurt wall) |
+| the pilgrim | eat, full heal (50) · a heart container (200, ×1.35 each) · might, +15% on the blade and the round (160, ×1.4 each) |
+| the armoury | every blade and gun in the game, 160–520 · a reserve of each calibre you own (70) |
+
+The Mire arms you with the greatsword; the rest of the wardrobe is
+bought, and the pause screen's weapon picker cycles only what you own.
+
+Death ends the run where you fall, with the round reached, the Drowned
+put down and the marrow unspent on the stone; **the best round held is
+remembered** and shown under it.
+
+The readout under the hearts carries the round, what is left to come
+(or the boss's name), and the house's integrity as a percentage.
+
 ## The weight of a swing
 
 Two things carry the mass of a weapon, and neither of them is speed.

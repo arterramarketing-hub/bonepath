@@ -49,20 +49,20 @@
     background:rgba(6,7,8,.55);color:var(--bone);font:16px/36px Georgia,serif;text-align:center;
     letter-spacing:.1em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
   #pauseBtn.on{display:block;}
-  #pause{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
+  #pause,#shop{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
     background:rgba(4,5,6,.86);color:var(--bone);font-family:Georgia,'Times New Roman',serif;}
-  #pause.on{display:flex;}
-  #pause .panel{width:min(94vw,960px);max-height:92vh;overflow:auto;padding:18px 24px;border:1px solid rgba(200,190,160,.28);
+  #pause.on,#shop.on{display:flex;}
+  #pause .panel,#shop .panel{width:min(94vw,960px);max-height:92vh;overflow:auto;padding:18px 24px;border:1px solid rgba(200,190,160,.28);
     background:rgba(8,9,10,.7);}
-  #pause h2{margin:0 0 4px;font-weight:normal;letter-spacing:.5em;text-transform:uppercase;font-size:clamp(18px,4vw,30px);text-align:center;}
-  #pause .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
-  #pause .cols{display:flex;gap:22px;flex-wrap:wrap;}
-  #pause .col{flex:1 1 220px;font-size:12.5px;line-height:1.55;}
-  #pause h3{font-weight:normal;letter-spacing:.32em;text-transform:uppercase;font-size:11px;opacity:.75;margin:10px 0 6px;border-bottom:1px solid rgba(200,190,160,.2);padding-bottom:3px;}
+  #pause h2,#shop h2{margin:0 0 4px;font-weight:normal;letter-spacing:.5em;text-transform:uppercase;font-size:clamp(18px,4vw,30px);text-align:center;}
+  #pause .sub,#shop .sub{text-align:center;opacity:.6;font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:12px;}
+  #pause .cols,#shop .cols{display:flex;gap:22px;flex-wrap:wrap;}
+  #pause .col,#shop .col{flex:1 1 220px;font-size:12.5px;line-height:1.55;}
+  #pause h3,#shop h3{font-weight:normal;letter-spacing:.32em;text-transform:uppercase;font-size:11px;opacity:.75;margin:10px 0 6px;border-bottom:1px solid rgba(200,190,160,.2);padding-bottom:3px;}
   #pause .stat{display:flex;justify-content:space-between;opacity:.9;}
   #pause .stat b{font-weight:normal;color:#e6c97a;}
   #pause .k{opacity:.65;}
-  #pause .btns{display:flex;gap:14px;justify-content:center;margin-top:14px;}
+  #pause .btns,#shop .btns{display:flex;gap:14px;justify-content:center;margin-top:14px;}
   #pause .col.hero{flex:0 0 212px;text-align:center;}
   #heroView{width:200px;height:240px;border:1px solid rgba(200,190,160,.25);background:#0b0d12;image-rendering:pixelated;display:block;margin:0 auto;}
   #pause .sel{display:flex;justify-content:space-between;align-items:center;margin-top:7px;}
@@ -72,8 +72,8 @@
   #pause .arrow:active{opacity:1;}
   #pause .sel b{font-weight:normal;color:#e6c97a;min-width:104px;text-align:center;font-size:12px;}
   #pause .note{font-size:11px;opacity:.7;line-height:1.4;margin-top:6px;min-height:2.8em;}
-  #pause .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
-  #pause .btn2:active{background:rgba(200,190,160,.15);}
+  #pause .btn2,#shop .btn2{padding:8px 22px;border:1px solid rgba(200,190,160,.4);letter-spacing:.3em;text-transform:uppercase;font-size:12px;cursor:pointer;user-select:none;}
+  #pause .btn2:active,#shop .btn2:active{background:rgba(200,190,160,.15);}
   #pause .btn2.sm{padding:4px 10px;font-size:10px;margin-left:8px;}
   /* A SLIDER STACKS: the label on its own line and the track under it,
      because the picker row is 104px of value and a 212px column has no
@@ -117,6 +117,28 @@
     font-size:15px;letter-spacing:.12em;color:var(--bone);
     text-shadow:0 1px 0 #000;font-variant-numeric:tabular-nums;}
   #marrow .lbl{display:block;font-size:9px;letter-spacing:.4em;color:var(--bone-dim);text-transform:uppercase;}
+  /* the shop's rows */
+  #shop{z-index:11;}
+  #shop .shrow{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:12.5px;line-height:1.3;}
+  #shop .shrow>span{flex:1 1 auto;}
+  #shop .shrow small{display:block;opacity:.6;font-size:10.5px;}
+  #shop .shrow b{font-weight:normal;color:#e6c97a;margin:0 10px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  #shop .shbuy{padding:5px 12px;border:1px solid var(--ember);color:var(--ember-hi);font-size:10px;letter-spacing:.25em;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap;}
+  #shop .shbuy:active{background:rgba(208,118,43,.2);}
+  #shop .shbuy.no{opacity:.35;border-color:var(--bone-faint);color:var(--bone-dim);pointer-events:none;}
+  #shop .shbuy.own{border-color:var(--bone-dim);color:var(--bone);}
+  #shop .sub b{color:#e6c97a;font-weight:normal;}
+  /* the Mire's readout: the round, what is left of the wave, what is left of the house */
+  #defHud{position:absolute;left:50%;transform:translateX(-50%);top:calc(46px + env(safe-area-inset-top));display:none;
+    font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--bone);text-align:center;text-shadow:0 1px 2px #000;
+    font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap;}
+  #defHud b{font-weight:normal;color:var(--ember-hi);}
+  #defHud .h{color:var(--bone-dim);}
+  #shopBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(108px + env(safe-area-inset-right));
+    z-index:9;height:38px;padding:0 12px;border:1px solid var(--ember);border-radius:4px;
+    background:rgba(6,7,8,.55);color:var(--ember-hi);font:11px/36px Georgia,serif;text-align:center;letter-spacing:.22em;text-transform:uppercase;
+    display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 0 14px rgba(208,118,43,.25);}
+  #shopBtn.on{display:block;}
   /* boss bar */
   #bossbar{position:absolute;left:50%;transform:translateX(-50%);
     bottom:calc(88px + env(safe-area-inset-bottom));width:min(78vw,460px);display:none;}
@@ -153,20 +175,6 @@
     z-index:8;display:none;padding:8px 18px;border:1px solid var(--bone-faint);
     background:rgba(7,10,9,.85);color:var(--bone-dim);font-size:11px;letter-spacing:.3em;text-transform:uppercase;
     touch-action:none;}
-  /* marrow offerings */
-  #shop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;display:none;
-    width:min(86vw,380px);padding:20px 22px;border:1px solid var(--bone-dim);
-    background:rgba(7,10,9,.94);box-shadow:0 0 40px rgba(0,0,0,.8);}
-  #shop .shopTitle{text-align:center;font-size:14px;letter-spacing:.42em;text-indent:.42em;
-    text-transform:uppercase;color:var(--ember-hi);margin-bottom:4px;}
-  #shop .shopBal{text-align:center;font-size:10px;letter-spacing:.3em;text-transform:uppercase;
-    color:var(--bone-dim);margin-bottom:14px;font-variant-numeric:tabular-nums;}
-  #shop button{display:block;width:100%;margin-top:9px;padding:11px 12px;
-    border:1px solid var(--bone-faint);background:rgba(20,24,20,.6);color:var(--bone);
-    font-family:var(--serif);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
-    touch-action:manipulation;}
-  #shop button:disabled{opacity:.35;}
-  #shop #shopLeave{border-color:var(--bone-dim);background:transparent;color:var(--bone-dim);margin-top:16px;}
   /* ---- banners & screens ---- */
   /* ---- cutscenes ---- */
   /* The letterbox is two bars that GROW rather than a black frame that
@@ -240,8 +248,8 @@
     text-transform:uppercase;color:var(--bone-dim);}
   #title .rule{width:min(46vw,260px);height:1px;margin:26px auto;
     background:linear-gradient(90deg,transparent,var(--bone-faint),transparent);}
-  #modes{display:flex;gap:18px;justify-content:center;margin:2px 0 14px;}
-  #modes .mode{padding:12px 26px;border:1px solid rgba(200,190,160,.35);color:var(--bone);font-size:13px;letter-spacing:.32em;text-indent:.32em;
+  #modes{display:flex;gap:14px;justify-content:center;margin:2px 0 14px;flex-wrap:wrap;padding:0 12px;}
+  #modes .mode{padding:11px 16px;border:1px solid rgba(200,190,160,.35);color:var(--bone);font-size:11px;letter-spacing:.2em;text-indent:.2em;white-space:nowrap;
     text-transform:uppercase;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:rgba(6,7,8,.5);}
   #modes .mode.on{border-color:var(--ember-hi);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.25);}
   #modes .mode:active{background:rgba(200,190,160,.15);}
@@ -403,6 +411,7 @@
   <div id="acog"><div class="ring"></div><div class="chev"></div><div class="post"></div></div>
   <div id="reddot"><div class="dot"></div></div>
   <div id="marrow"><span class="lbl">marrow</span><span id="marrowN">0</span></div>
+  <div id="defHud"></div>
   <div id="bossbar">
     <div id="bossname">GRAVEWARDEN OF THE BONE PATH</div>
     <div id="bossframe"><div id="bossfill"></div></div>
@@ -425,6 +434,7 @@
 <div id="prompt"></div>
 <div id="pauseBtn">II</div>
 <div id="povBtn">3RD</div>
+<div id="shopBtn">&#10022; spend</div>
 <div id="pause"><div class="panel">
   <h2>Paused</h2><div class="sub">the marrow remembers</div>
   <div class="cols">
@@ -490,6 +500,16 @@
   <div class="btns"><div class="btn2" id="btnResume">Resume</div><div class="btn2" id="btnRestart">Restart</div></div>
 </div></div>
 
+<div id="shop"><div class="panel">
+  <h2>The Lull</h2><div class="sub" id="shopSub">round 0 held &middot; marrow <b>0</b></div>
+  <div class="cols">
+    <div class="col"><h3>The house</h3><div id="shHouse"></div></div>
+    <div class="col"><h3>The pilgrim</h3><div id="shBody"></div></div>
+    <div class="col"><h3>The armoury</h3><div id="shArms"></div></div>
+  </div>
+  <div class="btns"><div class="btn2" id="shopClose">Back to the house</div></div>
+</div></div>
+
 <div id="cine">
   <div id="cineVig"></div>
   <div class="bar t"></div><div class="bar b"></div>
@@ -505,7 +525,7 @@
   <h1>Bonepath</h1>
   <div class="sub">the marrow remembers</div>
   <div class="rule"></div>
-  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div></div>
+  <div id="modes"><div class="mode" id="modeField">the field</div><div class="mode" id="modePath">the path &middot; survival</div><div class="mode" id="modeDefend">the house &middot; defender</div></div>
   <div id="begin">touch a way to begin</div>
   <div class="hint" id="titleHint">
     left thumb &mdash; move &nbsp;&middot;&nbsp; right thumb: hold &amp; drag &mdash; turn camera<br>
@@ -1766,6 +1786,7 @@ addEventListener('resize',resize);
    so the world is gone well before either shows. */
 const FOG_NEAR=30,FOG_FAR=132;
 const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68],blizzard:[6,27]};
+function fogRange(){return DEF.on?DEF_FOG:(FOG_BY_WX[RUN.weather]||FOG_BY_WX.clear);}
 
 /* AFFINE TEXTURE MAPPING — the console's most famous wrong.
    The PS1 had no divider to spare per pixel, so it walked a texture across
@@ -3395,9 +3416,20 @@ const RUN={seed:0,time:'night',weather:'clear',wedges:[],terrain:[],landmarkWedg
    field uses, as the north wedge) and then shifted into place. */
 const PATH={on:false,tiles:[],terrain:[],goal:6000,TILE:30,cathEvery:6,far:0,M:null,chunks:null,buildCath:null,helpers:null,job:null,spawnQ:[]};
 const BUILD={offZ:0,tile:-1};   // while a tile is built in the origin's frame: the shift it will get, and its number
+/* DEFENDER (the house in the Mire): the one field again, but with the
+   cathedral gone and a rotting timber house stood on its footing in a
+   drowned churchyard. Waves of the DROWNED come up out of the bog and
+   push for the house; between rounds the marrow mends it, or arms you.
+   Endless, a boss to close every round, and the run ends where you fall.
+   `?mode=defend` loads it; a mode is a page. */
+const DEF={on:false,round:0,phase:'lull',t:0,lullT:0,toSpawn:0,spawnT:0,kills:0,bossE:null,bossKind:'',
+  house:null,houseGone:false,owned:{sword:true},might:1,hearts:0,best:null,shopOpen:false,called:false,extraQ:[]};
+const DEF_FOG=[11,54];                 // the Mire's own haze: closer than any weather's
+const WATER_Y=0;                       // the bog stands at this height; the causeways just clear it
 const WEDGE_N=6;
 function wedgeAngle(i){return Math.PI/6+i*Math.PI/3;}          // 30, 90 (south: the start), 150, 210, 270 (north), 330 degrees
 function seedRun(){
+  try{if(new URLSearchParams(location.search).get('mode')==='defend')DEF.on=true;}catch(e){}
   let s=0;try{const q=new URLSearchParams(location.search).get('seed');if(q)s=(parseInt(q,10)>>>0)||0;}catch(e){}
   if(!s)s=((Math.random()*4294967295)>>>0)||1;
   RUN.seed=s;
@@ -3407,6 +3439,7 @@ function seedRun(){
   const pick=a=>a[(rnd()*a.length)|0];
   RUN.time=pick(['sunrise','noon','dusk','night','night']);
   RUN.weather=pick(['clear','clear','clear','rain','storm','snow','blizzard']);
+  if(DEF.on){RUN.time=pick(['dusk','night','night']);RUN.weather=pick(['clear','rain','rain','storm']);}   // the Mire is never seen by day, and never under snow
   try{const q=new URLSearchParams(location.search),ht=q.get('time'),wq=q.get('wx');     // (testing: ?time=noon&wx=storm names them outright, the rest of the field still the seed's)
     if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm','snow','blizzard'].includes(wq))RUN.weather=wq;}catch(e){}
   RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
@@ -3483,7 +3516,7 @@ const cathDist=(x,z)=>rectSD(x,z-cathZ(z),HW+WALLT,HL+WALLT);   // from the oute
    whichever cathedral that stretch of the corridor is carrying. */
 const STONE_APRON=4.5;
 const onStone=(x,z)=>cathDist(x,z)<STONE_APRON;
-const inStairsL=(x,zl)=>{const az=PATH.on?Math.abs(zl):zl;return Math.abs(x)<STAIR_W&&az>PL-.5&&az<PL+STAIR_L+.5;};   // (on the path the stair is at both ends)
+const inStairsL=(x,zl)=>{const az=(PATH.on||DEF.on)?Math.abs(zl):zl;return Math.abs(x)<STAIR_W&&az>PL-.5&&az<PL+STAIR_L+.5;};   // (on the path the stair is at both ends)
 const inStairs=(x,z)=>inStairsL(x,z-cathZ(z));
 function pushOutOfCath(p,m){const cz=cathZ(p.z);if(cz>1e8)return;p.z-=cz;pushOutOf(p,HW+WALLT,HL+WALLT,m);p.z+=cz;}
 /* IS THIS POINT INSIDE THE CATHEDRAL'S STONE? In the building's own frame:
@@ -3495,6 +3528,7 @@ function pushOutOfCath(p,m){const cz=cathZ(p.z);if(cz>1e8)return;p.z-=cz;pushOut
    so the lens never grazes the inside face. */
 const CAM_DOOR=2.6;
 function camStone(x,zl){
+  if(DEF.on)return false;                                           // (the house's walls are breakables, not stone)
   if(Math.abs(x)>HW+WALLT||Math.abs(zl)>HL+WALLT)return false;      // clear of the building
   if(Math.abs(x)<HW-.3&&Math.abs(zl)<HL-.3)return false;            // in the nave
   if(Math.abs(x)<CAM_DOOR&&(PATH.on?Math.abs(zl):zl)>HL-.4)return false;   // the portal stands open
@@ -3532,8 +3566,28 @@ const keepInside=(p,hw,hl,m)=>{p.x=clamp(p.x,-(hw-m),hw-m);p.z=clamp(p.z,-(hl-m)
 
 /* broad, gentle elevations: flat at the heart and the rim,
    long rolling swells in the field between */
+/* THE MIRE'S GROUND. A low rise carries the house and its footing, dry;
+   past it the land goes under — the bog lies half a metre below the water
+   and only the four causeways stand clear of it. The step up to the
+   plinth stays: the rise is flattened to 0.72 against it, so the footing
+   still stands half a metre proud with its stairs. */
+function mireGround(x,z){
+  const d=Math.hypot(x,z),kq=clamp((d-22)/14,0,1),kr=1-kq*kq*(3-2*kq);   // 1 on the rise, 0 out in the bog
+  const n=(Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6+Math.sin(x*.045-z*.06+2.1)*.42)*.5;
+  let h=lerp(-.58,.72,kr)+n*(.4+.6*kr);
+  for(const a of[Math.PI/2,0,Math.PI,-Math.PI/2]){                    // the causeways: a ridge under each road
+    const ux=Math.cos(a),uz=Math.sin(a),along=x*ux+z*uz,across=x*(-uz)+z*ux;
+    if(along<0)continue;
+    const g=Math.exp(-(across*across)/(2*2.6*2.6));
+    h=Math.max(h,lerp(h,.34+.38*kr,g));}
+  const pd=Math.max(0,rectSD(x,z,PW,PL));
+  h=lerp(.72,h,Math.min(1,pd/6));
+  const outFade=Math.max(0,1-Math.max(0,d-(HEX_AP-10))/9);           // and the rim of the world drowns
+  return h*outFade-(1-outFade)*.9;
+}
 function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyond
   if(PATH.on)return pathGround(x,z+BUILD.offZ);
+  if(DEF.on)return mireGround(x,z);
   const pd=Math.max(0,rectSD(x,z,PW,PL));
   const inFade=Math.min(1,pd/6);
   const d=Math.hypot(x,z);
@@ -3544,8 +3598,13 @@ function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyo
      +terrainAt(x,z));                                   // and the seed's own shapes on top
 }
 // what anything standing at (x,z) stands ON: the plinth, the stair, or the soil
+function wading(x,z){return DEF.on&&heightAt(x,z)<WATER_Y-.14;}   // in the Mire: standing in the water
 function heightAt(x,z){
   if(PATH.on)return pathHeightAt(x,z+BUILD.offZ);   // (a tile under construction asks in the origin's frame: answered in the world's)
+  if(DEF.on&&inStairs(x,z)&&z<=-PL){                  // the house has a back stair
+    const t=clamp((-z-PL)/STAIR_L,0,1);
+    return PH*(1-t)+groundAt(x,z)*t;
+  }
   if(inStairs(x,z)&&z>=PL){
     const t=clamp((z-PL)/STAIR_L,0,1);
     return PH*(1-t)+groundAt(x,z)*t;
@@ -3664,12 +3723,14 @@ function constrain(p,arenaOnly,offEdge){
   constrainCath(p);
 }
 function constrainCath(p){
-  // the plinth's rim: a step no one climbs except by the stair
-  if(!inStairsL(p.x,p.z)){
+  // the plinth's rim: a step no one climbs except by the stair — except
+  // the Drowned, who clamber straight up it (`climbs`)
+  if(!p.climbs&&!inStairsL(p.x,p.z)){
     const sd=rectSD(p.x,p.z,PW,PL);
     if(sd>=0&&sd<.45)pushOutOf(p,PW,PL,.45);
     else if(sd<0&&sd>-.45)keepInside(p,PW,PL,.45);
   }
+  if(DEF.on)return;                                        // the house has no hall: its walls are its own segments
   // the hall's walls
   const sdo=rectSD(p.x,p.z,HW+WALLT,HL+WALLT);            // outside the outer face
   const sdi=rectSD(p.x,p.z,HW,HL);                        // inside the inner face (negative)
@@ -3786,6 +3847,353 @@ function layRoad(ax,az,bx,bz,w){
   const rm=new THREE.Mesh(g,matNS('flag'));world.add(rm);roadMeshes.push(rm);
 }
 
+/* ======================= THE MIRE ========================
+   The house's ground: a drowned churchyard. The cathedral's footing is
+   kept — the same plinth, a stair at BOTH ends — and the house is built
+   on it (see buildHouse). Round it, black water to the rim of the world,
+   dead trees standing in it, four causeways out to where the Drowned
+   come up. */
+let waterMesh=null;
+function buildMire(M,H){
+  const cathM=mat('cathedral');cathM.map.repeat.set(1.4,2.2);
+  // ---- the footing: the plinth, its rim, a stair down the south face and the north
+  {
+    const topTex=texCache.flag.clone();topTex.needsUpdate=true;topTex.repeat.set(9,15);
+    const top=new THREE.Mesh(new THREE.PlaneGeometry(PW*2,PL*2),new THREE.MeshLambertMaterial({map:topTex}));
+    top.rotation.x=-Math.PI/2;top.position.set(0,PH+.02,0);world.add(top);
+    world.add(box(.6,PH+.1,PL*2+.6,cathM,-PW,PH/2,0));world.add(box(.6,PH+.1,PL*2+.6,cathM,PW,PH/2,0));
+    const sw=PW-STAIR_W;
+    for(const end of[1,-1]){
+      world.add(box(sw,PH+.1,.6,cathM,-(STAIR_W+sw/2),PH/2,end*PL));world.add(box(sw,PH+.1,.6,cathM,STAIR_W+sw/2,PH/2,end*PL));
+      const N=8,tr=STAIR_L/N;
+      for(let k=0;k<N;k++){const h=PH*(1-k/N);world.add(box(STAIR_W*2,h,tr,M.flag,0,h/2,end*(PL+(k+.5)*tr)));}
+      for(const side of[1,-1]){
+        world.add(box(.4,PH*.55,STAIR_L,cathM,side*(STAIR_W+.2),PH*.55/2+.3,end*(PL+STAIR_L/2)));
+        world.add(cyl(.22,.26,PH+1.1,6,cathM,side*(STAIR_W+.2),(PH+1.1)/2,end*(PL+STAIR_L+.1)));
+      }
+    }
+  }
+  // ---- the water: one sheet at WATER_Y, black-green, scummed
+  {
+    if(!texCache.bog)makeTex('bog',256,(ctx,S)=>{
+      ctx.fillStyle='#0b1410';ctx.fillRect(0,0,S,S);
+      for(let i=0;i<900;i++){ctx.fillStyle=`rgba(${20+Math.random()*30|0},${40+Math.random()*30|0},${22+Math.random()*16|0},${.12+Math.random()*.25})`;
+        const w=4+Math.random()*30,h=2+Math.random()*5;ctx.fillRect(Math.random()*S,Math.random()*S,w,h);}
+      for(let i=0;i<140;i++){ctx.fillStyle=`rgba(${90+Math.random()*50|0},${110+Math.random()*40|0},${60+Math.random()*30|0},${.08+Math.random()*.16})`;
+        ctx.beginPath();ctx.ellipse(Math.random()*S,Math.random()*S,3+Math.random()*9,1+Math.random()*3,Math.random()*3,0,TAU);ctx.fill();}
+    });
+    const wm=matNS('bog',{transparent:true,opacity:.86,depthWrite:false,color:new THREE.Color(0x9fb8a6).convertSRGBToLinear()});
+    wm.map.repeat.set(18,18);
+    const w=new THREE.Mesh(new THREE.PlaneGeometry(HEX_R*2.2,HEX_R*2.2,1,1),wm);
+    w.rotation.x=-Math.PI/2;w.position.y=WATER_Y;w.renderOrder=1;world.add(w);waterMesh=w;
+  }
+  // ---- the dead wood standing in it, and what the bog gave back
+  srand(RUN.seed^0x3a1e);
+  let trees=0;for(let i=0;i<400&&trees<62;i++){
+    const a=rnd()*TAU,d=rr(20,HEX_AP-5),px=Math.cos(a)*d,pz=Math.sin(a)*d;
+    if(!clearSpot(px,pz,2.2))continue;if(Math.hypot(px,pz)<24&&rnd()<.6)continue;
+    trees++;H.tree(px,pz,rnd()<.4);}
+  for(let i=0,piles=0;i<80&&piles<9;i++){const a=rnd()*TAU,d=rr(16,30),px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,.5)||wading(px,pz))continue;piles++;H.bonePile(px,pz);}
+  // a few drowned graves on the rise, where the churchyard was
+  {const graveGeo=new THREE.BoxGeometry(.7,1.1,.16);
+    for(let i=0,g=0;i<60&&g<10;i++){const a=rnd()*TAU,d=rr(15,26),px=Math.cos(a)*d,pz=Math.sin(a)*d;
+      if(!clearSpot(px,pz,.9)||wading(px,pz))continue;g++;
+      const m=new THREE.Mesh(graveGeo,M.grave);m.position.set(px,heightAt(px,pz)+.42,pz);m.rotation.y=rnd()*TAU;m.rotation.z=rr(-.25,.25);m.rotation.x=rr(-.12,.12);
+      world.add(m);addObstacle(px,pz,.4,true,heightAt(px,pz)+.95);}}
+  // ---- lanterns: one at the foot of each causeway, and one by each door
+  const lantern=(px,pz)=>{const gy=heightAt(px,pz);
+    world.add(cyl(.05,.07,2.0,5,M.iron,px,gy+1.0,pz));world.add(box(.32,.3,.32,M.iron,px,gy+1.85,pz));
+    addWisp(px,gy+1.85,pz,0xf0a648,.4);const l=new THREE.PointLight(0xe8a050,1.2*RUN.lamp,11,2);l.position.set(px,gy+1.9,pz);addLight(l);
+    lanternLights.push({l,ph:Math.random()*TAU,hz:addHaze(px,gy+1.85,pz,0xffd9a0,4,.2),base:1.2*RUN.lamp,lamp0:1.2});addObstacle(px,pz,.24,false,gy+1.85);};
+  for(const a of[Math.PI/2,0,Math.PI,-Math.PI/2])lantern(Math.cos(a)*30-Math.sin(a)*2.4,Math.sin(a)*30+Math.cos(a)*2.4);
+  lantern(STAIR_W+1.4,PL+STAIR_L+1.2);lantern(-(STAIR_W+1.4),-(PL+STAIR_L+1.2));
+  buildHouse(M);
+}
+function defBest(save){
+  let b={round:0,kills:0};try{b=Object.assign(b,JSON.parse(localStorage.getItem('bp_defend_best')||'{}'));}catch(e){}
+  if(save){const r=DEF.round-(DEF.phase==='lull'?0:1);   // a round counts once it is HELD
+    if(r>b.round||(r===b.round&&(DEF.kills||0)>b.kills)){b={round:r,kills:DEF.kills||0};try{localStorage.setItem('bp_defend_best',JSON.stringify(b));}catch(e){}}}
+  return b;
+}
+/* ======================= THE HOUSE ========================
+   A long timber house on the footing: posts, plank walls between them,
+   a pitched roof in four sections, a door in each gable end. The WALLS
+   are the thing: twelve segments, each a `breakables` entry the Drowned
+   bash down in stages — whole, breached (the middle planks out, a hole
+   you can see them through), gone (posts and air). A roof section drops
+   when both walls under it are gone. Every wall is a wall collider while
+   it stands and stops rounds at its own crown; the player's own blade
+   and rounds never touch it (`noPlayer`). Marrow mends a segment back to
+   whole between rounds (`mendSeg`). */
+const HOUSE={HX:6.6,HZ:11,WH:3.0,RIDGE:2.4,segs:[],roof:[],group:null};
+function buildHouse(M){
+  const g=new THREE.Group();g.position.y=PH;world.add(g);HOUSE.group=g;
+  const wood=mat('bark'),woodD=mat('bark',{color:new THREE.Color(0x8a8a8a).convertSRGBToLinear()});
+  const shingle=mat('grave',{color:new THREE.Color(0x6e6a66).convertSRGBToLinear()});
+  const {HX,HZ,WH,RIDGE}=HOUSE;
+  const put=(mesh)=>{g.add(mesh);return mesh;};
+  const lbox=(w,h,d,m,x,y,z,ry)=>{const b=box(w,h,d,m,x,y,z,ry);g.add(b);return b;};
+  // ---- floor and posts (permanent)
+  {const ft=texCache.bark.clone();ft.needsUpdate=true;ft.repeat.set(6,10);
+    const fl=new THREE.Mesh(new THREE.PlaneGeometry(HX*2+.4,HZ*2+.4),new THREE.MeshLambertMaterial({map:ft}));fl.rotation.x=-Math.PI/2;fl.position.y=.05;g.add(fl);}
+  const post=(x,z)=>{lbox(.3,WH+.15,.3,woodD,x,(WH+.15)/2,z);addObstacle(x,z,.22,false,PH+WH+.15);};
+  for(const sx of[1,-1])for(let k=0;k<=4;k++)post(sx*HX,-HZ+k*5.5);
+  for(const sz of[1,-1])for(const x of[-1.5,1.5])post(x,sz*HZ);
+  for(const sz of[1,-1])lbox(3.4,.3,.36,woodD,0,WH-.2,sz*HZ);                 // the lintel over each door
+  // ---- a wall segment: six planks between two posts, a hole knocked in it by stages
+  const seg=(cx,cz,len,ry,nx,nz,win)=>{
+    const sg=new THREE.Group();sg.position.set(cx,0,cz);sg.rotation.y=ry;g.add(sg);
+    const planks=[];
+    for(let i=0;i<6;i++){
+      const y=.28+i*.48,gap=win&&(i===3||i===4);
+      if(gap){for(const sd of[1,-1]){const pl=box(len*.5-.8,.42,.14,wood,sd*(len*.25+.4),y,0);pl.rotation.z=rr3(-.02,.02);sg.add(pl);planks.push(pl);}}
+      else{const pl=box(len-.34,.42,.14,wood,0,y,0);pl.rotation.z=rr3(-.025,.025);pl.position.z=rr3(-.02,.02);sg.add(pl);planks.push(pl);}
+    }
+    if(win){sg.add(box(1.6,.08,.18,woodD,0,1.68,0));sg.add(box(1.6,.08,.18,woodD,0,2.62,0));}   // the sill and the head of the window
+    const lx=Math.cos(ry),lz=-Math.sin(ry);
+    const ax=cx-lx*len/2,az=cz-lz*len/2,bx=cx+lx*len/2,bz=cz+lz*len/2;
+    addWall(ax,az,bx,bz,.32,false,PH+WH);
+    const obs=obstacles[obstacles.length-1];
+    const along=Math.abs(lx)>.5;
+    const b=addBreakable({g:sg,x:cx,z:cz,hw:along?len/2:.25,hd:along?.25:len/2,hp:8,maxHp:8,obs,parent:g,kind:'house',noPlayer:true,tough:true,
+      planks,state:0,nx,nz,len,ry,win:!!win,ax,az,bx,bz});
+    HOUSE.segs.push(b);return b;
+  };
+  for(const sx of[1,-1])for(let k=0;k<4;k++)seg(sx*HX,-HZ+k*5.5+2.75,5.5,Math.PI/2,sx,0,k===1||k===2);
+  for(const sz of[1,-1])for(const sx of[1,-1])seg(sx*(1.5+(HX-1.5)/2),sz*HZ,HX-1.5,0,0,sz,false);
+  // ---- the roof: two slopes in four sections, gables, a chimney
+  {const run=HX+.7,slope=Math.hypot(run,RIDGE),ang=Math.atan2(RIDGE,run);
+    for(let k=0;k<4;k++){const z0=-HZ-.4+k*(HZ*2+.8)/4,z1=z0+(HZ*2+.8)/4,zc=(z0+z1)/2,L=z1-z0+.02,sec={k,z0,z1,meshes:[],alive:true};
+      for(const sx of[1,-1]){const m=box(slope,.14,L,shingle,sx*run/2,WH+RIDGE/2+.08,zc);m.rotation.z=-sx*ang;g.add(m);sec.meshes.push(m);}
+      const r=box(.3,.22,L,woodD,0,WH+RIDGE+.1,zc);g.add(r);sec.meshes.push(r);   // the ridge beam
+      HOUSE.roof.push(sec);}
+    for(const sz of[1,-1]){   // the gables: a triangle of planks, DoubleSide
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute([-HX,WH,0, HX,WH,0, 0,WH+RIDGE,0],3));
+      geo.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,.5,1],2));geo.computeVertexNormals();
+      const gm=mat('bark',{side:THREE.DoubleSide});const tri=new THREE.Mesh(geo,gm);tri.position.z=sz*(HZ-.02);g.add(tri);}
+    const ch=box(1.0,2.4,1.0,mat('cathedral'),-3.2,WH+RIDGE*.5+.9,-3.0);g.add(ch);
+  }
+  // fold the permanent timber: the walls are registered and stay their own
+  {const roofSet=new Set();for(const sec of HOUSE.roof)for(const m of sec.meshes)roofSet.add(m);
+    for(const m of roofSet)m.name='roof';   // (a named mesh is left out of the bake)
+    g.userData.bake=bakeStatic(g);}
+};
+function houseFrac(){let a=0,b=0;for(const s of HOUSE.segs){a+=s.hp;b+=s.maxHp;}return b?a/b:0;}
+function houseStanding(){return HOUSE.segs.filter(s=>s.state<2);}
+function worstSeg(){let w=null;for(const s of HOUSE.segs)if(s.hp<s.maxHp&&(!w||s.hp/s.maxHp<w.hp/w.maxHp))w=s;return w;}
+// the nearest point of a standing wall to (x,z), and its distance
+function segNear(s,x,z){const cx=clamp(x,s.x-s.hw,s.x+s.hw),cz=clamp(z,s.z-s.hd,s.z+s.hd);return {x:cx,z:cz,d:Math.hypot(x-cx,z-cz)};}
+function segSplinter(s,px,pz,n){boneBurst(px,PH+1.1+Math.random()*1.2,pz,0x5a4326,n,2.2);}
+/* one blow on a wall: knock, splinters, and the stage it is in */
+function bashSeg(s,power,px,pz){
+  if(!s||s.state>=2)return;
+  s.hp-=power||1;
+  const p=px!==undefined?{x:px,z:pz}:{x:s.x,z:s.z};
+  segSplinter(s,p.x,p.z,5);AudioSys.woodKnock();G.camShake=Math.max(G.camShake,.06);
+  // a plank knocked loose comes off the wall
+  if(s.hp<=s.maxHp*.5&&s.state<1){s.state=1;
+    for(const pl of s.planks){const y=pl.position.y;if(Math.abs(y-1.48)<.75&&pl.visible&&Math.random()<.7){pl.visible=false;dropPlank(s,pl);}}
+    AudioSys.woodFall();G.camShake=Math.max(G.camShake,.16);}
+  if(s.hp<=0)segFall(s);
+}
+function dropPlank(s,pl){
+  const wp=new THREE.Vector3();pl.getWorldPosition(wp);
+  planetPiece(new THREE.BoxGeometry(rr3(.8,1.8),.36,.13),pl.material,wp.x+s.nx*.3,wp.y,wp.z+s.nz*.3,.09,2.4,'wood');
+}
+function segFall(s){
+  if(s.state>=2)return;
+  s.state=2;s.hp=0;
+  for(const pl of s.planks){if(pl.visible&&Math.random()<.55)dropPlank(s,pl);pl.visible=false;}
+  const bi=breakables.indexOf(s);if(bi>=0)breakables.splice(bi,1);
+  const oi=obstacles.indexOf(s.obs);if(oi>=0)obstacles.splice(oi,1);
+  segSplinter(s,s.x,s.z,14);AudioSys.woodFall();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.32);G.vibr(30);
+  for(const e of enemies)if(e.zombie&&e.segT===s)e.segT=null;   // whoever was at it looks for the next
+  // the roof over a bay comes down once both walls under it are gone
+  for(const sec of HOUSE.roof){if(!sec.alive)continue;
+    const under=HOUSE.segs.filter(q=>q.ry!==0&&q.z>sec.z0-.1&&q.z<sec.z1+.1);
+    if(under.length&&under.every(q=>q.state>=2))roofFall(sec);}
+  if(!houseStanding().length&&!DEF.houseGone)houseFallen();
+  toast('a wall is down');
+}
+function roofFall(sec){
+  sec.alive=false;
+  for(const m of sec.meshes){const wp=new THREE.Vector3();m.getWorldPosition(wp);m.visible=false;
+    for(let i=0;i<3;i++)planetPiece(new THREE.BoxGeometry(rr3(1.2,2.6),.14,rr3(1,2.2)),m.material,wp.x+rr3(-2,2),wp.y+rr3(-.3,.3),wp.z+rr3(-2,2),.08,2.8,'wood');}
+  boneBurst(0,PH+HOUSE.WH+1,(sec.z0+sec.z1)/2,0x3a3430,26,3.4);smokePuff(0,PH+HOUSE.WH,(sec.z0+sec.z1)/2,6);
+  AudioSys.woodFall();AudioSys.quake();G.camShake=Math.max(G.camShake,.7);G.vibr([40,30,80]);
+}
+function mendSeg(s){
+  if(!s||s.hp>=s.maxHp)return false;
+  const was=s.state;s.hp=s.maxHp;s.state=0;
+  for(const pl of s.planks)pl.visible=true;
+  if(was>=2){breakables.push(s);obstacles.push(s.obs);}
+  boneBurst(s.x,PH+1.4,s.z,0xa08a5a,10,1.6);AudioSys.woodKnock();setTimeout(()=>AudioSys.woodKnock(),140);setTimeout(()=>AudioSys.woodKnock(),300);
+  return true;
+}
+function houseFallen(){
+  DEF.houseGone=true;
+  for(const sec of HOUSE.roof)if(sec.alive)roofFall(sec);
+  bannerShow('THE HOUSE IS DOWN','nothing left to mend — hold out');
+  AudioSys.deathGong();
+}
+/* ======================= THE ROUNDS ========================
+   Endless. A round is a WAVE of the Drowned let up out of the bog a few
+   at a time — more, faster and tougher every round, with the field's own
+   host mixed in from the third — and then a BOSS to close it: the four
+   the game already has, in turn, and then the Carrion Mother, and round
+   again with more life each cycle. Between rounds a LULL, timed, cut
+   short by the prompt; that is when the marrow is spent. The run ends
+   where the pilgrim falls, and the best round is remembered. */
+const DEF_LULL=48,DEF_LULL0=16;
+const DEF_BOSSES=['ghoul','angel','bell','warden','mother'];
+function defStart(){DEF.round=0;DEF.phase='lull';DEF.lullT=DEF_LULL0;DEF.t=0;DEF.kills=0;DEF.called=false;DEF.best=defBest(false);
+  $('defHud').style.display='block';shopBtnSync();}
+function defAlive(){let n=0;for(const e of enemies)if(e instanceof Enemy&&!e.mini&&!e.boss&&e.hp>0)n++;return n;}
+function shopBtnSync(){$('shopBtn').classList.toggle('on',DEF.on&&DEF.phase==='lull'&&G.mode==='play'&&!DEF.houseGone);}
+/* one of the Drowned, up out of the water at the rim of the world along
+   one of the four causeways' quarters — or one of the field's host, which
+   hunts the pilgrim wherever he is */
+function spawnDrowned(n,kind){
+  const q=[Math.PI/2,0,Math.PI,-Math.PI/2][(Math.random()*4)|0],a=q+rr3(-.6,.6),d=rr3(34,42);
+  const p={x:Math.cos(a)*d,z:Math.sin(a)*d};constrain(p,false);
+  kind=kind||'zombie';
+  const e=new Enemy(kind,p.x,p.z,{spawned:true,round:n,red:kind==='zombie'?Math.random()<Math.min(.5,.05*(n-1)):Math.random()<.15+.03*n});
+  if(kind!=='zombie'){e.aggroR=48;e.homeX=rr3(-3,3);e.homeZ=PL+STAIR_L+3;}
+  enemies.push(e);return e;
+}
+function defNextRound(){
+  DEF.round++;const n=DEF.round;
+  DEF.phase='wave';DEF.called=false;DEF.t=0;
+  DEF.toSpawn=Math.min(42,6+3*n);DEF.batch=Math.min(4,1+Math.floor(n/3));DEF.gap=Math.max(2.2,6.5-.35*n);DEF.cap=Math.min(22,11+n);DEF.spawnT=2.0;
+  const lines=['they come up out of the bog','more of them this time','the water is moving','hold the doors','they know the way now','the bog is emptying itself','no end to them'];
+  bannerShow('ROUND '+n,lines[Math.min(lines.length-1,n-1)]);
+  AudioSys.bellToll();G.camShake=Math.max(G.camShake,.2);
+  shopBtnSync();
+}
+function defSpawnBatch(){
+  const n=DEF.round;
+  for(let i=0;i<DEF.batch&&DEF.toSpawn>0;i++){
+    let kind='zombie';const r=Math.random();
+    if(n>=3&&r<.16)kind='hollow';else if(n>=4&&r<.22)kind='caster';else if(n>=5&&r<.29)kind='big';
+    spawnDrowned(n,kind);DEF.toSpawn--;
+  }
+}
+/* where a boss is put: `d` metres from the pilgrim, off the footing */
+function defBossSpot(d,away){
+  let a=away?Math.atan2(player.x,player.z):Math.random()*TAU;
+  for(let k=0;k<12;k++){
+    const p={x:player.x+Math.sin(a)*d,z:player.z+Math.cos(a)*d};constrain(p,false);
+    if(rectSD(p.x,p.z,PW+1.5,PL+1.5)>0&&clearSpot(p.x,p.z,.8))return p;
+    a+=1.1;}
+  const p={x:player.x,z:player.z+d};constrain(p,false);return p;
+}
+function defBoss(){
+  DEF.phase='boss';const n=DEF.round,k=DEF_BOSSES[(n-1)%DEF_BOSSES.length],cycle=Math.floor((n-1)/DEF_BOSSES.length);DEF.bossKind=k;
+  let e=null;
+  if(k==='ghoul'){const p=defBossSpot(7);e=new GraveGhoul(p.x,p.z);enemies.push(e);}
+  else if(k==='angel'){e=summonAngel();}
+  else if(k==='bell'){const p=defBossSpot(14,true);e=summonBellHorror(p.x,p.z);}
+  else if(k==='warden'){const p=defBossSpot(13,true);e=new Enemy('boss',p.x,p.z,{});
+    e.mini=true;e.name='THE GRAVEWARDEN';e.engaged=true;e.state='rise';e.t=0;e.rig.root.position.y=heightAt(p.x,p.z);
+    e.facing=Math.atan2(player.x-p.x,player.z-p.z);enemies.push(e);cutWardenAt(e);}
+  else{const p=defBossSpot(16,true);e=new Enemy('zombie',p.x,p.z,{mother:true,round:n,spawned:true});enemies.push(e);cutMother(e);}
+  if(e&&e.maxHp&&cycle>0){e.maxHp=Math.round(e.maxHp*(1+.3*cycle));e.hp=e.maxHp;}
+  DEF.bossE=e;
+  AudioSys.bossMusic(1);
+  shopBtnSync();
+}
+function defRoundHeld(){
+  DEF.phase='lull';DEF.lullT=DEF_LULL;DEF.called=false;DEF.bossE=null;DEF.t=0;
+  const bonus=60+30*DEF.round;player.marrow+=bonus;
+  AudioSys.bossMusic(0);AudioSys.victory();
+  toast('+'+bonus+' marrow for the round');
+  bannerShow('ROUND '+DEF.round+' HELD',DEF.houseGone?'nothing left to mend — breathe while you can':'spend the marrow: mend the house, or arm yourself');
+  defBest(true);shopBtnSync();
+}
+/* ======================= THE SHOP ========================
+   Open in the lull only. It is its own pause (the pause screen is
+   refused while it is up), and everything in it is bought with the
+   marrow the round shed. The house is mended here and nowhere else. */
+const SHOP_ARMS={sword:0,ultra:180,bow:160,katana:220,wand:200,deagle:240,ump:300,m4:360,spas:340,sniper:420,rpg:520};
+function setShop(on){
+  if(on&&!(DEF.on&&DEF.phase==='lull'&&G.mode==='play'))return;
+  if(on===DEF.shopOpen)return;
+  DEF.shopOpen=on;G.paused=on;
+  if(on)Input.releaseAll();
+  $('shop').classList.toggle('on',on);
+  if(on)fillShop();
+  AudioSys.pause(on);
+}
+function shopItems(){
+  const n=DEF.round,m=player.marrow,it=[];
+  const dmgd=HOUSE.segs.filter(q=>q.hp<q.maxHp),worst=worstSeg();
+  if(!DEF.houseGone){
+    it.push({col:'house',k:'mend',label:'mend the worst wall',note:dmgd.length?dmgd.length+' wall'+(dmgd.length>1?'s':'')+' hurt':'every wall stands',price:80+12*n,can:!!worst,
+      act(){mendSeg(worstSeg());}});
+    it.push({col:'house',k:'mendAll',label:'mend the whole house',note:'every wall back to whole',price:dmgd.length*(55+8*n),can:dmgd.length>0,
+      act(){for(const q of HOUSE.segs)mendSeg(q);}});
+  }else it.push({col:'house',k:'none',label:'the house is down',note:'nothing left to mend',price:0,can:false,act(){}});
+  it.push({col:'body',k:'eat',label:'eat',note:'the hearts back to full',price:50,can:player.hp<player.maxHp,act(){player.hp=player.maxHp;AudioSys.flask();}});
+  it.push({col:'body',k:'heart',label:'a heart container',note:'one more heart, and all of them full',price:Math.round(200*Math.pow(1.35,DEF.hearts)),can:true,
+    act(){DEF.hearts++;player.maxHp+=HEART;player.hp=player.maxHp;AudioSys.kindle();}});
+  it.push({col:'body',k:'might',label:'might',note:'the blade and the round strike +15% (now '+Math.round(DEF.might*100)+'%)',price:Math.round(160*Math.pow(1.4,DEF.mightN||0)),can:true,
+    act(){DEF.mightN=(DEF.mightN||0)+1;DEF.might*=1.15;AudioSys.chargeReady();}});
+  for(const [k,label] of HERO_OPTS.weapon){
+    const owned=!!DEF.owned[k],held=LOADOUT.weapon===k,g=GUNS.find(q=>q.key===k);
+    it.push({col:'arms',k:'w_'+k,label,note:owned?(held?'in hand':'owned'):(g&&g.note?g.note.split(/[.;—]/)[0]:''),price:owned?0:SHOP_ARMS[k],can:!held,own:owned,
+      act(){DEF.owned[k]=true;LOADOUT.weapon=k;player.rebuild();gunOf();gunSwapped();AudioSys.sheath();}});
+  }
+  const cals=new Set();for(const g of GUNS)if(DEF.owned[g.key])cals.add(g.cal);
+  for(const cal of cals){const g=GUNS.find(q=>q.cal===cal),C=CALIBRES[cal],have=resOf(g);
+    it.push({col:'arms',k:'a_'+cal,label:C.name+' — fill the reserve',note:have+' held',price:70,can:have<C.start*2,
+      act(){setRes(g,Math.max(have,C.start*2));AudioSys.ammoPick();}});}
+  return it;
+}
+function fillShop(){
+  const m=player.marrow;
+  $('shopSub').innerHTML='round '+DEF.round+' held &middot; marrow <b>'+m+'</b>';
+  const cols={house:'',body:'',arms:''};
+  for(const it of shopItems()){
+    const can=it.can&&m>=it.price;
+    cols[it.col]+='<div class="shrow"><span>'+it.label+(it.note?'<small>'+it.note+'</small>':'')+'</span><b>'+(it.price?it.price+' marrow':(it.own?'':''))+'</b>'+
+      '<div class="shbuy'+(can?'':' no')+(it.own?' own':'')+'" data-k="'+it.k+'">'+(it.own?(LOADOUT.weapon===it.k.slice(2)?'held':'equip'):it.price?'buy':'&mdash;')+'</div></div>';
+  }
+  $('shHouse').innerHTML=cols.house;$('shBody').innerHTML=cols.body;$('shArms').innerHTML=cols.arms;
+}
+function shopBuy(k){
+  const it=shopItems().find(q=>q.k===k);if(!it||!it.can||player.marrow<it.price)return false;
+  player.marrow-=it.price;it.act();
+  if(it.price)AudioSys.marrow();toast(it.price?it.label+' — '+it.price+' marrow':it.label);
+  fillShop();return true;
+}
+$('shop').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const b=e.target.closest('.shbuy');if(b&&b.dataset.k)shopBuy(b.dataset.k);});
+$('shopClose').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();setShop(false);});
+$('shopBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();setShop(true);});
+function updateDefend(dt){
+  if(!DEF.on||G.mode!=='play')return;
+  DEF.t+=dt;
+  const H=$('defHud');
+  if(DEF.phase==='lull'){
+    if(!CUT.on)DEF.lullT-=dt;
+    if(DEF.lullT<=0||DEF.called)defNextRound();
+    else H.innerHTML=(DEF.round?'round <b>'+DEF.round+'</b> held':'the mire')+' &middot; next in <b>'+Math.ceil(DEF.lullT)+'</b>s &middot; <span class="h">house <b>'+Math.round(houseFrac()*100)+'%</b></span>';
+  }else if(DEF.phase==='wave'){
+    DEF.spawnT-=dt;
+    const alive=defAlive();
+    if(DEF.toSpawn>0&&DEF.spawnT<=0&&alive<DEF.cap){defSpawnBatch();DEF.spawnT=DEF.gap;}
+    if(DEF.toSpawn<=0&&alive===0&&DEF.t>4)defBoss();
+    H.innerHTML='round <b>'+DEF.round+'</b> &middot; <b>'+(alive+DEF.toSpawn)+'</b> to come &middot; <span class="h">house <b>'+Math.round(houseFrac()*100)+'%</b></span>';
+  }else if(DEF.phase==='boss'){
+    const e=DEF.bossE;
+    if(!e||e.hp<=0)defRoundHeld();
+    H.innerHTML='round <b>'+DEF.round+'</b> &middot; <b>'+(e&&e.name?e.name.toLowerCase():'the boss')+'</b> &middot; <span class="h">house <b>'+Math.round(houseFrac()*100)+'%</b></span>';
+  }
+  // the water: anything standing in it is slowed, and it shows
+  if(waterMesh){waterMesh.material.map.offset.x+=dt*.004;waterMesh.material.map.offset.y+=dt*.0025;}
+  if(wading(player.x,player.z)&&player.moveAmt>.2&&Math.random()<dt*6)boneBurst(player.x+rr3(-.3,.3),WATER_Y+.05,player.z+rr3(-.3,.3),0x93aa9c,2,1.2);
+}
+
 /* ---------------- the pews: furniture that breaks ----------------
    a bench, a back and two ends of old wood; a wall collider while it
    stands; two hard blows (or a Warden walking through it) and it bursts
@@ -3812,6 +4220,7 @@ function makePew(x,z,parent,woodM){
   addBreakable({g,x,z,hw:1.7,hd:.4,hp:2,obs,parent,kind:'pew'});
 }
 function breakPew(b){
+  if(b.kind==='house'){segFall(b);return;}
   const i=breakables.indexOf(b);if(i<0)return;
   breakables.splice(i,1);
   const oi=obstacles.indexOf(b.obs);if(oi>=0)obstacles.splice(oi,1);
@@ -3895,6 +4304,7 @@ function strikeBreakables(x,z,fx,fz,reach,arc,oneShot){
     let dx=cx-x,dz=cz-z,d=Math.hypot(dx,dz);
     if(d<.01){dx=b.x-x;dz=b.z-z;d=Math.hypot(dx,dz);}   // standing within its bounds (a step-in carries you there): the thing itself is what the blade is at
     if(d>reach)continue;
+    if(b.noPlayer)continue;                               // (the house: only the Drowned bring it down — see bashSeg)
     const ang=d<.05?0:Math.acos(clamp((dx*fx+dz*fz)/d,-1,1));
     if(ang>arc)continue;
     /* `tough` things do not care how heavy the blow was: the bell is
@@ -3992,6 +4402,7 @@ function bakeStatic(root){
 function buildWorld(){
   seedRun();
   if(PATH.on){RUN.terrain=PATH.terrain;G.cathedralOpen=true;G.marrowGoal=PATH.goal;}
+  if(DEF.on){G.cathedralOpen=true;G.marrowGoal=0;G.checkpoint={x:0,z:PL+STAIR_L+6};}
   const M={
     flag:mat('flag'),dirt:mat('dirt'),wall:mat('wall'),oss:mat('ossuary'),
     grave:mat('grave'),bone:mat('bone'),bark:mat('bark'),iron:mat('iron'),
@@ -4194,7 +4605,7 @@ function buildWorld(){
     // fold the parts that are only ever looked at
     cath.userData.bake=bakeStatic(cath);
   };
-  buildCathedral(PATH.on);
+  if(!DEF.on)buildCathedral(PATH.on);
 
   /* THE WEDGES — six of them round the cathedral, each an authored chunk
      the seed chose: the grave rows, the hollow wood, the ruins, a sunken
@@ -4304,11 +4715,12 @@ function buildWorld(){
       RUN.chapelLantern=[cx-nx*3.4+lx*2.2,cz-nz*3.4+lz*2.2];
     },
   };
-  if(!PATH.on)for(const w of RUN.wedges){srand(w.seed);CHUNKS[w.kind](w);}
+  if(DEF.on)buildMire(M,{tree,bonePile});
+  else if(!PATH.on)for(const w of RUN.wedges){srand(w.seed);CHUNKS[w.kind](w);}
 
   // bone piles across the field, thickest in the grave rows and the hollows; and a few lone sentinel trees
   srand(RUN.seed^0xb0e5);
-  if(!PATH.on){let piles=0;const gw=RUN.wedges.filter(w=>w.kind==='graves'||w.kind==='hollow');
+  if(!PATH.on&&!DEF.on){let piles=0;const gw=RUN.wedges.filter(w=>w.kind==='graves'||w.kind==='hollow');
     for(let i=0;i<80&&piles<10;i++){const w=gw.length&&rnd()<.6?gw[(rnd()*gw.length)|0]:null;
       const a=w?w.a+rr(-.5,.5):rnd()*TAU,d=23+rnd()*(HEX_AP-25),px=Math.cos(a)*d,pz=Math.sin(a)*d;
       if(!clearSpot(px,pz,.4))continue;piles++;bonePile(px,pz);}
@@ -4325,7 +4737,7 @@ function buildWorld(){
       const x=Math.cos(ra)*d-Math.sin(ra)*side*off,z=Math.sin(ra)*d+Math.cos(ra)*side*off;
       if(clearSpot(x,z,1.6))return [x,z,ra];}
     return null;};
-  if(!PATH.on){const w=RUN.wedges[RUN.landmarkWedges[0]],p=roadside(w);
+  if(!PATH.on&&!DEF.on){const w=RUN.wedges[RUN.landmarkWedges[0]],p=roadside(w);
     if(p){const[x,z]=p,gy=heightAt(x,z);                                   // THE WELL: a stone ring, two posts, a crossbar and a bucket
       // EMPTY: an open ring of stone, and inside it a stone-lined shaft
       // going down three metres to a dry black floor — look over the rim
@@ -4341,7 +4753,7 @@ function buildWorld(){
       world.add(cyl(.03,.03,.9,3,M.iron,x,gy+1.7,z));world.add(cyl(.14,.11,.22,6,M.iron,x,gy+1.2,z));   // the rope and the bucket
       addObstacle(x,z,1.3,true,gy+.95);RUN.landmarkSpots.push([x,z]);}
   }
-  if(!PATH.on){const w=RUN.wedges[RUN.landmarkWedges[1]],p=roadside(w);
+  if(!PATH.on&&!DEF.on){const w=RUN.wedges[RUN.landmarkWedges[1]],p=roadside(w);
     if(p){const[x,z,ra]=p,gy=heightAt(x,z);                                // THE TOWN SIGN: a post and a board with the village's name, readable from the road
       makeTex('sign',256,(ctx,S)=>{ctx.fillStyle='#4a3826';ctx.fillRect(0,0,S,S);
         for(let i=0;i<S;i+=6){ctx.fillStyle=`rgba(0,0,0,${.05+(i%18===0?.15:0)})`;ctx.fillRect(0,i,S,2);}
@@ -4363,7 +4775,7 @@ function buildWorld(){
      rotted through; the iron yoke lies snapped beside it and the clapper
      in the mouth, loose.
      Strike it and it TOLLS. Three tolls and something comes. */
-  if(!PATH.on){const w=RUN.wedges[RUN.landmarkWedges[2]],p=roadside(w);
+  if(!PATH.on&&!DEF.on){const w=RUN.wedges[RUN.landmarkWedges[2]],p=roadside(w);
     if(p){const[x,z]=p,gy=heightAt(x,z);
       /* (`M` in this scope is the world's MATERIAL map, not the global
          mesh helper — everything the world builds goes through it — so a
@@ -4706,7 +5118,7 @@ function applyTime(name){
     worldLights.expo*=1-bright*(bliz?.17:.1);
     worldLights.moonBase*=bliz?.25:.55;}
   worldLights.heroCol=snow?0xa9bccf:0xd9b072;worldLights.heroDim=snow?.5:1;   // (read by the frame: heroLight is not built yet at the first call)
-  {const r=FOG_BY_WX[RUN.weather]||FOG_BY_WX.clear;if(scene.fog){scene.fog.near=r[0];scene.fog.far=r[1];}}
+  {const r=fogRange();if(scene.fog){scene.fog.near=r[0];scene.fog.far=r[1];}}
   if(worldLights.dust)worldLights.dust.opacity=T.dust;
   for(const L of lanternLights)if(L.lamp0)L.base=L.lamp0*T.lamp;
   scene.background.copy(RUN.fog);
@@ -7359,6 +7771,19 @@ function poseSprintAtk(r,p){
   r.body.position.y=r.baseY-seg4(p,W,H,.05,.08,.2,.05)*r.s;
 }
 /* floored: knocked flat on the back, a beat of struggling, then up */
+/* on two arms: the trunk laid along the ground, chest down, the legs
+   dragged behind, the arms reaching in turn. What a Drowned does once a
+   leg is off it — and what the Mother's brood do from birth. */
+function poseCrawl(r,t,sp){
+  const f=4.6,s=Math.sin(t*f)*sp,c=Math.cos(t*f)*sp;
+  r.body.position.y=r.baseY*.30;r.body.rotation.x=1.32;
+  r.torso.rotation.x=-.15;r.torso.rotation.z=s*.14;
+  r.head.rotation.x=-1.05;r.head.rotation.z=-s*.2;
+  r.armR.rotation.x=-2.55+s*.55;r.armL.rotation.x=-2.55-s*.55;
+  r.armR.rotation.z=.5;r.armL.rotation.z=-.5;
+  r.foreR.rotation.x=-.5+Math.max(0,-c)*.5;r.foreL.rotation.x=-.5+Math.max(0,c)*.5;
+  r.legR.rotation.x=.25+s*.12;r.legL.rotation.x=.25-s*.12;r.kneeR.rotation.x=.3;r.kneeL.rotation.x=.3;
+}
 function poseKnockdown(r,p){
   const fall=easeIn(clamp(p/.2,0,1));
   const rise=easeInOut(clamp((p-.7)/.3,0,1));
@@ -7807,6 +8232,35 @@ function makeHollowRig(big,caster){
     eyes:big?0x86d9c2:caster?0x9fe06a:0x1a2622,   // every hollow has eyes now — the small ones dark in their sockets, until the tell flares them
   });
 }
+/* THE DROWNED: a body the bog gave back. It is a hollow's frame with the
+   flesh still on it — grey-green, water-swollen, split — so every rule
+   the skeletons obey (the ragdoll, the sever, the gun's spheres, the far
+   boxes) holds, and only `rig.skeletal` is turned off, so that what comes
+   off it is blood. */
+function makeZombieRig(o){
+  o=o||{};
+  if(!texCache.rotflesh)makeTex('rotflesh',256,(ctx,S)=>{
+    ctx.fillStyle='#5c6a55';ctx.fillRect(0,0,S,S);
+    for(let i=0;i<520;i++){ctx.fillStyle=`rgba(${40+Math.random()*40|0},${55+Math.random()*35|0},${38+Math.random()*24|0},${.18+Math.random()*.3})`;
+      ctx.beginPath();ctx.ellipse(Math.random()*S,Math.random()*S,4+Math.random()*16,3+Math.random()*9,Math.random()*3,0,TAU);ctx.fill();}
+    for(let i=0;i<90;i++){ctx.strokeStyle=`rgba(${58+Math.random()*30|0},${30+Math.random()*20|0},${62+Math.random()*30|0},${.25+Math.random()*.3})`;ctx.lineWidth=1+Math.random()*1.5;
+      ctx.beginPath();let x=Math.random()*S,y=Math.random()*S;ctx.moveTo(x,y);for(let k=0;k<4;k++){x+=(Math.random()-.5)*22;y+=(Math.random()-.5)*22;ctx.lineTo(x,y);}ctx.stroke();}   // the veins
+    for(let i=0;i<26;i++){ctx.fillStyle=`rgba(${60+Math.random()*30|0},${10+Math.random()*12|0},${14+Math.random()*10|0},${.55+Math.random()*.35})`;
+      ctx.beginPath();ctx.ellipse(Math.random()*S,Math.random()*S,2+Math.random()*7,6+Math.random()*22,Math.random()*3,0,TAU);ctx.fill();}   // the splits
+    for(let i=0;i<1800;i++){ctx.fillStyle=`rgba(${120+Math.random()*60|0},${130+Math.random()*50|0},${100+Math.random()*40|0},.14)`;ctx.fillRect(Math.random()*S,Math.random()*S,1,1);}
+  });
+  const flesh=mat('rotflesh'),fleshD=mat('rotflesh',{color:new THREE.Color(0x8c9a86).convertSRGBToLinear()});
+  const sc=o.scale||(0.96+Math.random()*.08);
+  const r=buildHumanoid({
+    scale:sc,
+    torsoMat:flesh,headMat:flesh,limbMat:fleshD,
+    bladeMat:mat('blade'),gripMat:mat('bark'),
+    weapon:null,skeletal:true,hunch:.34+Math.random()*.08,
+    eyes:0xd6dfc0,
+  });
+  r.skeletal=false;                                   // it bleeds
+  return r;
+}
 /* a carrion crow: black body, flapping wings, ember eyes */
 function makeCrowRig(){
   const rig={s:1};
@@ -8080,6 +8534,24 @@ function gore(e,x,y,z,n,pow){
   else bloodSpray(x,y,z,n,pow);
 }
 function goreDecal(e,x,z,s){if(!(e&&e.rig&&e.rig.skeletal))bloodDecal(x,z,s);}
+/* WHAT A DROWNED LEAVES. Every one of them goes down in a sheet of blood;
+   one killed by a blow worth half its life — a telling cut, a slug, a
+   round through the head — comes APART: the head and an arm off it in the
+   same instant, the stumps spurting, the rest thrown by the ragdoll. */
+function zombieGore(e,burst){
+  const gy=heightAt(e.x,e.z);
+  bloodSpray(e.x,gy+1.0,e.z,burst?34:16,burst?2.1:1.3);
+  for(let i=0;i<(burst?4:2);i++)bloodDecal(e.x+rr3(-.9,.9),e.z+rr3(-.9,.9),burst?rr3(.5,.9):rr3(.3,.5));
+  if(burst&&e.rig&&e.rig.humanoid&&!e.crumbled){
+    const hv=e.lastHit||{dx:rr3(-1,1),dz:rr3(-1,1),up:1.2};
+    e.hp=999;                                              // (severLimb kills at zero: it is already dead)
+    if(!e.severedHead&&Math.random()<.8)severLimb(e,null,hv,'head');
+    if(Math.random()<.85)severLimb(e,null,hv,Math.random()<.5?'armL':'armR');
+    if(Math.random()<.4)severLimb(e,null,hv,Math.random()<.5?'legL':'legR');
+    e.hp=0;
+    AudioSys.gore();G.camShake=Math.max(G.camShake,.3);
+  }
+}
 /* smoke: soft grey puffs that swell, rise a little and thin away */
 function smokePuff(x,y,z,n){
   for(let i=0;i<n;i++){
@@ -9100,6 +9572,7 @@ const player={
   armed:true,sheathT:0,
   mats:[],
   init(){
+    if(DEF.on&&!DEF.owned[LOADOUT.weapon])LOADOUT.weapon='sword';   // the Mire arms you with the greatsword; the rest is bought
     // an imbued element lights the blade from within
     this.bladeLight=new THREE.PointLight(0xffffff,0,2.2,2); // never burns: it is in the scene only to hold the light count steady (see THE IMBUED WEAPON)
     this.rebuild();
@@ -9439,7 +9912,7 @@ const player={
         $('fade').style.opacity=1;
         setTimeout(()=>{
           died.style.opacity=0;died.style.background='rgba(4,5,5,0)';
-          if(PATH.on){endGame(false);return;}               // the path ends where you fall
+          if(PATH.on||DEF.on){endGame(false);return;}        // the path ends where you fall; so does the Mire
           respawnWorld();
           this.respawn();
           G.mode='play';
@@ -9559,6 +10032,7 @@ const player={
         else{reaperFinish(e,hv,this.facing);hitAny=true;continue;}
       }
       const preHp=e.hp;
+      if(DEF.on&&DEF.might!==1)dmg=Math.round(dmg*DEF.might);          // the Mire's bought might
       if(this.ultra()){kb*=3.5;hv.up*=1.6;dmg=Math.round(dmg*3);}         // the ultra greatsword: three times the blow, and they leave the ground
       e.takeHit(dmg,(opts.staggerAll||this.ultra())&&!e.boss?99:poise,this.x,this.z,kb,hv);
       if(this.ultra()){G.hitstop=Math.max(G.hitstop,.12);G.camShake=Math.max(G.camShake,.35);
@@ -9572,7 +10046,7 @@ const player={
       // a clean cut takes something with it — an arm off a sweep or a
       // thrust, the head off an overhead — and the thing keeps coming
       if(e.hp>0&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&this.weapon()!=='katana'&&Math.random()<.17)
-        severLimb(e,tr,hv);                                        // (never the katana: its cut is the whole body, clean)
+        severLimb(e,tr,hv,e.zombie&&Math.random()<.45?(Math.random()<.5?'legL':'legR'):undefined);   // (never the katana: its cut is the whole body, clean; a Drowned loses legs too)
       // the katana: below half their life, the edge simply goes through them
       // — whether the cut leaves them standing or is the one that kills
       if(this.weapon()==='katana'&&!opts.noSlice&&(e.hp>0||preHp>0)&&e.hp<e.maxHp*.5&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&!e.sliced)
@@ -9924,6 +10398,7 @@ const player={
       // second) — and it only drops back to a walk below two-thirds, so a
       // thumb hovering on the line doesn't flicker between the two
       const run=adsWalk()?false:(this.sprinting?mAmt>.66:mAmt>.78);   // the sights hold the sprint off (see updateGun)
+      const wade=wading(this.x,this.z)?.6:1;              // the bog holds the legs
       this.sprinting=run;
       this.sprintT=run?this.sprintT+dt:0;
       // the move, in the hero's own frame: ahead (+) or back, and to its left (+)
@@ -9933,7 +10408,7 @@ const player={
       // the speed: a short ramp (never a jump at the sprint line — but
       // short: a tenth of a second to three-quarters), a quicker stop, and
       // back or sideways a little slower than straight ahead
-      const wantSp=(mAmt>0?(run?7.2:4.3*Math.min(1,mAmt*1.35))*(.85+.15*Math.max(0,relF)):0)*(PATH.on?1.5:1);   // (the path: half again as fast, walk and sprint — it is a run, not a pilgrimage)
+      const wantSp=(mAmt>0?(run?7.2:4.3*Math.min(1,mAmt*1.35))*(.85+.15*Math.max(0,relF)):0)*(PATH.on?1.5:1)*wade;   // (the path: half again as fast, walk and sprint — it is a run, not a pilgrimage)
       /* SNOW gives the boot nothing to push against: the stride is slower
          to build and far, far slower to shed, so every stop is a skid and
          every turn carries wide. DEEP snow is the other complaint — a
@@ -10846,6 +11321,8 @@ class Enemy{
     opts=opts||{};
     this.kind=kind;
     this.big=kind==='big';this.boss=kind==='boss';this.caster=kind==='caster';
+    this.zombie=kind==='zombie';this.crawler=!!opts.crawler;this.mother=!!opts.mother;
+    this.climbs=this.zombie;                            // the Drowned clamber the footing's rim; nothing else does
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=opts.facing||Math.PI;
     this.radius=this.boss?.8:this.big?.55:.4;
     this.startleT=0;this.startleCd=0;this.lookX=x;this.lookZ=z;
@@ -10861,26 +11338,40 @@ class Enemy{
        rifle's whole claim is one shot one body — if you raise this number
        again, raise that one with it. */
     this.maxHp=this.boss?380:this.big?140:this.caster?70:85;
-    this.hp=this.maxHp;
     this.speed=this.boss?2.7:this.big?2.1:this.caster?2.3:2.5;
+    /* THE DROWNED: slow, heavy in the hand — a hundred, six swings of the
+       greatsword — and they do not much care about you: under eight
+       metres they come for you, further off they push for the house.
+       The round scales the life and, slowly, the pace. A crawler is the
+       Mother's get, a third of a body on two arms; the Mother herself is
+       a round's boss. */
+    if(this.zombie){const n=opts.round||1;
+      this.maxHp=Math.round((this.crawler?40:this.mother?520:100)*(1+.11*(n-1)));
+      this.speed=this.crawler?2.3:this.mother?1.35:Math.min(2.4,1.9+.045*(n-1));}
+    this.hp=this.maxHp;
     // in halves of a heart: a hollow one, a brute two, a caster a half,
     // the boss two and a half
     this.dmg=this.boss?25:this.big?20:this.caster?5:10;
     this.aggroR=opts.ambush?4.2:this.caster?11:10;
+    if(this.zombie){this.dmg=this.mother?15:this.crawler?5:10+5*Math.floor(((opts.round||1)-1)/4);this.aggroR=this.mother?40:7.5;
+      this.radius=this.mother?.7:this.crawler?.3:.42;this.crawl=this.crawler;this.huntT=0;this.segT=null;this.segRe=0;}
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
     this.marrow=this.boss?800:this.big?120:this.caster?45:35;
+    if(this.zombie){this.poiseMax=this.mother?40:this.crawler?2:7;this.marrow=this.mother?400:this.crawler?8:40;
+      if(this.mother){this.mini=true;this.name='THE CARRION MOTHER';this.engaged=true;this.spawnT=4;this.brood=[];}}
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
     this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;this.chillT=0;
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
-    this.rig=this.boss?makeWardenRig():makeHollowRig(this.big,this.caster);
+    this.rig=this.boss?makeWardenRig():this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:undefined}):makeHollowRig(this.big,this.caster);
     this.reach=this.boss?3.4:this.big?2.4:2.15;
+    if(this.zombie)this.reach=this.mother?2.7:this.crawler?1.5:1.95;
     // some of the host burns hotter: red-boned, worth double the marrow —
     // and twice the life, not three times: a red hollow at the old
     // multiplier would now be 285, which is not a harder fight, it is the
     // same fight held down for twice as long
-    this.red=!this.boss&&(opts.red||Math.random()<.14);
+    this.red=!this.boss&&!this.mother&&(opts.red||(!this.zombie&&Math.random()<.14));
     if(this.red){
       this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material=o.material.clone();o.material.color.setHex(0xd23c3c);}});
       this.maxHp=Math.round(this.maxHp*2.2);this.hp=this.maxHp;this.marrow=Math.round(this.marrow*2);
@@ -10889,11 +11380,13 @@ class Enemy{
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
     this.reset();
-    if(opts.spawned){ // spawner-born: claws straight out of the soil
+    if(opts.spawned){ // spawner-born: claws straight out of the soil — or up out of the bog
       this.state='rise';this.t=0;
       AudioSys.hurt();
-      boneBurst(this.x,.25,this.z,0x5a4d38,8,1.6);
+      const wet=wading(this.x,this.z);
+      boneBurst(this.x,heightAt(this.x,this.z)+.25,this.z,wet?0x93aa9c:0x5a4d38,wet?12:8,wet?2.2:1.6);
     }
+    if(this.crawler){this.state='chase';this.t=0;this.rig.root.position.y=heightAt(this.x,this.z);}
   }
   reset(){
     endRagdoll(this);this.lastHit=null;this.sliced=false;this.noRag=false;this.roseToPace=false;clearWounds(this);
@@ -10909,7 +11402,7 @@ class Enemy{
     this.rig.root.position.y=this.boss?heightAt(this.x,this.z):heightAt(this.x,this.z)-1.6; // under the soil
     if(this.boss)this.facing=0;                  // kneeling, facing the south door
     if(this.rig.eyes)for(const e of this.rig.eyes)
-      e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:0x2c4a42);
+      e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:this.zombie?0xcfd9b8:0x2c4a42);
   }
   flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)m.emissive.setHex(0xffffff);}   // one frame white, then the red
   scatter(dx,dz,sp){
@@ -10924,7 +11417,8 @@ class Enemy{
   }
   takeHit(dmg,poise,fx,fz,kb,hv){
     if(this.hp<=0||this.state==='scatter')return; // a bone heap can't be cut
-    this.hp-=dmg;this.flash();
+    this.hp-=dmg;this.flash();this.lastDmg=dmg;
+    if(this.zombie&&!this.mother)this.huntT=5;         // hurt, it remembers who did it
     {const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;
       this.lastHit=hv?{dx:hv.dx,dz:hv.dz,kb:kb||1,up:hv.up}:{dx:dx/l,dz:dz/l,kb:kb||1};
       this.flinchT=.24;this.flinchDx=this.lastHit.dx;this.flinchDz=this.lastHit.dz;}   // and it flinches the way the blow sent it
@@ -10953,8 +11447,9 @@ class Enemy{
       this.poise=0;this.state='stagger';this.t=0;
       this.vx=dx/l*kb*4;this.vz=dz/l*kb*4;
     }else if(!this.boss){
-      // every landed blow rocks them back a step
-      this.vx=dx/l*kb*5;this.vz=dz/l*kb*5;
+      // every landed blow rocks them back a step — the Drowned less than most
+      const k=this.zombie?(this.mother?.6:2.2):5;
+      this.vx=dx/l*kb*k;this.vz=dz/l*kb*k;
     }
     if(this.boss&&this.phase2&&this.hp>0&&this.rig.eyes&&Math.random()<.5)
       for(const e of this.rig.eyes){const p=e.getWorldPosition(new THREE.Vector3());elemFleck('fire',p.x,p.y+.05,p.z+.05);}  // embers off the burning eyes
@@ -11001,9 +11496,11 @@ class Enemy{
       else if(r<.52)spawnElemDrop(this.x,this.z,'health');
     }
     if(FPS.on&&!this.boss&&Math.random()<.5)spawnElemDrop(this.x+rr3(-.9,.9),this.z+rr3(-.9,.9),'ammo');   // and, with a gun in the field, what a gun needs
-    boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
+    if(this.zombie)zombieGore(this,(this.lastDmg||0)>=this.maxHp*.5||this.crawler);
+    else boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
+    if(this.zombie&&DEF.on){DEF.kills=(DEF.kills||0)+1;if(this.mother)for(const c of this.brood)if(c.hp>0){c.lastDmg=999;c.takeHit(999,0,this.x,this.z,1);}}
     alertPack(this.x,this.z,this);     // the rest of them know
-    if(this.boss)onBossDead();
+    if(this.boss&&!DEF.on)onBossDead();
     // the body falls the way the blow sent it — or folds where it stood
     if(this.mound){scene.remove(this.mound);this.mound.geometry.dispose();this.mound=null;}
     if(!this.noRag&&this.rig.humanoid){
@@ -11038,9 +11535,19 @@ class Enemy{
     this.mound.position.set(this.x,heightAt(this.x,this.z)-.24,this.z);
     this.mound.rotation.y=a0;scene.add(this.mound);
   }
+  /* the Mother's brood: a crawler every few seconds, six at a time,
+     whatever else she is doing — ticked here rather than in the walk, or
+     a Mother kept busy swinging never bred at all */
+  breed(dt){
+    this.spawnT-=dt;this.brood=this.brood.filter(c=>c.hp>0);
+    if(this.spawnT<=0&&this.brood.length<6&&G.mode==='play'){this.spawnT=5.5;
+      const a=Math.random()*TAU,c=new Enemy('zombie',this.x+Math.cos(a)*1.2,this.z+Math.sin(a)*1.2,{crawler:true,round:DEF.round});
+      enemies.push(c);this.brood.push(c);AudioSys.retch();bloodSpray(this.x,heightAt(this.x,this.z)+1.1,this.z,10,1.4);goreDecal(this,this.x,this.z,.5);}
+  }
   update(dt){
     const P=player;
     this.t+=dt;
+    if(this.mother&&this.hp>0&&this.state!=='rise'&&this.state!=='dormant'&&!cutSubject(this))this.breed(dt);
     const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
     const faceP=(rate)=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),rate*dt);};
     // frost HOLDS them: frozen where they stand — no step, no swing, the
@@ -11105,6 +11612,7 @@ class Enemy{
         }else faceP(6);
         // the Warden was swinging a greatsword through its own title card
         if(cutSubject(this))break;
+        if(this.zombie){this.zombieMove(dt,dx,dz,dist);break;}
         if(this.caster){
           /* THE THROWER DOES NOT STAND STILL ANY MORE. It held its band —
              back off under five and a half, close past eleven — and lobbed
@@ -11145,7 +11653,7 @@ class Enemy{
           }
         }
         // stray too far and they lose interest; the boss fight calls them off
-        if(!this.boss&&(dist>26||G.bossActive)){this.state='return';}
+        if(!this.boss&&!this.zombie&&(dist>26||G.bossActive)){this.state='return';}
         break;}
       case 'return':{
         const hx=this.homeX-this.x,hz=this.homeZ-this.z,hl=Math.hypot(hx,hz);
@@ -11191,6 +11699,8 @@ class Enemy{
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             const arc=this.attack==='sweep'?1.9:1.05;
             if(dist<this.reach&&ang<arc)P.takeHit(this.dmg,this.x,this.z,this.heavyHitter,this.big||this.boss?'heavy':'blade');
+            if(this.attack==='bash'&&this.segT&&this.segT.state<2){   // and the wall, if it is the wall it was at
+              const n=segNear(this.segT,this.x,this.z);if(n.d<this.reach+.4)bashSeg(this.segT,this.mother?3:1,n.x,n.z);}
           }
         }
         if(this.t>=sd){
@@ -11244,7 +11754,7 @@ class Enemy{
          this.state!=='scatter'&&overBrink(this)>0&&
          (this.rag||this.state==='down'||this.state==='stagger'||
           Math.hypot(this.vx,this.vz)>2.6))this.plunge();
-      constrain(this,this.boss);
+      constrain(this,this.boss&&!DEF.on);   // (a Warden in the Mire is not held to a nave it does not have)
       pushOut(this,this.radius);
       // don't stack on other enemies
       for(const e of enemies){
@@ -11294,7 +11804,7 @@ class Enemy{
         poseRise(r,Math.min(1,this.t/(this.boss?1.1:2.6)));
         break;
       case 'chase':case 'return':
-        poseWalk(r,t+this.homeX,1,sham);break;
+        if(this.crawl)poseCrawl(r,t+this.homeX,1);else poseWalk(r,t+this.homeX,1,sham);break;
       case 'patrol':
         poseWalk(r,t*.62+this.homeX,.4+.4*this.patMv,sham);break;
       case 'windup':case 'strike':{
@@ -11308,6 +11818,8 @@ class Enemy{
           if(p<.8){r.torso.rotation.x+=.3*p;r.armR.rotation.x=-1.2*p;}
           else{r.torso.rotation.x+=.4;r.armR.rotation.x=.4;r.foreR.rotation.x=-.2;}
         }
+        else if(this.crawl){poseCrawl(r,t,.3);r.armR.rotation.x=p<.8?-2.6+.6*p:-1.2;r.armR.rotation.z=.25;}   // a crawler rears and claws
+        else if(this.attack==='bash'){poseChop(r,p,.8);r.armL.rotation.x=r.armR.rotation.x;r.foreL.rotation.x=r.foreR.rotation.x;r.torso.rotation.x+=.2*Math.min(1,p/.8);}   // both arms into the wall
         else poseChop(r,p,.8);
         break;}
       case 'recover':case 'guard':poseIdle(r,t);break;
@@ -11385,8 +11897,50 @@ class Enemy{
     this.attack=atk;this.state='windup';this.t=0;
     AudioSys.windup(); // every attack announces itself
   }
+  /* THE DROWNED'S WALK. Under `aggroR` — or for five seconds after any
+     blow — it comes for the pilgrim like anything else. Otherwise it
+     picks a standing wall (the nearest, a breached one preferred: it
+     finishes what it started) and pushes for a stride outside it, then
+     bashes. A crawler is faster and lower; everything in the water is
+     slowed. The Mother never sieges: she is a fight, and she breeds. */
+  pickSeg(){
+    const st=houseStanding();if(!st.length)return null;
+    let best=null,bd=1e9;
+    for(const q of st){const n=segNear(q,this.x,this.z),d=n.d+(q.state===1?-2:0)+Math.random()*2;if(d<bd){bd=d;best=q;}}
+    return best;
+  }
+  zombieMove(dt,dx,dz,dist){
+    const P=player;
+    this.huntT=Math.max(0,(this.huntT||0)-dt);
+    const sp=this.speed*(wading(this.x,this.z)?.82:1)*(this.crawl&&!this.crawler?.55:1)*(this.startleT>0?.45:1);
+    const hunting=this.mother||DEF.houseGone||dist<this.aggroR||this.huntT>0;
+    if(hunting){
+      if(dist>this.reach*.72){const v=packSteer(this,dx,dz,dist);this.x+=v.x*sp*dt;this.z+=v.z*sp*dt;}
+      if(dist<this.reach*.85&&this.t>.25)this.begin(this.mother?(Math.random()<.5?'sweep':'chop'):'chop');
+      return;
+    }
+    this.segRe-=dt;
+    if(!this.segT||this.segT.state>=2||this.segRe<=0){this.segRe=2;this.segT=this.pickSeg();}
+    const s=this.segT;if(!s)return;
+    const n=segNear(s,this.x,this.z);
+    const inside=Math.abs(this.x)<HOUSE.HX-.2&&Math.abs(this.z)<HOUSE.HZ-.2,side=inside?-1:1;
+    const tx=n.x+s.nx*side*.95,tz=n.z+s.nz*side*.95;let ex=tx-this.x,ez=tz-this.z;const el=Math.hypot(ex,ez);
+    /* STUCK ON A TREE. A body walked straight at a wall through a wood is
+       pushed out of every trunk it meets and steps straight back into it,
+       for ever — measured: two of six stood 28 metres out for the whole of
+       a wave. So the ground covered is watched, and a body that has gone
+       nowhere for a second and a half takes a DETOUR: a second and a bit
+       sideways, one way or the other, then back on its line. */
+    this.stuckT=(this.stuckT||0)+dt;
+    if(this.stuckT>1.5){const mv=Math.hypot(this.x-(this.sx0||this.x),this.z-(this.sz0||this.z));
+      if(mv<.3&&el>1.5){this.detour=Math.random()<.5?-1:1;this.detourT=1.3;}
+      this.stuckT=0;this.sx0=this.x;this.sz0=this.z;}
+    if((this.detourT||0)>0){this.detourT-=dt;const px=-ez,pz=ex;ex=px*this.detour+ex*.25;ez=pz*this.detour+ez*.25;}
+    if(el>.45){const v=packSteer(this,ex,ez,Math.hypot(ex,ez));this.facing=angLerp(this.facing,Math.atan2(v.x,v.z),5*dt);this.x+=v.x*sp*dt;this.z+=v.z*sp*dt;}
+    else{this.facing=angLerp(this.facing,Math.atan2(n.x-this.x,n.z-this.z),7*dt);if(this.t>.3)this.begin('bash');}
+  }
   windDur(){
-    const base={chop:this.big?.75:.6,sweep:.7,sweep2:.4,slam:.95,lunge:.5,throw:.8}[this.attack]||.6;
+    const base={chop:this.big?.75:.6,sweep:.7,sweep2:.4,slam:.95,lunge:.5,throw:.8,bash:.85}[this.attack]||.6;
     return this.boss&&this.phase2?base*.72:base;
   }
 }
@@ -13082,7 +13636,8 @@ function severLimb(e,trail,hv,want){
   const stub=new THREE.Group();stub.position.copy(lp);parent.add(stub);
   if(key==='head'){r.head=stub;e.severedHead=true;}
   else if(key==='legL'||key==='legR'){const kk=key==='legL'?'kneeL':'kneeR';                // a leg: the knee goes with it
-    r[key]=stub;const ks=new THREE.Group();ks.position.copy(r[kk].position);stub.add(ks);r[kk]=ks;e.severedLeg=true;}
+    r[key]=stub;const ks=new THREE.Group();ks.position.copy(r[kk].position);stub.add(ks);r[kk]=ks;e.severedLeg=true;
+    if(e.zombie&&!e.mother){e.crawl=true;e.radius=Math.min(e.radius,.34);}}   // a Drowned with a leg off comes on anyway, on its arms
   else{const ak=key==='armR'?'armR':'armL',fk=ak==='armR'?'foreR':'foreL';   // either arm now: a round takes whichever it hit
     r[ak]=stub;const fs=new THREE.Group();fs.position.copy(r[fk].position);stub.add(fs);r[fk]=fs;e.severedArm=true;}
   // its own materials, cut from an UNLIT body: the blow's red flash is on
@@ -13397,7 +13952,7 @@ function pathHost(w,budget,cath){
     K.T[pick].place(w);budget-=K.T[pick].cost;}
 }
 function spawnEnemies(){
-  if(PATH.on)return;                                       // (the path sows its host tile by tile)
+  if(PATH.on||DEF.on)return;                               // (the path sows its host tile by tile; the Mire raises its own by the round)
   boss=new Enemy('boss',0,-16.8,{});
   enemies.push(boss);
   // A fixed host, sown across the quarters, asleep under the soil —
@@ -13866,6 +14421,28 @@ function cutWarden(){
     $('bossbar').style.display='block';$('bossname').textContent='GRAVEWARDEN OF THE BONE PATH';
     $('bossfill').style.width='100%';
   });
+}
+/* the Warden as a ROUND'S boss in the Mire: the same four beats over
+   whatever it is, rather than the field's one `boss` */
+function cutWardenAt(e){
+  cutPlay(e,[
+    {d:1.6,at:cutOrbit({a0:1.05,a1:.62,r0:6.6,r1:5.4,y0:.4,y1:.55,l0:-.2,l1:.9,e:'out'})},
+    {d:2.0,at:cutOrbit({a0:.44,a1:.24,r0:4.8,r1:4.2,y0:.5,y1:3.9,l0:.8,l1:3.4})},
+    {d:1.5,at:cutOrbit({a0:.24,a1:.1,r0:6.0,r1:2.6,y0:1.4,y1:2.6,l0:3.2,l1:3.7,e:'in'}),
+      fx:()=>{AudioSys.roar();G.camShake=Math.max(G.camShake,.75);G.vibr([70,40,130]);}},
+    {d:2.8,epithet:1,title:1,at:cutOrbit({a0:.16,a1:-.04,r0:4.6,r1:5.4,y0:.6,y1:.8,l0:3.4,l1:3.2,e:'out'})},
+  ],'GRAVEWARDEN','come out of its nave for the house',()=>{AudioSys.bossMusic(1);});
+}
+/* THE CARRION MOTHER. She comes up out of the water over 2.6 seconds, so
+   the PLACE is spent low over the bog with the surface about to break. */
+function cutMother(e){
+  cutPlay(e,[
+    {d:1.6,at:cutOrbit({a0:.5,a1:.36,r0:5.2,r1:4.4,y0:.3,y1:.45,l0:-.4,l1:.6,e:'out'})},
+    {d:2.0,at:cutOrbit({a0:1.2,a1:.4,r0:5.6,r1:4.2,y0:.5,y1:3.2,l0:.4,l1:2.2})},
+    {d:1.4,at:cutOrbit({a0:.36,a1:.12,r0:5.4,r1:2.4,y0:2.4,y1:2.6,l0:2.2,l1:2.4,e:'in'}),
+      fx:()=>{AudioSys.retch();AudioSys.roar();G.camShake=Math.max(G.camShake,.65);G.vibr([60,30,110]);}},
+    {d:2.7,epithet:1,title:1,at:cutOrbit({a0:.2,a1:-.06,r0:4.4,r1:5.2,y0:2.5,y1:2.7,l0:2.0,l1:1.9,e:'out'})},
+  ],'THE CARRION MOTHER','what the bog breeds, and keeps breeding');
 }
 /* THE FALLEN ONE. It takes 2.6 seconds to come down sixteen metres, so
    the first beat is spent under it with the eye in the sky — the place it
@@ -15156,6 +15733,7 @@ function gunHit(g,hit,o,d,dmgScale){
   if(el==='lightning')dmg*=1.2;
   if(Math.random()<.08)dmg*=1.5;                         // a telling shot
   if(player.reaperT>0&&!e.boss)dmg*=2;                   // the mark leans on the round
+  if(DEF.on)dmg*=DEF.might;
   dmg=Math.round(dmg);
   const hv={dx:d.x,dz:d.z,up:head?1.1:.5};
   gore(e,p.x,p.y,p.z,head?9:5,head?1.2:.8);
@@ -15792,6 +16370,7 @@ function updateInteract(){
   const pr=$('prompt');
   promptAction=null;
   if(player.state==='free'&&G.mode==='play'){
+    if(DEF.on&&DEF.phase==='lull'&&DEF.round>0&&!CUT.on){promptAction={type:'defCall'};pr.textContent='call the next round now';}
     // the one thing left to touch: the altar, once the Warden falls
     if(G.bossDead&&altarGlow){
       if(Math.hypot(player.x-ALTAR[0],player.z-ALTAR[1])<2.4){
@@ -15805,13 +16384,19 @@ function updateInteract(){
 }
 function doInteract(){
   if(promptAction&&promptAction.type==='altar')endGame(true);
+  if(promptAction&&promptAction.type==='defCall'){DEF.called=true;AudioSys.tap();}
 }
 function endGame(won){
   G.mode='victory';
   const secs=Math.floor((performance.now()-G.runStart)/1000);
   const mm=String(Math.floor(secs/60)).padStart(2,'0'),ss=String(secs%60).padStart(2,'0');
   const h2=$('victory').querySelector('h2');
-  if(PATH.on){h2.textContent=won?'The Path Walked':'The Path Ends';
+  if(DEF.on){h2.textContent='The Mire Takes You';
+    const b=defBest(true);
+    $('stats').innerHTML='round '+DEF.round+(DEF.phase==='lull'?' held':' — the '+(DEF.phase==='boss'?'boss':'wave')+' took you')+', in '+mm+':'+ss+'<br>'+
+      (DEF.kills||0)+' of the drowned put down &middot; '+(G.kills||0)+' horrors felled &middot; '+player.marrow+' marrow unspent<br>'+
+      (b.round>0?'<span style="opacity:.7">best: round '+b.round+' &middot; '+b.kills+' drowned</span>':'');}
+  else if(PATH.on){h2.textContent=won?'The Path Walked':'The Path Ends';
     $('stats').innerHTML=(won?'six thousand marrow, in ':'the path took you at ')+mm+':'+ss+'<br>'+(PATH.far-2)+' hexes walked &middot; '+(G.kills||0)+' horrors felled &middot; '+player.marrow+' marrow';}
   else{h2.textContent='The Warden Falls';
   $('stats').innerHTML=
@@ -15865,12 +16450,14 @@ function begin(){
   $('fade').style.opacity=0;
   const el=document.documentElement;
   if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
-  bannerShow('THE BONE PATH','walk it to its end');
+  bannerShow(DEF.on?'THE MIRE':'THE BONE PATH',DEF.on?'hold the house':'walk it to its end');
+  if(DEF.on)defStart();
 }
 // the two ways: the field, or the path — a mode is a page (the world is built for one at load), so choosing the other reloads into it
 function gotoMode(m){const u=new URL(location.href);if(m)u.searchParams.set('mode',m);else u.searchParams.delete('mode');location.href=u.toString();}
 $('modeField').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(PATH.on)gotoMode('');else begin();});
 $('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on)gotoMode('path');else begin();});
+$('modeDefend').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!DEF.on)gotoMode('defend');else begin();});
 $('title').addEventListener('pointerdown',begin);   // (a touch anywhere else begins the way the page is set to)
 // first person is not a third way: it is a switch inside either, by the pause button
 // the cutscene's own catcher: any touch anywhere over it ends the scene
@@ -15880,9 +16467,10 @@ $('povBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagat
 
 buildTextures();
 buildWorld();
-$(PATH.on?'modePath':'modeField').classList.add('on');   // (the mode is known once the world is built)
+$(PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
+if(DEF.on){$('titleHint').innerHTML='a house in a drowned churchyard, and the drowned coming for it, round after round<br>they push for the walls; every wall down is a way in &middot; a boss closes every round<br>the lull between is the shop: mend the house, or buy a blade, a gun, a heart, more might<br>death ends the run &middot; the best round held is remembered';}
 if(PATH.on){$('titleHint').innerHTML='the path runs north, hex after hex, without end &middot; every sixth hex the cathedral, its host within, a door at either end<br>six thousand marrow to win &middot; death ends the path &middot; no rest, no fires, only nerve &middot; best in landscape';}
-if(!PATH.on)makeFogGate();
+if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
 spawnEnemies();
 makeGrain();
@@ -16074,7 +16662,7 @@ function cycleLoadout(k,d){
   if(k==='pov'){setPov(!FPS.on);return;}                 // (setPov refills the panel itself)
   if(k==='charge'&&gunHeld()){cycleAtt(d);fillHero();return;}   // a gun's charge is what sits on its rail
   if(k==='charge')k=chargeKey();
-  const list=HERO_OPTS[k];let i=list.findIndex(o=>o[0]===LOADOUT[k]);
+  const list=(DEF.on&&k==='weapon')?HERO_OPTS.weapon.filter(o=>DEF.owned[o[0]]):HERO_OPTS[k];let i=list.findIndex(o=>o[0]===LOADOUT[k]);
   i=(i+d+list.length)%list.length;LOADOUT[k]=list[i][0];saveLoadout();
   player.rebuild();if(k==='weapon'){gunOf();gunSwapped();}fillHero();
 }
@@ -16170,6 +16758,7 @@ function fillPause(){
 }
 function setPaused(on){
   if(G.mode!=='play'&&G.mode!=='dead')return;
+  if(DEF.shopOpen)return;                                   // (the shop is its own pause)
   if(on===G.paused)return;
   G.paused=on;
   if(on)Input.releaseAll();     // no thumb survives the pause screen holding a direction
@@ -16213,7 +16802,7 @@ function frame(now){
   requestAnimationFrame(frame);
   perfTick(now);
   let dt=Math.min(.05,(now-last)/1000);last=now;
-  if(IN.pausePressed){IN.pausePressed=false;setPaused(!G.paused);}
+  if(IN.pausePressed){IN.pausePressed=false;if(DEF.shopOpen)setShop(false);else setPaused(!G.paused);}
   if(G.paused){renderFrame();Input.consume();return;}
   if(G.mode==='play')G.playTime=(G.playTime||0)+dt;
   let wdt=dt;G.frameDt=dt;
@@ -16249,9 +16838,9 @@ function frame(now){
       // enough marrow held calls the cathedral open
       if(!G.cathedralOpen&&player.marrow>=G.marrowGoal)openCathedral();
       // at the eight-hundredth marrow, something with a cracked halo comes down
-      if(!G.angelCame&&player.marrow>=800&&!G.bossActive){G.angelCame=true;summonAngel();}
+      if(!G.angelCame&&player.marrow>=800&&!G.bossActive&&!DEF.on){G.angelCame=true;summonAngel();}
       // stepping into the nave wakes the Warden
-      if(!PATH.on&&G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
+      if(!PATH.on&&!DEF.on&&G.cathedralOpen&&!G.bossDead&&!G.bossActive&&
          Math.abs(player.x)<HW&&player.z<HL-2.5&&player.z>-HL)startBossFight();
       // the Warden shoulders through the pews as it comes
       if(G.bossActive&&boss.hp>0)trampleBreakables(boss.x,boss.z,boss.radius+.3);
@@ -16261,7 +16850,7 @@ function frame(now){
       else if(player.rig&&player.rig.weapon&&!player.rig.weapon.visible)player.rig.weapon.visible=true;
       pruneFallen();
       lodUpdate();                                            // ...and the far bodies down to three boxes each — see THE FAR RIGS
-      if(PATH.on)updatePath(wdt);
+      if(PATH.on)updatePath(wdt);else if(DEF.on)updateDefend(wdt);
     }else{
       player.t+=wdt;
       /* WHOEVER PUTS THE BODY DOWN, PUTS IT DOWN. This used to end by
@@ -16353,7 +16942,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={G,player,IN,Input,enemies,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={G,player,IN,Input,enemies,DEF,HOUSE,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

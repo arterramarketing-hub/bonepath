@@ -1647,6 +1647,62 @@ Known state of play:
     not just the skull — a launcher may crop to the middle 80%, and what
     it is allowed to take is the arch's legs.
 
+- **DEFENDER (`DEF`, `?mode=defend`, THE MIRE, THE HOUSE, THE ROUNDS, THE
+  SHOP — five headed sections above the pews).** A third mode-as-a-page
+  beside the field and the path. Traps, in the order they bit:
+  - **Every `if(!PATH.on)` in `buildWorld` is a field-only gate, and most
+    of them had to become `!PATH.on&&!DEF.on`.** The wedges, the piles, the
+    three landmarks, `makeFogGate`, `spawnEnemies`, the 800-marrow angel.
+    Search for `PATH.on` before adding anything to the field.
+  - **The cathedral is not built, but its FOOTING is.** `heightAt`,
+    `constrainCath`, `onStone`, `cathDist` all still answer with the
+    plinth rect (PW/PL/PH), so `buildMire` rebuilds the plinth and both
+    stairs by hand and the house stands on it. `constrainCath` returns
+    after the rim in the Mire (no hall walls); `camStone` returns false;
+    `inStairsL` takes `abs(z)` like the path. A body with `p.climbs` (the
+    Drowned) skips the rim push and simply walks up the step.
+  - **THE NAVE TRIGGER.** `frame()` starts the Warden fight when the
+    pilgrim stands inside the HW/HL rect with the cathedral open — which
+    in the Mire is the inside of the house, and `boss` is null there. It
+    took the game down the first time anyone walked indoors. Gated on
+    `!DEF.on`; `G.bossActive` must never be set in the Mire (it clamps the
+    camera and the pilgrim into a nave that does not exist).
+  - **A round's boss is a `mini`, never `G.bossActive`.** The Warden is
+    `new Enemy('boss')` with `mini=true, engaged=true, name`, so
+    `updateHUD`'s mini bar carries it; its `die()` skips `onBossDead` in
+    the Mire; `constrain(this,this.boss&&!DEF.on)`. The Mother is a
+    `zombie` with `mother:true`, likewise. Cycle scaling multiplies
+    `maxHp` after the summon.
+  - **The Mother breeds from `update()`, not from her walk.** Ticked in
+    `zombieMove` she only bred while in `chase`, and a Mother kept busy
+    swinging never bred at all (measured: 4 → 0.83 on the timer in six
+    seconds of `chase`). `breed(dt)` runs every living frame outside the
+    rise and her cutscene.
+  - **The player's blade and rounds never damage the house.**
+    `strikeBreakables` skips `b.noPlayer`; only `bashSeg` (from the
+    Drowned's `bash` strike, and `breakPew` for kind `house`) does. A
+    fallen segment is REMOVED from `breakables` and `obstacles` and put
+    back by `mendSeg`; `HOUSE.segs` holds all twelve regardless. Roof
+    meshes are `name='roof'` so the static bake leaves them out.
+  - **Stuck on a tree.** A body steering straight at a wall through the
+    wood is pushed out of a trunk and steps back into it for ever —
+    measured, two of six stood at 28m for a whole wave. `zombieMove`
+    watches the ground covered and takes a 1.3s sideways detour after
+    1.5s of going nowhere. Any new siege-walker needs the same.
+  - **A dead `#shop` CSS block from the old marrowfire offerings was
+    still in the stylesheet** and overrode the new overlay (a 380px
+    centred box). It is deleted. The shop borrows the pause panel's rules
+    by selector (`#pause X,#shop X`), and `setPaused` refuses while
+    `DEF.shopOpen` so the two overlays cannot stack; Esc closes the shop
+    first.
+  - `DEF.might` multiplies the blade in the melee hit loop and the round
+    in `gunHit` only — not arrows, bubbles or bolts. `player.init` forces
+    the greatsword when the saved weapon is not owned; `cycleLoadout`
+    filters `HERO_OPTS.weapon` by `DEF.owned` in the Mire.
+  - Spawn is `rr3(34,42)` out along a quarter; at 43–52 a round-one wave
+    took forty seconds to arrive, which is a long time to look at water.
+    The bog slows the Drowned to .82, the pilgrim to .6.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,
