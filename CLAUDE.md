@@ -1654,13 +1654,29 @@ Known state of play:
     of them had to become `!PATH.on&&!DEF.on`.** The wedges, the piles, the
     three landmarks, `makeFogGate`, `spawnEnemies`, the 800-marrow angel.
     Search for `PATH.on` before adding anything to the field.
-  - **The cathedral is not built, but its FOOTING is.** `heightAt`,
-    `constrainCath`, `onStone`, `cathDist` all still answer with the
-    plinth rect (PW/PL/PH), so `buildMire` rebuilds the plinth and both
-    stairs by hand and the house stands on it. `constrainCath` returns
-    after the rim in the Mire (no hall walls); `camStone` returns false;
-    `inStairsL` takes `abs(z)` like the path. A body with `p.climbs` (the
-    Drowned) skips the rim push and simply walks up the step.
+  - **The cathedral is not built, and neither is its footing — but the
+    plinth still exists in the RULES.** `heightAt` answers PH inside the
+    PW/PL rect, `constrainCath` pushes bodies off its rim, `onStone` is
+    `cathDist<4.5`, `camStone` is the hall's shell. Every one of them
+    returns early in the Mire (`heightAt` → `mireGround`, `constrainCath`
+    → return, `onStone` → false, `camStone` → false). The first build kept
+    the plinth and stood the house on it, and the Drowned had to clamber a
+    half-metre step to reach a wall; the house stands on the soil now.
+    **If anything in the Mire ever floats or sinks by 1.2m, a PH rule has
+    leaked through.**
+  - **THE HOUSE IS AT `MIRE.hx/hz` (0,−27), NOT THE ORIGIN.** `buildHouse`
+    builds in the group's own frame and carries `ox/oz/oy` into every
+    registry (`addWall`, `addObstacle`, `addBreakable`'s x/z) — the
+    segments' `x/z` are WORLD, their planks are LOCAL, and `roofFall`'s
+    bay test subtracts `HOUSE.oz`. `mireGround`'s rise is an oval about
+    the house and the yard (`MIRE.yardZ`, −8), flattened to `MIRE.pad`
+    under the house; the three lanes (`MIRE.lanes`) fan SOUTH from the
+    yard. The field's ring road and quarter roads are gated `!DEF.on`.
+  - **Everything spawns in the south** (`spawnDrowned`: a lane bearing
+    six times in ten, else `π/2 ± .8`, 30–38m from the yard) and
+    `defBossSpot` walks out from the house THROUGH the pilgrim and rejects
+    anything north of the house's back wall. The pilgrim starts in the yard
+    facing south (`G.checkpoint` beside the house's front door).
   - **THE NAVE TRIGGER.** `frame()` starts the Warden fight when the
     pilgrim stands inside the HW/HL rect with the cathedral open — which
     in the Mire is the inside of the house, and `boss` is null there. It
@@ -1695,13 +1711,16 @@ Known state of play:
     by selector (`#pause X,#shop X`), and `setPaused` refuses while
     `DEF.shopOpen` so the two overlays cannot stack; Esc closes the shop
     first.
-  - `DEF.might` multiplies the blade in the melee hit loop and the round
-    in `gunHit` only — not arrows, bubbles or bolts. `player.init` forces
+  - **`DEF.might` is applied in every horror's `takeHit`** (`heroDmg`, six
+    classes — Enemy, Crow, FallenAngel, GraveGhoul, BoneHand, GiantSkull),
+    not at the producers: arrows, bubbles, bolts, the katana's throw and
+    the shockwaves all land there, and a new weapon gets it for nothing.
+    Do not also multiply at a call site or it stacks. `player.init` forces
     the greatsword when the saved weapon is not owned; `cycleLoadout`
     filters `HERO_OPTS.weapon` by `DEF.owned` in the Mire.
-  - Spawn is `rr3(34,42)` out along a quarter; at 43–52 a round-one wave
-    took forty seconds to arrive, which is a long time to look at water.
-    The bog slows the Drowned to .82, the pilgrim to .6.
+  - Spawn is 30–38m from the yard; at 43–52 from the house a round-one
+    wave took forty seconds to arrive, which is a long time to look at
+    water. The bog slows the Drowned to .82, the pilgrim to .6.
 
 ## Conventions
 

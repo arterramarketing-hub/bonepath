@@ -1448,19 +1448,21 @@ is out.
 The title's third way. `?mode=defend` loads it; like the path, a mode is
 a page.
 
-**The Mire.** The one hexagon again, but the cathedral is gone and its
-stone footing is kept — the plinth, with a stair at both ends now — and
-a long timber house stands on it: posts, plank walls between them, a
-pitched roof in four bays, a door in each gable, a chimney. Round it the
-churchyard has drowned: a low dry rise carries the house, and past it
-the land goes under black water to the rim of the world, dead trees
-standing in it, a few graves leaning on the rise. Four causeways run out
-along the roads, just clear of the water, a lantern at the foot of each
-and one by each door. It is never day here (dusk or night) and never
-snow (clear, rain or a storm), and the haze closes to fifty metres
-whatever the weather. **Standing in the water slows everything** — the
-pilgrim to six tenths, the Drowned to eight — and the pilgrim leaves a
-wake in it.
+**The Mire.** The one hexagon again, but the cathedral is gone — footing
+and all — and a long timber house stands on the soil at the NORTH end of
+the field: posts, plank walls between them, a pitched roof in four bays,
+a door in each gable, a chimney. It is at your back. South of it a dry
+rise runs out into the YARD, the fighting ground, and past the yard the
+churchyard has drowned: black water to the rim of the world, dead trees
+standing in it, a few graves leaning on the rise. **Three causeways fan
+from the yard south to the rim**, a lantern at the head of each and one
+either side of the door, and everything that comes for the house comes
+up out of that water and along those lanes — six in ten on a lane, the
+rest wading between. Nothing comes from behind. It is never day here
+(dusk or night) and never snow (clear, rain or a storm), and the haze
+closes to fifty metres whatever the weather. **Standing in the water
+slows everything** — the pilgrim to six tenths, the Drowned to eight —
+and the pilgrim leaves a wake in it.
 
 **The Drowned.** A new horror. A hollow's frame with the flesh still on
 it, grey-green and split, pale-eyed, unarmed — a hundred life (six
@@ -1469,8 +1471,7 @@ by a blow. It **does not much care about you**: inside eight metres, or
 for five seconds after anything hurts it, it comes for you like any
 other; otherwise it picks a standing wall of the house — the nearest, a
 breached one preferred — walks to a stride outside it and **bashes**,
-both arms into the planks. It clambers straight up the footing's rim
-where everything else has to use the stairs. A body walking at a wall
+both arms into the planks. A body walking at a wall
 through a wood gets stuck on a trunk; one that has gone nowhere for a
 second and a half takes a short detour sideways.
 
@@ -1513,7 +1514,7 @@ calls the next round early.
 pause; Esc closes it). Everything is bought with marrow:
 
 | the house | mend the worst wall (80 + 12 a round) · mend the whole house (per hurt wall) |
-| the pilgrim | eat, full heal (50) · a heart container (200, ×1.35 each) · might, +15% on the blade and the round (160, ×1.4 each) |
+| the pilgrim | eat, full heal (50) · a heart container (200, ×1.35 each) · might, +15% on everything you strike with — blade, round, shaft, bubble, bolt (160, ×1.4 each) |
 | the armoury | every blade and gun in the game, 160–520 · a reserve of each calibre you own (70) |
 
 The Mire arms you with the greatsword; the rest of the wardrobe is
