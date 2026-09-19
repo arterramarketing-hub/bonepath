@@ -112,12 +112,38 @@ Known state of play:
   materials are skipped, and no original geometry is disposed (some is
   shared with gravestones elsewhere). Field: 224 meshes into 5. Path: 221
   into 4.
-- **The cemetery, groves and ruins are NOT foldable the same way.** Nearly
-  all of them are registered as `obstacles` or in `MARKABLE` — a blade can
-  score a gravestone and gouge a tree, and the mark is painted onto that
-  object — so folding them would silently kill the marks. Reaching them
-  means instancing with per-instance marking, or reworking how marks are
-  painted. Do not simply widen `bakeStatic` over them.
+- **The cemetery, groves, ruins, graves and pews ARE folded now, by
+  `bakeWorld()` (beside `bakeStatic`, run at the end of `buildWorld` on
+  the field and in the Mire, never on the path), AND EVERY FOLDED MESH CAN
+  BE TAKEN BACK OUT.** A blade scores a gravestone and gouges a tree and
+  the mark is painted onto that object's own texture, which is why they
+  were never folded before. `BAKED` maps each folded mesh to its parent
+  and its run of vertices in the fold; `unbake(o)` collapses the run to a
+  point (a partial upload via `updateRange`) and puts the original back
+  where it was. `markTree`, `fellTree`, `markStone` and `breakPew` call
+  it first, so the thing under a mark, a felling or a break is its own
+  mesh again from that moment. **`unbakeGroup(g)` asks by RECORD, not by
+  traversal**: a folded mesh is no longer a child of its group, so
+  `g.traverse` finds nothing (it did, and a marked tree kept its bark
+  painted onto nothing). Folds are per material AND per 25m cell so a
+  heading that looks at nothing still draws nothing. Held out: the
+  house's segments (they change state), the bell (`tough`/`onHit`),
+  anything `noPlayer`, lanterns, scars, the ground, anything named or
+  transparent or vertex-coloured. Measured on the field, seed 7, over
+  eight headings: **882 → 512 draws at the busiest, 106 → 93 at the
+  quietest**; the pews alone were a hundred draws from anywhere the
+  cathedral was in the picture, because a frustum does not know about
+  walls. **Anything new that animates a world mesh, or reads
+  `mesh.parent`, must call `unbake` first or check `BAKED`** — and the
+  path is excluded because `tileCapture`/`tileCommit` count
+  `world.children` by index and shift positions after the build, which a
+  fold would put under the wrong count and leave the evicted original
+  unshifted.
+- **The pause screen renders every fifth frame and the title every
+  third** (`G.frameN` in `frame()`). Both used to draw the whole field at
+  sixty a second under a panel that does not move, which is the same heat
+  as playing. Anything that must animate on those screens has twelve or
+  twenty frames a second to do it in.
 - A **frame counter** (fps, draw calls, triangles) sits in the bottom-left,
   off by default, switched on under *The field (testing)* on the pause
   screen and remembered by the browser. `renderer.info.autoReset` is off

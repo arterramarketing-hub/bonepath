@@ -4367,6 +4367,7 @@ function breakPew(b){
   const i=breakables.indexOf(b);if(i<0)return;
   breakables.splice(i,1);
   const oi=obstacles.indexOf(b.obs);if(oi>=0)obstacles.splice(oi,1);
+  if(b.g.isMesh)unbake(b.g);unbakeGroup(b.g);   // (a folded grave: its run in the fold goes with it)
   b.parent.remove(b.g);
   if(b.kind==='grave'){
     // a gravestone comes apart into chunks of weathered stone
@@ -4541,6 +4542,92 @@ function bakeStatic(root){
   }
   return {folded,made};
 }
+
+/* THE FIELD IS BAKED TOO, AND A MARK UNBAKES ITS STONE. bakeStatic folds
+   the cathedral and leaves every registered thing alone, because a blade
+   scores a gravestone and gouges a tree and the mark is painted onto THAT
+   object's own texture. That left the cemetery, the groves and the ruins
+   as five or six hundred draws a frame at a busy heading — more than the
+   horrors and the pilgrim together — and a draw is what heats a phone.
+   So they are folded as well, by material and by 25m cell (a cell is
+   frustum-culled like anything else, so a heading that looked at nothing
+   still draws nothing), and every folded mesh is REMEMBERED: `BAKED` maps
+   it to its parent and its run of vertices in the fold. The first mark on
+   a tree or a wall, and the ultra's felling, call unbake(): the run is
+   collapsed to a point (a partial upload, not the whole buffer) and the
+   original goes back into the scene where it was, its own material and
+   its own texture from then on. Nothing about how a mark is painted
+   changed; only whether the thing under it is drawn alone.
+   Not on the path: its tiles are torn down by index in `world.children`
+   (tileCapture), and a fold would move the ground under that count. */
+const BAKED=new Map();
+function bakeWorld(){
+  const held=new WeakSet();
+  const claim=o=>{if(!o)return;if(o.traverse)o.traverse(c=>held.add(c));else held.add(o);};
+  // a GRAVE, a PEW and a SIGN are folded too: nothing touches their stone
+  // or their oak until they break, and breakPew unbakes them first. The
+  // house's segments change state and the bell dresses its own blow, so
+  // those are left alone (the twenty pews of the nave were a hundred draws
+  // from anywhere the cathedral was in the picture: a frustum does not
+  // know about walls)
+  for(const b of breakables){if(!(b.kind==='house'||b.tough||b.onHit||b.noPlayer)){claim(b.obs);continue;}claim(b.g);claim(b.obs);}
+  for(const L of lanternLights)claim(L&&(L.o||L.post));
+  if(typeof scars!=='undefined')for(const sc of scars)claim(sc&&(sc.o||sc));
+  world.updateWorldMatrix(true,true);
+  const cells=new Map(),P=new THREE.Vector3();
+  world.traverse(o=>{
+    if(!o.isMesh||o.children.length||o.name||held.has(o)||o.userData.baked||o.material===groundMat)return;
+    const m=o.material;
+    if(!m||Array.isArray(m)||m.transparent||m.vertexColors)return;
+    const a=o.geometry&&o.geometry.attributes;
+    if(!a||!a.position||!a.normal||!a.uv||a.position.count>5000)return;
+    P.setFromMatrixPosition(o.matrixWorld);
+    const key=m.uuid+'|'+Math.floor((P.x+80)/25)+'|'+Math.floor((P.z+80)/25);
+    let list=cells.get(key);if(!list)cells.set(key,list=[]);
+    list.push(o);
+  });
+  const M=new THREE.Matrix4(),toLocal=new THREE.Matrix4().copy(world.matrixWorld).invert();
+  let folded=0,made=0;
+  for(const [,list] of cells){
+    if(list.length<2)continue;
+    const pos=[],nrm=[],uvs=[],recs=[];
+    for(const o of list){
+      const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();
+      g.applyMatrix4(M.multiplyMatrices(toLocal,o.matrixWorld));
+      const p=g.attributes.position.array,q=g.attributes.normal.array,u=g.attributes.uv.array;
+      recs.push({o,parent:o.parent,start:pos.length/3,count:p.length/3});
+      for(let i=0;i<p.length;i++)pos.push(p[i]);
+      for(let i=0;i<q.length;i++)nrm.push(q[i]);
+      for(let i=0;i<u.length;i++)uvs.push(u[i]);
+      g.dispose();
+    }
+    const merged=new THREE.BufferGeometry();
+    merged.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    merged.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));
+    merged.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    merged.computeBoundingSphere();
+    const one=new THREE.Mesh(merged,list[0].material);one.userData.baked=true;one.matrixAutoUpdate=false;
+    world.add(one);
+    for(const r of recs){r.mesh=one;BAKED.set(r.o,r);r.parent.remove(r.o);}
+    folded+=list.length;made++;
+  }
+  return {folded,made};
+}
+function unbake(o){
+  const r=BAKED.get(o);if(!r)return false;
+  BAKED.delete(o);
+  const pa=r.mesh.geometry.attributes.position,arr=pa.array;
+  for(let i=r.start*3,e=(r.start+r.count)*3;i<e;i++)arr[i]=0;   // the run collapses to a point at the fold's origin: no area, nothing drawn
+  pa.updateRange={offset:r.start*3,count:r.count*3};pa.needsUpdate=true;
+  r.parent.add(o);
+  return true;
+}
+// a folded mesh is no longer a child of its group, so the group is asked
+// by RECORD, not by traversal (the first pass traversed, found nothing,
+// and a marked tree stayed folded with its own texture painted on nothing)
+function unbakeGroup(g){if(!g)return;const list=[];
+  for(const [o,r] of BAKED){for(let p=r.parent;p;p=p.parent)if(p===g){list.push(o);break;}}   // (anything under it, at any depth: a cross is a mesh on a mesh)
+  for(const o of list)unbake(o);}
 
 function buildWorld(){
   seedRun();
@@ -5084,6 +5171,7 @@ function buildWorld(){
   }
   setupWeather();
   if(PATH.on){PATH.M=M;PATH.chunks=CHUNKS;PATH.buildCath=buildCathedral;PATH.helpers={bonePile,tree,inWedge,shared:[graveGeo,crossV,crossH,slabGeo]};initPath();}
+  else bakeWorld();
 }
 
 /* ---------------- THE PATH: tiles built ahead, torn down behind ---------------- */
@@ -9046,6 +9134,7 @@ function bladeMeetsStone(x,z,fx,fz,reach,arc){
 let treeMarkCount=0;
 function markTree(o,hx,hz,tr,sd){
   const T=o.tree,trunk=T.trunk;if(!trunk)return;
+  unbakeGroup(T.grp);                    // (a marked tree is drawn on its own from here on)
   if(!T.tex){
     const src=trunk.material.map,img=src.image,S=img.width;
     const cv=document.createElement('canvas');cv.width=cv.height=S;cv.getContext('2d').drawImage(img,0,0);
@@ -9086,6 +9175,7 @@ const felled=[];let _stumpM=null;
 function fellTree(o,dx,dz){
   const T=o&&o.tree;if(!T||T.felled)return false;
   T.felled=true;
+  unbakeGroup(T.grp);                    // out of the fold: a folded tree cannot fall
   const i=obstacles.indexOf(o);if(i>=0)obstacles.splice(i,1);
   const g=T.grp,parent=g.parent||world;
   const piv=new THREE.Group();piv.position.copy(g.position);parent.add(piv);
@@ -9134,6 +9224,7 @@ function markStone(hx,hz,tr,sd){
   }
   if(!best)return;
   const {m,l,hw,hh,hd}=best;
+  unbake(m);                             // (a scored wall is drawn on its own from here on)
   if(!m.markTex){
     const src=m.material.map,img=src.image,S=img.width;
     const cv=document.createElement('canvas');cv.width=cv.height=S;cv.getContext('2d').drawImage(img,0,0);
@@ -17141,7 +17232,12 @@ function frame(now){
   perfTick(now);
   let dt=Math.min(.05,(now-last)/1000);last=now;
   if(IN.pausePressed){IN.pausePressed=false;if(DEF.shopOpen)setShop(false);else setPaused(!G.paused);}
-  if(G.paused){renderFrame();Input.consume();return;}
+  /* THE PAUSE SCREEN IS NOT A GAME. It used to render the whole field
+     under the panel at sixty a second, which is the same heat as playing
+     for a screen that does not move. Every fifth frame is twelve a second,
+     and the grain still crawls. The title likewise, at twenty. */
+  G.frameN=(G.frameN|0)+1;
+  if(G.paused){if(G.frameN%5===0)renderFrame();Input.consume();return;}
   if(G.mode==='play')G.playTime=(G.playTime||0)+dt;
   let wdt=dt;G.frameDt=dt;
   if(G.hitstop>0){G.hitstop-=dt;wdt=dt*.08;}
@@ -17274,7 +17370,7 @@ function frame(now){
   if(grainT>.09){grainT=0;
     $('grain').style.transform='translate('+((Math.random()*48)|0)+'px,'+((Math.random()*48)|0)+'px)';}
 
-  renderFrame();
+  if(G.mode!=='title'||G.frameN%3===0)renderFrame();
   clipWarmTick();
   Input.consume();
 }
@@ -17282,7 +17378,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,CLIP_WARM,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,CLIP_WARM,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

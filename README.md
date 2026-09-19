@@ -2289,6 +2289,17 @@ Everything is generated at boot inside the one file:
   drop's face, a bone piece, a bolt — are compiled where they cannot be
   felt: a horror's clipped clone is drawn for two frames when the horror
   is built, a metre ahead of the eye with every fragment discarded.
+- **The field is baked too, and a mark unbakes its stone** — the
+  cathedral's fold left the cemetery, the groves, the ruins and the
+  nave's pews as five or six hundred draws at a busy heading, because a
+  blade scores a gravestone and gouges a tree and the mark is painted
+  onto that object's own texture. They are folded now, by material and
+  by 25-metre cell, and every folded thing is remembered: the first mark
+  on a tree or a wall, the ultra felling a trunk, a grave or a pew
+  breaking, takes that one object back out of the fold and puts it in the
+  scene on its own, its own texture from then on. 882 draws became 512 at
+  the busiest heading on the field. The pause screen draws at twelve
+  frames a second and the title at twenty; neither moves.
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.
