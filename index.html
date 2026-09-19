@@ -15295,14 +15295,37 @@ function updateShells(dt){
     if(s.t>5){s.t=-1;s.me.visible=false;}
   }
 }
-/* THE MUZZLE FLASH hangs at the muzzle in the gun's own frame, and it keeps
-   `depthTest:false` — which looks like the bug and is not the fix. Turning
-   the test ON was tried: aimed, the flash vanished COMPLETELY, because the
-   handguard sits between the eye and the muzzle and its silhouette is wider
-   than the sprite's whole disc (measured: about 25% of the screen's height
-   against the flash's 20%), so every fragment failed. What was actually
-   wrong was the SIZE — see the scale in `updateViewmodel`. */
-function gunFlash(g,x,y,z){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffd27a,transparent:true,opacity:.95,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
+/* THE MUZZLE FLASH HANGS AT THE MUZZLE AND THE GUN IS ALLOWED TO HIDE IT.
+   It used to keep `depthTest:false`, and the note here said that was not
+   the bug — that turning the test on had been tried and the flash vanished
+   outright, so the answer was to make it smaller. Both halves of that were
+   wrong, and what it actually produced is what a player sees: a lit ORB
+   sitting on top of the receiver, drawn through the gun, in the middle of
+   the sight picture.
+   Measured on the field, the flash's own pixels counted by rendering the
+   frame twice (once with the sprite lit, once at opacity 0) and differing
+   the two:
+
+     depth test ON, at the HIP   deagle 72% of its pixels kept, m4 72%,
+                                 spas 79%, sniper 73%, ump 43%
+     depth test ON, AIMED        deagle 0, m4 0, ump 0, spas 35%, sniper 0
+
+   So the old note was right about the aimed case and wrong about the
+   reason: nothing is in FRONT of the muzzle (the sprite already sits at
+   the gun's own frontmost point — moving it 3, 6, 10 and 16cm further
+   forward was measured and changes nothing). What covers it is the BARREL
+   ITSELF. Down the sights the eye is nearly on the bore, so the tube
+   between the eye and its own end covers a disc centred on that end, and
+   it always will.
+   That is not a fault to correct, it is what aiming a rifle looks like —
+   so the flash is depth-tested, and at the hip you get a burst at the
+   muzzle with the barrel cut into it, while aimed you get a CORONA around
+   the barrel's end rather than a lamp painted over the gun. The corona is
+   the reason the two corrections in `updateViewmodel` are gone: both of
+   them were shrinking the sprite to stop an undrawable-through disc from
+   dominating the aimed picture, and with the gun cutting its middle out
+   there is nothing left to stop. */
+function gunFlash(g,x,y,z){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffd27a,transparent:true,opacity:.95,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending}));
   s.position.set(x,y,z);s.scale.set(.16,.16,1);s.visible=false;s.renderOrder=8;g.add(s);return s;}
 /* a gun, barrel along -z, sights up +y, the grip at the origin. `body` is a
    lit mesh the element can glow on; `grip` where the left hand goes; `muzzle`
@@ -16419,17 +16442,18 @@ function updateViewmodel(dt){
   if(V.pump){const u=clamp((FPS.boltT-.12)/.5,0,1);V.pump.position.z=V.pumpZ+.08*Math.sin(u*Math.PI);}   // the fore-end back and forward
   V.flash.visible=FPS.flashT>0;
   if(V.flash.visible){
-    /* THE FLASH IS SIZED FOR THE HIP AND MUST BE CUT DOWN ON THE SIGHTS,
-       for two reasons that multiply. Its world size is fixed, so narrowing
-       the lens MAGNIFIES it (`camera.fov/VIEW.fov` undoes that, the same
-       share the crosshair uses). And aimed, the muzzle is no longer off to
-       one side — it is dead centre of the picture, a metre down the
-       barrel, so the same disc that reads as a flash at the hip reads as a
-       lamp burning in the middle of the rifle. Halved on top of the fov
-       share it is a point of light at the end of the barrel, which is what
-       it is. The hip is untouched. */
-    const s=(g.suppressed?.06:g.rocket?.5:g.pellets?.3:g.key==='sniper'?.26:.2)
-            *(.8+Math.random()*.5)*(camera.fov/VIEW.fov)*lerp(1,.5,ads);
+    /* ONE SIZE, AND IT IS A REAL SIZE. This carried two corrections —
+       `camera.fov/VIEW.fov` to undo the magnification the sights give a
+       fixed-size thing, and a halving on top of that — and both existed
+       only because the sprite was drawn THROUGH the gun, where a disc a
+       metre down the barrel reads as a lamp burning inside the rifle.
+       Neither is honest: a fireball at the muzzle does not shrink because
+       you brought the sights up, and a thing nearer the middle of the lens
+       SHOULD look bigger when the lens narrows. The gun occludes it now
+       (see `gunFlash`), so the aimed picture is a corona around the
+       barrel's end, and the size is simply the size. The hip, where the
+       two corrections were both 1, is unchanged to the pixel. */
+    const s=(g.suppressed?.06:g.rocket?.5:g.pellets?.3:g.key==='sniper'?.26:.2)*(.8+Math.random()*.5);
     V.flash.scale.set(s,s,1);V.flash.material.rotation=Math.random()*TAU;}
   vm.visible=FPS.on&&!CUT.on&&gunHeld()&&!(inGlass(g)&&ads>.85)&&P.state!=='dead'&&G.mode!=='dead';
   /* AND THE BLADE GOES AWAY. `updateBladeVm` hides itself, but it is only
@@ -17378,7 +17402,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,CLIP_WARM,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,CLIP_WARM,renderFrame,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

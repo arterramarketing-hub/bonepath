@@ -770,21 +770,43 @@ Known state of play:
      and breakables are closest-approach tests, the soil and `camStone`
      are stepped. The muzzle flash is a sprite plus `G.glowFlash` — NEVER
      a light (see LPOOL).
-     **THE FLASH KEEPS `depthTest:false`, AND THE FIX IS ITS SIZE.** Aimed,
-     it read as a lamp burning in the middle of the rifle rather than a
-     flash at the muzzle, and the obvious cure — let the gun occlude it —
-     makes it vanish OUTRIGHT: the handguard sits between the eye and the
-     muzzle and its silhouette is wider than the sprite's whole disc
-     (about 25% of the screen's height against the flash's 20%), so every
-     fragment fails the test. It was tried; the aimed frame had no flash
-     in it at all.
-     What was wrong is that the sprite is sized in WORLD units for the
-     hip. Aimed, two things multiply: the lens narrows, which magnifies it
-     (`camera.fov/VIEW.fov` undoes that, the share the crosshair uses),
-     and the muzzle stops being off to one side and becomes the exact
-     centre of the picture. `lerp(1,.5,ads)` on top of the fov share makes
-     it a point of light at the end of the barrel. **The hip is untouched
-     — do not change the base sizes to fix an aimed complaint.**
+     **THE FLASH IS DEPTH-TESTED AND THE GUN IS ALLOWED TO HIDE IT.** That
+     note used to say the opposite — that `depthTest:false` was not the
+     bug, that turning the test on had been tried and the flash vanished,
+     and that the answer was to shrink the sprite. What it actually
+     produced is what a player reported: a lit ORB sitting on the
+     receiver, drawn through the gun, in the middle of the sight picture.
+     Measured by rendering the frame twice (the sprite lit, then at
+     opacity 0) and differing the two — which is how to count ANY effect's
+     own pixels:
+
+       depth test on, HIP    deagle 72% of its pixels kept, m4 72%,
+                             spas 79%, sniper 73%, ump 43%
+       depth test on, AIMED  deagle 0, m4 0, ump 0, spas 35%, sniper 0
+
+     So the old note had the aimed case right and the reason wrong.
+     Nothing is in FRONT of the muzzle — the sprite already sits at the
+     gun's own frontmost point, and moving it 3, 6, 10 and 16cm further
+     forward was measured and changes nothing at all. What covers it is
+     the BARREL ITSELF: down the sights the eye is nearly on the bore, so
+     the tube between the eye and its own end covers a disc centred on
+     that end, and always will. That is what aiming a rifle looks like.
+     So the sprite is depth-tested, and it is one TRUE size — both
+     corrections in `updateViewmodel` (`camera.fov/VIEW.fov` and a
+     `lerp(1,.5,ads)` halving) are gone, because both existed only to stop
+     an undrawable-through disc dominating the aimed picture, and the gun
+     cutting its middle out is a better answer than shrinking it. A
+     fireball does not get smaller because you brought the sights up.
+     **The hip is unchanged to the pixel** (both corrections were 1
+     there); aimed, you get a corona hugging the barrel's end, measured at
+     0.9–1.5% of the screen on the m4's irons and red dot, 2.3% through
+     the ACOG (the narrowest lens, so the biggest), 3.1% on the Desert
+     Eagle, and essentially nothing on the suppressed UMP. The sniper
+     shows none aimed because `inGlass` hides the whole viewmodel, and the
+     RPG shows none in first person at all — its flash is the BACKBLAST at
+     z +0.4, behind the eye, which is where a backblast belongs.
+     Third person keeps 75%: the pilgrim's own arm now cuts the rest,
+     which is right.
   7. The right-thumb gesture is born in mode `cam` when `Input.setFps` is
      on — there is no flick and no tap on that side in first person; the
      dodge is a button, and it writes the same `st.swipe` a flick would.

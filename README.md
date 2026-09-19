@@ -616,11 +616,15 @@ climbs on the viewmodel and jumps back, and the *eye* climbs with it, a
 little to one side, so the sight is somewhere else for the next round; a
 share of the climb settles back on its own, the rest you pull down. The
 sway and the bob are held off entirely while the sights are up, which is
-what keeps them true. The **muzzle flash** is at the muzzle, and aimed it
-is cut down to a point of light at the end of the barrel rather than the
-lamp it used to be: the sprite is sized for the hip, where the muzzle is
-off to one side, and on the sights that same disc lands dead centre of the
-picture with the lens narrowed on top of it. Aiming narrows the field of view, slows the look
+what keeps them true. The **muzzle flash** is at the muzzle and **the gun is allowed to hide
+it**. It used to be drawn through the weapon, which aimed put a lit orb on
+top of the receiver in the middle of the sight picture, and two separate
+shrinkings were bolted on to keep that orb small. Both are gone: it is one
+true size now, the barrel cuts into it, and down the sights what you get
+is a corona around the barrel's end — because the tube between your eye
+and its own muzzle is genuinely in the way, which is what aiming a rifle
+looks like. The hip is unchanged. A suppressed weapon shows almost
+nothing, and the launcher's flash is the backblast, behind you. Aiming narrows the field of view, slows the look
 with it, and **caps you to a walk**: you keep the sights while you move,
 and the only way to sprint is to bring them down. (It used to be the
 other way about — a sprint dropped the sights — and since a thumbstick's
