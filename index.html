@@ -1642,6 +1642,33 @@ renderer.setPixelRatio(1);
 // last (two triangles of post) to read
 renderer.info.autoReset=false;
 renderer.localClippingEnabled=true;   // the finishing cut halves a body with clipping planes
+/* A SHADER PROGRAM IS NEVER GIVEN BACK. three.js counts the materials on
+   each compiled program and DELETES the program when the last of them is
+   disposed — so every effect that clones a material, shows it for a
+   few seconds and disposes it (the finishing cut's halves, the bone
+   pieces of a collapse) compiled its shaders on the way in and threw them
+   away on the way out, and compiled them again the next time. Measured at
+   the finishing cut: FIVE programs (a Basic, two Phong and two Lambert
+   variants with a clipping plane) linked on the frame of the hit, and the
+   frame after it — the GPU process compiling them for real at first draw
+   — ran 950-1250ms. Every cut, not the first. A program is a few tens of
+   kilobytes and the whole game needs about thirty, so the first material
+   to reach each program is simply kept, and the program with it. */
+const PROG_KEEP=new Map();
+{const _dispose=THREE.Material.prototype.dispose;
+ THREE.Material.prototype.dispose=function(){
+   const pr=renderer.properties.get(this),pg=pr&&pr.currentProgram;
+   if(pg&&!PROG_KEEP.has(pg.cacheKey)){PROG_KEEP.set(pg.cacheKey,this);return;}
+   _dispose.call(this);};}
+/* AND THE CUT'S VARIANTS ARE COMPILED WHEN THE BODY IS BUILT, NOT WHEN IT
+   IS CUT. Keeping the programs only fixes the second cut of a run; the
+   first would still stall on the hit. So every horror that can be halved
+   hands its rig to clipWarm as it is made: a clone of the body in the
+   clipped clone materials splitEnemy would give it, drawn where nothing
+   of it can show (see clipWarm) and dropped two frames later. On the
+   field that is boot; in the Mire it is the wave's spawn, which is a
+   calmer moment than the cut. */
+const CLIP_WARM={seen:new Set(),group:null,pending:[],dir:new THREE.Vector3()};
 const FOGC=0x090d12;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(FOGC);
@@ -11493,6 +11520,7 @@ class Enemy{
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
     this.rig=this.boss?makeWardenRig():this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
+    if(!this.boss)clipWarm(this.rig,(this.zombie?'z'+(this.variant||'')+(this.mother?'m':'')+(this.crawler?'c':''):(this.big?'big':'')+(this.caster?'cast':'')+'h'));   // the cut's shaders and pipelines, built now rather than on the hit
     this.reach=this.boss?3.4:this.big?2.4:2.15;
     if(this.zombie){this.reach=this.mother?2.7:this.crawler?1.5:this.variant==='hulk'?2.3:1.95;
       // the variants wear it: the runner paler, the hulk dark and waterlogged
@@ -13814,6 +13842,98 @@ function katanaSlice(e,facing,cut){
   if(e.hp>0){e.noRag=true;e.die();}
   e.crumbled=true;e.rig.root.visible=false;
 }
+/* the halves' material: cut by a plane, seen from inside, able to fade —
+   and with no hit-flash frozen into it. clipWarm makes the SAME clone, so
+   the program it compiles is the one the halves will ask for */
+function clipMat(src){const m=src.clone();if(m.emissive)m.emissive.setHex(0x000000);m.transparent=true;m.side=THREE.DoubleSide;return m;}
+function clipSig(m){return m.type+'|'+(m.map?1:0)+'|'+(m.vertexColors?1:0)+'|'+(m.alphaTest>0?1:0)+'|'+(m.flatShading?1:0)+'|'+(m.emissiveMap?1:0)+'|'+(m.fog?1:0);}
+// and the geometry's layout: a part with no uv, or no normal, is a different
+// pipeline in the driver even under the same program (the vertex input
+// state is part of it), and one stand-in per material class left those cold
+function geoSig(g){const a=g.attributes;return Object.keys(a).sort().map(k=>k+a[k].itemSize+(a[k].normalized?'n':'')).join(',')+'|'+(g.index?g.index.array.BYTES_PER_ELEMENT:0);}
+function clipWarm(rig,kind){
+  if(!rig||!rig.root||!rig.humanoid||CLIP_WARM.seen.has(kind))return;
+  CLIP_WARM.seen.add(kind);
+  clipWarmGroup();
+  /* THE STAND-IN IS THE WHOLE BODY, CLONED THE WAY THE CUT CLONES IT. One
+     triangle per material class linked every program and the cut's first
+     frame still ran 400-530ms; one per material class AND vertex layout,
+     the same. A clone of the rig — every part, on its own geometry, in its
+     clipped clone material — took it to nothing. Whatever the driver keys
+     its pipelines on below the program, the body itself covers it, so the
+     body is what is drawn: a fifth of its size, a metre ahead of the eye,
+     every fragment discarded, for two frames. Once per horror KIND (a
+     second hollow's cut never stalled, so the kind is the grain) */
+  const h=rig.root.clone(true);let probe=null;
+  h.traverse(o=>{o.frustumCulled=false;if(o.isMesh&&o.material&&!o.material.isSpriteMaterial){o.material=clipMat(o.material);o.material.clippingPlanes=[CLIP_WARM.plane];if(!probe)probe=o.material;}});
+  if(!probe)return;
+  h.scale.setScalar(.2);h.position.set(0,-.3,0);h.userData.probe=probe;
+  warmObj(h);
+  // AND one small stand-in per part beside it. Measured four ways, twice
+  // each: the body alone, 400-530ms on the cut's first frame; a stand-in
+  // per material class alone, the same; the body with a stand-in per
+  // part, nothing. What the driver keys on below the program is not
+  // written down anywhere; this is what covers it, so this is what is drawn
+  rig.root.traverse(o=>{if(o.isMesh&&o.material&&!o.material.isSpriteMaterial){const m=clipMat(o.material);m.clippingPlanes=[CLIP_WARM.plane];warmObj(new THREE.Mesh(o.geometry,m));}});
+}
+function clipWarmGroup(){
+  if(CLIP_WARM.group)return;
+  CLIP_WARM.group=new THREE.Group();scene.add(CLIP_WARM.group);clipWarmPlace();
+  CLIP_WARM.geo=new THREE.BufferGeometry();
+  CLIP_WARM.geo.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,1,0,0,0,1,0],3));
+  CLIP_WARM.geo.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,0,1],2));
+  CLIP_WARM.geo.computeVertexNormals();
+  CLIP_WARM.plane=new THREE.Plane(new THREE.Vector3(0,1,0),1e6);
+}
+/* THE STAND-INS RIDE A METRE AHEAD OF THE EYE, AND THEY HAVE TO. The first
+   pass parked them 400m under the world: every program linked at boot and
+   the cut's first frame STILL ran 400-530ms, because a driver builds the
+   fragment half of a pipeline on the first draw that covers a pixel, and
+   a triangle under the world covers none. So they sit in the picture, a
+   few pixels wide, and nothing shows: the clipped ones discard every
+   fragment (the plane's constant is +1e6, which is "everything"), the rest
+   are alpha 0 or add black. Each is held until it has been DRAWN twice
+   there — its program alone is not the test. `keep`: the material is a
+   live one (the trail's own) and is not disposed when the stand-in goes */
+function warmObj(o,keep){clipWarmGroup();o.frustumCulled=false;o.userData.keepMat=!!keep;o.userData.drawn=0;
+  if(o.isMesh||o.isLine){if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();o.scale.setScalar(.03/(o.geometry.boundingSphere.radius||1));}
+  else if(o.isSprite)o.scale.set(.03,.03,1);
+  if(!o.userData.probe)o.userData.probe=o.material;
+  CLIP_WARM.group.add(o);CLIP_WARM.pending.push(o);}
+function clipWarmPlace(){camera.getWorldDirection(CLIP_WARM.dir);CLIP_WARM.group.position.copy(camera.position).addScaledVector(CLIP_WARM.dir,1);}
+/* THE REST OF THE ONCE-A-RUN COMPILES, paid at boot instead of on the
+   first swing, the first drop and the first collapse: the blade trail's
+   own shader (its first link was measured on the first frame of the
+   finishing cut — t=.06, when the blade draws), the drop's face (an sRGB
+   texture on a sprite is its own program, and the frame after its link ran
+   500ms), and a bone piece (mat('bone').clone() drops psx(), which is
+   a Lambert the world never otherwise draws). */
+function warmEffects(){
+  clipWarmGroup();
+  // the trail's stand-in carries the trail's OWN attribute set (colour and
+  // alpha): a geometry without a colour attribute leaves a different slot in
+  // the program's cache key (vertexAlphas, undefined rather than false) and
+  // the real trail linked its shader again on the first swing. Black, alpha
+  // 0, additive: it draws nothing
+  const tg=new THREE.BufferGeometry();
+  tg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,1,0,0,0,1,0],3));
+  tg.setAttribute('color',new THREE.Float32BufferAttribute([0,0,0,0,0,0,0,0,0],3));
+  tg.setAttribute('alpha',new THREE.Float32BufferAttribute([0,0,0],1));
+  warmObj(new THREE.Mesh(tg,bladeTrail.mesh.material),true);
+  // the bolt and the tracer are Lines: their own topology, their own pipeline
+  const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,.01,0,0],3));
+  warmObj(new THREE.Line(lg,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false})));
+  const face=texCache[DROP_FACE.fire]||texCache.orbHeart;
+  if(face)warmObj(new THREE.Sprite(new THREE.SpriteMaterial({map:face,transparent:true,opacity:0,depthWrite:false})));
+  const bone=mat('bone').clone();bone.transparent=true;bone.opacity=0;warmObj(new THREE.Mesh(CLIP_WARM.geo,bone));
+}
+function clipWarmTick(){   // after a render: whatever has been drawn twice goes, and dispose() keeps the program
+  const P=CLIP_WARM.pending;if(!P.length)return;
+  for(let i=P.length-1;i>=0;i--){const w=P[i],pr=renderer.properties.get(w.userData.probe);
+    if(pr&&pr.currentProgram&&++w.userData.drawn>=2){P.splice(i,1);CLIP_WARM.group.remove(w);
+      if(!w.userData.keepMat)w.traverse(o=>{if(o.material&&o.material.dispose)o.material.dispose();});}}
+  clipWarmPlace();
+}
 function splitEnemy(e,facing,cut,sharp){
   const r=e.rig,gh=heightAt(e.x,e.z),S=r.s||1;
   // the plane of the cut: down through the body for the finishing cut, or
@@ -13843,9 +13963,7 @@ function splitEnemy(e,facing,cut,sharp){
   for(const side of [1,-1]){
     const h=r.root.clone(true);
     const plane=new THREE.Plane(nl.clone().multiplyScalar(side),.01-side*nl.y*hc);
-    h.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.clippingPlanes=[plane];
-      if(o.material.emissive)o.material.emissive.setHex(0x000000);           // (no hit-flash frozen into the halves)
-      o.material.transparent=true;o.material.side=THREE.DoubleSide;}});
+    h.traverse(o=>{if(o.isMesh){o.material=clipMat(o.material);o.material.clippingPlanes=[plane];}});
     h.position.set(e.x,gh,e.z);h.rotation.set(0,e.facing,0);
     scene.add(h);h.updateMatrixWorld(true);
     const list=[];h.traverse(o=>list.push(o));
@@ -16686,6 +16804,7 @@ if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
 spawnEnemies();
 marrowInit();
+warmEffects();
 makeGrain();
 // the finishing mark hangs over a stunned foe you can reach
 const execMark=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.mark,color:0xffe9b0,
@@ -17156,13 +17275,14 @@ function frame(now){
     $('grain').style.transform='translate('+((Math.random()*48)|0)+'px,'+((Math.random()*48)|0)+'px)';}
 
   renderFrame();
+  clipWarmTick();
   Input.consume();
 }
 requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,CLIP_WARM,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

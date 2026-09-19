@@ -2278,6 +2278,17 @@ Everything is generated at boot inside the one file:
   pews that break, the walls a blade can score, anything carrying collision
   or a light. The picture is identical to the triangle; the card is simply
   told about it 219 fewer times a frame.
+- **Shaders are kept, and warmed** — the finishing cut halves a body
+  with clipping planes, and a clipped material is its own shader program.
+  three.js throws a program away when the last material on it is
+  disposed, so every cut used to compile five programs on the frame of
+  the hit and destroy them three seconds later: over a second of stall,
+  every finishing move, which read as the game lagging just before the
+  blade came down. Now no program is ever given back (the first material
+  on each one is kept), and the halves' programs — and the trail's, the
+  drop's face, a bone piece, a bolt — are compiled where they cannot be
+  felt: a horror's clipped clone is drawn for two frames when the horror
+  is built, a metre ahead of the eye with every fragment discarded.
 - **Textures** — all procedural 256px canvases: flagstone with moss and
   trodden bone chips, weeping stone walls, ossuary walls of mortared skulls,
   weathered gravestones, rusted iron, dead bark. Nearest-filtered, sRGB.

@@ -1793,6 +1793,43 @@ Known state of play:
   non-finite from the pose. **If a limb or a blade ever vanishes with no
   error, read `rig._sm[k]` for NaN before anything else.**
 
+- **THE LAG BEFORE A FINISHING CUT WAS SHADER COMPILATION, EVERY CUT.**
+  `splitEnemy` clones every material on the body with a clipping plane,
+  and a clipped material is its own shader program. three.js counts the
+  materials on a program and DELETES the program when the last is
+  disposed, so the halves' five programs (a Basic, two Phong, two
+  Lambert) were linked on the frame of the hit and destroyed 2.8s later,
+  and the next cut linked them again. Measured: the hit frame 1250ms plus
+  650ms on the one after it (the GPU process compiling at first draw);
+  now 216ms and no link. Two halves to the fix, both needed:
+  1. **`THREE.Material.prototype.dispose` is wrapped (beside
+     `localClippingEnabled`) so the first material to reach each program
+     is kept in `PROG_KEEP` and the program lives for ever.** The game
+     needs about thirty; a program is a few tens of kilobytes. Every
+     effect that clones-shows-disposes (bone pieces, halves) is covered
+     without knowing about it.
+  2. **`clipWarm(rig,kind)`** compiles the halves' programs when the horror
+     is BUILT (boot on the field, the wave's spawn in the Mire) and
+     `warmEffects()` at boot does the trail, the drop's face, a bone piece
+     and a Line. The stand-ins ride a metre ahead of the eye
+     (`clipWarmPlace`), invisible: the clipped ones discard every fragment
+     (plane constant +1e6), the rest are alpha 0 or add black.
+     **What has to be drawn was found by measurement and is not
+     explicable from the source:** one triangle per material class linked
+     every program and the hit still stalled 400-530ms; a clone of the
+     whole body alone, the same; a clone of the body PLUS one small
+     stand-in per part, nothing. Both are drawn, two frames each, once per
+     kind. Whatever the driver keys its pipelines on under the program,
+     that covers it. If the stall ever returns, hook `gl.linkProgram` and
+     time `renderer.render` per frame (the harness in the notes did
+     exactly that): a stall with no link and no render time is the GPU
+     process, and the answer is a more faithful stand-in, not less work.
+  - **A stand-in's GEOMETRY is part of the key.** The trail's stand-in on a
+    bare triangle left `vertexAlphas` undefined where the real trail's
+    colour attribute makes it false, and the real trail linked its shader
+    again on the first swing. A stand-in carries the attribute set of the
+    thing it stands for.
+
 ## Conventions
 
 - Commit messages here are written as evocative prose, lowercase-leaning,
