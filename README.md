@@ -520,13 +520,17 @@ springs and the same steel. Every combo, every weapon, every chain comes
 free, and none of it can ever disagree with the body. Three hand-built
 viewmodels were thrown away to get here, each one a second animation
 that could not be made to match the first.
-What the eye is **inside of** is taken away, and only that. At 1.74 the
-lens sits in the pilgrim's own head and in the top of his trunk — one
-collar plate covered *0.65 of the screen* and the next 0.46, so the
-picture was a teal wall with a strip of field over it. Everything whose
-crown stands above the eye line is dropped onto a layer nothing draws:
-the helm, the gorget, the collar, the pauldrons. What is left is the
-chest, the arms, the hanging tabard and the weapon.
+**What you see of him is two arms and the steel.** The body is not drawn
+behind his own eyes at all. The lens at 1.74 sits inside his head and
+inside the top of his trunk — one collar plate covered *0.65 of the
+screen* and the next 0.46, so the first picture was a teal wall with a
+strip of field over it — and cutting only what the eye was inside of
+still left the tabard, the skirt and the greaves swinging across the
+lower frame, which is armour you do not need to see to fight. So the
+whole body goes onto a layer nothing draws and the arms are kept, minus
+their pauldrons, which stand above the eye and would straddle the lens
+the way the collar did. The weapon is never cut, whatever height it
+reaches: it is the point.
 So you see a greatsword the way a man carrying one sees it. At rest it is
 over his shoulder, behind his own eyes, and there is nothing to see —
 which is correct. He swings, and it comes round across the bottom of the
@@ -559,16 +563,19 @@ a short one never leaves a gulf before the count. A **zoom** button
 appears only when the sniper is in its scope. The pause button and the
 hearts are where they were; there is no finishing mark.
 
-**A blade behind the eyes has none of them.** Every one of those buttons
-was a button for something the right thumb already does over the
-shoulder, sitting over the picture — so with a blade in hand the whole
-set goes away and the thumb is the gesture it always was: **flick** to
-roll, **tap** to strike, **hold still** for the heavy, **hold and drag**
-to turn the eye. The lock is automatic, the way it is in third person.
-The trade is honest and worth naming: a turn has to start slowly, or a
-fast one reads as a dodge, and it does not begin until the quarter-second
-the hold takes to decide itself. The automatic lock is what pays for
-that — the eye is already on the thing swinging at you.
+**A blade behind the eyes gets the same four**, and this was tried both
+ways. For one build the buttons went away and the right thumb carried the
+third-person gesture behind the eyes too — flick to roll, tap to strike,
+hold still for the heavy, hold and drag for the eye. It works, and it is
+wrong: in first person the thumb is the *look*, and a gesture that has to
+decide what it is costs you the look for a quarter-second every time,
+while anything fast enough to turn quickly reads as a dodge. So: the
+whole right half of the screen turns the eye, at once, and the buttons do
+the rest. Either **trigger** strikes, and either one **held** also winds
+the heavy — the tap still cuts immediately, because a tap must never wait
+to find out what it was, and the blade gathers for the second blow behind
+it. The **aim** button is the charge. The **dodge** button rolls. The
+lock is automatic, the way it is in third person.
 
 **Six guns, by calibre** — because the calibre is what a round does.
 Reserves are kept **by calibre**, so the eagle and the rifle draw on one

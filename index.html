@@ -301,18 +301,18 @@
     letter-spacing:.14em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
   #povBtn.on{display:block;}
   /* which buttons show: the shooter's set behind the eyes, the weapon bar
-     and the reload whenever a gun is in hand — either view.
-     A BLADE BEHIND THE EYES SHOWS NONE OF THEM (`.fps.blade`): the right
-     thumb is the third-person gesture there — a flick is the dodge, a tap
-     the strike, a still hold the heavy, a hold and drag the eye — so a
-     button for each of those is a button for something the thumb already
-     does, sitting over the picture. */
+     and the reload whenever a gun is in hand — either view. A BLADE gets
+     the same four: the triggers strike, the aim button charges, the roll
+     button dodges. (They were taken away for one build and put straight
+     back — behind the eyes the thumb is the LOOK, and a gesture that has
+     to decide between a dodge and a camera turn costs you the look for a
+     quarter of a second every time you use it.) */
   #fpsCtl{display:none;}
   #fpsCtl.fps,#fpsCtl.gun{display:block;}
   #fpsCtl>.btn{display:none;}
-  #fpsCtl.fps:not(.blade)>#fbFireL,#fpsCtl.fps:not(.blade)>#fbFireR,
-  #fpsCtl.fps:not(.blade)>#fbAds,#fpsCtl.fps:not(.blade)>#fbRoll{display:flex;}
+  #fpsCtl.fps>#fbFireL,#fpsCtl.fps>#fbFireR,#fpsCtl.fps>#fbAds,#fpsCtl.fps>#fbRoll{display:flex;}
   #fpsCtl.gun>#fbSwap,#fpsCtl.gun>#fbReload,#fpsCtl.gun>#fbAds{display:flex;}
+  #fpsCtl.blade>#fbAds span.t::after{content:' / charge';}
 
   #fpsCtl .btn{width:52px;height:52px;}
   #fpsCtl .btn span.g{font-size:18px;}
@@ -3218,9 +3218,10 @@ const Input=(()=>{
   const base=$('stickBase'),nub=$('stickNub');
   const RADIUS=52;
   const SWIPE_DIST=26,SWIPE_MS=220; // a flick: fast and short
+  const HEAVY_HOLD=180;             // the strike trigger held past this is asking for the heavy as well
   const HOLD_MS=240;                // held past this: a still finger charges, a moving one turns the camera
   let touchCharge=false;
-  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false;   // (first person; fpsBlade: a blade behind the eyes, so the right thumb is the third-person gesture)
+  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false,fireDownT=0;   // (first person; fpsBlade: a blade behind the eyes, so the triggers strike and the aim charges)
 
   function bindBtn(el,down,up){
     el.addEventListener('pointerdown',e=>{
@@ -3238,7 +3239,13 @@ const Input=(()=>{
      dodge (the roll, by button — a flick would be a look now); the zoom
      (the sniper's scope only); and the weapon bar. */
   {const fb=(id,down,up)=>{const el=$(id);if(el)bindBtn(el,down,up);};
-    const fireDown=()=>{st.firePressed=true;touchFireN++;},fireUp=()=>{touchFireN=Math.max(0,touchFireN-1);};
+    /* `fireDownT` IS STAMPED HERE, NOT AT ONE BUTTON. It used to be set
+       only by the right trigger, so a LEFT-trigger tap after any earlier
+       right-trigger press read as a heavy already held past `HEAVY_HOLD`
+       and wound the blade on a tap. It is the moment the FIRST thumb went
+       down, whichever button it was. */
+    const fireDown=()=>{st.firePressed=true;if(touchFireN===0)fireDownT=performance.now();touchFireN++;},
+          fireUp=()=>{touchFireN=Math.max(0,touchFireN-1);};
     fb('fbFireL',fireDown,fireUp);
     /* THE RIGHT TRIGGER IS A STICK AS WELL. Pressed, it fires; dragged, it
        turns the eye — the same thumb that walks the field with the left
@@ -3254,8 +3261,9 @@ const Input=(()=>{
       const rel=e=>{if(e.pointerId!==id)return;id=null;el.classList.remove('pressed');el.style.transform='';fireUp();};
       el.addEventListener('pointerup',rel);el.addEventListener('pointercancel',rel);el.addEventListener('lostpointercapture',rel);
       addEventListener('blur',()=>{if(id!==null){id=null;el.classList.remove('pressed');el.style.transform='';}});}}
+    // ...and with a blade behind the eyes the same button is the CHARGE: held, it winds; let go, it looses
     fb('fbAds',()=>{adsDownT=performance.now();st.adsTap=true;adsTouch=true;},
-      ()=>{adsTouch=false;if(performance.now()-adsDownT>320)st.adsRelease=true;});
+      ()=>{adsTouch=false;if(performance.now()-adsDownT>320)st.adsRelease=true;if(fpsMode&&fpsBlade)st.chargeRelease=true;});
     fb('fbReload',()=>{st.reloadPressed=true;});
     fb('fbRoll',()=>{st.swipe={kind:'dodge',atype:null,sx:null,sy:null};});
     fb('fbZoom',()=>{st.zoomPressed=true;});
@@ -3295,13 +3303,8 @@ const Input=(()=>{
     }else if(camId===null){
       // right-side gesture: undecided until it's a flick or a hold
       camId=e.pointerId;camHeld=ctl.hasPointerCapture(e.pointerId);
-      /* A GUN BEHIND THE EYES TAKES THE WHOLE THUMB FOR THE LOOK, AT
-         ONCE — it has buttons for everything else. A BLADE DOES NOT: the
-         gesture is born undecided there, exactly as it is over the
-         shoulder, so a flick is the dodge, a tap the strike and a still
-         hold the heavy. */
       gesture={t0:performance.now(),x0:e.clientX,y0:e.clientY,
-               lx:e.clientX,ly:e.clientY,mode:(fpsMode&&!fpsBlade)?'cam':'pending',maxD:0};
+               lx:e.clientX,ly:e.clientY,mode:fpsMode?'cam':'pending',maxD:0};   // (first person: the whole thumb is the look, at once — the buttons do the rest)
     }
   });
   ctl.addEventListener('pointermove',e=>{
@@ -3393,7 +3396,7 @@ const Input=(()=>{
   addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('mousemove',e=>{if(fpsMode&&document.pointerLockElement===ctl){st.camDX+=e.movementX;st.camDY+=e.movementY;}});
   function setBlade(on){fpsBlade=!!on;}
-  function setFps(on){fpsMode=!!on;mouseFire=false;mouseAds=false;touchFireN=0;adsTouch=false;
+  function setFps(on){fpsMode=!!on;mouseFire=false;mouseAds=false;touchFireN=0;adsTouch=false;fireDownT=0;
     if(!on&&document.pointerLockElement===ctl&&document.exitPointerLock)document.exitPointerLock();}
 
   // keyboard fallback for desktop testing
@@ -3434,11 +3437,16 @@ const Input=(()=>{
     if(gesture&&gesture.mode==='pending'&&performance.now()-gesture.t0>HOLD_MS){
       const g=gesture;settleHold(g,g.lx,g.ly);
     }
-    /* A BLADE IS THE SAME IN EITHER VIEW: the right thumb held still is
-       the heavy (`touchCharge`, set by `settleHold`), and on a keyboard L
-       winds it — except behind the eyes with a GUN, where L is the
-       sights. The desktop mouse's right button does the same job. */
-    st.chargeHeld=touchCharge||((!fpsMode||fpsBlade)&&!!keys.KeyL)||(fpsMode&&fpsBlade&&mouseAds);
+    /* THE STRIKE TRIGGER WINDS IF IT IS HELD, and so does the aim button.
+       The press still swings at once — a tap must never wait to find out
+       what it was — and the thumb staying down past `HEAVY_HOLD` is what
+       asks for the heavy, which the hero only reads back in `free`, after
+       that swing has finished. So a tap is a cut, and a hold is a cut and
+       then the wind. Over the shoulder it is `touchCharge` (the right
+       thumb held still), and on a keyboard L, except behind the eyes with
+       a GUN, where L is the sights. */
+    const trigHeld=fpsMode&&fpsBlade&&touchFireN>0&&performance.now()-fireDownT>HEAVY_HOLD;
+    st.chargeHeld=touchCharge||((!fpsMode||fpsBlade)&&!!keys.KeyL)||(fpsMode&&fpsBlade&&(mouseAds||adsTouch||trigHeld||!!keys.KeyJ));
     st.fireHeld=touchFireN>0||mouseFire||(fpsMode&&!!keys.KeyJ);
     st.adsHeld=mouseAds||(fpsMode&&!!keys.KeyL);
     if(fpsMode&&fpsBlade&&st.firePressed&&!st.swipe)st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};   // desktop: the mouse's left button is the strike under a blade
@@ -15174,7 +15182,7 @@ function applyAttachmentTo(V,g){let a=FPS.att[g.key]||'iron';if(!V[a])a='iron';
 function applyAttachment(){const vm=FPS.vm;if(!vm)return;for(const g of GUNS)applyAttachmentTo(vm.guns[g.key],g);}
 try{Object.assign(FPS.att,JSON.parse(localStorage.getItem('bp_att')||'{}'));}catch(e){}
 const GUN_NOTE_HUD='fire (either thumb) — shoot · drag the right trigger — turn while firing · aim — down the sights · reload · dodge · tap the bar — swap';
-const BLADE_NOTE_FPS='tap — strike · hold still, release — the charged attack · flick — roll · hold &amp; drag — turn the eye';
+const BLADE_NOTE_FPS='fire (either thumb) — strike · hold either, let go — the charged attack · drag the right trigger — turn while swinging · dodge';
 
 /* ---- the gun models: one builder for the viewmodel and for the pilgrim's hands ---- */
 function vmMat(hex,extra){return lam(Object.assign({color:new THREE.Color(hex).convertSRGBToLinear()},extra||{}));}
@@ -16314,11 +16322,17 @@ function fpsRespawn(){
    the near plane, and the picture was a teal wall with a strip of field
    over it. Nothing was wrong — that is what a surcoat looks like from a
    centimetre inside it.
-   So every mesh whose rest-pose crown stands above the eye line is
-   masked, plus the whole head whatever its height (or a chin floats where
-   the helm was). The list is taken ONCE, off the fresh rig in
-   `player.rebuild`, because the rest pose is the only pose it means
-   anything in — read it mid-swing and a raised arm masks itself.
+   SO THE BODY IS NOT DRAWN AT ALL BEHIND THE EYES — only the ARMS, the
+   HANDS and the WEAPON are. Masking by height alone still left the
+   tabard, the greaves and the skirt swinging across the lower frame,
+   which is armour you do not need to see to fight; what a first-person
+   picture wants is the two limbs doing the work and the steel at the end
+   of them. So the keep-list is `rig.armR` and `rig.armL` and everything
+   under them, and everything else on the rig goes.
+   The ARMS THEMSELVES ARE STILL CUT AT THE EYE LINE: the pauldrons top
+   out at 1.92 and the lens is at 1.74, so a kept shoulder would be
+   straddling the near plane exactly as the collar was. The weapon is
+   never cut, whatever height it reaches, because it is the whole point.
    IT IS A LAYER, NOT A `visible` FLAG. The hero already draws in its own
    pass on layer 1; a masked mesh goes to a layer no camera renders, so
    this can never fight the fourteen places that write `visible` on a rig,
@@ -16326,31 +16340,30 @@ function fpsRespawn(){
    is put back to exactly that. */
 const FPS_MASK_DROP=.06;    // how far under the eye the line sits
 const FPS_MASK_LAYER=3;     // ...and a layer nothing draws
-/* THE LIST IS TAKEN OFF THE LIVING RIG, NOT OFF THE FRESH ONE. Measured:
-   a rig straight out of `makeKnightRig` stands 19cm lower than the same
-   rig once the game is posing it — the collar plates that come up at 1.86
-   in play top out at 1.67 on the workbench, which is UNDER the eye line,
-   and a mask built there masked the helm and nothing else. So it is built
-   the first frame it is wanted, against `heightAt + FPS.eyeY`, and only
-   while the pilgrim is in `free` (entering first person forces that, and
-   a raised arm must not mask itself). Once built it is kept for the life
-   of the rig; `rebuild` makes a new one and a new list with it. */
+/* THE EYE LINE IS TAKEN OFF THE LIVING RIG, NOT OFF THE FRESH ONE.
+   Measured: a rig straight out of `makeKnightRig` stands 19cm lower than
+   the same rig once the game is posing it — the shoulder plates that come
+   up at 1.92 in play top out at 1.73 on the workbench, which is UNDER the
+   line, and a mask built there cut nothing. So it is built the first
+   frame it is wanted, against `heightAt + FPS.eyeY`, and only while the
+   pilgrim is in `free` (entering first person forces that, and a raised
+   arm must not cut itself). Once built it is kept for the life of the
+   rig; `rebuild` makes a new one and a new list with it. */
 function fpsMaskRig(rig){
   const list=[],b=new THREE.Box3();
   rig.root.updateMatrixWorld(true);
   const line=heightAt(player.x,player.z)+FPS.eyeY-FPS_MASK_DROP;
-  const head=new Set();
-  if(rig.head)rig.head.traverse(o=>{if(o.isMesh)head.add(o);});
+  const under=(o,g)=>{if(!g)return false;let p=o;while(p){if(p===g)return true;p=p.parent;}return false;};
   rig.root.traverse(o=>{
     if(!o.isMesh)return;
-    if(head.has(o)){list.push(o);return;}
-    if(rig.weapon){let p=o;while(p){if(p===rig.weapon)return;p=p.parent;}}   // the weapon is the whole point; never masked
+    if(under(o,rig.weapon))return;                                   // the weapon is the whole point; never cut
+    if(!under(o,rig.armR)&&!under(o,rig.armL)){list.push(o);return;}  // not an arm: it is the body, and the body is not drawn
     /* AND THE BOX IS RECOMPUTED BY HAND. `Box3.setFromObject` trusts a
        geometry's cached `boundingBox` if it has one, and the rig's
        geometries carry stale ones. */
     o.geometry.computeBoundingBox();
     b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
-    if(isFinite(b.max.y)&&b.max.y>line)list.push(o);
+    if(isFinite(b.max.y)&&b.max.y>line)list.push(o);                  // a shoulder at the lens is no better than a collar
   });
   for(const o of list)if(o.userData.fpsLayer===undefined)o.userData.fpsLayer=o.layers.mask;
   rig.fpsMask=list;rig.fpsMasked=false;
@@ -16737,7 +16750,7 @@ function setPov(on){
     const P=player;
     if(P.state!=='free'&&P.state!=='dead'&&P.state!=='roll'&&P.state!=='hurt'&&P.state!=='floored'&&P.state!=='falling'){
       P.state='free';P.t=0;G.slowMo=1;P.dropThrown();dropBubbles();}
-    if(gunHeld())$('swipeHint').style.opacity=0;   // (a blade behind the eyes is held the same way as over the shoulder, so the hint still applies)
+    $('swipeHint').style.opacity=0;
     camera.rotation.order='YXZ';FPS.pitch=0;
   }else{
     if(FPS.vm)FPS.vm.visible=false;

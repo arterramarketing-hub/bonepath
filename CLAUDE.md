@@ -1870,23 +1870,32 @@ Known state of play:
   because the lock tips the eye 6–9 degrees down onto the chest and the
   arms and the blade come up into the picture with the horror. If a
   swing ever looks empty, check whether the shot was locked before you
-  reach for a pose.
-- **WHAT THE EYE IS INSIDE OF (`fpsMaskRig`, `fpsMaskSet`, beside
-  `syncFpsRig`) — AND IT IS MORE THAN THE HELM.** The lens at 1.74 is
-  inside the head AND inside the top of the trunk. Measured at rest, ONE
-  collar plate covered **0.65 of the screen** and the next 0.46, both
-  straddling the near plane: the picture was a teal wall with a strip of
-  field over it. So every mesh whose crown stands above the eye line is
-  masked, plus the whole head whatever its height (or a chin floats where
-  the helm was). Twenty meshes on the knight, seventeen on the wizard.
+  reach for a pose. And at REST there is no weapon in the frame at all,
+  which is also correct — see the carry, above.
+- **BEHIND THE EYES THE PILGRIM IS TWO ARMS AND A WEAPON** (`fpsMaskRig`,
+  `fpsMaskSet`, beside `syncFpsRig`). The keep-list is `rig.armR`,
+  `rig.armL` and everything under them; the rest of the rig goes onto a
+  layer nothing draws. Forty-seven meshes of eighty-three on the knight,
+  fifty-two with the katana, forty-five on the wizard.
+  It got there in two steps, and the first is worth keeping because the
+  second does not replace it. The lens at 1.74 is inside the head AND the
+  top of the trunk: measured at rest, ONE collar plate covered **0.65 of
+  the screen** and the next 0.46, both straddling the near plane, and the
+  picture was a teal wall with a strip of field over it. Cutting
+  everything above the eye line fixed that — and left the tabard, the
+  skirt and the greaves swinging across the lower frame, which is armour
+  you do not need to see to fight. So the body is not drawn at all now.
+  **THE ARMS ARE STILL CUT AT THE EYE LINE**, because the pauldrons top
+  out at 1.92 and would straddle the near plane exactly as the collar
+  did; the WEAPON is never cut, whatever height it reaches.
   Three things about it are load-bearing:
-  1. **The list is taken off the LIVING rig, not the fresh one.** A rig
+  1. **The line is taken off the LIVING rig, not the fresh one.** A rig
      straight out of `makeKnightRig` stands 19cm lower than the same rig
-     once the game is posing it — the plates that come up at 1.86 in play
-     top out at 1.67 on the workbench, UNDER the line, and the first pass
-     masked the helm and nothing else. It is built the first frame it is
-     wanted, against `heightAt + FPS.eyeY`, after a quarter-second of
-     standing in `free` so the springs have settled.
+     once the game is posing it — the shoulder plates that come up at 1.92
+     in play top out at 1.73 on the workbench, UNDER the line, and the
+     first pass cut nothing. It is built the first frame it is wanted,
+     against `heightAt + FPS.eyeY`, after a quarter-second of standing in
+     `free` so the springs have settled.
   2. **The box is recomputed by hand.** `Box3.setFromObject` trusts a
      geometry's cached `boundingBox`, and the rig's are stale.
   3. **IT IS A LAYER, NOT A `visible` FLAG.** A masked mesh goes to layer
@@ -1899,21 +1908,28 @@ Known state of play:
   screen for ever, with every gun in the rack showing at once because
   none had been picked. `syncFpsRig` clears it.
 
-- **A BLADE BEHIND THE EYES HAS NO BUTTONS. The right thumb is the
-  third-person gesture, exactly.** Flick — roll. Tap — strike. Hold
-  still — the heavy. Hold and drag — the eye. The four shooter's buttons
-  are hidden by `#fpsCtl.fps:not(.blade)`, and the gesture is born
-  `'pending'` whenever a blade is held, in either view — only a GUN
-  behind the eyes still takes the whole thumb for the look at once
-  (`mode:(fpsMode&&!fpsBlade)?'cam':'pending'`), because it has buttons
-  for everything else.
-  The cost is real and was accepted: a camera turn must start slowly, or
-  26px inside 220ms reads as a dodge, and it does not begin until
-  `HOLD_MS` (240ms). The automatic lock is what pays for it.
-  `HEAVY_HOLD`, `bladeHeavy`, `st.lockTap` and the aim button's lock
-  label are all gone with the buttons; on a keyboard L is the charge
-  again in either view, except behind the eyes with a GUN, where it is
+- **A BLADE BEHIND THE EYES KEEPS THE SHOOTER'S BUTTONS, AND THIS WAS
+  TRIED BOTH WAYS.** For one build the four went away and the right thumb
+  carried the third-person gesture behind the eyes as well — flick to
+  roll, tap to strike, hold still for the heavy, hold and drag for the
+  eye. It works, and it is wrong: in first person the thumb is the LOOK,
+  and a gesture that has to decide what it is costs you the look for
+  `HOLD_MS` (240ms) every time, while anything fast enough to turn
+  quickly reads as a dodge (26px inside 220ms). They are back.
+  So the gesture is born `'cam'` whenever `fpsMode` — the whole right half
+  is the look, at once — and the buttons do the rest: either TRIGGER
+  strikes, either one HELD past `HEAVY_HOLD` (180ms) also winds the heavy
+  (the press still swings at once, because a tap must never wait to find
+  out what it was, and the hero only reads `chargeHeld` back in `free`),
+  the AIM button is the charge (`#fpsCtl.blade>#fbAds span.t::after` adds
+  " / charge" to its label), and the ROLL button dodges. On a keyboard L
+  winds in either view, except behind the eyes with a GUN, where it is
   the sights.
+  **`fireDownT` is stamped in `fireDown()`, not at one button.** It used
+  to be set only by the right trigger's own pointer handler, so a LEFT
+  trigger tap after any earlier right-trigger press read as a heavy
+  already held past `HEAVY_HOLD` and wound the blade on a tap. It is the
+  moment the FIRST thumb went down, whichever button that was.
 
 - **THE LOCK IS THE FOLLOW CAMERA'S LOCK, IN EITHER VIEW, AND THERE IS NO
   SWITCH.** `updateLock`'s only special case now is a GUN behind the
