@@ -307,7 +307,7 @@
   #fpsCtl>.btn{display:none;}
   #fpsCtl.fps>#fbFireL,#fpsCtl.fps>#fbFireR,#fpsCtl.fps>#fbAds,#fpsCtl.fps>#fbRoll{display:flex;}
   #fpsCtl.gun>#fbSwap,#fpsCtl.gun>#fbReload,#fpsCtl.gun>#fbAds{display:flex;}
-  #fpsCtl.blade>#fbAds span.t::after{content:' / charge';}
+
   #fpsCtl .btn{width:52px;height:52px;}
   #fpsCtl .btn span.g{font-size:18px;}
   #fpsCtl .btn span.t{font-size:7px;}
@@ -3203,6 +3203,7 @@ const Input=(()=>{
        hold releases), the reload, the swap, the zoom, and a gun asked for
        by number */
     firePressed:false,fireHeld:false,adsTap:false,adsRelease:false,adsHeld:false,
+    lockTap:false,      // a blade behind the eyes: the aim button is the lock toggle
     reloadPressed:false,swapPressed:false,zoomPressed:false,pickGun:-1,
   };
   const keys={};
@@ -3214,7 +3215,7 @@ const Input=(()=>{
   const SWIPE_DIST=26,SWIPE_MS=220; // a flick: fast and short
   const HOLD_MS=240;                // held past this: a still finger charges, a moving one turns the camera
   let touchCharge=false;
-  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false;   // (first person; fpsBlade: a blade behind the eyes, so the triggers strike and the aim charges)
+  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false,bladeHeavy=false;   // (first person; fpsBlade: a blade behind the eyes, so the triggers strike and the aim charges)
 
   function bindBtn(el,down,up){
     el.addEventListener('pointerdown',e=>{
@@ -3233,7 +3234,13 @@ const Input=(()=>{
      (the sniper's scope only); and the weapon bar. */
   {const fb=(id,down,up)=>{const el=$(id);if(el)bindBtn(el,down,up);};
     const fireDown=()=>{st.firePressed=true;touchFireN++;},fireUp=()=>{touchFireN=Math.max(0,touchFireN-1);};
-    fb('fbFireL',fireDown,fireUp);
+    /* THE LEFT TRIGGER IS THE HEAVY WHEN A BLADE IS HELD. With a gun both
+       triggers fire, so the left one has no separate job under a blade —
+       and the heavy had to go somewhere once the aim button became the
+       lock. Held, it winds; released, it looses, exactly as the right
+       thumb's hold does over the shoulder. */
+    fb('fbFireL',()=>{if(fpsMode&&fpsBlade)bladeHeavy=true;else fireDown();},
+                 ()=>{if(bladeHeavy){bladeHeavy=false;st.chargeRelease=true;}else fireUp();});
     /* THE RIGHT TRIGGER IS A STICK AS WELL. Pressed, it fires; dragged, it
        turns the eye — the same thumb that walks the field with the left
        stick can hip-fire and track with the right, the button riding
@@ -3248,7 +3255,10 @@ const Input=(()=>{
       const rel=e=>{if(e.pointerId!==id)return;id=null;el.classList.remove('pressed');el.style.transform='';fireUp();};
       el.addEventListener('pointerup',rel);el.addEventListener('pointercancel',rel);el.addEventListener('lostpointercapture',rel);
       addEventListener('blur',()=>{if(id!==null){id=null;el.classList.remove('pressed');el.style.transform='';}});}}
-    fb('fbAds',()=>{adsDownT=performance.now();st.adsTap=true;adsTouch=true;},()=>{adsTouch=false;if(performance.now()-adsDownT>320)st.adsRelease=true;if(fpsBlade)st.chargeRelease=true;});
+    fb('fbAds',()=>{adsDownT=performance.now();
+        if(fpsMode&&fpsBlade)st.lockTap=true;                       // under a blade the button is the lock, and a tap toggles it
+        else{st.adsTap=true;adsTouch=true;}},
+      ()=>{adsTouch=false;if(!(fpsMode&&fpsBlade)&&performance.now()-adsDownT>320)st.adsRelease=true;});
     fb('fbReload',()=>{st.reloadPressed=true;});
     fb('fbRoll',()=>{st.swipe={kind:'dodge',atype:null,sx:null,sy:null};});
     fb('fbZoom',()=>{st.zoomPressed=true;});
@@ -3381,7 +3391,7 @@ const Input=(()=>{
   addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('mousemove',e=>{if(fpsMode&&document.pointerLockElement===ctl){st.camDX+=e.movementX;st.camDY+=e.movementY;}});
   function setBlade(on){fpsBlade=!!on;}
-  function setFps(on){fpsMode=!!on;mouseFire=false;mouseAds=false;touchFireN=0;adsTouch=false;
+  function setFps(on){fpsMode=!!on;mouseFire=false;mouseAds=false;touchFireN=0;adsTouch=false;bladeHeavy=false;
     if(!on&&document.pointerLockElement===ctl&&document.exitPointerLock)document.exitPointerLock();}
 
   // keyboard fallback for desktop testing
@@ -3389,6 +3399,7 @@ const Input=(()=>{
     if(e.repeat)return;keys[e.code]=true;st.anyPressed=true;
     if(fpsMode){   // first person: J fires, Space dodges, Shift sprints, R reloads, Q and the numbers swap, F zooms
       if(e.code==='KeyJ')st.firePressed=true;
+      if(e.code==='KeyL'&&fpsBlade&&!e.repeat)st.lockTap=true;   // (with a gun L is the sights, read from keys.KeyL)
       if(e.code==='KeyK'||e.code==='Space')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
       if(e.code==='KeyR')st.reloadPressed=true;
       if(e.code==='KeyQ')st.swapPressed=true;
@@ -3403,7 +3414,7 @@ const Input=(()=>{
   });
   addEventListener('keyup',e=>{
     keys[e.code]=false;
-    if(e.code==='KeyL')st.chargeRelease=true;   // L held = charge, let go = lunge
+    if(e.code==='KeyL'&&!(fpsMode&&fpsBlade))st.chargeRelease=true;   // L held = charge, let go = lunge (under a blade behind the eyes it is the lock)
   });
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
 
@@ -3422,7 +3433,7 @@ const Input=(()=>{
     if(gesture&&gesture.mode==='pending'&&performance.now()-gesture.t0>HOLD_MS){
       const g=gesture;settleHold(g,g.lx,g.ly);
     }
-    st.chargeHeld=touchCharge||(!fpsMode&&!!keys.KeyL)||(fpsMode&&fpsBlade&&(mouseAds||adsTouch||!!keys.KeyL));
+    st.chargeHeld=touchCharge||(!fpsMode&&!!keys.KeyL)||(fpsMode&&fpsBlade&&(mouseAds||bladeHeavy));   // (the aim button is the lock now: the heavy is the left trigger, or the right mouse)
     st.fireHeld=touchFireN>0||mouseFire||(fpsMode&&!!keys.KeyJ);
     st.adsHeld=mouseAds||(fpsMode&&!!keys.KeyL);
     if(fpsMode&&fpsBlade&&st.firePressed&&!st.swipe)st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};   // a blade behind the eyes: the trigger is the strike
@@ -3430,7 +3441,7 @@ const Input=(()=>{
     if(keys.KeyC)st.camDX+=260*dt;
   }
   function consume(){
-    st.swipe=null;st.chargeRelease=false;st.pausePressed=false;
+    st.swipe=null;st.chargeRelease=false;st.pausePressed=false;st.lockTap=false;
     st.interactPressed=false;
     st.firePressed=false;st.adsTap=false;st.adsRelease=false;st.reloadPressed=false;st.swapPressed=false;st.zoomPressed=false;st.pickGun=-1;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
@@ -9791,7 +9802,7 @@ const G={
    pilgrim's own rebuild asks it whether to hide the body, and that runs at
    boot. */
 const FPS={on:false,pitch:0,ads:0,adsOn:false,zoom:0,gun:0,ammo:{},bob:0,kick:0,swayX:0,swayY:0,sprintVm:0,
-  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,vmBlade:null,vmBladeFor:'',vmBladeRig:null};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
+  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,vmBlade:null,vmBladeFor:'',vmBladeRig:null,lockOn:false,vmKey:undefined,vmSeamT:0,vmSeamQ:new THREE.Quaternion(),vmSeamP:new THREE.Vector3()};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
 /* Are the sights up? A function DECLARATION, and called only at frame
    time, so it may reach `gunHeld` (which is declared a long way below
    this line and reads a LOADOUT that does not exist yet at boot). */
@@ -14901,9 +14912,29 @@ function lockScore(e){
    toward the host, or a blow); this is only how long you have to be
    committed to leaving before the eye believes you. */
 const LOCK_LEAVE=2.5;
+const LOCK_EASE=5;        // how fast the eye settles onto a locked horror behind the eyes, at an idle thumb
 function updateLock(){
-  // first person: the crosshair is the eye. Nothing is ever locked
-  if(FPS.on){G.lockTarget=null;G.lockOff=false;G.lockAwayT=0;G.lockDeadAt=undefined;lockMarker.visible=false;return;}
+  /* FIRST PERSON: the crosshair is the eye, so a gun locks nothing — but a
+     BLADE with the lock switched on holds the nearest horror it can reach
+     and takes the next when that one falls. The leaving rule below is the
+     follow camera's and has no meaning here (the eye is the player's), so
+     this branch does the picking and returns. */
+  if(FPS.on){
+    G.lockOff=false;G.lockAwayT=0;G.lockDeadAt=undefined;
+    if(!(FPS.lockOn&&!gunHeld())){G.lockTarget=null;lockMarker.visible=false;return;}
+    const cs=lockCands(),held=G.lockTarget;
+    let f=cs.length?cs[0]:null;
+    if(held&&held.hp>0&&!held.objective&&cs.includes(held)){
+      const gap=lockScore(held)-lockScore(f);            // the same stickiness: two circling things must not flicker
+      if(gap<2){G.lockRivalT=0;f=held;}
+      else{G.lockRivalT=(G.lockRivalT||0)+(G.frameDt||.016);if(G.lockRivalT<.5)f=held;else G.lockRivalT=0;}
+    }else G.lockRivalT=0;
+    G.lockTarget=f;
+    lockMarker.visible=G.mode==='play'&&!!f;
+    if(f){lockMarker.position.set(f.x,markY(f),f.z);lockMarker.material.rotation=G.time*2;
+      lockMarker.material.opacity=f.state==='scatter'?.45:1;}
+    return;
+  }
   // the eye holds the CLOSEST live horror, with a little stickiness so
   // two circling enemies don't make it flicker
   const cands=lockCands(),t=G.lockTarget;
@@ -16518,9 +16549,62 @@ function ensureBladeVm(){
   FPS.vmBlade=h;FPS.vmBladeFor=LOADOUT.weapon;FPS.vmBladeRig=P.rig;
   return h;
 }
+/* ---- THE SWING, AND IT USED TO TURN THE BLADE ABOUT ITSELF ----
+   The complaint was that you see the trail and not the weapon, and the
+   numbers said exactly why. Sampled frame by frame through one cut of the
+   greatsword, the viewmodel's pitch (`rx`) NEVER MOVED — 2.30 at every
+   frame of the swing — and all the motion was in `ry` and `rz`, a yaw and
+   a roll applied on top of that pitch. Work out where the blade actually
+   points at the carry (rotate its own length, its −y, by the carry euler)
+   and it comes to roughly (−.32, .54, −.78) from the grip: the thing lies
+   mostly ALONG the view. A yaw and a roll turn it about its own long axis,
+   which is the one rotation that moves a stick nowhere. Measured, the grip
+   travelled 0.31 across the lower-right corner and the tip barely left it,
+   while the rig under the camera — which is what the ribbon is drawn off —
+   swept its full four metres. Hence a trail with no sword in it.
+   A swing is an ARC, so it is written as one: an axis in the EYE's own
+   frame, and an angle the weapon turns through about the grip. The axis is
+   perpendicular to the cut, the way the axis of a real swing is, and the
+   angle runs on `seg4` with the rig's own wind/strike split — so the
+   viewmodel is on the same clock as the pose and the cut lands on the
+   frame the game says it lands.
+   **If a swing ever looks weak again, project the TIP.** Rotating about an
+   axis the blade lies near moves nothing, and it looks fine in the source. */
+const SW_W=.42,SW_H=.68;      // poseLight's own W and H: one clock for the rig and the eye
+const VM_SEAM=.085;           // a chain re-enters at ATK_ENTRY, so the pose jumps: this hides the join
+/* EACH SHAPE: the axis it turns about in the eye's frame, then the angle
+   and the grip's travel as (wound, struck, settled). Settled is 0 on every
+   channel, so a swing lands exactly on the carry and cannot snap.
+   THE AXES ARE DERIVED, NOT CHOSEN. An axis the blade lies near moves the
+   blade nowhere, which is the fault this whole section exists to undo — so
+   each one is `d × cut` normalised, where d is the blade's own direction at
+   the carry, (−.32, .54, −.78), and cut is the way the tip should travel on
+   the screen: down-left for the slash, down-right for the backhand,
+   straight down for the overhead, and dead ahead for the thrust. Every one
+   of them comes out perpendicular to the blade (the dot products are all
+   under .005), which is the check.
+   The ANGLES are measured, though — the derivation gives the axis and not
+   how far to go round it, and the near plane is what decides that. Swung
+   2.55 radians the tip crossed the eye outright and the projection went to
+   nonsense with it; the OLD code did the same on the thrust, where the
+   point came within 0.14m of the lens against a near plane of 0.10 and the
+   tip projected to 6.66 in a frame that ends at 1. At the values below the
+   nearest approach is 0.77m, across every blade and every combo. The other
+   half of the test cannot be measured and has to be looked at: the whole
+   weapon must be IN the picture at the moment of the cut, which is what
+   took the slash from 1.55 radians to 1.15 — at 1.55 it landed below the
+   bottom edge and all you saw was the guard. */
+const VM_SWING={
+  slash: {ax:[-.56, .56, .62], a:[-.42,1.15,0], x:[ .12,-.34,0], y:[ .10, .02,0], z:[ .05,-.12,0]},   // right shoulder down to the left hip
+  back:  {ax:[-.69,-.69,-.20], a:[-.42,1.15,0], x:[-.13, .32,0], y:[ .10, .02,0], z:[ .05,-.12,0]},   // and back across
+  over:  {ax:[-.925,0, .379], a:[-.50,1.10,0], x:[ .02,-.24,0], y:[ .15, .04,0], z:[ .06,-.18,0]},    // up over the head and down the middle
+  thrust:{ax:[-.86,-.51, 0  ], a:[-.20, .80,0], x:[ .07,-.14,0], y:[ .05,-.02,0], z:[ .11,-.55,0]},   // levelled, and driven
+};
+const _vmAx=new THREE.Vector3(),_vmQ=new THREE.Quaternion(),_vmQB=new THREE.Quaternion(),_vmEu=new THREE.Euler();
 function updateBladeVm(dt){
   const h=ensureBladeVm();if(!h)return;
   const P=player,st=P.state,w=P.weapon();
+  meleeLockTick();                                         // the aim button is the LOCK while a blade is in the hands
   h.visible=FPS.on&&!CUT.on&&!gunHeld()&&st!=='dead'&&G.mode!=='dead'&&!P.katThrown;
   if(FPS.vm)FPS.vm.visible=false;                          // (the gun stays out of the picture under a blade)
   if(!h.visible)return;
@@ -16529,30 +16613,77 @@ function updateBladeVm(dt){
   const bobX=Math.sin(FPS.bob)*.02*mv,bobY=Math.abs(Math.cos(FPS.bob))*.014*mv;
   FPS.swayX=lerp(FPS.swayX,clamp(-IN.camDX*.0012,-.06,.06),Math.min(1,8*dt));
   // the carry: the grip low and right, the blade standing up and leaning in
-  // across the eye (the weapon's own -y is its length: rotated 2.3 about x
-  // it stands up and leans forward), each weapon at its own size — VM_BLADE
+  // across the eye (the weapon's own -y is its length), each at its own size
   const C=vmBladeCfg(),MO=C.mo;
-  let px=C.px+bobX,py=C.py+bobY,pz=C.pz,rx=C.rx,ry=C.ry,rz=C.rz;
+  let px=C.px+bobX,py=C.py+bobY,pz=C.pz,ang=0;
+  _vmAx.set(0,1,0);
   const dur=P.atkDur||.68;
-  let p=-1,dir=1,over=false,thrust=false;
-  if(st==='attack'){p=clamp(P.t/dur,0,1);dir=(P.combo%2===0)?1:-1;over=P.combo===2;thrust=P.combo===3;}
-  else if(st==='dslash'){p=clamp(P.t/(.5*P.swing()),0,1);dir=p<.5?1:-1;p=(p*2)%1;}
-  else if(st==='sprintatk'||st==='kthrust'||st==='iai'){p=clamp(P.t/.5,0,1);thrust=true;}
-  else if(st==='rollatk'||st==='execute'){p=clamp(P.t/(.5*P.swing()),0,1);over=true;}
-  else if(st==='spin'||st==='fowl'||st==='tiger'){p=clamp((P.t*2.2)%1,0,1);dir=1;}
-  else if(st==='backstab'||st==='quake'){p=clamp(P.t/1.0,0,1);thrust=true;}
-  else if(st==='shoot'||st==='loose'||st==='cast'){p=clamp(P.t/.46,0,1);thrust=true;}
-  if(st==='charge'){const c=Math.min(1,P.chargeT/.6);px+=.1*c*MO;pz+=.12*c*MO;rx-=.4*c;ry+=.5*c;}   // drawn back, wound
-  if(p>=0){
-    const wind=clamp(p/.4,0,1),strike=clamp((p-.4)/.28,0,1),rec=clamp((p-.68)/.32,0,1);
-    const e=strike*strike*(3-2*strike);
-    if(thrust){pz+=(-.12*wind+(-.5)*e+.6*rec*e)*MO;px-=.12*e*MO;rx+=1.2*wind*(1-e)+.3;}
-    else if(over){py+=(.25*wind-.6*e+.3*rec)*MO;rx+=.7*wind-2.2*e+1.4*rec;pz-=.15*e*MO;}
-    else{const d=dir;px+=d*(.18*wind-.75*e+.5*rec)*MO;ry+=d*(.6*wind-2.2*e+1.6*rec);rz+=d*(.3*wind-1.0*e+.7*rec);py+=(.08*wind-.12*e)*MO;}
+  let p=-1,shape=null,spin=0;
+  if(st==='attack'){p=clamp(P.t/dur,0,1);shape=P.combo===2?'over':P.combo===3?'thrust':P.combo===1?'back':'slash';}
+  else if(st==='dslash'){const q=clamp(P.t/(.5*P.swing()),0,1);p=(q*2)%1;shape=q<.5?'slash':'back';}
+  else if(st==='sprintatk'||st==='kthrust'||st==='iai'){p=clamp(P.t/.5,0,1);shape='thrust';}
+  else if(st==='rollatk'||st==='execute'){p=clamp(P.t/(.5*P.swing()),0,1);shape='over';}
+  else if(st==='backstab'||st==='quake'){p=clamp(P.t/1.0,0,1);shape='thrust';}
+  else if(st==='shoot'||st==='loose'||st==='cast'){p=clamp(P.t/.46,0,1);shape='thrust';}
+  else if(st==='spin'||st==='fowl'||st==='tiger'){spin=1;p=clamp((P.t*2.2)%1,0,1);}
+  if(spin){
+    // the whirlwind: the weapon goes the whole way round the eye, level
+    _vmAx.set(0,1,.25);ang=p*TAU;
+    px+=Math.sin(p*TAU)*.16*MO;pz+=(Math.cos(p*TAU)-1)*.10*MO;py+=Math.sin(p*TAU*2)*.05*MO;
+  }else if(st==='charge'){
+    // wound: hauled back over the shoulder and held there
+    const c=Math.min(1,P.chargeT/.6),S=VM_SWING.slash;
+    _vmAx.set(S.ax[0],S.ax[1],S.ax[2]);ang=S.a[0]*1.5*c;
+    px+=(.14*c)*MO;py+=(.12*c)*MO;pz+=(.10*c)*MO;
+  }else if(st==='recoil'){
+    // the blade meets something that will not give and is thrown back at you
+    const q=clamp(P.t/.42,0,1),k=(1-q)*(1-q);
+    _vmAx.set(VM_SWING.slash.ax[0],VM_SWING.slash.ax[1],VM_SWING.slash.ax[2]);
+    ang=-1.15*k;pz+=.20*k*MO;py+=.08*k*MO;px+=.10*k*MO;
+  }else if(p>=0&&shape){
+    const S=VM_SWING[shape];
+    _vmAx.set(S.ax[0],S.ax[1],S.ax[2]);
+    ang=seg4(p,SW_W,SW_H,0,S.a[0],S.a[1],S.a[2]);
+    px+=seg4(p,SW_W,SW_H,0,S.x[0],S.x[1],S.x[2])*MO;
+    py+=seg4(p,SW_W,SW_H,0,S.y[0],S.y[1],S.y[2])*MO;
+    pz+=seg4(p,SW_W,SW_H,0,S.z[0],S.z[1],S.z[2])*MO;
   }
-  if(w==='bow'&&(st==='charge'||st==='shoot'||st==='loose'||st==='backstab'||st==='execute')){pz-=.1;px+=.08;}
-  h.position.set(px+FPS.swayX,py,pz);h.rotation.set(rx,ry+FPS.swayX*2,rz);
-  if(w==='wand'&&st==='cast'){h.position.z-=.25*Math.sin(Math.PI*p);}
+  // a bow is held out and drawn, not swung; the wand is pushed at the mark
+  if(w==='bow'&&(st==='charge'||st==='shoot'||st==='loose'||st==='backstab'||st==='execute')){pz-=.1;px+=.08;ang*=.25;}
+  if(w==='wand'){ang*=.5;if(st==='cast')pz-=.25*Math.sin(Math.PI*Math.max(0,p));}
+  /* THE JOIN. A chained swing leaves at CHAIN_OUT and re-enters at
+     ATK_ENTRY, so the pose jumps backwards mid-motion; every state change
+     does the same. The rig answers this with seamGrab/seamBlend and the
+     eye needs its own: the pose it was rendering is kept and the new one
+     is pulled back toward it for a twelfth of a second. Inside one swing
+     nothing is smoothed at all — the snap of the strike is the strike. */
+  const key=st+'|'+(P.combo|0);
+  if(key!==FPS.vmKey){
+    if(FPS.vmKey!==undefined){FPS.vmSeamQ.copy(h.quaternion);FPS.vmSeamP.copy(h.position);FPS.vmSeamT=VM_SEAM;}
+    FPS.vmKey=key;
+  }
+  h.position.set(px+FPS.swayX,py,pz);
+  _vmEu.set(C.rx,C.ry+FPS.swayX*2,C.rz,'XYZ');_vmQB.setFromEuler(_vmEu);
+  _vmQ.setFromAxisAngle(_vmAx.normalize(),ang);
+  h.quaternion.copy(_vmQ).multiply(_vmQB);                 // the arc is in the EYE's frame, so it premultiplies the carry
+  if(FPS.vmSeamT>0){
+    const u=clamp(FPS.vmSeamT/VM_SEAM,0,1),wgt=u*u*(3-2*u);
+    h.quaternion.slerp(FPS.vmSeamQ,wgt);h.position.lerp(FPS.vmSeamP,wgt);
+    FPS.vmSeamT-=dt;
+  }
+}
+/* ---- THE LOCK, WHICH IS WHAT THE AIM BUTTON IS UNDER A BLADE ----
+   A gun aims; a blade has nothing to aim. The button is a TOGGLE now: with
+   it on, the eye takes the nearest horror it can reach and leans onto it,
+   and takes the next one when that one falls — you keep a circling thing
+   in the picture without dragging for it, which is the whole of melee on a
+   touchscreen. The heavy is not lost: it moves to the LEFT trigger, held.
+   `FPS.lockOn` is the switch; `updateLock` does the picking (the same
+   candidates and the same hysteresis the follow camera uses) and
+   `updateFpsCamera` does the leaning. */
+function meleeLockTick(){
+  if(IN.lockTap){IN.lockTap=false;FPS.lockOn=!FPS.lockOn;G.vibr(12);
+    if(!FPS.lockOn){G.lockTarget=null;lockMarker.visible=false;}}
 }
 /* the first-person camera: the eye at the top of the pilgrim, and the
    body's own states carried in it — the roll dips it, a fall takes it
@@ -16570,6 +16701,20 @@ function updateFpsCamera(dt){
   else if(P.state==='hurt')ey-=.08*Math.sin(Math.PI*Math.min(1,P.t/(P.hurtDur||.38)));
   ey+=Math.abs(Math.cos(FPS.bob))*.022*Math.min(1,P.moveAmt)*(1-.6*FPS.ads);
   camera.position.set(P.x,hP+ey,P.z);
+  /* AND THE LOCK LEANS THE EYE ONTO WHAT IT HOLDS. It is an assist, not a
+     rail: the player's own drag is subtracted from the rate, so a thumb on
+     the screen always wins and the eye only settles onto the horror when
+     the thumb lets go. In first person the body's facing IS the camera's
+     (see the note at the top of `player.update`), so leaning the eye also
+     points the swing. */
+  if(G.lockTarget&&!gunHeld()&&G.lockTarget.hp>0&&P.state!=='dead'&&!CUT.on){
+    const L=G.lockTarget,dx=L.x-camera.position.x,dz=L.z-camera.position.z,dh=Math.hypot(dx,dz)||1e-3;
+    const drag=Math.min(1,(Math.abs(IN.camDX)+Math.abs(IN.camDY))/10);
+    const k=Math.min(1,LOCK_EASE*(1-drag)*dt);
+    G.camYaw+=wrapA(Math.atan2(-dx,-dz)-G.camYaw)*k;      // the eye's forward is (-sin yaw, -cos yaw)
+    FPS.pitch=clamp(FPS.pitch+(Math.atan2(foeY(L)+(L.big||L.boss?1.4:.95)-camera.position.y,dh)-FPS.pitch)*k,-1.25,1.25);
+    camera.rotation.set(FPS.pitch,G.camYaw,0);
+  }
   if(G.camShake>0){G.camShake=Math.max(0,G.camShake-dt*1.6);
     camera.position.x+=(Math.random()-.5)*G.camShake*.1;camera.position.y+=(Math.random()-.5)*G.camShake*.1;}
   const roll=(P.state==='floored'?.6*Math.min(1,P.t/FLOOR.LAND)*(P.t<FLOOR.RISE+.3?1:Math.max(0,1-(P.t-FLOOR.RISE-.3)/(FLOOR.DUR-FLOOR.RISE-.3))):0)+FPS.swayX*.5;
@@ -16584,7 +16729,11 @@ const AIM_REST=22;   // where the mark sits when the round would meet nothing
 const FHUD={gap:-1,dx:0,dy:0,ammo:'',name:'',cal:'',mark:'',scope:false,acog:false,dot:false,zoom:-1,low:false,rl:false,dim:false,lit:false,zoomOn:false,ctl:''};
 function syncGunUi(){
   const gun=gunHeld(),cls=(FPS.on?'fps ':'')+(gun?'gun ':'')+(FPS.on&&!gun?'blade':'');
-  if(cls!==FHUD.ctl){FHUD.ctl=cls;$('fpsCtl').className=cls;$('hud').classList.toggle('fps',FPS.on);}
+  if(cls!==FHUD.ctl){FHUD.ctl=cls;$('fpsCtl').className=cls;$('hud').classList.toggle('fps',FPS.on);
+    // a gun aims; a blade locks. The one button says which it is
+    const b=$('fbAds'),blade=FPS.on&&!gun;
+    b.querySelector('span.g').innerHTML=blade?'&#9678;':'&#8982;';
+    b.querySelector('span.t').textContent=blade?'lock':'aim';}
   Input.setBlade(FPS.on&&!gun);
 }
 function updateGunHud(){
@@ -16665,7 +16814,7 @@ function updateGunHud(){
   const low=A.mag===0;if(low!==FHUD.low){FHUD.low=low;$('fbSwap').classList.toggle('low',low);}
   if(FPS.reloading!==FHUD.rl){FHUD.rl=FPS.reloading;$('fbSwap').classList.toggle('rl',FPS.reloading);}
   const dim=A.mag>=g.mag||resOf(g)<=0;if(dim!==FHUD.dim){FHUD.dim=dim;$('fbReload').classList.toggle('dim',dim);}
-  const lit=FPS.adsOn&&gun;if(lit!==FHUD.lit){FHUD.lit=lit;$('fbAds').classList.toggle('lit',lit);}
+  const lit=gun?FPS.adsOn:(FPS.on&&FPS.lockOn);if(lit!==FHUD.lit){FHUD.lit=lit;$('fbAds').classList.toggle('lit',lit);}
   const zo=FPS.on&&gun&&!!g.scope&&att==='iron'&&FPS.ads>.5;if(zo!==FHUD.zoomOn){FHUD.zoomOn=zo;$('fbZoom').style.display=zo?'flex':'none';}
 }
 /* THE SWITCH. Either way, mid-run, without a reload of the page: the
@@ -17277,7 +17426,7 @@ function frame(now){
     else{
       IN.mx=0;IN.mz=0;IN.camDX=0;IN.camDY=0;IN.swipe=null;
       IN.chargeHeld=false;IN.chargeRelease=false;IN.firePressed=false;IN.fireHeld=false;
-      IN.adsTap=false;IN.adsRelease=false;IN.adsHeld=false;
+      IN.adsTap=false;IN.adsRelease=false;IN.adsHeld=false;IN.lockTap=false;
       IN.reloadPressed=false;IN.swapPressed=false;IN.zoomPressed=false;IN.pickGun=-1;
       IN.interactPressed=false;IN.anyPressed=false;
       player.vx=0;player.vz=0;
@@ -17402,7 +17551,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,CLIP_WARM,renderFrame,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,CLIP_WARM,renderFrame,VM_SWING,updateLock,lockCands,updateBladeVm,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

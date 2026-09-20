@@ -616,7 +616,23 @@ climbs on the viewmodel and jumps back, and the *eye* climbs with it, a
 little to one side, so the sight is somewhere else for the next round; a
 share of the climb settles back on its own, the rest you pull down. The
 sway and the bob are held off entirely while the sights are up, which is
-what keeps them true. The **muzzle flash** is at the muzzle and **the gun is allowed to hide
+what keeps them true. **A blade behind the eyes swings for real.** The weapon used to turn about
+its own long axis — the one rotation that moves a stick nowhere — so all
+you saw of a cut was the ribbon it left, with the sword standing still
+underneath it. Every swing is an arc now, about an axis worked out from
+where the blade actually points, on the same clock the body's own pose
+runs on: the slash comes off the right shoulder and lands across the
+picture, the backhand goes back the other way, the overhead rises out of
+frame and falls through the middle, and the thrust drives forward. The
+whole weapon is in the picture at the moment it lands.
+And **the aim button is the LOCK** when a blade is in the hands, since a
+blade has nothing to aim. Switch it on and the eye takes the nearest
+horror it can reach and leans onto it, taking the next when that one
+falls — enough to keep a circling thing in the picture without dragging
+for it, and never enough to fight your own thumb, which always wins. The
+heavy moves to the left trigger: hold it to wind, let go to loose it.
+
+The **muzzle flash** is at the muzzle and **the gun is allowed to hide
 it**. It used to be drawn through the weapon, which aimed put a lit orb on
 top of the receiver in the middle of the sight picture, and two separate
 shrinkings were bolted on to keep that orb small. Both are gone: it is one

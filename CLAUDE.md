@@ -1841,6 +1841,72 @@ Known state of play:
   non-finite from the pose. **If a limb or a blade ever vanishes with no
   error, read `rig._sm[k]` for NaN before anything else.**
 
+- **THE FIRST-PERSON SWING TURNED THE BLADE ABOUT ITS OWN AXIS, WHICH IS
+  THE ONE ROTATION THAT MOVES A STICK NOWHERE.** Read as "you only see the
+  air trails, the weapon should move with them", and the numbers said why.
+  Sampled frame by frame through one cut of the greatsword, the
+  viewmodel's PITCH never moved — `rx` 2.30 at every frame — and all the
+  motion was a yaw and a roll laid on top of it. Work out where the blade
+  actually points at the carry (rotate its own length, its −y, by the carry
+  euler) and it is **(−.32, .54, −.78)** from the grip: the thing lies
+  mostly ALONG the view, so a yaw and a roll spin it about itself. The grip
+  travelled 0.31 in the lower-right corner and the tip barely left it,
+  while the rig under the camera — which is what `bladeTrail` is drawn off
+  — swept its full four metres. A trail with no sword in it.
+  A swing is an ARC and is written as one now (`VM_SWING`, beside
+  `updateBladeVm`): an axis in the EYE'S frame and an angle the weapon
+  turns through about the grip, run on `seg4` with **the rig's own W=.42 /
+  H=.68** so the viewmodel and the pose share one clock and the cut lands
+  on the frame the game says it does.
+  - **THE AXES ARE DERIVED.** Each is `d × cut` normalised — d the blade's
+    direction at the carry, cut the way the tip should travel on screen
+    (down-left, down-right, straight down, dead ahead). All four come out
+    perpendicular to the blade, dot products under .005, which is the
+    check. Pick one by eye and you can land near-parallel without noticing:
+    the first pass's backhand axis was .92 parallel and moved a third as
+    far as the slash for the same angle.
+  - **THE ANGLES ARE MEASURED, AND THE NEAR PLANE IS WHAT DECIDES THEM.**
+    At 2.55 radians the tip crossed the eye and the projection went to
+    nonsense. The OLD code did this too, on the thrust: the point came
+    within **0.14m** of a **0.10** near plane and projected to 6.66 in a
+    frame that ends at 1 — the blade went through your face. At the shipped
+    values the nearest approach is **0.77m** on every blade and every
+    combo. The rest cannot be measured and must be looked at: the whole
+    weapon has to be IN the picture at the cut, which took the slash from
+    1.55 to 1.15 (at 1.55 it landed under the bottom edge and only the
+    guard showed).
+  - **`VM_SEAM` is the eye's `seamBlend`.** A chain leaves at `CHAIN_OUT`
+    and re-enters at `ATK_ENTRY`, so the pose jumps backwards mid-motion;
+    the rendered pose is kept and the new one pulled back toward it for a
+    twelfth of a second. Inside one swing nothing is smoothed — the snap
+    of the strike IS the strike.
+  - Every shape settles to 0 on every channel at p=1, so a swing lands
+    exactly on the carry and cannot pop at the end.
+  - **If a swing ever looks weak again, project the TIP.** Every one of
+    these faults looked perfectly reasonable in the source.
+
+- **THE AIM BUTTON IS THE LOCK WHEN A BLADE IS BEHIND THE EYES.** A gun
+  aims; a blade has nothing to aim, and the button used to be a charge.
+  `FPS.lockOn` is a toggle: with it on, `updateLock`'s first-person branch
+  takes the nearest horror it can reach (the same `lockCands` and the same
+  two-metre/half-second hysteresis the follow camera uses) and takes the
+  next one when that one falls, and `updateFpsCamera` leans the eye onto
+  it at `LOCK_EASE`. It is an ASSIST, not a rail — the player's own drag is
+  subtracted from the rate, so a thumb on the screen always wins and the
+  eye only settles when the thumb lets go. In first person the body's
+  facing IS the camera's, so leaning the eye also points the swing.
+  - **The heavy moved to the LEFT TRIGGER, held.** With a gun both triggers
+    fire, so the left one has no separate job under a blade. `bladeHeavy`
+    in `Input` feeds `st.chargeHeld` and its release feeds
+    `st.chargeRelease`; the aim button no longer touches either. On a
+    keyboard L is the lock and the right mouse is the heavy.
+  - `st.lockTap` is its own flag, not `adsTap` — a gun still needs `adsTap`
+    for the sights, and one flag doing both would have the sights coming up
+    whenever the lock was toggled.
+  - The button's glyph and label are rewritten in `syncGunUi`, which only
+    runs on a class change, and `updateGunHud`'s `lit` asks `gun?adsOn:lockOn`.
+    Both used to write `#fbAds`'s lit class; only one may.
+
 - **THE LAG BEFORE A FINISHING CUT WAS SHADER COMPILATION, EVERY CUT.**
   `splitEnemy` clones every material on the body with a clipping plane,
   and a clipped material is its own shader program. three.js counts the
