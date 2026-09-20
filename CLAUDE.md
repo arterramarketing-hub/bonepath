@@ -1841,49 +1841,56 @@ Known state of play:
   non-finite from the pose. **If a limb or a blade ever vanishes with no
   error, read `rig._sm[k]` for NaN before anything else.**
 
-- **THE FIRST-PERSON SWING TURNED THE BLADE ABOUT ITS OWN AXIS, WHICH IS
-  THE ONE ROTATION THAT MOVES A STICK NOWHERE.** Read as "you only see the
-  air trails, the weapon should move with them", and the numbers said why.
-  Sampled frame by frame through one cut of the greatsword, the
-  viewmodel's PITCH never moved — `rx` 2.30 at every frame — and all the
-  motion was a yaw and a roll laid on top of it. Work out where the blade
-  actually points at the carry (rotate its own length, its −y, by the carry
-  euler) and it is **(−.32, .54, −.78)** from the grip: the thing lies
-  mostly ALONG the view, so a yaw and a roll spin it about itself. The grip
-  travelled 0.31 in the lower-right corner and the tip barely left it,
-  while the rig under the camera — which is what `bladeTrail` is drawn off
-  — swept its full four metres. A trail with no sword in it.
-  A swing is an ARC and is written as one now (`VM_SWING`, beside
-  `updateBladeVm`): an axis in the EYE'S frame and an angle the weapon
-  turns through about the grip, run on `seg4` with **the rig's own W=.42 /
-  H=.68** so the viewmodel and the pose share one clock and the cut lands
-  on the frame the game says it does.
-  - **THE AXES ARE DERIVED.** Each is `d × cut` normalised — d the blade's
-    direction at the carry, cut the way the tip should travel on screen
-    (down-left, down-right, straight down, dead ahead). All four come out
-    perpendicular to the blade, dot products under .005, which is the
-    check. Pick one by eye and you can land near-parallel without noticing:
-    the first pass's backhand axis was .92 parallel and moved a third as
-    far as the slash for the same angle.
-  - **THE ANGLES ARE MEASURED, AND THE NEAR PLANE IS WHAT DECIDES THEM.**
-    At 2.55 radians the tip crossed the eye and the projection went to
-    nonsense. The OLD code did this too, on the thrust: the point came
-    within **0.14m** of a **0.10** near plane and projected to 6.66 in a
-    frame that ends at 1 — the blade went through your face. At the shipped
-    values the nearest approach is **0.77m** on every blade and every
-    combo. The rest cannot be measured and must be looked at: the whole
-    weapon has to be IN the picture at the cut, which took the slash from
-    1.55 to 1.15 (at 1.55 it landed under the bottom edge and only the
-    guard showed).
-  - **`VM_SEAM` is the eye's `seamBlend`.** A chain leaves at `CHAIN_OUT`
-    and re-enters at `ATK_ENTRY`, so the pose jumps backwards mid-motion;
-    the rendered pose is kept and the new one pulled back toward it for a
-    twelfth of a second. Inside one swing nothing is smoothed — the snap
-    of the strike IS the strike.
-  - Every shape settles to 0 on every channel at p=1, so a swing lands
-    exactly on the carry and cannot pop at the end.
-  - **If a swing ever looks weak again, project the TIP.** Every one of
-    these faults looked perfectly reasonable in the source.
+- **THE FIRST-PERSON SWING IS READ OFF THE RIG. NOTHING AUTHORS A SECOND
+  ONE, AND NOTHING SHOULD.** Two wrong answers were shipped before this.
+  The first turned the blade about its own length: sampled frame by frame
+  the viewmodel's pitch never moved, all the motion was a yaw and a roll,
+  and the blade at the carry points **(−.32, .54, −.78)** from the grip —
+  mostly ALONG the view — so a yaw and a roll spin a stick about itself.
+  The second gave it a real arc but a hand-written one, a table of axes
+  and angles per combo, and that is a SECOND animation beside the body's:
+  it cannot match the third-person swing and never will.
+  **"Just put the camera at the eye and show the real body" was measured,
+  because it is the version with no code in it, and it does not work.**
+  Three reasons, all of them about where the pose was authored to be SEEN
+  from, and all worth knowing before anyone tries it again:
+    - at rest the weapon is BEHIND the eye. The carry rests the blade over
+      the shoulder — from the eye the sword's nearest point is **1.15m
+      behind the lens**, the ultra's **1.49m**. No weapon until the strike.
+    - mid-swing it STRADDLES the near plane: nearest point 0.35m in front
+      at the cut with the far end still behind the camera, so it is sliced
+      and the projection breaks.
+    - the lens is INSIDE the body's geometry — the nearest meshes'
+      bounding spheres CONTAIN the camera (−0.36m), so the gorget and the
+      pauldrons fill the frame.
+  So the weapon stays a clone on the camera and only its MOTION comes from
+  the rig. `bladePose(r,p,q)` takes `root⁻¹ · weapon` — the pilgrim's own
+  frame, so the torso's twist and every joint above it are in it and only
+  his facing and his place are divided out — the rest pose captured in
+  `ensureBladeVm` is subtracted, and the remainder is laid onto the carry
+  in the eye's frame (the body looks down +z and the eye down −z, hence
+  `SW_FLIP`). Every state, every weapon, every chain and every spring comes
+  free and can never disagree with the body, because it IS the body.
+  - **`rg`, the rotation gain, is geometric and cannot be tuned away.** The
+    grip hangs .62 off the lens and the blade is .578 long at this scale,
+    so a full-size turn about the grip brings the tip within four
+    centimetres of a near plane at .10. Pushing the grip out and scaling
+    the weapon up buys clearance in proportion — it would take a weapon
+    three metres out, and at three metres a camera child intersects the
+    walls. Swept over four gains and three grip distances on all three
+    blades: at **.62 and above the tip reaches the lens** on the sword and
+    the ultra (nearest z 0.00 to +0.13, behind the eye); at **.45 every
+    blade clears by at least 0.23m**. Measured on a live swing at .45 the
+    closest approach is 0.49m. `mo` is the same idea for translation.
+  - **The rest pose must be read while the body is at REST.** It is
+    captured in `ensureBladeVm`, off the fresh rig; sample it mid-cut and
+    every swing is measured from the wrong place and the deltas collapse.
+  - `VM_SEAM` is still the eye's `seamBlend` — a chain leaves at
+    `CHAIN_OUT` and re-enters at `ATK_ENTRY`, so the pose jumps backwards.
+    Inside one swing nothing is smoothed: the snap of the strike IS the
+    strike.
+  - **If a swing ever looks wrong again, do not write a pose.** Project
+    the tip, read its camera-space z, and move `rg`, `mo` or the carry.
 
 - **THE AIM BUTTON IS THE LOCK WHEN A BLADE IS BEHIND THE EYES.** A gun
   aims; a blade has nothing to aim, and the button used to be a charge.
@@ -1895,11 +1902,15 @@ Known state of play:
   subtracted from the rate, so a thumb on the screen always wins and the
   eye only settles when the thumb lets go. In first person the body's
   facing IS the camera's, so leaning the eye also points the swing.
-  - **The heavy moved to the LEFT TRIGGER, held.** With a gun both triggers
-    fire, so the left one has no separate job under a blade. `bladeHeavy`
-    in `Input` feeds `st.chargeHeld` and its release feeds
-    `st.chargeRelease`; the aim button no longer touches either. On a
-    keyboard L is the lock and the right mouse is the heavy.
+  - **The heavy is EITHER trigger held.** With a gun both triggers fire, so
+    the left one has no separate job under a blade and it winds outright
+    (`bladeHeavy` in `Input`). The right one is the strike, and holding it
+    past `HEAVY_HOLD` (180ms) ALSO feeds `st.chargeHeld` — the press still
+    swings at once, because a tap must never wait to find out what it was,
+    and the hero only reads `chargeHeld` back in `free`, after that swing
+    has finished. Verified: an 80ms tap gives `attack` and nothing else; a
+    1100ms hold gives `attack → charge → dslash`. On a keyboard L is the
+    lock, J held winds, and the right mouse is the heavy.
   - `st.lockTap` is its own flag, not `adsTap` — a gun still needs `adsTap`
     for the sights, and one flag doing both would have the sights coming up
     whenever the lock was toggled.

@@ -616,15 +616,19 @@ climbs on the viewmodel and jumps back, and the *eye* climbs with it, a
 little to one side, so the sight is somewhere else for the next round; a
 share of the climb settles back on its own, the rest you pull down. The
 sway and the bob are held off entirely while the sights are up, which is
-what keeps them true. **A blade behind the eyes swings for real.** The weapon used to turn about
-its own long axis — the one rotation that moves a stick nowhere — so all
-you saw of a cut was the ribbon it left, with the sword standing still
-underneath it. Every swing is an arc now, about an axis worked out from
-where the blade actually points, on the same clock the body's own pose
-runs on: the slash comes off the right shoulder and lands across the
-picture, the backhand goes back the other way, the overhead rises out of
-frame and falls through the middle, and the thrust drives forward. The
-whole weapon is in the picture at the moment it lands.
+what keeps them true. **A blade behind the eyes swings the body's own swing.** There is no
+separate first-person animation any more, and that is the point: each
+frame the weapon's pose is read off the pilgrim under the camera — the
+same four keys, the same springs, the same chain — and laid onto the
+carry in front of the eye. Whatever the body does, the eye sees, and the
+two can no longer drift apart. Simply putting the camera at the eye and
+showing the real body was tried first and does not work: the carry rests
+the blade over the shoulder, a metre behind your own head, so there is no
+weapon in the picture until the strike, and the lens sits inside the
+gorget.
+Holding the strike trigger winds the heavy as well as swinging: the tap
+cuts at once, and if the thumb stays down the blade gathers for the
+second blow.
 And **the aim button is the LOCK** when a blade is in the hands, since a
 blade has nothing to aim. Switch it on and the eye takes the nearest
 horror it can reach and leans onto it, taking the next when that one

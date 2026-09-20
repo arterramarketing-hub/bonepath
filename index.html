@@ -3213,9 +3213,10 @@ const Input=(()=>{
   const base=$('stickBase'),nub=$('stickNub');
   const RADIUS=52;
   const SWIPE_DIST=26,SWIPE_MS=220; // a flick: fast and short
+  const HEAVY_HOLD=180;             // the strike trigger held past this is asking for the heavy as well
   const HOLD_MS=240;                // held past this: a still finger charges, a moving one turns the camera
   let touchCharge=false;
-  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false,bladeHeavy=false;   // (first person; fpsBlade: a blade behind the eyes, so the triggers strike and the aim charges)
+  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false,bladeHeavy=false,fireDownT=0;   // (first person; fpsBlade: a blade behind the eyes, so the triggers strike and the aim charges)
 
   function bindBtn(el,down,up){
     el.addEventListener('pointerdown',e=>{
@@ -3247,7 +3248,7 @@ const Input=(()=>{
        under it the way the left stick's nub rides. Released, it goes home. */
     {const el=$('fbFireR');if(el){let id=null,ox=0,oy=0,lx=0,ly=0;const R=34;
       el.addEventListener('pointerdown',e=>{e.preventDefault();if(id!==null)return;try{el.setPointerCapture(e.pointerId);}catch(err){}
-        id=e.pointerId;ox=lx=e.clientX;oy=ly=e.clientY;el.classList.add('pressed');st.anyPressed=true;fireDown();});
+        id=e.pointerId;ox=lx=e.clientX;oy=ly=e.clientY;el.classList.add('pressed');st.anyPressed=true;fireDownT=performance.now();fireDown();});
       el.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;
         st.camDX+=e.clientX-lx;st.camDY+=e.clientY-ly;lx=e.clientX;ly=e.clientY;
         const dx=e.clientX-ox,dy=e.clientY-oy,d=Math.hypot(dx,dy),k=d>R?R/d:1;
@@ -3433,7 +3434,13 @@ const Input=(()=>{
     if(gesture&&gesture.mode==='pending'&&performance.now()-gesture.t0>HOLD_MS){
       const g=gesture;settleHold(g,g.lx,g.ly);
     }
-    st.chargeHeld=touchCharge||(!fpsMode&&!!keys.KeyL)||(fpsMode&&fpsBlade&&(mouseAds||bladeHeavy));   // (the aim button is the lock now: the heavy is the left trigger, or the right mouse)
+    /* THE STRIKE TRIGGER WINDS IF IT IS HELD. The press still swings at
+       once — a tap must never wait to find out what it was — and the
+       thumb staying down past `HEAVY_HOLD` is what asks for the heavy,
+       which the hero only reads back in `free`, after that swing has
+       finished. So a tap is a cut, and a hold is a cut and then the wind. */
+    const trigHeld=fpsMode&&fpsBlade&&touchFireN>0&&performance.now()-fireDownT>HEAVY_HOLD;
+    st.chargeHeld=touchCharge||(!fpsMode&&!!keys.KeyL)||(fpsMode&&fpsBlade&&(mouseAds||bladeHeavy||trigHeld||!!keys.KeyJ));
     st.fireHeld=touchFireN>0||mouseFire||(fpsMode&&!!keys.KeyJ);
     st.adsHeld=mouseAds||(fpsMode&&!!keys.KeyL);
     if(fpsMode&&fpsBlade&&st.firePressed&&!st.swipe)st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};   // a blade behind the eyes: the trigger is the strike
@@ -16516,15 +16523,30 @@ function updateViewmodel(dt){
    distance the big one used to travel looks like it has come off in your
    hand; the rotations are left alone, because a rotation reads the same
    at any size and the rotation is what tells you the cut landed. */
+/* `rg` is the ROTATION GAIN: how much of the body's own turn the eye's
+   copy takes, and it exists for a geometric reason that cannot be tuned
+   away. The grip hangs about 0.62 off the lens and the blade is 0.578
+   long at this scale, so a full-size rotation about the grip brings the
+   tip to within four centimetres of a near plane at 0.10 — through your
+   face. Pushing the grip away and scaling the weapon up to match buys
+   clearance in proportion, so it would take a weapon three metres out to
+   be safe, and at three metres a camera child intersects the walls.
+   Swept over four gains and three grip distances on all three blades:
+   at .62 and above the tip reaches the lens on the sword and the ultra
+   (nearest z 0.00 to +0.13, behind the eye); at **.45 every blade clears
+   by at least 0.23m** and the tip still crosses most of the picture.
+   Raise it and measure the nearest approach, or the blade will swing
+   through the camera on one combo out of four and look fine in the
+   source. */
 const VM_BLADE={
-  sword: {s:.30,mo:.55,px:.30,py:-.30,pz:-.62,rx:2.30,ry:.35,rz:-.35},
-  ultra: {s:.22,mo:.60,px:.32,py:-.30,pz:-.66,rx:2.30,ry:.35,rz:-.35},
-  katana:{s:.24,mo:.55,px:.31,py:-.24,pz:-.60,rx:2.30,ry:.35,rz:-.35},
+  sword: {s:.30,mo:.55,rg:.45,px:.30,py:-.30,pz:-.62,rx:2.30,ry:.35,rz:-.35},
+  ultra: {s:.22,mo:.60,rg:.45,px:.32,py:-.30,pz:-.66,rx:2.30,ry:.35,rz:-.35},
+  katana:{s:.24,mo:.55,rg:.45,px:.31,py:-.24,pz:-.60,rx:2.30,ry:.35,rz:-.35},
   // the bow is held out rather than carried at the hip, so it keeps more
   // of its size — but not all of it: at its own it was taller than the
   // screen, both tips off the picture, which is a stave and not a bow
-  bow:   {s:.38,mo:.90,px:.26,py:-.34,pz:-.62,rx:Math.PI/2,ry:.25,rz:-.50},
-  wand:  {s:.55,mo:.80,px:.26,py:-.30,pz:-.54,rx:2.00,ry:.20,rz:-.20},
+  bow:   {s:.38,mo:.90,rg:.55,px:.26,py:-.34,pz:-.62,rx:Math.PI/2,ry:.25,rz:-.50},
+  wand:  {s:.55,mo:.80,rg:.55,px:.26,py:-.30,pz:-.54,rx:2.00,ry:.20,rz:-.20},
 };
 function vmBladeCfg(){return VM_BLADE[LOADOUT.weapon]||VM_BLADE.sword;}
 function ensureBladeVm(){
@@ -16546,126 +16568,96 @@ function ensureBladeVm(){
   c.traverse(o=>{const m=o.material;
     if(m&&m.blending===THREE.AdditiveBlending){o.material=m.clone();o.material.opacity=(m.opacity===undefined?1:m.opacity)*.35;}});
   const h=new THREE.Group();h.add(c);camera.add(h);
+  // the carry, measured off the rig as it stands: every swing is the
+  // difference from this, so it must be read while the body is at rest
+  const rp=new THREE.Vector3(),rq=new THREE.Quaternion();
+  bladePose(P.rig,rp,rq);h.userData.rest={p:rp,q:rq};
   FPS.vmBlade=h;FPS.vmBladeFor=LOADOUT.weapon;FPS.vmBladeRig=P.rig;
+  FPS.vmKey=undefined;FPS.vmSeamT=0;
   return h;
 }
-/* ---- THE SWING, AND IT USED TO TURN THE BLADE ABOUT ITSELF ----
-   The complaint was that you see the trail and not the weapon, and the
-   numbers said exactly why. Sampled frame by frame through one cut of the
-   greatsword, the viewmodel's pitch (`rx`) NEVER MOVED — 2.30 at every
-   frame of the swing — and all the motion was in `ry` and `rz`, a yaw and
-   a roll applied on top of that pitch. Work out where the blade actually
-   points at the carry (rotate its own length, its −y, by the carry euler)
-   and it comes to roughly (−.32, .54, −.78) from the grip: the thing lies
-   mostly ALONG the view. A yaw and a roll turn it about its own long axis,
-   which is the one rotation that moves a stick nowhere. Measured, the grip
-   travelled 0.31 across the lower-right corner and the tip barely left it,
-   while the rig under the camera — which is what the ribbon is drawn off —
-   swept its full four metres. Hence a trail with no sword in it.
-   A swing is an ARC, so it is written as one: an axis in the EYE's own
-   frame, and an angle the weapon turns through about the grip. The axis is
-   perpendicular to the cut, the way the axis of a real swing is, and the
-   angle runs on `seg4` with the rig's own wind/strike split — so the
-   viewmodel is on the same clock as the pose and the cut lands on the
-   frame the game says it lands.
-   **If a swing ever looks weak again, project the TIP.** Rotating about an
-   axis the blade lies near moves nothing, and it looks fine in the source. */
-const SW_W=.42,SW_H=.68;      // poseLight's own W and H: one clock for the rig and the eye
+/* ---- THE SWING IS THE RIG'S OWN, AND NOTHING HERE AUTHORS ONE ----
+   There was a table of hand-written arcs here — an axis and an angle per
+   combo — and it was wrong twice over. The first version turned the blade
+   about its own length and moved it nowhere; the second moved it, but it
+   was a SECOND animation beside the body's, so it could not match the
+   third-person swing and never would. The right answer is the one that
+   deletes code: the pilgrim under the camera is already swinging, with
+   `poseLight`'s four keys, the joint springs, the seam blend and
+   `CHAIN_OUT` all running on him. Take THAT.
+
+   "Just move the camera to the eye and show the real body" was measured
+   first, because it is the version with no code in it at all, and it does
+   not work — for three reasons that are all about where the pose was
+   authored to be SEEN from:
+     - at rest the weapon is BEHIND the eye. The carry rests the blade over
+       the shoulder: measured from the eye, the sword's nearest point is
+       1.15m behind the lens and the ultra's 1.49m. You would see no
+       weapon at all until the strike.
+     - mid-swing it STRADDLES the near plane — nearest point 0.35m in
+       front at the cut with the far end still behind the camera — so it
+       is sliced in half and the projection breaks.
+     - the lens sits INSIDE the body's own geometry: the nearest meshes'
+       bounding spheres contain the camera (−0.36m), so the gorget and the
+       pauldrons fill the frame.
+   None of that is tuning. The pose is authored to be read from five
+   metres behind, and its rest position is literally behind your head.
+
+   So the weapon is still a clone hung off the camera — but its motion is
+   READ OFF THE RIG rather than invented. Each frame the real weapon's
+   pose is taken in the PILGRIM'S OWN frame (`root⁻¹ · weapon`, so the
+   torso's twist and every joint above it are in it, and only his facing
+   and his position are divided out), the REST pose is subtracted, and
+   what is left — the swing, exactly as the body performs it — is laid
+   onto the carry in the eye's frame. Translation is scaled with the
+   weapon (`mo`); rotation is scaled by `rg`, which exists because a
+   full-size arc about a grip half a metre from the lens puts the tip
+   through the eye.
+   Every state, every weapon, every chain and every spring comes for free
+   and can never disagree with what the body is doing, because it IS what
+   the body is doing. */
+const _swM=new THREE.Matrix4(),_swP=new THREE.Vector3(),_swQ=new THREE.Quaternion(),_swS=new THREE.Vector3();
+const _swD=new THREE.Quaternion(),_swC=new THREE.Quaternion(),_swI=new THREE.Quaternion(),_swE=new THREE.Euler();
+const SW_FLIP=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);   // the body looks down +z, the eye down −z
 const VM_SEAM=.085;           // a chain re-enters at ATK_ENTRY, so the pose jumps: this hides the join
-/* EACH SHAPE: the axis it turns about in the eye's frame, then the angle
-   and the grip's travel as (wound, struck, settled). Settled is 0 on every
-   channel, so a swing lands exactly on the carry and cannot snap.
-   THE AXES ARE DERIVED, NOT CHOSEN. An axis the blade lies near moves the
-   blade nowhere, which is the fault this whole section exists to undo — so
-   each one is `d × cut` normalised, where d is the blade's own direction at
-   the carry, (−.32, .54, −.78), and cut is the way the tip should travel on
-   the screen: down-left for the slash, down-right for the backhand,
-   straight down for the overhead, and dead ahead for the thrust. Every one
-   of them comes out perpendicular to the blade (the dot products are all
-   under .005), which is the check.
-   The ANGLES are measured, though — the derivation gives the axis and not
-   how far to go round it, and the near plane is what decides that. Swung
-   2.55 radians the tip crossed the eye outright and the projection went to
-   nonsense with it; the OLD code did the same on the thrust, where the
-   point came within 0.14m of the lens against a near plane of 0.10 and the
-   tip projected to 6.66 in a frame that ends at 1. At the values below the
-   nearest approach is 0.77m, across every blade and every combo. The other
-   half of the test cannot be measured and has to be looked at: the whole
-   weapon must be IN the picture at the moment of the cut, which is what
-   took the slash from 1.55 radians to 1.15 — at 1.55 it landed below the
-   bottom edge and all you saw was the guard. */
-const VM_SWING={
-  slash: {ax:[-.56, .56, .62], a:[-.42,1.15,0], x:[ .12,-.34,0], y:[ .10, .02,0], z:[ .05,-.12,0]},   // right shoulder down to the left hip
-  back:  {ax:[-.69,-.69,-.20], a:[-.42,1.15,0], x:[-.13, .32,0], y:[ .10, .02,0], z:[ .05,-.12,0]},   // and back across
-  over:  {ax:[-.925,0, .379], a:[-.50,1.10,0], x:[ .02,-.24,0], y:[ .15, .04,0], z:[ .06,-.18,0]},    // up over the head and down the middle
-  thrust:{ax:[-.86,-.51, 0  ], a:[-.20, .80,0], x:[ .07,-.14,0], y:[ .05,-.02,0], z:[ .11,-.55,0]},   // levelled, and driven
-};
-const _vmAx=new THREE.Vector3(),_vmQ=new THREE.Quaternion(),_vmQB=new THREE.Quaternion(),_vmEu=new THREE.Euler();
+function bladePose(r,outP,outQ){    // the weapon in the pilgrim's own frame, his facing and his place divided out
+  r.root.updateMatrixWorld(true);r.weapon.updateMatrixWorld(true);
+  _swM.copy(r.root.matrixWorld).invert().multiply(r.weapon.matrixWorld);
+  _swM.decompose(outP,outQ,_swS);
+  outP.applyQuaternion(SW_FLIP);outQ.premultiply(SW_FLIP);
+}
 function updateBladeVm(dt){
   const h=ensureBladeVm();if(!h)return;
-  const P=player,st=P.state,w=P.weapon();
+  const P=player,st=P.state,r=P.rig;
   meleeLockTick();                                         // the aim button is the LOCK while a blade is in the hands
   h.visible=FPS.on&&!CUT.on&&!gunHeld()&&st!=='dead'&&G.mode!=='dead'&&!P.katThrown;
   if(FPS.vm)FPS.vm.visible=false;                          // (the gun stays out of the picture under a blade)
-  if(!h.visible)return;
+  if(!h.visible||!r||!r.weapon||!h.userData.rest)return;
   const mv=Math.min(1,P.moveAmt);
   FPS.bob+=dt*(P.sprinting?11:8)*Math.min(1,(P.spd||0)/4.3);
   const bobX=Math.sin(FPS.bob)*.02*mv,bobY=Math.abs(Math.cos(FPS.bob))*.014*mv;
   FPS.swayX=lerp(FPS.swayX,clamp(-IN.camDX*.0012,-.06,.06),Math.min(1,8*dt));
-  // the carry: the grip low and right, the blade standing up and leaning in
-  // across the eye (the weapon's own -y is its length), each at its own size
-  const C=vmBladeCfg(),MO=C.mo;
-  let px=C.px+bobX,py=C.py+bobY,pz=C.pz,ang=0;
-  _vmAx.set(0,1,0);
-  const dur=P.atkDur||.68;
-  let p=-1,shape=null,spin=0;
-  if(st==='attack'){p=clamp(P.t/dur,0,1);shape=P.combo===2?'over':P.combo===3?'thrust':P.combo===1?'back':'slash';}
-  else if(st==='dslash'){const q=clamp(P.t/(.5*P.swing()),0,1);p=(q*2)%1;shape=q<.5?'slash':'back';}
-  else if(st==='sprintatk'||st==='kthrust'||st==='iai'){p=clamp(P.t/.5,0,1);shape='thrust';}
-  else if(st==='rollatk'||st==='execute'){p=clamp(P.t/(.5*P.swing()),0,1);shape='over';}
-  else if(st==='backstab'||st==='quake'){p=clamp(P.t/1.0,0,1);shape='thrust';}
-  else if(st==='shoot'||st==='loose'||st==='cast'){p=clamp(P.t/.46,0,1);shape='thrust';}
-  else if(st==='spin'||st==='fowl'||st==='tiger'){spin=1;p=clamp((P.t*2.2)%1,0,1);}
-  if(spin){
-    // the whirlwind: the weapon goes the whole way round the eye, level
-    _vmAx.set(0,1,.25);ang=p*TAU;
-    px+=Math.sin(p*TAU)*.16*MO;pz+=(Math.cos(p*TAU)-1)*.10*MO;py+=Math.sin(p*TAU*2)*.05*MO;
-  }else if(st==='charge'){
-    // wound: hauled back over the shoulder and held there
-    const c=Math.min(1,P.chargeT/.6),S=VM_SWING.slash;
-    _vmAx.set(S.ax[0],S.ax[1],S.ax[2]);ang=S.a[0]*1.5*c;
-    px+=(.14*c)*MO;py+=(.12*c)*MO;pz+=(.10*c)*MO;
-  }else if(st==='recoil'){
-    // the blade meets something that will not give and is thrown back at you
-    const q=clamp(P.t/.42,0,1),k=(1-q)*(1-q);
-    _vmAx.set(VM_SWING.slash.ax[0],VM_SWING.slash.ax[1],VM_SWING.slash.ax[2]);
-    ang=-1.15*k;pz+=.20*k*MO;py+=.08*k*MO;px+=.10*k*MO;
-  }else if(p>=0&&shape){
-    const S=VM_SWING[shape];
-    _vmAx.set(S.ax[0],S.ax[1],S.ax[2]);
-    ang=seg4(p,SW_W,SW_H,0,S.a[0],S.a[1],S.a[2]);
-    px+=seg4(p,SW_W,SW_H,0,S.x[0],S.x[1],S.x[2])*MO;
-    py+=seg4(p,SW_W,SW_H,0,S.y[0],S.y[1],S.y[2])*MO;
-    pz+=seg4(p,SW_W,SW_H,0,S.z[0],S.z[1],S.z[2])*MO;
-  }
-  // a bow is held out and drawn, not swung; the wand is pushed at the mark
-  if(w==='bow'&&(st==='charge'||st==='shoot'||st==='loose'||st==='backstab'||st==='execute')){pz-=.1;px+=.08;ang*=.25;}
-  if(w==='wand'){ang*=.5;if(st==='cast')pz-=.25*Math.sin(Math.PI*Math.max(0,p));}
-  /* THE JOIN. A chained swing leaves at CHAIN_OUT and re-enters at
-     ATK_ENTRY, so the pose jumps backwards mid-motion; every state change
-     does the same. The rig answers this with seamGrab/seamBlend and the
-     eye needs its own: the pose it was rendering is kept and the new one
-     is pulled back toward it for a twelfth of a second. Inside one swing
-     nothing is smoothed at all — the snap of the strike is the strike. */
+  const C=vmBladeCfg(),R=h.userData.rest;
+  bladePose(r,_swP,_swQ);
+  // what the body has done since the carry: the delta, in the eye's frame
+  _swD.copy(_swQ).multiply(_swI.copy(R.q).invert());
+  if(C.rg<1){_swI.identity();_swD.slerp(_swI,1-C.rg);}     // tamed, or a full-size arc swings the tip through the lens
+  _swE.set(C.rx,C.ry+FPS.swayX*2,C.rz,'XYZ');_swC.setFromEuler(_swE);
   const key=st+'|'+(P.combo|0);
   if(key!==FPS.vmKey){
     if(FPS.vmKey!==undefined){FPS.vmSeamQ.copy(h.quaternion);FPS.vmSeamP.copy(h.position);FPS.vmSeamT=VM_SEAM;}
     FPS.vmKey=key;
   }
-  h.position.set(px+FPS.swayX,py,pz);
-  _vmEu.set(C.rx,C.ry+FPS.swayX*2,C.rz,'XYZ');_vmQB.setFromEuler(_vmEu);
-  _vmQ.setFromAxisAngle(_vmAx.normalize(),ang);
-  h.quaternion.copy(_vmQ).multiply(_vmQB);                 // the arc is in the EYE's frame, so it premultiplies the carry
+  h.quaternion.copy(_swD).multiply(_swC);                  // the delta rides in the EYE's frame, so it premultiplies the carry
+  h.position.set(C.px+bobX+FPS.swayX+(_swP.x-R.p.x)*C.mo,
+                 C.py+bobY          +(_swP.y-R.p.y)*C.mo,
+                 C.pz               +(_swP.z-R.p.z)*C.mo);
+  /* THE JOIN. A chained swing leaves at CHAIN_OUT and re-enters at
+     ATK_ENTRY, so the pose jumps backwards mid-motion; every state change
+     does the same. The rig answers this with seamGrab/seamBlend and the
+     eye needs its own: the pose it was rendering is kept and the new one
+     pulled back toward it for a twelfth of a second. Inside one swing
+     nothing is smoothed at all — the snap of the strike is the strike. */
   if(FPS.vmSeamT>0){
     const u=clamp(FPS.vmSeamT/VM_SEAM,0,1),wgt=u*u*(3-2*u);
     h.quaternion.slerp(FPS.vmSeamQ,wgt);h.position.lerp(FPS.vmSeamP,wgt);
@@ -17551,7 +17543,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,CLIP_WARM,renderFrame,VM_SWING,updateLock,lockCands,updateBladeVm,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,CLIP_WARM,renderFrame,VM_BLADE,updateLock,lockCands,updateBladeVm,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
