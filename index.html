@@ -301,11 +301,17 @@
     letter-spacing:.14em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
   #povBtn.on{display:block;}
   /* which buttons show: the shooter's set behind the eyes, the weapon bar
-     and the reload whenever a gun is in hand — either view */
+     and the reload whenever a gun is in hand — either view.
+     A BLADE BEHIND THE EYES SHOWS NONE OF THEM (`.fps.blade`): the right
+     thumb is the third-person gesture there — a flick is the dodge, a tap
+     the strike, a still hold the heavy, a hold and drag the eye — so a
+     button for each of those is a button for something the thumb already
+     does, sitting over the picture. */
   #fpsCtl{display:none;}
   #fpsCtl.fps,#fpsCtl.gun{display:block;}
   #fpsCtl>.btn{display:none;}
-  #fpsCtl.fps>#fbFireL,#fpsCtl.fps>#fbFireR,#fpsCtl.fps>#fbAds,#fpsCtl.fps>#fbRoll{display:flex;}
+  #fpsCtl.fps:not(.blade)>#fbFireL,#fpsCtl.fps:not(.blade)>#fbFireR,
+  #fpsCtl.fps:not(.blade)>#fbAds,#fpsCtl.fps:not(.blade)>#fbRoll{display:flex;}
   #fpsCtl.gun>#fbSwap,#fpsCtl.gun>#fbReload,#fpsCtl.gun>#fbAds{display:flex;}
 
   #fpsCtl .btn{width:52px;height:52px;}
@@ -3203,7 +3209,6 @@ const Input=(()=>{
        hold releases), the reload, the swap, the zoom, and a gun asked for
        by number */
     firePressed:false,fireHeld:false,adsTap:false,adsRelease:false,adsHeld:false,
-    lockTap:false,      // a blade behind the eyes: the aim button is the lock toggle
     reloadPressed:false,swapPressed:false,zoomPressed:false,pickGun:-1,
   };
   const keys={};
@@ -3213,10 +3218,9 @@ const Input=(()=>{
   const base=$('stickBase'),nub=$('stickNub');
   const RADIUS=52;
   const SWIPE_DIST=26,SWIPE_MS=220; // a flick: fast and short
-  const HEAVY_HOLD=180;             // the strike trigger held past this is asking for the heavy as well
   const HOLD_MS=240;                // held past this: a still finger charges, a moving one turns the camera
   let touchCharge=false;
-  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false,bladeHeavy=false,fireDownT=0;   // (first person; fpsBlade: a blade behind the eyes, so the triggers strike and the aim charges)
+  let fpsMode=false,fpsBlade=false,mouseFire=false,mouseAds=false,touchFireN=0,adsDownT=0,adsTouch=false;   // (first person; fpsBlade: a blade behind the eyes, so the right thumb is the third-person gesture)
 
   function bindBtn(el,down,up){
     el.addEventListener('pointerdown',e=>{
@@ -3235,20 +3239,14 @@ const Input=(()=>{
      (the sniper's scope only); and the weapon bar. */
   {const fb=(id,down,up)=>{const el=$(id);if(el)bindBtn(el,down,up);};
     const fireDown=()=>{st.firePressed=true;touchFireN++;},fireUp=()=>{touchFireN=Math.max(0,touchFireN-1);};
-    /* THE LEFT TRIGGER IS THE HEAVY WHEN A BLADE IS HELD. With a gun both
-       triggers fire, so the left one has no separate job under a blade —
-       and the heavy had to go somewhere once the aim button became the
-       lock. Held, it winds; released, it looses, exactly as the right
-       thumb's hold does over the shoulder. */
-    fb('fbFireL',()=>{if(fpsMode&&fpsBlade)bladeHeavy=true;else fireDown();},
-                 ()=>{if(bladeHeavy){bladeHeavy=false;st.chargeRelease=true;}else fireUp();});
+    fb('fbFireL',fireDown,fireUp);
     /* THE RIGHT TRIGGER IS A STICK AS WELL. Pressed, it fires; dragged, it
        turns the eye — the same thumb that walks the field with the left
        stick can hip-fire and track with the right, the button riding
        under it the way the left stick's nub rides. Released, it goes home. */
     {const el=$('fbFireR');if(el){let id=null,ox=0,oy=0,lx=0,ly=0;const R=34;
       el.addEventListener('pointerdown',e=>{e.preventDefault();if(id!==null)return;try{el.setPointerCapture(e.pointerId);}catch(err){}
-        id=e.pointerId;ox=lx=e.clientX;oy=ly=e.clientY;el.classList.add('pressed');st.anyPressed=true;fireDownT=performance.now();fireDown();});
+        id=e.pointerId;ox=lx=e.clientX;oy=ly=e.clientY;el.classList.add('pressed');st.anyPressed=true;fireDown();});
       el.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;
         st.camDX+=e.clientX-lx;st.camDY+=e.clientY-ly;lx=e.clientX;ly=e.clientY;
         const dx=e.clientX-ox,dy=e.clientY-oy,d=Math.hypot(dx,dy),k=d>R?R/d:1;
@@ -3256,10 +3254,8 @@ const Input=(()=>{
       const rel=e=>{if(e.pointerId!==id)return;id=null;el.classList.remove('pressed');el.style.transform='';fireUp();};
       el.addEventListener('pointerup',rel);el.addEventListener('pointercancel',rel);el.addEventListener('lostpointercapture',rel);
       addEventListener('blur',()=>{if(id!==null){id=null;el.classList.remove('pressed');el.style.transform='';}});}}
-    fb('fbAds',()=>{adsDownT=performance.now();
-        if(fpsMode&&fpsBlade)st.lockTap=true;                       // under a blade the button is the lock, and a tap toggles it
-        else{st.adsTap=true;adsTouch=true;}},
-      ()=>{adsTouch=false;if(!(fpsMode&&fpsBlade)&&performance.now()-adsDownT>320)st.adsRelease=true;});
+    fb('fbAds',()=>{adsDownT=performance.now();st.adsTap=true;adsTouch=true;},
+      ()=>{adsTouch=false;if(performance.now()-adsDownT>320)st.adsRelease=true;});
     fb('fbReload',()=>{st.reloadPressed=true;});
     fb('fbRoll',()=>{st.swipe={kind:'dodge',atype:null,sx:null,sy:null};});
     fb('fbZoom',()=>{st.zoomPressed=true;});
@@ -3299,8 +3295,13 @@ const Input=(()=>{
     }else if(camId===null){
       // right-side gesture: undecided until it's a flick or a hold
       camId=e.pointerId;camHeld=ctl.hasPointerCapture(e.pointerId);
+      /* A GUN BEHIND THE EYES TAKES THE WHOLE THUMB FOR THE LOOK, AT
+         ONCE — it has buttons for everything else. A BLADE DOES NOT: the
+         gesture is born undecided there, exactly as it is over the
+         shoulder, so a flick is the dodge, a tap the strike and a still
+         hold the heavy. */
       gesture={t0:performance.now(),x0:e.clientX,y0:e.clientY,
-               lx:e.clientX,ly:e.clientY,mode:fpsMode?'cam':'pending',maxD:0};   // (first person: the whole thumb is the look, at once)
+               lx:e.clientX,ly:e.clientY,mode:(fpsMode&&!fpsBlade)?'cam':'pending',maxD:0};
     }
   });
   ctl.addEventListener('pointermove',e=>{
@@ -3392,7 +3393,7 @@ const Input=(()=>{
   addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('mousemove',e=>{if(fpsMode&&document.pointerLockElement===ctl){st.camDX+=e.movementX;st.camDY+=e.movementY;}});
   function setBlade(on){fpsBlade=!!on;}
-  function setFps(on){fpsMode=!!on;mouseFire=false;mouseAds=false;touchFireN=0;adsTouch=false;bladeHeavy=false;
+  function setFps(on){fpsMode=!!on;mouseFire=false;mouseAds=false;touchFireN=0;adsTouch=false;
     if(!on&&document.pointerLockElement===ctl&&document.exitPointerLock)document.exitPointerLock();}
 
   // keyboard fallback for desktop testing
@@ -3400,7 +3401,6 @@ const Input=(()=>{
     if(e.repeat)return;keys[e.code]=true;st.anyPressed=true;
     if(fpsMode){   // first person: J fires, Space dodges, Shift sprints, R reloads, Q and the numbers swap, F zooms
       if(e.code==='KeyJ')st.firePressed=true;
-      if(e.code==='KeyL'&&fpsBlade&&!e.repeat)st.lockTap=true;   // (with a gun L is the sights, read from keys.KeyL)
       if(e.code==='KeyK'||e.code==='Space')st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
       if(e.code==='KeyR')st.reloadPressed=true;
       if(e.code==='KeyQ')st.swapPressed=true;
@@ -3415,7 +3415,7 @@ const Input=(()=>{
   });
   addEventListener('keyup',e=>{
     keys[e.code]=false;
-    if(e.code==='KeyL'&&!(fpsMode&&fpsBlade))st.chargeRelease=true;   // L held = charge, let go = lunge (under a blade behind the eyes it is the lock)
+    if(e.code==='KeyL'&&(!fpsMode||fpsBlade))st.chargeRelease=true;   // L held = charge, let go = lunge (with a GUN behind the eyes it is the sights)
   });
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
 
@@ -3434,21 +3434,19 @@ const Input=(()=>{
     if(gesture&&gesture.mode==='pending'&&performance.now()-gesture.t0>HOLD_MS){
       const g=gesture;settleHold(g,g.lx,g.ly);
     }
-    /* THE STRIKE TRIGGER WINDS IF IT IS HELD. The press still swings at
-       once — a tap must never wait to find out what it was — and the
-       thumb staying down past `HEAVY_HOLD` is what asks for the heavy,
-       which the hero only reads back in `free`, after that swing has
-       finished. So a tap is a cut, and a hold is a cut and then the wind. */
-    const trigHeld=fpsMode&&fpsBlade&&touchFireN>0&&performance.now()-fireDownT>HEAVY_HOLD;
-    st.chargeHeld=touchCharge||(!fpsMode&&!!keys.KeyL)||(fpsMode&&fpsBlade&&(mouseAds||bladeHeavy||trigHeld||!!keys.KeyJ));
+    /* A BLADE IS THE SAME IN EITHER VIEW: the right thumb held still is
+       the heavy (`touchCharge`, set by `settleHold`), and on a keyboard L
+       winds it — except behind the eyes with a GUN, where L is the
+       sights. The desktop mouse's right button does the same job. */
+    st.chargeHeld=touchCharge||((!fpsMode||fpsBlade)&&!!keys.KeyL)||(fpsMode&&fpsBlade&&mouseAds);
     st.fireHeld=touchFireN>0||mouseFire||(fpsMode&&!!keys.KeyJ);
     st.adsHeld=mouseAds||(fpsMode&&!!keys.KeyL);
-    if(fpsMode&&fpsBlade&&st.firePressed&&!st.swipe)st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};   // a blade behind the eyes: the trigger is the strike
+    if(fpsMode&&fpsBlade&&st.firePressed&&!st.swipe)st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};   // desktop: the mouse's left button is the strike under a blade
     if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
   }
   function consume(){
-    st.swipe=null;st.chargeRelease=false;st.pausePressed=false;st.lockTap=false;
+    st.swipe=null;st.chargeRelease=false;st.pausePressed=false;
     st.interactPressed=false;
     st.firePressed=false;st.adsTap=false;st.adsRelease=false;st.reloadPressed=false;st.swapPressed=false;st.zoomPressed=false;st.pickGun=-1;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
@@ -9809,7 +9807,7 @@ const G={
    pilgrim's own rebuild asks it whether to hide the body, and that runs at
    boot. */
 const FPS={on:false,pitch:0,ads:0,adsOn:false,zoom:0,gun:0,ammo:{},bob:0,kick:0,swayX:0,swayY:0,sprintVm:0,
-  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,vmBlade:null,vmBladeFor:'',vmBladeRig:null,lockOn:false,vmKey:undefined,vmSeamT:0,vmSeamQ:new THREE.Quaternion(),vmSeamP:new THREE.Vector3()};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
+  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,maskT:0};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
 /* Are the sights up? A function DECLARATION, and called only at frame
    time, so it may reach `gunHeld` (which is declared a long way below
    this line and reads a LOADOUT that does not exist yet at boot). */
@@ -9878,7 +9876,7 @@ const player={
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
     heroifyObject(this.rig.root);                 // the hero draws crisp, on its own layer
-    if(FPS.on&&this.state!=='dead'){this.rig.root.visible=false;FPS.hidRig=true;}   // (the eye is inside it)
+    if(FPS.on&&this.state!=='dead'&&gunHeld()){this.rig.root.visible=false;FPS.hidRig=true;}   // (a gun puts the body away; a blade is masked by syncFpsRig)
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
     dressSnow(this.rig);this.snowCling=this.snowCling||0;this.snowCoat=0;this.snowBoot=0;
@@ -14920,27 +14918,17 @@ function lockScore(e){
    committed to leaving before the eye believes you. */
 const LOCK_LEAVE=2.5;
 const LOCK_EASE=5;        // how fast the eye settles onto a locked horror behind the eyes, at an idle thumb
+const LOCK_CHEST=.4;      // ...and how far under the ring it looks (see updateFpsCamera)
 function updateLock(){
-  /* FIRST PERSON: the crosshair is the eye, so a gun locks nothing — but a
-     BLADE with the lock switched on holds the nearest horror it can reach
-     and takes the next when that one falls. The leaving rule below is the
-     follow camera's and has no meaning here (the eye is the player's), so
-     this branch does the picking and returns. */
-  if(FPS.on){
-    G.lockOff=false;G.lockAwayT=0;G.lockDeadAt=undefined;
-    if(!(FPS.lockOn&&!gunHeld())){G.lockTarget=null;lockMarker.visible=false;return;}
-    const cs=lockCands(),held=G.lockTarget;
-    let f=cs.length?cs[0]:null;
-    if(held&&held.hp>0&&!held.objective&&cs.includes(held)){
-      const gap=lockScore(held)-lockScore(f);            // the same stickiness: two circling things must not flicker
-      if(gap<2){G.lockRivalT=0;f=held;}
-      else{G.lockRivalT=(G.lockRivalT||0)+(G.frameDt||.016);if(G.lockRivalT<.5)f=held;else G.lockRivalT=0;}
-    }else G.lockRivalT=0;
-    G.lockTarget=f;
-    lockMarker.visible=G.mode==='play'&&!!f;
-    if(f){lockMarker.position.set(f.x,markY(f),f.z);lockMarker.material.rotation=G.time*2;
-      lockMarker.material.opacity=f.state==='scatter'?.45:1;}
-    return;
+  /* A GUN BEHIND THE EYES LOCKS NOTHING: the crosshair IS the eye there,
+     and an eye that leans on its own would pull every shot off the mark.
+     EVERYTHING ELSE — a blade behind the eyes included — runs the one
+     rule below, the follow camera's own, so the leaving, the stickiness
+     and the half-second a fallen horror keeps the eye are the same
+     wherever you are standing. There is no switch to turn it on. */
+  if(FPS.on&&gunHeld()){
+    G.lockTarget=null;G.lockOff=false;G.lockAwayT=0;G.lockDeadAt=undefined;G.lockRivalT=0;
+    lockMarker.visible=false;return;
   }
   // the eye holds the CLOSEST live horror, with a little stickiness so
   // two circling enemies don't make it flicker
@@ -15186,7 +15174,7 @@ function applyAttachmentTo(V,g){let a=FPS.att[g.key]||'iron';if(!V[a])a='iron';
 function applyAttachment(){const vm=FPS.vm;if(!vm)return;for(const g of GUNS)applyAttachmentTo(vm.guns[g.key],g);}
 try{Object.assign(FPS.att,JSON.parse(localStorage.getItem('bp_att')||'{}'));}catch(e){}
 const GUN_NOTE_HUD='fire (either thumb) — shoot · drag the right trigger — turn while firing · aim — down the sights · reload · dodge · tap the bar — swap';
-const BLADE_NOTE_FPS='fire (either thumb) — strike · hold aim, let go — the charged attack · dodge';
+const BLADE_NOTE_FPS='tap — strike · hold still, release — the charged attack · flick — roll · hold &amp; drag — turn the eye';
 
 /* ---- the gun models: one builder for the viewmodel and for the pilgrim's hands ---- */
 function vmMat(hex,extra){return lam(Object.assign({color:new THREE.Color(hex).convertSRGBToLinear()},extra||{}));}
@@ -16318,17 +16306,95 @@ function fpsRespawn(){
   FPS.reloading=false;FPS.pitch=0;FPS.ads=0;FPS.adsOn=false;FPS.zoom=0;
   if(FPS.vm&&FPS.vm.guns.rpg&&FPS.vm.guns.rpg.warhead)FPS.vm.guns.rpg.warhead.visible=true;
 }
+/* WHAT THE EYE IS INSIDE OF — AND IT IS MORE THAN THE HELM.
+   Showing the pilgrim's real body behind his own eyes puts the lens at
+   1.74, which is inside the head AND inside the top of the trunk. The
+   parts up there do not merely appear: measured at rest, ONE collar plate
+   covered 0.65 of the screen and the next 0.46, both of them straddling
+   the near plane, and the picture was a teal wall with a strip of field
+   over it. Nothing was wrong — that is what a surcoat looks like from a
+   centimetre inside it.
+   So every mesh whose rest-pose crown stands above the eye line is
+   masked, plus the whole head whatever its height (or a chin floats where
+   the helm was). The list is taken ONCE, off the fresh rig in
+   `player.rebuild`, because the rest pose is the only pose it means
+   anything in — read it mid-swing and a raised arm masks itself.
+   IT IS A LAYER, NOT A `visible` FLAG. The hero already draws in its own
+   pass on layer 1; a masked mesh goes to a layer no camera renders, so
+   this can never fight the fourteen places that write `visible` on a rig,
+   nor a severed limb, nor the LOD. Every mesh remembers its own mask and
+   is put back to exactly that. */
+const FPS_MASK_DROP=.06;    // how far under the eye the line sits
+const FPS_MASK_LAYER=3;     // ...and a layer nothing draws
+/* THE LIST IS TAKEN OFF THE LIVING RIG, NOT OFF THE FRESH ONE. Measured:
+   a rig straight out of `makeKnightRig` stands 19cm lower than the same
+   rig once the game is posing it — the collar plates that come up at 1.86
+   in play top out at 1.67 on the workbench, which is UNDER the eye line,
+   and a mask built there masked the helm and nothing else. So it is built
+   the first frame it is wanted, against `heightAt + FPS.eyeY`, and only
+   while the pilgrim is in `free` (entering first person forces that, and
+   a raised arm must not mask itself). Once built it is kept for the life
+   of the rig; `rebuild` makes a new one and a new list with it. */
+function fpsMaskRig(rig){
+  const list=[],b=new THREE.Box3();
+  rig.root.updateMatrixWorld(true);
+  const line=heightAt(player.x,player.z)+FPS.eyeY-FPS_MASK_DROP;
+  const head=new Set();
+  if(rig.head)rig.head.traverse(o=>{if(o.isMesh)head.add(o);});
+  rig.root.traverse(o=>{
+    if(!o.isMesh)return;
+    if(head.has(o)){list.push(o);return;}
+    if(rig.weapon){let p=o;while(p){if(p===rig.weapon)return;p=p.parent;}}   // the weapon is the whole point; never masked
+    /* AND THE BOX IS RECOMPUTED BY HAND. `Box3.setFromObject` trusts a
+       geometry's cached `boundingBox` if it has one, and the rig's
+       geometries carry stale ones. */
+    o.geometry.computeBoundingBox();
+    b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+    if(isFinite(b.max.y)&&b.max.y>line)list.push(o);
+  });
+  for(const o of list)if(o.userData.fpsLayer===undefined)o.userData.fpsLayer=o.layers.mask;
+  rig.fpsMask=list;rig.fpsMasked=false;
+}
+function fpsMaskSet(rig,on){
+  if(!rig)return;
+  /* and it waits for the pose to SETTLE. The springs take a few frames to
+     come to rest, so a switch made mid-swing would measure a raised arm
+     and mask it for the life of the rig. A quarter-second of standing in
+     `free` is enough, and entering first person forces that state. */
+  if(on&&!rig.fpsMask){
+    if(player.state!=='free'){FPS.maskT=0;return;}
+    FPS.maskT=(FPS.maskT||0)+(G.frameDt||.016);
+    if(FPS.maskT<.25)return;
+    fpsMaskRig(rig);
+  }
+  if(!rig.fpsMask||rig.fpsMasked===on)return;
+  rig.fpsMasked=on;
+  for(const o of rig.fpsMask){if(on)o.layers.set(FPS_MASK_LAYER);else o.layers.mask=o.userData.fpsLayer;}
+}
 /* the body is hidden while the eye is in it, and shown the moment he dies
    — the death is watched from outside, the way it always was. Only the
    two transitions are written, so the melt can hide the corpse for good
    without this putting it back. */
 function syncFpsRig(){
   const r=player.rig;if(!r)return;
-  // a cutscene takes the eye OUT of the helm, so the body has to be back
-  // in the world for the length of it or there is a hole in the shot
-  const hide=FPS.on&&!CUT.on&&player.state!=='dead'&&G.mode!=='dead';
+  /* A CUTSCENE TAKES THE EYE OUT OF THE HELM, so the body has to be back
+     in the world for the length of it or there is a hole in the shot.
+     And a GUN still hides the whole body — the viewmodel is the hands —
+     while a BLADE shows it and masks only what the eye is inside of,
+     because the pilgrim's own arms and his own weapon ARE the
+     first-person animation. */
+  const eye=FPS.on&&!CUT.on&&player.state!=='dead'&&G.mode!=='dead';
+  const hide=eye&&gunHeld();
   if(hide){if(r.root.visible||!FPS.hidRig){r.root.visible=false;FPS.hidRig=true;}}
   else if(FPS.hidRig){r.root.visible=true;FPS.hidRig=false;G.camPitch=.34;camIdle=9;}
+  fpsMaskSet(r,eye&&!gunHeld());
+  /* AND THE GUN PUTS ITSELF AWAY UNDER A BLADE. `updateViewmodel` is the
+     only thing that writes the viewmodel's visibility and it runs inside
+     `updateGun`, which a blade never calls — so a viewmodel raised once
+     stood on the screen for ever, with every gun in the rack showing at
+     once because none of them had been picked yet. It is one line and it
+     belongs here, where what is shown behind the eyes is decided. */
+  if(FPS.vm&&!gunHeld())FPS.vm.visible=false;
 }
 /* THE GUN'S FRAME — in either view. The trigger, the sights (first person
    only), the reload, the swap, the bolt or the pump. In third person the
@@ -16494,189 +16560,34 @@ function updateViewmodel(dt){
     const s=(g.suppressed?.06:g.rocket?.5:g.pellets?.3:g.key==='sniper'?.26:.2)*(.8+Math.random()*.5);
     V.flash.scale.set(s,s,1);V.flash.material.rotation=Math.random()*TAU;}
   vm.visible=FPS.on&&!CUT.on&&gunHeld()&&!(inGlass(g)&&ads>.85)&&P.state!=='dead'&&G.mode!=='dead';
-  /* AND THE BLADE GOES AWAY. `updateBladeVm` hides itself, but it is only
-     CALLED while no gun is held — so swapping from a blade to a gun left
-     the last blade viewmodel standing on screen for ever, a greatsword
-     hanging beside the rifle. Each of the two must put the other away
-     from its own side. */
-  if(FPS.vmBlade)FPS.vmBlade.visible=false;
-}
-/* ---- the blade, from behind the eyes ----
-   The pilgrim's own weapon, cloned off the rig (minus its light) and hung on
-   the camera. It carries at the lower right and is thrown across the screen
-   by the same clock the real swing runs on — `t/atkDur` — so the cut lands
-   on the frame the game says it does. Nothing here strikes: the rig under
-   the camera, invisible, does the striking as it always has. */
-/* HOW BIG A WEAPON IS ON THE SCREEN, which is a question the rig cannot
-   answer. The viewmodel was the pilgrim's own weapon at its own size hung
-   half a metre off the lens, and a greatsword at that range is not a
-   weapon you are carrying, it is a wall: measured, the sword's bounding
-   box covered 0.77 of the screen's width and TWO POINT ONE of its height,
-   the ultra 1.17 by 3.12 — a third of each was off the top of the picture
-   and the grip ran out of the bottom corner.
-   So each blade is carried at its own scale now, in Minecraft's
-   proportion: the whole weapon inside the lower-right quadrant, pointing
-   up and across, about half the screen's height and no more, with all of
-   it visible — the point, the guard and the pommel, which is what makes
-   it read as a held object rather than as scenery.
-   `mo` scales the SWING'S TRAVEL with it. A small weapon thrown the full
-   distance the big one used to travel looks like it has come off in your
-   hand; the rotations are left alone, because a rotation reads the same
-   at any size and the rotation is what tells you the cut landed. */
-/* `rg` is the ROTATION GAIN: how much of the body's own turn the eye's
-   copy takes, and it exists for a geometric reason that cannot be tuned
-   away. The grip hangs about 0.62 off the lens and the blade is 0.578
-   long at this scale, so a full-size rotation about the grip brings the
-   tip to within four centimetres of a near plane at 0.10 — through your
-   face. Pushing the grip away and scaling the weapon up to match buys
-   clearance in proportion, so it would take a weapon three metres out to
-   be safe, and at three metres a camera child intersects the walls.
-   Swept over four gains and three grip distances on all three blades:
-   at .62 and above the tip reaches the lens on the sword and the ultra
-   (nearest z 0.00 to +0.13, behind the eye); at **.45 every blade clears
-   by at least 0.23m** and the tip still crosses most of the picture.
-   Raise it and measure the nearest approach, or the blade will swing
-   through the camera on one combo out of four and look fine in the
-   source. */
-const VM_BLADE={
-  sword: {s:.30,mo:.55,rg:.45,px:.30,py:-.30,pz:-.62,rx:2.30,ry:.35,rz:-.35},
-  ultra: {s:.22,mo:.60,rg:.45,px:.32,py:-.30,pz:-.66,rx:2.30,ry:.35,rz:-.35},
-  katana:{s:.24,mo:.55,rg:.45,px:.31,py:-.24,pz:-.60,rx:2.30,ry:.35,rz:-.35},
-  // the bow is held out rather than carried at the hip, so it keeps more
-  // of its size — but not all of it: at its own it was taller than the
-  // screen, both tips off the picture, which is a stave and not a bow
-  bow:   {s:.38,mo:.90,rg:.55,px:.26,py:-.34,pz:-.62,rx:Math.PI/2,ry:.25,rz:-.50},
-  wand:  {s:.55,mo:.80,rg:.55,px:.26,py:-.30,pz:-.54,rx:2.00,ry:.20,rz:-.20},
-};
-function vmBladeCfg(){return VM_BLADE[LOADOUT.weapon]||VM_BLADE.sword;}
-function ensureBladeVm(){
-  const P=player;if(!P.rig||!P.rig.weapon)return null;
-  if(FPS.vmBlade&&FPS.vmBladeFor===LOADOUT.weapon&&FPS.vmBladeRig===P.rig)return FPS.vmBlade;
-  if(FPS.vmBlade){camera.remove(FPS.vmBlade);FPS.vmBlade=null;}
-  if(!camera.parent)scene.add(camera);
-  const c=P.rig.weapon.clone(true);
-  const drop=[];c.traverse(o=>{if(o.isLight||o.isPointLight)drop.push(o);});for(const o of drop)if(o.parent)o.parent.remove(o);
-  c.position.set(0,0,0);c.rotation.set(0,0,0);c.quaternion.identity();
-  c.scale.setScalar(vmBladeCfg().s);      // the grip stays where the hand is; the weapon shrinks toward it
-  /* AND ANYTHING ON IT THAT BURNS IS TURNED DOWN. The wand's orb is an
-     additive ball — handsome at arm's length on the rig, a white hole
-     burned in the middle of the picture when it is half a metre off the
-     lens. The material is CLONED first: it is shared with the pilgrim's
-     own weapon, and dimming it in place would put the orb out in third
-     person too. (`Material.clone()` drops `onBeforeCompile`, so the copy
-     no longer wobbles with psx() — on a sphere this size, invisible.) */
-  c.traverse(o=>{const m=o.material;
-    if(m&&m.blending===THREE.AdditiveBlending){o.material=m.clone();o.material.opacity=(m.opacity===undefined?1:m.opacity)*.35;}});
-  const h=new THREE.Group();h.add(c);camera.add(h);
-  // the carry, measured off the rig as it stands: every swing is the
-  // difference from this, so it must be read while the body is at rest
-  const rp=new THREE.Vector3(),rq=new THREE.Quaternion();
-  bladePose(P.rig,rp,rq);h.userData.rest={p:rp,q:rq};
-  FPS.vmBlade=h;FPS.vmBladeFor=LOADOUT.weapon;FPS.vmBladeRig=P.rig;
-  FPS.vmKey=undefined;FPS.vmSeamT=0;
-  return h;
-}
-/* ---- THE SWING IS THE RIG'S OWN, AND NOTHING HERE AUTHORS ONE ----
-   There was a table of hand-written arcs here — an axis and an angle per
-   combo — and it was wrong twice over. The first version turned the blade
-   about its own length and moved it nowhere; the second moved it, but it
-   was a SECOND animation beside the body's, so it could not match the
-   third-person swing and never would. The right answer is the one that
-   deletes code: the pilgrim under the camera is already swinging, with
-   `poseLight`'s four keys, the joint springs, the seam blend and
-   `CHAIN_OUT` all running on him. Take THAT.
 
-   "Just move the camera to the eye and show the real body" was measured
-   first, because it is the version with no code in it at all, and it does
-   not work — for three reasons that are all about where the pose was
-   authored to be SEEN from:
-     - at rest the weapon is BEHIND the eye. The carry rests the blade over
-       the shoulder: measured from the eye, the sword's nearest point is
-       1.15m behind the lens and the ultra's 1.49m. You would see no
-       weapon at all until the strike.
-     - mid-swing it STRADDLES the near plane — nearest point 0.35m in
-       front at the cut with the far end still behind the camera — so it
-       is sliced in half and the projection breaks.
-     - the lens sits INSIDE the body's own geometry: the nearest meshes'
-       bounding spheres contain the camera (−0.36m), so the gorget and the
-       pauldrons fill the frame.
-   None of that is tuning. The pose is authored to be read from five
-   metres behind, and its rest position is literally behind your head.
-
-   So the weapon is still a clone hung off the camera — but its motion is
-   READ OFF THE RIG rather than invented. Each frame the real weapon's
-   pose is taken in the PILGRIM'S OWN frame (`root⁻¹ · weapon`, so the
-   torso's twist and every joint above it are in it, and only his facing
-   and his position are divided out), the REST pose is subtracted, and
-   what is left — the swing, exactly as the body performs it — is laid
-   onto the carry in the eye's frame. Translation is scaled with the
-   weapon (`mo`); rotation is scaled by `rg`, which exists because a
-   full-size arc about a grip half a metre from the lens puts the tip
-   through the eye.
-   Every state, every weapon, every chain and every spring comes for free
-   and can never disagree with what the body is doing, because it IS what
-   the body is doing. */
-const _swM=new THREE.Matrix4(),_swP=new THREE.Vector3(),_swQ=new THREE.Quaternion(),_swS=new THREE.Vector3();
-const _swD=new THREE.Quaternion(),_swC=new THREE.Quaternion(),_swI=new THREE.Quaternion(),_swE=new THREE.Euler();
-const SW_FLIP=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);   // the body looks down +z, the eye down −z
-const VM_SEAM=.085;           // a chain re-enters at ATK_ENTRY, so the pose jumps: this hides the join
-function bladePose(r,outP,outQ){    // the weapon in the pilgrim's own frame, his facing and his place divided out
-  r.root.updateMatrixWorld(true);r.weapon.updateMatrixWorld(true);
-  _swM.copy(r.root.matrixWorld).invert().multiply(r.weapon.matrixWorld);
-  _swM.decompose(outP,outQ,_swS);
-  outP.applyQuaternion(SW_FLIP);outQ.premultiply(SW_FLIP);
 }
-function updateBladeVm(dt){
-  const h=ensureBladeVm();if(!h)return;
-  const P=player,st=P.state,r=P.rig;
-  meleeLockTick();                                         // the aim button is the LOCK while a blade is in the hands
-  h.visible=FPS.on&&!CUT.on&&!gunHeld()&&st!=='dead'&&G.mode!=='dead'&&!P.katThrown;
-  if(FPS.vm)FPS.vm.visible=false;                          // (the gun stays out of the picture under a blade)
-  if(!h.visible||!r||!r.weapon||!h.userData.rest)return;
-  const mv=Math.min(1,P.moveAmt);
-  FPS.bob+=dt*(P.sprinting?11:8)*Math.min(1,(P.spd||0)/4.3);
-  const bobX=Math.sin(FPS.bob)*.02*mv,bobY=Math.abs(Math.cos(FPS.bob))*.014*mv;
-  FPS.swayX=lerp(FPS.swayX,clamp(-IN.camDX*.0012,-.06,.06),Math.min(1,8*dt));
-  const C=vmBladeCfg(),R=h.userData.rest;
-  bladePose(r,_swP,_swQ);
-  // what the body has done since the carry: the delta, in the eye's frame
-  _swD.copy(_swQ).multiply(_swI.copy(R.q).invert());
-  if(C.rg<1){_swI.identity();_swD.slerp(_swI,1-C.rg);}     // tamed, or a full-size arc swings the tip through the lens
-  _swE.set(C.rx,C.ry+FPS.swayX*2,C.rz,'XYZ');_swC.setFromEuler(_swE);
-  const key=st+'|'+(P.combo|0);
-  if(key!==FPS.vmKey){
-    if(FPS.vmKey!==undefined){FPS.vmSeamQ.copy(h.quaternion);FPS.vmSeamP.copy(h.position);FPS.vmSeamT=VM_SEAM;}
-    FPS.vmKey=key;
-  }
-  h.quaternion.copy(_swD).multiply(_swC);                  // the delta rides in the EYE's frame, so it premultiplies the carry
-  h.position.set(C.px+bobX+FPS.swayX+(_swP.x-R.p.x)*C.mo,
-                 C.py+bobY          +(_swP.y-R.p.y)*C.mo,
-                 C.pz               +(_swP.z-R.p.z)*C.mo);
-  /* THE JOIN. A chained swing leaves at CHAIN_OUT and re-enters at
-     ATK_ENTRY, so the pose jumps backwards mid-motion; every state change
-     does the same. The rig answers this with seamGrab/seamBlend and the
-     eye needs its own: the pose it was rendering is kept and the new one
-     pulled back toward it for a twelfth of a second. Inside one swing
-     nothing is smoothed at all — the snap of the strike is the strike. */
-  if(FPS.vmSeamT>0){
-    const u=clamp(FPS.vmSeamT/VM_SEAM,0,1),wgt=u*u*(3-2*u);
-    h.quaternion.slerp(FPS.vmSeamQ,wgt);h.position.lerp(FPS.vmSeamP,wgt);
-    FPS.vmSeamT-=dt;
-  }
-}
-/* ---- THE LOCK, WHICH IS WHAT THE AIM BUTTON IS UNDER A BLADE ----
-   A gun aims; a blade has nothing to aim. The button is a TOGGLE now: with
-   it on, the eye takes the nearest horror it can reach and leans onto it,
-   and takes the next one when that one falls — you keep a circling thing
-   in the picture without dragging for it, which is the whole of melee on a
-   touchscreen. The heavy is not lost: it moves to the LEFT trigger, held.
-   `FPS.lockOn` is the switch; `updateLock` does the picking (the same
-   candidates and the same hysteresis the follow camera uses) and
-   `updateFpsCamera` does the leaning. */
-function meleeLockTick(){
-  if(IN.lockTap){IN.lockTap=false;FPS.lockOn=!FPS.lockOn;G.vibr(12);
-    if(!FPS.lockOn){G.lockTarget=null;lockMarker.visible=false;}}
-}
+/* ---- THE BLADE BEHIND THE EYES IS THE PILGRIM'S OWN, AND THERE IS NO
+   VIEWMODEL AT ALL ----
+   Three versions of a first-person swing were written and thrown away: an
+   arc about the blade's own axis (which moves a stick nowhere), a table of
+   hand-written arcs per combo, and a rig-driven delta laid onto a carry.
+   Each was a SECOND animation beside the body's, and none of them could
+   ever match it.
+   The body IS the animation. In first person the rig is simply SHOWN now,
+   minus its head, and the camera sits in the helm — so whatever the
+   pilgrim does with his greatsword is exactly what you see, at exactly
+   the size it really is, because it IS the greatsword.
+   What was measured against this and held it up for three passes:
+     - at rest the weapon is BEHIND the eye (the sword's nearest point
+       1.10m behind the lens, the ultra's 1.49m), so you see no weapon
+       standing still.
+   That is not a fault. A man carrying a greatsword on his shoulder cannot
+   see it either; the blade comes into view when he swings it, and
+   measured through one cut it does — nearest point 0.38m IN FRONT at the
+   strike, the whole weapon across the picture. The other two objections
+   turned out to be measurement error: the body does NOT enclose the lens
+   (bounding SPHERES said it did, bounding BOXES say the nearest part
+   after the head is 0.63m away), and what little does reach the eye is
+   back-face culled, because a helm seen from inside draws nothing.
+   What IS hidden is everything the eye is literally inside of — the head
+   and the collar plates above the eye line — and that is `fpsMaskRig`,
+   beside `syncFpsRig`. */
 /* the first-person camera: the eye at the top of the pilgrim, and the
    body's own states carried in it — the roll dips it, a fall takes it
    down, the knockdown lays it over. The world's clamps are the pilgrim's
@@ -16704,7 +16615,14 @@ function updateFpsCamera(dt){
     const drag=Math.min(1,(Math.abs(IN.camDX)+Math.abs(IN.camDY))/10);
     const k=Math.min(1,LOCK_EASE*(1-drag)*dt);
     G.camYaw+=wrapA(Math.atan2(-dx,-dz)-G.camYaw)*k;      // the eye's forward is (-sin yaw, -cos yaw)
-    FPS.pitch=clamp(FPS.pitch+(Math.atan2(foeY(L)+(L.big||L.boss?1.4:.95)-camera.position.y,dh)-FPS.pitch)*k,-1.25,1.25);
+    /* IT LOOKS AT THE UPPER CHEST, WHICH IS `markY` LESS A LITTLE. The
+       aim point used to be the hips (a flat .95 above the soil, 1.4 for a
+       big one) and the eye is at 1.74 — so the lens tipped DOWN onto
+       every horror it held and you fought a pair of boots. `markY` is the
+       ring's height and already knows what it is looking at (1.9 over a
+       hollow, 2.3 a brute, 3.6 the Warden, its own for a crow or a heap),
+       so a hand's drop under it is the chest of whatever is there. */
+    FPS.pitch=clamp(FPS.pitch+(Math.atan2(markY(L)-LOCK_CHEST-camera.position.y,dh)-FPS.pitch)*k,-1.25,1.25);
     camera.rotation.set(FPS.pitch,G.camYaw,0);
   }
   if(G.camShake>0){G.camShake=Math.max(0,G.camShake-dt*1.6);
@@ -16721,11 +16639,7 @@ const AIM_REST=22;   // where the mark sits when the round would meet nothing
 const FHUD={gap:-1,dx:0,dy:0,ammo:'',name:'',cal:'',mark:'',scope:false,acog:false,dot:false,zoom:-1,low:false,rl:false,dim:false,lit:false,zoomOn:false,ctl:''};
 function syncGunUi(){
   const gun=gunHeld(),cls=(FPS.on?'fps ':'')+(gun?'gun ':'')+(FPS.on&&!gun?'blade':'');
-  if(cls!==FHUD.ctl){FHUD.ctl=cls;$('fpsCtl').className=cls;$('hud').classList.toggle('fps',FPS.on);
-    // a gun aims; a blade locks. The one button says which it is
-    const b=$('fbAds'),blade=FPS.on&&!gun;
-    b.querySelector('span.g').innerHTML=blade?'&#9678;':'&#8982;';
-    b.querySelector('span.t').textContent=blade?'lock':'aim';}
+  if(cls!==FHUD.ctl){FHUD.ctl=cls;$('fpsCtl').className=cls;$('hud').classList.toggle('fps',FPS.on);}
   Input.setBlade(FPS.on&&!gun);
 }
 function updateGunHud(){
@@ -16806,7 +16720,7 @@ function updateGunHud(){
   const low=A.mag===0;if(low!==FHUD.low){FHUD.low=low;$('fbSwap').classList.toggle('low',low);}
   if(FPS.reloading!==FHUD.rl){FHUD.rl=FPS.reloading;$('fbSwap').classList.toggle('rl',FPS.reloading);}
   const dim=A.mag>=g.mag||resOf(g)<=0;if(dim!==FHUD.dim){FHUD.dim=dim;$('fbReload').classList.toggle('dim',dim);}
-  const lit=gun?FPS.adsOn:(FPS.on&&FPS.lockOn);if(lit!==FHUD.lit){FHUD.lit=lit;$('fbAds').classList.toggle('lit',lit);}
+  const lit=gun&&FPS.adsOn;if(lit!==FHUD.lit){FHUD.lit=lit;$('fbAds').classList.toggle('lit',lit);}
   const zo=FPS.on&&gun&&!!g.scope&&att==='iron'&&FPS.ads>.5;if(zo!==FHUD.zoomOn){FHUD.zoomOn=zo;$('fbZoom').style.display=zo?'flex':'none';}
 }
 /* THE SWITCH. Either way, mid-run, without a reload of the page: the
@@ -16819,18 +16733,19 @@ function setPov(on){
   Input.setFps(on);
   const pb=$('povBtn');if(pb)pb.textContent=on?'1ST':'3RD';
   if(on){
-    buildViewmodel();FPS.vm.visible=true;FPS.ads=0;FPS.adsOn=false;FPS.zoom=0;
+    buildViewmodel();FPS.vm.visible=gunHeld();FPS.ads=0;FPS.adsOn=false;FPS.zoom=0;
     const P=player;
     if(P.state!=='free'&&P.state!=='dead'&&P.state!=='roll'&&P.state!=='hurt'&&P.state!=='floored'&&P.state!=='falling'){
       P.state='free';P.t=0;G.slowMo=1;P.dropThrown();dropBubbles();}
-    G.lockTarget=null;$('swipeHint').style.opacity=0;
+    if(gunHeld())$('swipeHint').style.opacity=0;   // (a blade behind the eyes is held the same way as over the shoulder, so the hint still applies)
     camera.rotation.order='YXZ';FPS.pitch=0;
   }else{
-    if(FPS.vm)FPS.vm.visible=false;if(FPS.vmBlade)FPS.vmBlade.visible=false;
+    if(FPS.vm)FPS.vm.visible=false;
     applyFov();
     G.camPitch=.34;$('scope').classList.remove('on');$('acog').classList.remove('on');$('reddot').classList.remove('on');$('hitmark').className='';$('xhair').style.display='none';
     FHUD.scope=false;FHUD.acog=false;FHUD.dot=false;FHUD.mark='';FHUD.gap=-1;
     if(player.rig&&FPS.hidRig){player.rig.root.visible=true;FPS.hidRig=false;}
+    fpsMaskSet(player.rig,false);
   }
   syncGunUi();gunSwapped();
   if(G.paused)fillHero();
@@ -17262,7 +17177,7 @@ function fillHero(){
   if($('selChargeLbl'))$('selChargeLbl').textContent=gun?'attachment':'charge';
   if($('selPov'))$('selPov').textContent=FPS.on?'first person':'over the shoulder';
   $('selNote').textContent=gun?gunOf().note+' — '+attNote():(HERO_NOTES[LOADOUT[chargeKey()]]||'');
-  $('heroTap').textContent=gun?(FPS.on?GUN_NOTE_HUD:'tap — fire · hold still — the automatic\'s trigger · the eye\'s mark is the aim')
+  $('heroTap').innerHTML=gun?(FPS.on?GUN_NOTE_HUD:'tap — fire · hold still — the automatic\'s trigger · the eye\'s mark is the aim')
     :FPS.on?BLADE_NOTE_FPS
     :LOADOUT.weapon==='bow'?'tap — loose an arrow · hold still, release — the charged shot'
     :LOADOUT.weapon==='wand'?'tap — blow a bubble · hold still, release — the charged cast'
@@ -17418,7 +17333,7 @@ function frame(now){
     else{
       IN.mx=0;IN.mz=0;IN.camDX=0;IN.camDY=0;IN.swipe=null;
       IN.chargeHeld=false;IN.chargeRelease=false;IN.firePressed=false;IN.fireHeld=false;
-      IN.adsTap=false;IN.adsRelease=false;IN.adsHeld=false;IN.lockTap=false;
+      IN.adsTap=false;IN.adsRelease=false;IN.adsHeld=false;
       IN.reloadPressed=false;IN.swapPressed=false;IN.zoomPressed=false;IN.pickGun=-1;
       IN.interactPressed=false;IN.anyPressed=false;
       player.vx=0;player.vz=0;
@@ -17433,7 +17348,6 @@ function frame(now){
       player.update(wdt);
       syncGunUi();
       if(gunHeld())updateGun(wdt);                             // the gun: the trigger, the sights, the reload — in either view
-      else if(FPS.on)updateBladeVm(wdt);                       // or the blade, drawn across the eye
       bladeTrail.update(wdt);                                 // the blade's ribbon, off the rig as posed this frame
       // enough marrow held calls the cathedral open
       if(!G.cathedralOpen&&player.marrow>=G.marrowGoal)openCathedral();
@@ -17543,7 +17457,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,CLIP_WARM,renderFrame,VM_BLADE,updateLock,lockCands,updateBladeVm,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

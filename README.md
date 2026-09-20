@@ -445,8 +445,11 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   held where it stands, stunned (40, 52 at a full hold); a crow is
   knocked out of the air to the dirt; and the charge leaps to two more
   within a few strides for half. Made for the birds.
-- **Right thumb, hold & drag** — turn the camera
-- **The eye never closes** — lock-on is automatic and buttonless: the
+- **Right thumb, hold & drag** — turn the camera. All four of these are
+  the same behind the eyes with a blade in hand: the thumb is the thumb,
+  in either view.
+- **The eye never closes** — lock-on is automatic and buttonless, in
+  either view: the
   closest live horror is always marked (skeletons still clawing out of
   the ground don't count until they're up). When the marked one falls,
   the eye stays on it for half a second — the camera holds and you watch
@@ -506,27 +509,30 @@ difference between a weapon that punishes a long burst and one that stops
 being a weapon. So a **gun is carried in third person** too,
 over the shoulder at the chest, the eye's mark doing the aiming and the
 tap the firing (a held thumb runs the automatics); and a **greatsword is
-swung from behind the eyes** in first, its arc drawn across the screen by
-the same clock the real swing runs on — the bow and the wand too, the
+swung from behind the eyes** in first — the bow and the wand too, the
 shaft leaving along the eye's pitch. Either view, either kind.
 
-**And a blade behind the eyes is carried at Minecraft's proportion.** It
-was the pilgrim's own weapon at its own size hung half a metre off the
-lens, which is not a weapon you are carrying, it is a wall: measured, the
-greatsword covered 0.77 of the screen's width and **2.13 of its height**,
-the ultra 1.17 by 3.12, with a third of the blade off the top of the
-picture and the grip running out of the bottom corner. Each weapon now
-has its own scale and its own carry — the whole thing inside the lower
-right, pointing up and across, about half the screen's height and no
-more, every part of it visible: point, guard and pommel. That is what
-makes it read as a held object rather than as scenery. The swing's
-*travel* is scaled down with it (a small weapon thrown the distance the
-big one used to travel looks like it has come off in your hand) while the
-rotations are left alone, because a rotation reads the same at any size
-and it is the rotation that tells you the cut landed. Anything on the
-weapon that burns is turned down in the copy as well — the wand's orb is
-a handsome additive ball at arm's length and a hole burned in the middle
-of the picture at half a metre.
+**A blade behind the eyes is the pilgrim's own body, and nothing else.**
+There is no weapon model on the camera, no carry pose, no separate arc:
+the lens is put at his eye and whatever happens over the shoulder happens
+behind them, because it *is* the same rig, the same pose, the same
+springs and the same steel. Every combo, every weapon, every chain comes
+free, and none of it can ever disagree with the body. Three hand-built
+viewmodels were thrown away to get here, each one a second animation
+that could not be made to match the first.
+What the eye is **inside of** is taken away, and only that. At 1.74 the
+lens sits in the pilgrim's own head and in the top of his trunk — one
+collar plate covered *0.65 of the screen* and the next 0.46, so the
+picture was a teal wall with a strip of field over it. Everything whose
+crown stands above the eye line is dropped onto a layer nothing draws:
+the helm, the gorget, the collar, the pauldrons. What is left is the
+chest, the arms, the hanging tabard and the weapon.
+So you see a greatsword the way a man carrying one sees it. At rest it is
+over his shoulder, behind his own eyes, and there is nothing to see —
+which is correct. He swings, and it comes round across the bottom of the
+picture with both arms after it. **Locked on**, which is how you fight,
+the eye rides a little down onto the horror's chest and the whole arc
+lifts into frame.
 The world, the host, the marrow, the hours, the weather, the motes
 and the hexes of the path are exactly what they were; the roll, the
 stagger, the knockdown and the fall over the rim all still run
@@ -551,7 +557,18 @@ name, its calibre and its magazine over its reserve; tap it to swap. It
 times the width of "m4a1" — so the name is never pushed off the panel and
 a short one never leaves a gulf before the count. A **zoom** button
 appears only when the sniper is in its scope. The pause button and the
-hearts are where they were; there is no lock-on and no finishing mark.
+hearts are where they were; there is no finishing mark.
+
+**A blade behind the eyes has none of them.** Every one of those buttons
+was a button for something the right thumb already does over the
+shoulder, sitting over the picture — so with a blade in hand the whole
+set goes away and the thumb is the gesture it always was: **flick** to
+roll, **tap** to strike, **hold still** for the heavy, **hold and drag**
+to turn the eye. The lock is automatic, the way it is in third person.
+The trade is honest and worth naming: a turn has to start slowly, or a
+fast one reads as a dodge, and it does not begin until the quarter-second
+the hold takes to decide itself. The automatic lock is what pays for
+that — the eye is already on the thing swinging at you.
 
 **Six guns, by calibre** — because the calibre is what a round does.
 Reserves are kept **by calibre**, so the eagle and the rifle draw on one
@@ -616,25 +633,21 @@ climbs on the viewmodel and jumps back, and the *eye* climbs with it, a
 little to one side, so the sight is somewhere else for the next round; a
 share of the climb settles back on its own, the rest you pull down. The
 sway and the bob are held off entirely while the sights are up, which is
-what keeps them true. **A blade behind the eyes swings the body's own swing.** There is no
-separate first-person animation any more, and that is the point: each
-frame the weapon's pose is read off the pilgrim under the camera — the
-same four keys, the same springs, the same chain — and laid onto the
-carry in front of the eye. Whatever the body does, the eye sees, and the
-two can no longer drift apart. Simply putting the camera at the eye and
-showing the real body was tried first and does not work: the carry rests
-the blade over the shoulder, a metre behind your own head, so there is no
-weapon in the picture until the strike, and the lens sits inside the
-gorget.
-Holding the strike trigger winds the heavy as well as swinging: the tap
-cuts at once, and if the thumb stays down the blade gathers for the
-second blow.
-And **the aim button is the LOCK** when a blade is in the hands, since a
-blade has nothing to aim. Switch it on and the eye takes the nearest
-horror it can reach and leans onto it, taking the next when that one
-falls — enough to keep a circling thing in the picture without dragging
-for it, and never enough to fight your own thumb, which always wins. The
-heavy moves to the left trigger: hold it to wind, let go to loose it.
+what keeps them true.
+
+**A blade behind the eyes swings the body's own swing** — see *First
+person, and the guns*, above. There is no first-person weapon at all: the
+camera is at the pilgrim's eye and what you see is him. The right thumb
+keeps the third-person gesture (flick, tap, hold, drag), and the lock is
+automatic, as it is over the shoulder.
+
+**The lock looks a horror in the chest.** It used to aim at the hips —
+a flat 0.95 above the soil while your eye is at 1.74 — so the lens tipped
+down onto everything it held and you fought a pair of boots. It reads the
+ring's own height now, less a hand: 1.9 over a hollow, 2.3 over a brute,
+3.6 over the Warden, its own over a crow or a heap of bones. Measured on
+a hollow, the eye comes up from 20.3 degrees below the horizontal to 6.2
+at two metres, and at just under five the whole body is in the frame.
 
 The **muzzle flash** is at the muzzle and **the gun is allowed to hide
 it**. It used to be drawn through the weapon, which aimed put a lit orb on
@@ -1945,8 +1958,8 @@ and you cannot see what you are fighting. Hiding it in first person alone
 would have left two different weapons in one game; a tint costs nothing,
 reads better, and is the same object in both views. The motes still come
 off the steel in third person, and are held back in first, where the
-weapon's own frame sits on the lens and every one of them would burst
-across the middle of the picture.
+weapon passes within arm's reach of the lens and every one of them would
+burst across the middle of the picture.
 
 **And each weapon takes it its own way:**
 

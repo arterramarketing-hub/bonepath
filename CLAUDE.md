@@ -691,8 +691,8 @@ Known state of play:
     inside the world, then walked out from what it is LOOKING AT and
     stopped at the first stone (`camStone`) — or a cutscene is the blank
     screen with a name on it.
-  - In first person the body is put back (`syncFpsRig`) and the gun and
-    the blade viewmodels are hidden, because the eye has left the helm.
+  - In first person the body is put back whole (`syncFpsRig` unmasks it)
+    and the gun viewmodel is hidden, because the eye has left the helm.
   - `cutEnd` calls `camSnap()`: a hard cut back to the follow camera, not
     a glide across the field. And a scene cannot outlive its run —
     `updateCut` ends it if `G.mode` stops being 'play'.
@@ -960,11 +960,12 @@ Known state of play:
       Every viewmodel motion (bob, idle sway, look-lag) is
       scaled by `(1-ads)` so the sight is true when it is up. The hurt
       flinch is the one thing that still dips it, on purpose.
-      **The gun and the blade viewmodels must each put the OTHER away.**
-      `updateBladeVm` hides itself when a gun is held, but it is only
-      called while no gun is held — so swapping from a blade to a gun in
-      first person left the last blade standing on screen beside the rifle,
-      for ever. `updateGun` clears `FPS.vmBlade.visible` from its side.
+      **NOTHING BUT `updateGun` EVER SHOWS THE VIEWMODEL, AND ONLY
+      `syncFpsRig` PUTS IT AWAY.** `updateViewmodel` runs inside
+      `updateGun`, which a blade never calls — so a viewmodel raised once
+      stood on the screen for ever under a blade, with every gun in the
+      rack showing at once because none had been picked. That one line is
+      in `syncFpsRig` now, where what is shown behind the eyes is decided.
   12. **THE SIGHTS CAP YOU TO A WALK; THEY DO NOT COME DOWN WHEN YOU
       MOVE.** `updateGun` used to carry
       `if(P.sprinting&&P.moveAmt>.5)FPS.adsOn=false` — "a sprint comes off
@@ -1010,11 +1011,11 @@ Known state of play:
       hands. `GUNS` holds six and `HERO_OPTS.weapon` lists them beside
       the blades. `updateGun` runs in EITHER view when a gun is held (in
       third person the tap is the trigger, `chargeHeld` the automatic's,
-      and `gunAimBase` aims at the eye's mark); `updateBladeVm` runs in
-      first person with a blade (a clone of `rig.weapon` MINUS ITS LIGHT
-      — cloning a PointLight would add a light and recompile every shader).
-      `Input.setBlade` tells the input a blade is behind the eyes, so the
-      triggers become strikes and the aim button charges.
+      and `gunAimBase` aims at the eye's mark). A BLADE has no viewmodel
+      in either view: the pilgrim's own body is the animation, masked
+      down to what the eye is not inside of. `Input.setBlade` tells the
+      input a blade is held, so the right thumb keeps the third-person
+      gesture behind the eyes instead of becoming the look.
   17. `buildGunModel` is a function DECLARATION and touches neither `GUNS`
       nor `FPS`: `makeKnightRig` calls it at boot when a saved loadout
       holds a gun, long before the module's consts exist. `isGunKey` is a
@@ -1647,21 +1648,15 @@ Known state of play:
   costs and the cathedral's gate are unchanged, so the field takes longer
   to clear but opens at the same point.
 
-- **A BLADE VIEWMODEL IS CARRIED AT ITS OWN SCALE** (`VM_BLADE`, beside
-  `ensureBladeVm`). The viewmodel is a clone of the pilgrim's real weapon,
-  and at its real size half a metre off the lens a greatsword covered 0.77
-  of the screen's width and **2.13 of its height** (the ultra 1.17 x 3.12)
-  — measured by projecting the clone's world bounding box through the
-  camera, which is how to check this. Each weapon now carries its own
-  `s` (scale), its carry position and rotation, and `mo`, which scales the
-  swing's TRANSLATION with the weapon; the rotations are deliberately left
-  alone, because a rotation reads the same at any size and the rotation is
-  what says the cut landed. Sword/ultra/katana now measure about 0.19 x
-  0.45 of the screen, in the lower right, whole.
-  Additive materials in the clone are cloned and dimmed (the wand's orb
-  burns a hole in the middle of the picture otherwise) — cloned because
-  the material is SHARED with the rig, and `Material.clone()` drops
-  `onBeforeCompile`, so that copy no longer wobbles with `psx()`.
+- **THERE IS NO BLADE VIEWMODEL** — see *THE FIRST-PERSON SWING IS THE
+  THIRD-PERSON SWING*, far below. `VM_BLADE`, `ensureBladeVm`,
+  `bladePose`, `VM_SEAM` and `SW_FLIP` are gone. The one thing worth
+  keeping from that pass: a clone of the real weapon half a metre off the
+  lens covers 0.77 of the screen's width and **2.13 of its height** (the
+  ultra 1.17 x 3.12), measured by projecting its world box through the
+  camera — which is how to check ANY of this, and why a carried clone
+  always needed a scale of its own while the real weapon, at its real
+  distance, needs none.
 
 - **THE ICON IS PAINTED BY A SCRIPT, NOT DRAWN** (`tools/make_icons.py`,
   output in `icons/`, wired up in the `<head>` and in
@@ -1841,82 +1836,102 @@ Known state of play:
   non-finite from the pose. **If a limb or a blade ever vanishes with no
   error, read `rig._sm[k]` for NaN before anything else.**
 
-- **THE FIRST-PERSON SWING IS READ OFF THE RIG. NOTHING AUTHORS A SECOND
-  ONE, AND NOTHING SHOULD.** Two wrong answers were shipped before this.
-  The first turned the blade about its own length: sampled frame by frame
-  the viewmodel's pitch never moved, all the motion was a yaw and a roll,
-  and the blade at the carry points **(−.32, .54, −.78)** from the grip —
-  mostly ALONG the view — so a yaw and a roll spin a stick about itself.
-  The second gave it a real arc but a hand-written one, a table of axes
-  and angles per combo, and that is a SECOND animation beside the body's:
-  it cannot match the third-person swing and never will.
-  **"Just put the camera at the eye and show the real body" was measured,
-  because it is the version with no code in it, and it does not work.**
-  Three reasons, all of them about where the pose was authored to be SEEN
-  from, and all worth knowing before anyone tries it again:
-    - at rest the weapon is BEHIND the eye. The carry rests the blade over
-      the shoulder — from the eye the sword's nearest point is **1.15m
-      behind the lens**, the ultra's **1.49m**. No weapon until the strike.
-    - mid-swing it STRADDLES the near plane: nearest point 0.35m in front
-      at the cut with the far end still behind the camera, so it is sliced
-      and the projection breaks.
-    - the lens is INSIDE the body's geometry — the nearest meshes'
-      bounding spheres CONTAIN the camera (−0.36m), so the gorget and the
-      pauldrons fill the frame.
-  So the weapon stays a clone on the camera and only its MOTION comes from
-  the rig. `bladePose(r,p,q)` takes `root⁻¹ · weapon` — the pilgrim's own
-  frame, so the torso's twist and every joint above it are in it and only
-  his facing and his place are divided out — the rest pose captured in
-  `ensureBladeVm` is subtracted, and the remainder is laid onto the carry
-  in the eye's frame (the body looks down +z and the eye down −z, hence
-  `SW_FLIP`). Every state, every weapon, every chain and every spring comes
-  free and can never disagree with the body, because it IS the body.
-  - **`rg`, the rotation gain, is geometric and cannot be tuned away.** The
-    grip hangs .62 off the lens and the blade is .578 long at this scale,
-    so a full-size turn about the grip brings the tip within four
-    centimetres of a near plane at .10. Pushing the grip out and scaling
-    the weapon up buys clearance in proportion — it would take a weapon
-    three metres out, and at three metres a camera child intersects the
-    walls. Swept over four gains and three grip distances on all three
-    blades: at **.62 and above the tip reaches the lens** on the sword and
-    the ultra (nearest z 0.00 to +0.13, behind the eye); at **.45 every
-    blade clears by at least 0.23m**. Measured on a live swing at .45 the
-    closest approach is 0.49m. `mo` is the same idea for translation.
-  - **The rest pose must be read while the body is at REST.** It is
-    captured in `ensureBladeVm`, off the fresh rig; sample it mid-cut and
-    every swing is measured from the wrong place and the deltas collapse.
-  - `VM_SEAM` is still the eye's `seamBlend` — a chain leaves at
-    `CHAIN_OUT` and re-enters at `ATK_ENTRY`, so the pose jumps backwards.
-    Inside one swing nothing is smoothed: the snap of the strike IS the
-    strike.
-  - **If a swing ever looks wrong again, do not write a pose.** Project
-    the tip, read its camera-space z, and move `rg`, `mo` or the carry.
+- **THE FIRST-PERSON SWING IS THE THIRD-PERSON SWING. THERE IS NO
+  VIEWMODEL AND THERE MUST NOT BE ONE AGAIN.** Three were built and
+  thrown away before this. The first turned the blade about its own
+  length: sampled frame by frame the pitch never moved, all the motion
+  was a yaw and a roll, and the blade at the carry pointed **(−.32, .54,
+  −.78)** from the grip — mostly ALONG the view — so a yaw and a roll
+  spin a stick about itself. The second gave it a real arc but a
+  hand-written one, a table of axes and angles per combo: a SECOND
+  animation beside the body's, which can never match it. The third read
+  the motion off the rig (`bladePose`, `root⁻¹·weapon` laid onto a carry
+  in the eye's frame) and was the closest, but it still carried a clone
+  on the camera at its own scale, with its own gain, its own seam blend
+  and its own three pages of notes.
+  **Now the camera is simply put at the eye and the pilgrim's own body
+  and his own weapon are what you see.** Whatever happens over the
+  shoulder happens behind the eyes, because it is the same rig, the same
+  pose, the same springs and the same steel. Every state, every weapon,
+  every chain comes free and can never disagree with the body.
+  What the earlier notes gave as reasons this could not work, re-measured:
+    - **"the body encloses the lens" — WRONG, and it was a bounding
+      SPHERE.** Boxes say the head holds the camera and nothing else does;
+      the nearest part after it is 0.63m away.
+    - **"at rest the weapon is BEHIND the eye"** (the sword's nearest
+      point 1.10m behind the lens, the ultra's 1.49m) — TRUE, and not a
+      fault. A man with a greatsword on his shoulder cannot see it
+      either. Measured through a cut it comes round: nearest point 0.38m
+      in FRONT at the strike, the whole weapon across the picture.
+  **What IS true, and is the price:** the greatsword's arc lives at chest
+  height and the eye is 40cm above it, so an UNLOCKED, level swing reads
+  in the bottom third of the frame — measured, the weapon's on-screen
+  box centres at y −1.0 to −2.6 through the cut. **Locked it is right**,
+  because the lock tips the eye 6–9 degrees down onto the chest and the
+  arms and the blade come up into the picture with the horror. If a
+  swing ever looks empty, check whether the shot was locked before you
+  reach for a pose.
+- **WHAT THE EYE IS INSIDE OF (`fpsMaskRig`, `fpsMaskSet`, beside
+  `syncFpsRig`) — AND IT IS MORE THAN THE HELM.** The lens at 1.74 is
+  inside the head AND inside the top of the trunk. Measured at rest, ONE
+  collar plate covered **0.65 of the screen** and the next 0.46, both
+  straddling the near plane: the picture was a teal wall with a strip of
+  field over it. So every mesh whose crown stands above the eye line is
+  masked, plus the whole head whatever its height (or a chin floats where
+  the helm was). Twenty meshes on the knight, seventeen on the wizard.
+  Three things about it are load-bearing:
+  1. **The list is taken off the LIVING rig, not the fresh one.** A rig
+     straight out of `makeKnightRig` stands 19cm lower than the same rig
+     once the game is posing it — the plates that come up at 1.86 in play
+     top out at 1.67 on the workbench, UNDER the line, and the first pass
+     masked the helm and nothing else. It is built the first frame it is
+     wanted, against `heightAt + FPS.eyeY`, after a quarter-second of
+     standing in `free` so the springs have settled.
+  2. **The box is recomputed by hand.** `Box3.setFromObject` trusts a
+     geometry's cached `boundingBox`, and the rig's are stale.
+  3. **IT IS A LAYER, NOT A `visible` FLAG.** A masked mesh goes to layer
+     3, which no camera pass renders, so it can never fight the fourteen
+     places that write `visible` on a rig, nor a severed limb, nor the
+     LOD. Each mesh remembers its own mask and is put back to exactly it.
+  **And the GUN puts itself away.** `updateViewmodel` is the only thing
+  that writes the viewmodel's visibility and it runs inside `updateGun`,
+  which a blade never calls — so a viewmodel raised once stood on the
+  screen for ever, with every gun in the rack showing at once because
+  none had been picked. `syncFpsRig` clears it.
 
-- **THE AIM BUTTON IS THE LOCK WHEN A BLADE IS BEHIND THE EYES.** A gun
-  aims; a blade has nothing to aim, and the button used to be a charge.
-  `FPS.lockOn` is a toggle: with it on, `updateLock`'s first-person branch
-  takes the nearest horror it can reach (the same `lockCands` and the same
-  two-metre/half-second hysteresis the follow camera uses) and takes the
-  next one when that one falls, and `updateFpsCamera` leans the eye onto
-  it at `LOCK_EASE`. It is an ASSIST, not a rail — the player's own drag is
-  subtracted from the rate, so a thumb on the screen always wins and the
-  eye only settles when the thumb lets go. In first person the body's
-  facing IS the camera's, so leaning the eye also points the swing.
-  - **The heavy is EITHER trigger held.** With a gun both triggers fire, so
-    the left one has no separate job under a blade and it winds outright
-    (`bladeHeavy` in `Input`). The right one is the strike, and holding it
-    past `HEAVY_HOLD` (180ms) ALSO feeds `st.chargeHeld` — the press still
-    swings at once, because a tap must never wait to find out what it was,
-    and the hero only reads `chargeHeld` back in `free`, after that swing
-    has finished. Verified: an 80ms tap gives `attack` and nothing else; a
-    1100ms hold gives `attack → charge → dslash`. On a keyboard L is the
-    lock, J held winds, and the right mouse is the heavy.
-  - `st.lockTap` is its own flag, not `adsTap` — a gun still needs `adsTap`
-    for the sights, and one flag doing both would have the sights coming up
-    whenever the lock was toggled.
-  - The button's glyph and label are rewritten in `syncGunUi`, which only
-    runs on a class change, and `updateGunHud`'s `lit` asks `gun?adsOn:lockOn`.
-    Both used to write `#fbAds`'s lit class; only one may.
+- **A BLADE BEHIND THE EYES HAS NO BUTTONS. The right thumb is the
+  third-person gesture, exactly.** Flick — roll. Tap — strike. Hold
+  still — the heavy. Hold and drag — the eye. The four shooter's buttons
+  are hidden by `#fpsCtl.fps:not(.blade)`, and the gesture is born
+  `'pending'` whenever a blade is held, in either view — only a GUN
+  behind the eyes still takes the whole thumb for the look at once
+  (`mode:(fpsMode&&!fpsBlade)?'cam':'pending'`), because it has buttons
+  for everything else.
+  The cost is real and was accepted: a camera turn must start slowly, or
+  26px inside 220ms reads as a dodge, and it does not begin until
+  `HOLD_MS` (240ms). The automatic lock is what pays for it.
+  `HEAVY_HOLD`, `bladeHeavy`, `st.lockTap` and the aim button's lock
+  label are all gone with the buttons; on a keyboard L is the charge
+  again in either view, except behind the eyes with a GUN, where it is
+  the sights.
+
+- **THE LOCK IS THE FOLLOW CAMERA'S LOCK, IN EITHER VIEW, AND THERE IS NO
+  SWITCH.** `updateLock`'s only special case now is a GUN behind the
+  eyes, which locks nothing (the crosshair IS the eye there, and an eye
+  that leans on its own would pull every shot off the mark). Everything
+  else runs the one rule, so the leaving (`LOCK_LEAVE`), the stickiness
+  and the half-second a fallen horror keeps the eye are the same wherever
+  you stand.
+  **AND IT LOOKS AT THE CHEST, NOT THE HIPS.** The aim point was a flat
+  `foeY + .95` (1.4 for a big one) while the eye sits at 1.74 — so the
+  lens tipped DOWN onto every horror it held and you fought a pair of
+  boots. It is `markY(L) − LOCK_CHEST` (.4) now: `markY` already knows
+  what it is looking at (1.9 over a hollow, 2.3 a brute, 3.6 the Warden,
+  its own for a crow or a heap), so a hand's drop under the ring is the
+  chest of whatever is there. Measured on a hollow: at 2.1m the pitch
+  goes **−20.3° → −6.2°**, at 1.7m **−26.4° → −9.4°**, at 4.8m
+  **−11.0° → −4.5°**, and at 4.8m the whole body is inside the frame
+  (feet −0.54, crown +0.13 in NDC).
 
 - **THE LAG BEFORE A FINISHING CUT WAS SHADER COMPILATION, EVERY CUT.**
   `splitEnemy` clones every material on the body with a clipping plane,
