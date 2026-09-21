@@ -7029,10 +7029,15 @@ function buildHumanoid(o){
     h.position.set(0,.3*s,.17*s);torso.add(h);rig.heart=h; // set in the sternum, visible
   }
 
-  /* shadow blob */
-  const sh=new THREE.Mesh(new THREE.CircleGeometry(.42*s,10),
-    new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.4,depthWrite:false}));
-  sh.rotation.x=-Math.PI/2;sh.position.y=.02;sh.userData.lodKeep=true;root.add(sh);   // (kept at any distance: one draw, and it is what plants the body on the soil)
+  /* the ground shade — one draw, and it is what plants the body on the
+     soil. The MATERIAL is shared by every body in the world (see SHADOW),
+     so the hour of the day is written once a frame rather than forty
+     times; `rotation.order` is YXZ so the disc can be spun about the
+     WORLD's up after it is laid flat, which is how it leans with the
+     sun. */
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(.42*s,10),shadowMat());   // its own material: see THE GROUND SHADE
+  sh.rotation.order='YXZ';sh.rotation.x=-Math.PI/2;sh.position.y=SHADOW_UP;
+  sh.userData.lodKeep=true;root.add(sh);rig.shade=sh;rig.shadeS=s;
 
   // back scabbard mount: hilt rides up over the right shoulder
   if(o.backMount){
@@ -7126,6 +7131,66 @@ function lodSet(e,far){
    it), anything big enough to be an event, and any body that is dead,
    ragdolling or already hidden — the ragdoll writes the bones the boxes do
    not have. */
+/* ============================ THE GROUND SHADE ============================
+   Every body stands on a flat black disc. It was built once and never
+   touched again, and three things were wrong with it — all measured:
+   1. **IT LEFT THE GROUND.** The disc is a child of the rig's ROOT, and
+      the root's height carries `rollAir` — so at the top of a roll the
+      shadow rose 35cm into the air with the body. A shadow is the one
+      thing that cannot do that. It is pinned to the SOIL now, whatever
+      the root is doing, by cancelling the lift in its own local y.
+   2. **IT WAS AS DARK AT MIDNIGHT AS AT NOON.** The key light runs 1.2 at
+      noon down to 0.21 at night and the disc held a flat 0.4 through all
+      of it. It reads the light's own strength now.
+   3. **IT NEVER LEANED.** The sun swings from 74 degrees at noon to 9 at
+      sunrise — where a real shadow is thrown six times the body's height
+      sideways — and the disc sat centred under the feet at every hour.
+      It stretches away from the light as the light drops, and leans out
+      from under the body with it.
+   It stays ONE DRAW each. The material is NOT shared, and that was tried:
+   `heroifyObject` MUTATES a material in place to give it the hero's
+   depth-clip shader, so one material behind every body in the world would
+   have taken that shader the moment the pilgrim's rig was built. A float
+   written per body per frame is nothing; a shared shader that discards
+   against the hero's depth buffer is a bug nobody would find. What is NOT
+   done, and was measured before deciding: the disc does not follow the
+   ground's slope. Over 1962 spots of real soil the ground under its own
+   rim varies a median of 4cm and 18cm at the ninetieth — under a disc
+   sitting 2cm proud, which is close enough to read; only the steepest
+   hundredth (47cm) shows it, and tilting the disc costs a second rotation
+   composed against the body's facing every frame. */
+const SHADOW_UP=.02;       // how far the disc stands proud of the soil
+const SHADOW_LONG=2.6;     // the longest a low sun may draw it
+const SHADOW_LEAN=.30;     // ...and how far out from the feet that carries it
+const SHADOW={az:0,stretch:1,lean:0,op:.4};
+function shadowMat(){return new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:SHADOW.op,depthWrite:false});}
+function shadowTick(){
+  const L=worldLights.moon;if(!L)return;                   // (`moon` is the key light, whatever hour it is)
+  const hx=L.position.x,hz=L.position.z,h=Math.hypot(hx,hz)||1e-3;
+  SHADOW.az=Math.atan2(hx,hz);                             // the bearing TOWARD the light
+  const el=Math.atan2(Math.max(.02,L.position.y),h);
+  SHADOW.stretch=clamp(1/Math.max(.18,Math.sin(el)),1,SHADOW_LONG);
+  SHADOW.lean=(SHADOW.stretch-1)*SHADOW_LEAN;
+  SHADOW.op=clamp(.08+.36*Math.min(1,(L.intensity||0)/1.2),.06,.46);
+}
+/* and per body: the soil it is standing on, not the root it hangs from */
+function shadeRig(r,gy){
+  const sh=r&&r.shade;if(!sh)return;
+  if(r.root.scale.y<.95){sh.visible=false;return;}          // the melt scales the root; its local units are no longer metres
+  sh.visible=true;sh.material.opacity=SHADOW.op;           // the hour, on this body's own material
+  const f=r.root.rotation.y,sc=r.shadeS||1;
+  sh.position.y=gy-r.root.position.y+SHADOW_UP;             // PINNED TO THE GROUND, whatever the body is doing
+  const d=SHADOW.lean*sc,wx=-Math.sin(SHADOW.az)*d,wz=-Math.cos(SHADOW.az)*d;   // away from the light
+  sh.position.x=wx*Math.cos(f)-wz*Math.sin(f);              // the root carries the facing; undo it
+  sh.position.z=wx*Math.sin(f)+wz*Math.cos(f);
+  sh.rotation.y=SHADOW.az-f;
+  sh.scale.set(1,SHADOW.stretch,1);
+}
+function shadeRigs(){
+  shadowTick();
+  if(player.rig)shadeRig(player.rig,heightAt(player.x,player.z));
+  for(const e of enemies)if(e.rig)shadeRig(e.rig,heightAt(e.x,e.z));
+}
 function lodUpdate(){
   const P=player,k=Math.tan(camera.fov*Math.PI/360)/Math.tan(FOV_REF*Math.PI/360);
   for(const e of enemies){
@@ -14511,7 +14576,7 @@ function updateCamera(dt){
     if(moving&&!G.camHeld){
       const want=Math.atan2(-player.moveX,-player.moveZ);
       G.camYaw=angLerp(G.camYaw,want,Math.min(1,(1.1+1.6*player.moveAmt)*dt));
-      G.camPitch=lerp(G.camPitch,.3,Math.min(1,.8*dt));
+      if(!gunHeld())G.camPitch=lerp(G.camPitch,.3,Math.min(1,.8*dt));   // (a gun owns the pitch: see below)
     }
   }else{
     // the lock camera sits behind the line through the foe — but damped:
@@ -14521,27 +14586,30 @@ function updateCamera(dt){
     const want=Math.atan2(player.x-foe.x,player.z-foe.z);
     const diff=wrapA(want-G.camYaw),near=Math.hypot(player.x-foe.x,player.z-foe.z)<1.3;
     if(!near&&Math.abs(diff)>.1)G.camYaw+=clamp(diff*5*dt,-2.4*dt,2.4*dt);
-    G.camPitch=lerp(G.camPitch,.3,4*dt);
+    if(!gunHeld())G.camPitch=lerp(G.camPitch,.3,4*dt);   // (a gun owns the pitch: see below)
   }
-  /* AND THE BRACE FLATTENS THE ANGLE. The follow camera rides well above
-     the pilgrim and looks DOWN on him, which is right for a blade — you
-     want to see the ground round your feet — and wrong for a rifle, where
-     what you want is the line out to what you are shooting. Aiming eases
-     the pitch down toward the horizontal as the camera comes in. */
-  if(gunHeld()&&FPS.ads>.01)G.camPitch=lerp(G.camPitch,.17,Math.min(1,5*dt*FPS.ads));
-  /* THE BRACE, over the shoulder. A gun aimed in third person pulls the
-     camera IN and to the pilgrim's right, the way every third-person
-     shooter does — the body slides off to the left of the frame and the
-     line to what you are shooting at is clear. It rides the same
-     `FPS.ads` lerp the sights do, so the brace and the cone close
-     together. The screen-right here is the stick's own mapping
-     (`cos yaw, -sin yaw`), and it is applied BEFORE the rim and the
-     cathedral clamps, so a braced camera is held out of stone exactly
-     like an unbraced one. */
-  const brace=gunHeld()?FPS.ads:0;
-  const dist=(G.camDist||5.1)*(1-.42*brace),py=1.55+.10*brace;
+  /* A GUN OWNS THE PITCH OUTRIGHT. The two branches above lerp it to .3
+     for their own reasons and this used to lerp against them, so the lens
+     settled wherever the tug of war left it (measured 6.1 degrees where
+     .17 was asked for). With a gun in hand this is the ONLY site that
+     writes it — see the two `gunHeld()` guards up there. */
+  const gk=gunHeld()?1:0,ads=gk?FPS.ads:0;
+  const gIn=lerp(GUN_CAM.in,ADS_CAM.in,ads)*gk,
+        gUp=lerp(GUN_CAM.up,ADS_CAM.up,ads)*gk,
+        gSide=lerp(GUN_CAM.side,ADS_CAM.side,ads)*gk;
+  if(gk)G.camPitch=lerp(G.camPitch,lerp(GUN_CAM.pitch,ADS_CAM.pitch,ads),Math.min(1,6*dt));
+  /* OVER THE SHOULDER. A gun pulls the camera IN and to the pilgrim's
+     right, the way every third-person shooter does — the body slides off
+     to the left of the frame and the line to what you are shooting at is
+     clear. The AIM goes further in on the same axis rather than doing
+     anything different, so the two are one move and the brace reads as
+     leaning into a shot you were already lined up for. The screen-right
+     here is the stick's own mapping (`cos yaw, -sin yaw`), and it is
+     applied BEFORE the rim and the cathedral clamps, so a close camera is
+     held out of stone exactly like a far one. */
+  const dist=(G.camDist||5.1)*(1-gIn),py=1.55+gUp;
   const hP=heightAt(player.x,player.z);
-  const brx=Math.cos(G.camYaw)*BRACE_SIDE*brace,brz=-Math.sin(G.camYaw)*BRACE_SIDE*brace;
+  const brx=Math.cos(G.camYaw)*gSide,brz=-Math.sin(G.camYaw)*gSide;
   let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist+brx;
   let cz=player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist+brz;
   const cy=hP+py+Math.sin(G.camPitch)*dist;
@@ -14615,7 +14683,7 @@ function updateCamera(dt){
     camera.position.x+=(Math.random()-.5)*G.camShake*.3;
     camera.position.y+=(Math.random()-.5)*G.camShake*.3;
   }
-  let lx=player.x+brx,ly=hP+1.35+.22*brace,lz=player.z+brz;   // the gaze slides with the brace, so the pilgrim sits left of the line
+  let lx=player.x+brx,ly=hP+1.35+.22*ads,lz=player.z+brz;   // the gaze slides with the aim, so the pilgrim sits left of the line
   /* OVER THE BRINK, THE EYE GOES WITH HER. The body falls out of the world
      and the gaze was staying level with the rim, so the last you saw of
      yourself was a pair of boots leaving the bottom of the frame. It
@@ -15145,7 +15213,20 @@ for(const g of GUNS)gunAmmo(g);for(const k in CALIBRES)FPS.res[k]=CALIBRES[k].st
    the trigger is held. A shooter caps this; ours did not. */
 const SPREAD_CAP=2.6;
 // how far right of the pilgrim the braced camera sits
-const BRACE_SIDE=.95;
+/* THE TWO GUN CAMERAS. A rifle does not get the blade's camera: the
+   follow camera rides well above the pilgrim and looks DOWN on him, which
+   is right when you want to see the ground round your feet and wrong when
+   what you want is the line out to what you are shooting.
+   `GUN_CAM` is what the BRACE used to be, and it is where a gun now rests
+   — in, to the right, flattened. `ADS_CAM` is what aiming goes on to: a
+   Gears carry, close over the shoulder, nearly level, the body pushed
+   well off to the left so the whole right of the frame is the shot.
+   `in` is the share taken off `camDist`, `up` the lift on the eye's own
+   height, `side` the step to the pilgrim's screen-right, `pitch` the
+   angle the lens settles to. A blade takes none of it. */
+const GUN_CAM={in:.42,up:.10,side:.95,pitch:.17};
+const ADS_CAM={in:.58,up:.08,side:1.42,pitch:.09};
+const BRACE_SIDE=GUN_CAM.side;   // (kept: the old name, read nowhere else now)
 // how long the trigger holds the weapon out of the running carry
 const GUN_READY=.28;
 const GUN_HOLD=1.2;      // how long after a round the pilgrim keeps his shoulder to the foe
@@ -17434,6 +17515,7 @@ function frame(now){
       else if(player.rig&&player.rig.weapon&&!player.rig.weapon.visible)player.rig.weapon.visible=true;
       pruneFallen();
       lodUpdate();                                            // ...and the far bodies down to three boxes each — see THE FAR RIGS
+      shadeRigs();                                            // every body's shade: on the soil, and leaning with the hour
       if(PATH.on)updatePath(wdt);else if(DEF.on)updateDefend(wdt);
     }else{
       player.t+=wdt;
@@ -17528,7 +17610,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

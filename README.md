@@ -477,11 +477,22 @@ used to sit at 1.42, which is his belt, and the view read exactly like
 that.
 
 **And a gun over the shoulder is a gun, not a blade that goes bang.**
-There is a **BRACE**: the aim button pulls the camera in past the
-pilgrim's right shoulder, eases the angle down toward the horizontal,
-slows the turn and closes the cone the same way the sights do behind the
-eyes — fifteen rounds in twenty on a hollow at ten metres from the hip,
-nineteen braced. There is a **mark on the screen**, and it is where the
+**A rifle does not get the blade's camera.** The follow camera rides high
+and looks down at the ground round your feet, which is what you want with
+a greatsword and not what you want with a gun. So drawing one moves the
+lens: in past the pilgrim's right shoulder, down toward the horizontal,
+the body off to the left of the frame and the line to what you are
+shooting clear. That is where a gun now *rests*. The **aim** button goes
+on from there to a Gears carry — closer still, almost level, the pilgrim
+shouldered well over to the left so the whole right of the picture is the
+shot — and it closes the cone the same way the sights do behind the eyes:
+fifteen rounds in twenty on a hollow at ten metres from the hip, nineteen
+braced. The two are one move along one axis, so aiming reads as leaning
+into a shot you were already lined up for. Measured, the camera's
+distance, its height and its pitch: a blade 4.87m / 3.06 / 9.5°, a gun at
+rest 3.07 / 2.15 / 5.0, a gun aimed 2.56 / 1.82 / 2.7 — with the pilgrim
+going from a third of the screen's height to three-quarters of it, and
+from the middle of the frame to a quarter of the way off its left. There is a **mark on the screen**, and it is where the
 ROUND lands rather than where the camera points, because the two are not
 the same thing in third person: the round leaves the hands, a metre and a
 half ahead of the body and off to one side, and goes to the eye's mark or
@@ -1218,6 +1229,17 @@ them the seed decides:
     cross-sections were being cut into stone, thirteen metres inside the
     outer wall. Nothing is now, and the furrow out on the field is exactly
     what it was.
+  - **a body's shadow knows what hour it is.** Every figure stands on a
+    dark disc — one draw, and it is what plants them on the soil rather
+    than leaving them hovering over it. It used to be the same disc
+    always: the same size at dawn as at noon, as dark at midnight as at
+    midday, centred under the feet whatever the sun was doing, and it rose
+    thirty-five centimetres into the air with you every time you rolled.
+    It stays on the ground now whatever the body does, it takes its
+    darkness from the strength of the light (0.44 at noon, 0.26 at dusk,
+    0.14 at night), and as the sun drops it stretches and leans away from
+    it — half a metre out from the feet and nearly twice as long at
+    sunrise, and pointing exactly opposite the light at every hour.
   - **and snow goes up as well as down.** A furrow is what is left behind,
     and behind is mostly where the camera is — what you actually watch,
     pace after pace, is the snow the legs are shovelling aside right now.

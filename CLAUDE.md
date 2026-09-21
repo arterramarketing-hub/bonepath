@@ -1126,9 +1126,30 @@ Known state of play:
      so the AIM button was not even drawn, `coneNow` ignored `FPS.ads`
      in third person, and nothing the player could do tightened the shot.
      The **BRACE** is the answer and it is the same `FPS.ads` lerp: the
-     cone closes, the camera comes IN and to the pilgrim's right
-     (`BRACE_SIDE`), the pitch eases toward the horizontal, and the turn
-     slows. Measured at ten metres: hip 15/20, braced 19/20.
+     cone closes, the camera comes IN and to the pilgrim's right, the
+     pitch eases toward the horizontal, and the turn slows. Measured at
+     ten metres: hip 15/20, braced 19/20.
+     **AND THE WHOLE THING HAS SINCE MOVED UP ONE** (`GUN_CAM`,
+     `ADS_CAM`, beside `BRACE_SIDE`). What the brace used to be is where a
+     gun now RESTS — a rifle never wanted the blade's camera, which rides
+     high and looks down at the ground round your feet. Aiming goes on
+     from there to a Gears carry: closer still, nearly level, the body
+     pushed well off to the left so the whole right of the frame is the
+     shot. The two are one move along one axis, so the brace reads as
+     leaning into a shot you were already lined up for.
+     Measured (camera's horizontal distance / height over the soil /
+     pitch / the pilgrim's share of the screen's height and where his
+     middle sits across it):
+       blade        4.87m / 3.06 / 9.5deg / 0.34h at cx +0.04  (unchanged)
+       gun, resting 3.07m / 2.15 / 5.0deg / 0.59h at cx -0.11
+       gun, aimed   2.56m / 1.82 / 2.7deg / 0.77h at cx -0.26
+     The resting figures are the OLD AIMED ones to two places, which is
+     the check that the request was honoured exactly.
+     **A GUN OWNS `G.camPitch` OUTRIGHT.** The two branches above lerp it
+     to .3 for their own reasons and this used to lerp against them, so
+     the lens settled wherever the tug of war left it — measured 6.1
+     degrees where .17 was asked for. Both are gated `!gunHeld()` now and
+     there is ONE writer. Do not add a second.
   4. **There was no mark on the screen.** The crosshair was `-1` unless
      `FPS.on`, so a rifle in third person was fired blind. And the
      screen's CENTRE is the wrong place for it: the round leaves the
@@ -1193,6 +1214,55 @@ Known state of play:
      First person is untouched by all of it (`gunWorked` requires
      `!FPS.on`): `adsWalk` there is still the sights alone, verified 6.1
      hip-firing and 3.7 with them up.
+
+- **THE GROUND SHADE** (`SHADOW`, `shadowTick`, `shadeRig`, `shadeRigs`,
+  beside `lodUpdate`). Every body stands on a flat black disc, built once
+  in the humanoid rig and never touched again. Three things were wrong
+  with it and all three were measured before anything was changed:
+  1. **IT LEFT THE GROUND.** The disc is a child of the rig's ROOT and the
+     root's height carries `rollAir`, so at the top of a roll the shadow
+     rose **0.35m into the air** with the body. It is pinned to the soil
+     now by cancelling the lift in its own local y — measured 0.02 (which
+     is `SHADOW_UP`) at every point of the roll.
+  2. **IT WAS AS DARK AT MIDNIGHT AS AT NOON.** The key light runs 1.20 at
+     noon down to 0.21 at night and the disc held a flat 0.40 through all
+     of it. Now 0.44 / 0.26 / 0.14 at noon / dusk / night.
+  3. **IT NEVER LEANED.** The sun swings from 74 degrees at noon to 9 at
+     sunrise, where a real shadow is thrown six times the body's height
+     sideways, and the disc sat centred under the feet at every hour. It
+     stretches and leans AWAY from the key light now: measured, the offset
+     from the feet runs 0.01m at noon to 0.48m at dawn and dusk, the long
+     axis 1.00 to 1.80 times the short, and the dot of the offset against
+     the light's own bearing is **-1.00 at every hour**, which is the
+     check that it leans the right way.
+  Three things about the code are load-bearing:
+  - **`rotation.order` is YXZ**, so the disc can be spun about the parent's
+    up AFTER being laid flat. The parent is the root, which carries the
+    body's facing, so the yaw is `SHADOW.az - facing` and the offset is
+    rotated back through the facing by hand. Get the order wrong and the
+    lean tumbles the disc instead of spinning it.
+  - **THE MATERIAL IS NOT SHARED, AND SHARING IT WAS TRIED.**
+    `heroifyObject` MUTATES a material in place to give it the hero's
+    depth-clip shader — so one material behind every body in the world
+    takes that shader the moment the pilgrim's rig is built, and every
+    enemy's shadow starts discarding against the hero's depth buffer. A
+    float written per body per frame is nothing; that is a bug nobody
+    would find.
+  - **It writes the CHILD's `visible`, never the root's.** Every corpse in
+    the game is hidden with `root.visible=false` (ten sites), so a child
+    flag cannot resurrect one. The melt is the one case it does guard,
+    because that scales the root and the disc's local units stop being
+    metres.
+  **What is deliberately NOT done: the disc does not follow the ground's
+  slope.** Measured over 1962 spots of real soil (the cathedral and its
+  apron excluded, or you measure the plinth's step and get 1.2m), the
+  ground under the disc's own rim varies a **median of 4cm, 18cm at the
+  ninetieth and 47cm at the ninety-ninth** — under a disc standing 2cm
+  proud. Only the steepest hundredth shows it, and tilting costs a second
+  rotation composed against the facing every frame. Re-measure before
+  deciding it is worth it.
+  The whole pass costs **19.7 microseconds a frame at 25 bodies — 0.12% of
+  a 60fps frame** — and the draw count is unchanged at 533.
 
 - **THE PACK: THREE THINGS THE HOST NEVER DID, AND ALL THREE THE SAME
   SENTENCE — a horror only ever knew about the PILGRIM.**
