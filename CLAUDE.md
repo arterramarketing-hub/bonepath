@@ -1145,11 +1145,22 @@ Known state of play:
        gun, aimed   2.56m / 1.82 / 2.7deg / 0.77h at cx -0.26
      The resting figures are the OLD AIMED ones to two places, which is
      the check that the request was honoured exactly.
-     **A GUN OWNS `G.camPitch` OUTRIGHT.** The two branches above lerp it
-     to .3 for their own reasons and this used to lerp against them, so
-     the lens settled wherever the tug of war left it — measured 6.1
-     degrees where .17 was asked for. Both are gated `!gunHeld()` now and
-     there is ONE writer. Do not add a second.
+     **A GUN OWNS `G.camPitch`'S RESTING VALUE — NOT THE PLAYER'S THUMB.**
+     The two branches above lerp it to .3 for their own reasons and this
+     used to lerp against them, so the lens settled wherever the tug of
+     war left it — measured 6.1 degrees where .17 was asked for. Both are
+     gated `!gunHeld()` now and there is ONE writer. Do not add a second.
+     But the first version of that writer ran UNCONDITIONALLY, and a drag
+     writes `G.camPitch` in the no-foe branch — so it was hauled straight
+     back at 6/s and **you could not look up or down at all with a gun in
+     your hands**. Measured, one full drag: a blade's pitch moved +0.258,
+     a gun's **+0.000**. It is gated on the same `G.camHeld` the yaw's own
+     return uses, so a held camera stays where you put it until you move
+     again (measured: .52 held, back to .17 after two seconds of walking,
+     `camHeld` cleared), a LOCK takes it (as it does for a blade, which
+     never had a drag there), and the AIM overrides both because bringing
+     the gun up is an explicit ask for that angle (measured .52 → .111).
+     After: blade +0.258, gun **+0.259**.
   4. **There was no mark on the screen.** The crosshair was `-1` unless
      `FPS.on`, so a rifle in third person was fired blind. And the
      screen's CENTRE is the wrong place for it: the round leaves the
@@ -1226,7 +1237,20 @@ Known state of play:
      is `SHADOW_UP`) at every point of the roll.
   2. **IT WAS AS DARK AT MIDNIGHT AS AT NOON.** The key light runs 1.20 at
      noon down to 0.21 at night and the disc held a flat 0.40 through all
-     of it. Now 0.44 / 0.26 / 0.14 at noon / dusk / night.
+     of it. Now **0.44 / 0.32 / 0.24** at noon / dusk / night.
+     **AND THERE IS A FLOOR UNDER THAT, LEARNT THE HARD WAY.** The first
+     curve was `.08+.36*x`, which is what the physics says — a weak light
+     throws a faint shadow — and at night it reached 0.14, where the disc
+     stopped doing the one job it has. Measured by rendering the frame
+     twice and differencing it (the disc lit, then hidden), the pixels it
+     touches were darkened by 24.6 of 255 at noon, 6.4 at dusk and **3.9
+     at night**: under two per cent, a body hovering over the ground. The
+     ground is ALREADY dark at night, so a black disc can never take much
+     absolute luminance out of it — the share it takes is just its
+     opacity, so the floor has to be a legible share and not a physical
+     one. `.20+.24*x` reads 24.5 / 7.8 / 6.5 and still softens by nearly
+     half from noon to night. **If it is ever re-tuned, difference the
+     frame; do not reason from the light's intensity alone.**
   3. **IT NEVER LEANED.** The sun swings from 74 degrees at noon to 9 at
      sunrise, where a real shadow is thrown six times the body's height
      sideways, and the disc sat centred under the feet at every hour. It

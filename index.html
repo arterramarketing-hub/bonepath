@@ -6472,6 +6472,82 @@ function sheetDress(rig,o){
 }
 
 
+/* ============================ THE GROUND SHADE ============================
+   Every body stands on a flat black disc. It was built once and never
+   touched again, and three things were wrong with it — all measured:
+   1. **IT LEFT THE GROUND.** The disc is a child of the rig's ROOT, and
+      the root's height carries `rollAir` — so at the top of a roll the
+      shadow rose 35cm into the air with the body. A shadow is the one
+      thing that cannot do that. It is pinned to the SOIL now, whatever
+      the root is doing, by cancelling the lift in its own local y.
+   2. **IT WAS AS DARK AT MIDNIGHT AS AT NOON.** The key light runs 1.2 at
+      noon down to 0.21 at night and the disc held a flat 0.4 through all
+      of it. It reads the light's own strength now.
+   3. **IT NEVER LEANED.** The sun swings from 74 degrees at noon to 9 at
+      sunrise — where a real shadow is thrown six times the body's height
+      sideways — and the disc sat centred under the feet at every hour.
+      It stretches away from the light as the light drops, and leans out
+      from under the body with it.
+   It stays ONE DRAW each. The material is NOT shared, and that was tried:
+   `heroifyObject` MUTATES a material in place to give it the hero's
+   depth-clip shader, so one material behind every body in the world would
+   have taken that shader the moment the pilgrim's rig was built. A float
+   written per body per frame is nothing; a shared shader that discards
+   against the hero's depth buffer is a bug nobody would find. What is NOT
+   done, and was measured before deciding: the disc does not follow the
+   ground's slope. Over 1962 spots of real soil the ground under its own
+   rim varies a median of 4cm and 18cm at the ninetieth — under a disc
+   sitting 2cm proud, which is close enough to read; only the steepest
+   hundredth (47cm) shows it, and tilting the disc costs a second rotation
+   composed against the body's facing every frame. */
+/* It is declared HERE, above `buildHumanoid`, and not beside `lodUpdate`
+   where the rest of the pass lives: the builder reads `SHADOW_UP` and
+   calls `shadowMat`, and a const used above its own declaration is one
+   reordering away from taking the whole game down at boot (see `isThief`
+   and `REAPER_T`, which both did). */
+const SHADOW_UP=.02;       // how far the disc stands proud of the soil
+const SHADOW_LONG=2.6;     // the longest a low sun may draw it
+const SHADOW_LEAN=.30;     // ...and how far out from the feet that carries it
+const SHADOW={az:0,stretch:1,lean:0,op:.4};
+function shadowMat(){return new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:SHADOW.op,depthWrite:false});}
+function shadowTick(){
+  const L=worldLights.moon;if(!L)return;                   // (`moon` is the key light, whatever hour it is)
+  const hx=L.position.x,hz=L.position.z,h=Math.hypot(hx,hz)||1e-3;
+  SHADOW.az=Math.atan2(hx,hz);                             // the bearing TOWARD the light
+  const el=Math.atan2(Math.max(.02,L.position.y),h);
+  SHADOW.stretch=clamp(1/Math.max(.18,Math.sin(el)),1,SHADOW_LONG);
+  SHADOW.lean=(SHADOW.stretch-1)*SHADOW_LEAN;
+  /* HOW DARK, AND THERE IS A FLOOR UNDER IT. The first curve was
+     `.08+.36*x`, which is what the physics says — a weak light throws a
+     faint shadow — and it took the disc to .14 at night, where it stopped
+     doing the one job it has. Measured by rendering the frame twice and
+     differencing it (the disc lit, then hidden), the pixels it touches
+     were darkened by 24.6 of 255 at noon, 6.4 at dusk and **3.9 at
+     night**: under two per cent, which is a body hovering over the
+     ground. The ground is ALREADY dark at night, so a black disc can
+     never take much absolute luminance out of it — the share it takes is
+     just the opacity, so the floor has to be a legible share and not a
+     physical one. It still softens by nearly half from noon to night. */
+  SHADOW.op=clamp(.20+.24*Math.min(1,(L.intensity||0)/1.2),.18,.46);
+}
+/* and per body: the soil it is standing on, not the root it hangs from */
+function shadeRig(r,gy){
+  const sh=r&&r.shade;if(!sh)return;
+  if(r.root.scale.y<.95){sh.visible=false;return;}          // the melt scales the root; its local units are no longer metres
+  sh.visible=true;sh.material.opacity=SHADOW.op;           // the hour, on this body's own material
+  const f=r.root.rotation.y,sc=r.shadeS||1;
+  sh.position.y=gy-r.root.position.y+SHADOW_UP;             // PINNED TO THE GROUND, whatever the body is doing
+  const d=SHADOW.lean*sc,wx=-Math.sin(SHADOW.az)*d,wz=-Math.cos(SHADOW.az)*d;   // away from the light
+  sh.position.x=wx*Math.cos(f)-wz*Math.sin(f);              // the root carries the facing; undo it
+  sh.position.z=wx*Math.sin(f)+wz*Math.cos(f);
+  sh.rotation.y=SHADOW.az-f;
+  sh.scale.set(1,SHADOW.stretch,1);
+}
+function shadeRigs(){
+  shadowTick();
+  if(player.rig)shadeRig(player.rig,heightAt(player.x,player.z));
+  for(const e of enemies)if(e.rig)shadeRig(e.rig,heightAt(e.x,e.z));
+}
 function buildHumanoid(o){
   const s=o.scale||1,sk=o.skeletal,SC=!!o.sculpt;
   // sculpted parts: a profile of (radius, height) points turned on a lathe,
@@ -7131,66 +7207,6 @@ function lodSet(e,far){
    it), anything big enough to be an event, and any body that is dead,
    ragdolling or already hidden — the ragdoll writes the bones the boxes do
    not have. */
-/* ============================ THE GROUND SHADE ============================
-   Every body stands on a flat black disc. It was built once and never
-   touched again, and three things were wrong with it — all measured:
-   1. **IT LEFT THE GROUND.** The disc is a child of the rig's ROOT, and
-      the root's height carries `rollAir` — so at the top of a roll the
-      shadow rose 35cm into the air with the body. A shadow is the one
-      thing that cannot do that. It is pinned to the SOIL now, whatever
-      the root is doing, by cancelling the lift in its own local y.
-   2. **IT WAS AS DARK AT MIDNIGHT AS AT NOON.** The key light runs 1.2 at
-      noon down to 0.21 at night and the disc held a flat 0.4 through all
-      of it. It reads the light's own strength now.
-   3. **IT NEVER LEANED.** The sun swings from 74 degrees at noon to 9 at
-      sunrise — where a real shadow is thrown six times the body's height
-      sideways — and the disc sat centred under the feet at every hour.
-      It stretches away from the light as the light drops, and leans out
-      from under the body with it.
-   It stays ONE DRAW each. The material is NOT shared, and that was tried:
-   `heroifyObject` MUTATES a material in place to give it the hero's
-   depth-clip shader, so one material behind every body in the world would
-   have taken that shader the moment the pilgrim's rig was built. A float
-   written per body per frame is nothing; a shared shader that discards
-   against the hero's depth buffer is a bug nobody would find. What is NOT
-   done, and was measured before deciding: the disc does not follow the
-   ground's slope. Over 1962 spots of real soil the ground under its own
-   rim varies a median of 4cm and 18cm at the ninetieth — under a disc
-   sitting 2cm proud, which is close enough to read; only the steepest
-   hundredth (47cm) shows it, and tilting the disc costs a second rotation
-   composed against the body's facing every frame. */
-const SHADOW_UP=.02;       // how far the disc stands proud of the soil
-const SHADOW_LONG=2.6;     // the longest a low sun may draw it
-const SHADOW_LEAN=.30;     // ...and how far out from the feet that carries it
-const SHADOW={az:0,stretch:1,lean:0,op:.4};
-function shadowMat(){return new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:SHADOW.op,depthWrite:false});}
-function shadowTick(){
-  const L=worldLights.moon;if(!L)return;                   // (`moon` is the key light, whatever hour it is)
-  const hx=L.position.x,hz=L.position.z,h=Math.hypot(hx,hz)||1e-3;
-  SHADOW.az=Math.atan2(hx,hz);                             // the bearing TOWARD the light
-  const el=Math.atan2(Math.max(.02,L.position.y),h);
-  SHADOW.stretch=clamp(1/Math.max(.18,Math.sin(el)),1,SHADOW_LONG);
-  SHADOW.lean=(SHADOW.stretch-1)*SHADOW_LEAN;
-  SHADOW.op=clamp(.08+.36*Math.min(1,(L.intensity||0)/1.2),.06,.46);
-}
-/* and per body: the soil it is standing on, not the root it hangs from */
-function shadeRig(r,gy){
-  const sh=r&&r.shade;if(!sh)return;
-  if(r.root.scale.y<.95){sh.visible=false;return;}          // the melt scales the root; its local units are no longer metres
-  sh.visible=true;sh.material.opacity=SHADOW.op;           // the hour, on this body's own material
-  const f=r.root.rotation.y,sc=r.shadeS||1;
-  sh.position.y=gy-r.root.position.y+SHADOW_UP;             // PINNED TO THE GROUND, whatever the body is doing
-  const d=SHADOW.lean*sc,wx=-Math.sin(SHADOW.az)*d,wz=-Math.cos(SHADOW.az)*d;   // away from the light
-  sh.position.x=wx*Math.cos(f)-wz*Math.sin(f);              // the root carries the facing; undo it
-  sh.position.z=wx*Math.sin(f)+wz*Math.cos(f);
-  sh.rotation.y=SHADOW.az-f;
-  sh.scale.set(1,SHADOW.stretch,1);
-}
-function shadeRigs(){
-  shadowTick();
-  if(player.rig)shadeRig(player.rig,heightAt(player.x,player.z));
-  for(const e of enemies)if(e.rig)shadeRig(e.rig,heightAt(e.x,e.z));
-}
 function lodUpdate(){
   const P=player,k=Math.tan(camera.fov*Math.PI/360)/Math.tan(FOV_REF*Math.PI/360);
   for(const e of enemies){
@@ -14557,6 +14573,23 @@ function onBossDead(){
 }
 
 /* ---------------- camera ---------------- */
+/* THE TWO GUN CAMERAS. A rifle does not get the blade's camera: the
+   follow camera rides well above the pilgrim and looks DOWN on him, which
+   is right when you want to see the ground round your feet and wrong when
+   what you want is the line out to what you are shooting.
+   `GUN_CAM` is what the BRACE used to be, and it is where a gun now rests
+   — in, to the right, flattened. `ADS_CAM` is what aiming goes on to: a
+   Gears carry, close over the shoulder, nearly level, the body pushed
+   well off to the left so the whole right of the frame is the shot.
+   They are declared above `updateCamera`, which is the only thing that
+   reads them; `BRACE_SIDE` was the old name for `GUN_CAM.side` and is
+   gone, because nothing read it any more.
+   `in` is the share taken off `camDist`, `up` the lift on the eye's own
+   height, `side` the step to the pilgrim's screen-right, `pitch` the
+   angle the lens settles to. A blade takes none of it. */
+const GUN_CAM={in:.42,up:.10,side:.95,pitch:.17};
+const ADS_CAM={in:.58,up:.08,side:1.42,pitch:.09};
+
 const camTmp=V3(0,0,0);
 let camIdle=9,lookX=0,lookY=1.35,lookZ=0;
 function updateCamera(dt){
@@ -14588,16 +14621,26 @@ function updateCamera(dt){
     if(!near&&Math.abs(diff)>.1)G.camYaw+=clamp(diff*5*dt,-2.4*dt,2.4*dt);
     if(!gunHeld())G.camPitch=lerp(G.camPitch,.3,4*dt);   // (a gun owns the pitch: see below)
   }
-  /* A GUN OWNS THE PITCH OUTRIGHT. The two branches above lerp it to .3
-     for their own reasons and this used to lerp against them, so the lens
-     settled wherever the tug of war left it (measured 6.1 degrees where
-     .17 was asked for). With a gun in hand this is the ONLY site that
-     writes it — see the two `gunHeld()` guards up there. */
+  /* A GUN OWNS THE PITCH'S RESTING VALUE — NOT THE PLAYER'S THUMB. The
+     two branches above lerp it to .3 for their own reasons and this used
+     to lerp against them, so the lens settled wherever the tug of war
+     left it (measured 6.1 degrees where .17 was asked for). They are
+     gated `!gunHeld()` now and this is the only site that writes it.
+     But the FIRST version of that ran unconditionally, and a drag writes
+     `G.camPitch` in the no-foe branch — so it was pulled straight back at
+     6/s and you could not look up or down at all with a gun in your
+     hands. Measured: a full drag moved a blade's pitch .26 and a gun's
+     .000. It is gated on the SAME `G.camHeld` the yaw's own return uses,
+     so a held camera stays where you put it until you move again; a LOCK
+     takes the pitch (as it does for a blade, which never had a drag
+     there), and the AIM overrides both, because bringing the gun up is
+     an explicit ask for that angle. */
   const gk=gunHeld()?1:0,ads=gk?FPS.ads:0;
   const gIn=lerp(GUN_CAM.in,ADS_CAM.in,ads)*gk,
         gUp=lerp(GUN_CAM.up,ADS_CAM.up,ads)*gk,
         gSide=lerp(GUN_CAM.side,ADS_CAM.side,ads)*gk;
-  if(gk)G.camPitch=lerp(G.camPitch,lerp(GUN_CAM.pitch,ADS_CAM.pitch,ads),Math.min(1,6*dt));
+  if(gk&&(ads>.01||foe||!G.camHeld))
+    G.camPitch=lerp(G.camPitch,lerp(GUN_CAM.pitch,ADS_CAM.pitch,ads),Math.min(1,6*dt));
   /* OVER THE SHOULDER. A gun pulls the camera IN and to the pilgrim's
      right, the way every third-person shooter does — the body slides off
      to the left of the frame and the line to what you are shooting at is
@@ -15213,20 +15256,6 @@ for(const g of GUNS)gunAmmo(g);for(const k in CALIBRES)FPS.res[k]=CALIBRES[k].st
    the trigger is held. A shooter caps this; ours did not. */
 const SPREAD_CAP=2.6;
 // how far right of the pilgrim the braced camera sits
-/* THE TWO GUN CAMERAS. A rifle does not get the blade's camera: the
-   follow camera rides well above the pilgrim and looks DOWN on him, which
-   is right when you want to see the ground round your feet and wrong when
-   what you want is the line out to what you are shooting.
-   `GUN_CAM` is what the BRACE used to be, and it is where a gun now rests
-   — in, to the right, flattened. `ADS_CAM` is what aiming goes on to: a
-   Gears carry, close over the shoulder, nearly level, the body pushed
-   well off to the left so the whole right of the frame is the shot.
-   `in` is the share taken off `camDist`, `up` the lift on the eye's own
-   height, `side` the step to the pilgrim's screen-right, `pitch` the
-   angle the lens settles to. A blade takes none of it. */
-const GUN_CAM={in:.42,up:.10,side:.95,pitch:.17};
-const ADS_CAM={in:.58,up:.08,side:1.42,pitch:.09};
-const BRACE_SIDE=GUN_CAM.side;   // (kept: the old name, read nowhere else now)
 // how long the trigger holds the weapon out of the running carry
 const GUN_READY=.28;
 const GUN_HOLD=1.2;      // how long after a round the pilgrim keeps his shoulder to the foe

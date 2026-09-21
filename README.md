@@ -1236,8 +1236,10 @@ them the seed decides:
     midday, centred under the feet whatever the sun was doing, and it rose
     thirty-five centimetres into the air with you every time you rolled.
     It stays on the ground now whatever the body does, it takes its
-    darkness from the strength of the light (0.44 at noon, 0.26 at dusk,
-    0.14 at night), and as the sun drops it stretches and leans away from
+    darkness from the strength of the light (0.44 at noon, 0.32 at dusk,
+    0.24 at night — with a floor under it, because a shadow that fades to
+    nothing at night stops holding the body down), and as the sun drops it
+    stretches and leans away from
     it — half a metre out from the feet and nearly twice as long at
     sunrise, and pointing exactly opposite the light at every hour.
   - **and snow goes up as well as down.** A furrow is what is left behind,
