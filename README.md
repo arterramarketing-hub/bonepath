@@ -491,6 +491,24 @@ nothing to hit and snaps onto whatever the line meets. The rifle has a
 the shoulder driven round and back, the head going with it, the knees
 taking the rest, riding the shot and settling rather than snapping.
 
+**And he gives ground facing what he is shooting at.** Backing away from
+something while you shoot it is the whole of a gunfight, and the pilgrim
+used to do the opposite: haul the stick away from a horror at a sprint
+and, past about a hundred and fifteen degrees, the body swung round to
+face the way he was running — so he sprinted off with his shoulder blades
+to the thing while his rounds flew out of his back, and a second later
+the eye let go of it as well. Now the weapon holds him. While the brace
+is up, or for a second after any round, he keeps his shoulders square to
+the horror, the eye keeps hold of it, and the sprint drops to a walk so
+his legs have a **backpedal** to play — the stride reverses and the trunk
+leans back, which the walk already knew how to do and had never been
+asked. Measured with a hollow six metres ahead and the stick hard away:
+180 degrees off it at a sprint before, **zero degrees and a backpedal at
+3.7 m/s** the moment he fires. A retreat with the gun idle is still a
+retreat — he turns and runs, as he always did — and *charging* something
+while firing still sprints, because the cap is on giving ground, not on
+shooting.
+
 **And the weapon comes up when you fire it.** Running with a gun, it is
 carried low and canted across the body — but you can pull the trigger at
 a dead run, and the rifle used to stay slung there while the rounds went

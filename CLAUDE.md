@@ -1134,6 +1134,43 @@ Known state of play:
      writes is in `SMOOTH_JOINTS`, so the springs give the follow-through
      for nothing — the body rides the shot and settles rather than
      snapping.
+  7. **HE TURNED HIS BACK ON WHAT HE WAS SHOOTING AT.** Giving ground
+     while firing is the whole of a gunfight, and the body did the
+     opposite: past about 115 degrees off the foe a sprint set `runAway`
+     and swung the pilgrim round to face the way he was running, so he
+     sprinted off with his shoulder blades to the horror while his rounds
+     flew out of his back. Measured, a full-deflection retreat at a
+     sprint: **180 degrees off the foe, `relF` +1** (the walk cycle
+     playing FORWARD) — and the lock dropped at `LOCK_LEAVE` on top, so
+     the eye let go of the thing he was shooting.
+     Three flags, and the narrowness of each is the point:
+     - **`gunWorked()`** — over the shoulder, the brace up OR a round
+       inside the last `GUN_HOLD` (1.2s, `FPS.engageT`, set in `fireGun`
+       and refreshed by the brace in `updateGun`). It gates the lock's
+       LEAVING rule, in both directions: `lockAwayT` does not accumulate
+       while the gun is being worked, and working it is one of the things
+       that brings a released lock back. Without that half the rest is
+       dead code — the lock goes, `foe` is null, and the facing rule it
+       guards is never reached.
+     - **`gunShoulder()`** — `gunWorked()` with something to point it at.
+       It forces `runAway` false, so the body holds square on the foe
+       whichever way the feet are going. `relF` goes negative and
+       `poseWalk` reverses the stride and leans the trunk back on its own
+       (`dir=-1` at `fwd<-.15`); none of that had to be written.
+     - **`gunGiving()`** — `gunShoulder()` AND the feet actually going
+       the other way (`dot < -.2`, the same test the lock's leaving rule
+       uses). This is the one `adsWalk` reads, and it is separate because
+       a backwards SPRINT is not a thing a man does: giving ground drops
+       you to a walk so the legs have a backpedal to play. **A CHARGE IS
+       UNTOUCHED** — sprinting AT something while firing keeps its 7.2,
+       which is why the walk cap is not simply hung on `gunShoulder`.
+     Measured, seed 7, a hollow pinned six metres ahead, the stick hard
+     away: blade 180°/sprint (unchanged), gun idle 180°/sprint
+     (unchanged — a retreat is still a retreat), **gun firing 0°, `relF`
+     −1, 3.7 m/s**, gun charging in 0°/`relF` +1/7.2 (unchanged).
+     First person is untouched by all of it (`gunWorked` requires
+     `!FPS.on`): `adsWalk` there is still the sights alone, verified 6.1
+     hip-firing and 3.7 with them up.
 
 - **THE PACK: THREE THINGS THE HOST NEVER DID, AND ALL THREE THE SAME
   SENTENCE — a horror only ever knew about the PILGRIM.**

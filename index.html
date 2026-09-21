@@ -7837,7 +7837,7 @@ function poseRun(r,t,fwd,lat){
   r.body.rotation.y=s*.12;
   r.torso.rotation.y=-s*.2;
   r.torso.rotation.z=-s*.05;
-  r.torso.rotation.x+=.42;                              // pitched hard into the run
+  r.torso.rotation.x+=.42*(dir<0?-.45:1);               // pitched hard into the run — and back, less far, out of a reversed one
   r.head.rotation.x-=.3;
   r.head.rotation.y=s*.06;
   // the blade rides low and back, pumping with the stride
@@ -9815,11 +9815,29 @@ const G={
    pilgrim's own rebuild asks it whether to hide the body, and that runs at
    boot. */
 const FPS={on:false,pitch:0,ads:0,adsOn:false,zoom:0,gun:0,ammo:{},bob:0,kick:0,swayX:0,swayY:0,sprintVm:0,
-  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,maskT:0};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
+  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,maskT:0,engageT:0};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
 /* Are the sights up? A function DECLARATION, and called only at frame
    time, so it may reach `gunHeld` (which is declared a long way below
    this line and reads a LOADOUT that does not exist yet at boot). */
-function adsWalk(){return FPS.on&&FPS.ads>.12&&gunHeld();}
+/* IS THE GUN BEING WORKED? Over the shoulder only: the brace up, or a
+   round inside the last `GUN_HOLD` seconds. `gunShoulder` is the same
+   with something to point it AT — it holds the body square, whichever way
+   the feet are going — and `gunGiving` is the narrower case of GIVING
+   GROUND to it, which is what drops the sprint so the legs have a
+   backpedal to play. See the facing rule in `free` and the leaving rule
+   in `updateLock`. All DECLARATIONS: they reach `gunHeld`, and `player`
+   only ever at frame time. */
+function gunWorked(){return gunHeld()&&!FPS.on&&(FPS.ads>.12||FPS.engageT>0);}
+function gunShoulder(){return gunWorked()&&!!G.lockTarget;}
+function gunGiving(){
+  const t=G.lockTarget,P=player;
+  if(!t||!gunShoulder()||!(P.mvAmt>.4))return false;
+  const dx=t.x-P.x,dz=t.z-P.z,d=Math.hypot(dx,dz)||1e-3;
+  return (dx*P.mvx+dz*P.mvz)/d<-.2;      // the same test the lock's own leaving rule uses
+}
+/* ...and a SPRINT AT it while firing is untouched: only the brace and a
+   retreat cap you, never a charge. */
+function adsWalk(){return gunHeld()&&(FPS.ads>.12||gunGiving());}
 
 /* ---------------- the player ---------------- */
 const player={
@@ -10694,7 +10712,20 @@ const player={
           // foe) turns the body to the heading, and it comes back on the foe
           // once the sprint swings within ~95° again: no line to flicker over
           const toFoe=Math.atan2(foe.x-this.x,foe.z-this.z),off=Math.abs(wrapA(heading-toFoe));
-          if(run&&off>(this.runAway?1.66:2.0))this.runAway=true;else if(!run||off<1.66)this.runAway=false;
+          /* A GUN BEING WORKED NEVER TURNS ITS BACK ON WHAT IT IS SHOOTING
+             AT. Giving ground while firing is the whole of a gunfight, and
+             the body did the opposite: past ~115 degrees off the foe a
+             sprint set `runAway` and swung the pilgrim round to face the
+             way he was running — so he sprinted off with his shoulder
+             blades to the horror while his rounds flew out of his back.
+             `gunShoulder` holds him square, and `adsWalk` drops him to a
+             walk at the same moment, so the legs have a backpedal to play
+             rather than a backwards sprint (which is not a thing a man
+             does). `relF` goes negative and `poseWalk` reverses the
+             stride and leans the trunk back on its own. */
+          if(gunShoulder())this.runAway=false;
+          else if(run&&off>(this.runAway?1.66:2.0))this.runAway=true;
+          else if(!run||off<1.66)this.runAway=false;
           if(this.runAway)this.facing=angLerp(this.facing,heading,6*dt);
           else this.facing=angLerp(this.facing,toFoe,(run?14:10)*dt);
         }else{
@@ -14961,14 +14992,21 @@ function updateLock(){
   // moment you strike, stop, turn toward the host, or take a blow.
   {const P=player,dt=G.frameDt||.016;
     const away=(e)=>{const dx=e.x-P.x,dz=e.z-P.z,d=Math.hypot(dx,dz)||1;return (dx*P.mvx+dz*P.mvz)/d;};   // +1 toward it, -1 straight away
-    if(t&&!t.objective&&t.hp>0&&P.mvAmt>.4&&away(t)<-.2)G.lockAwayT=(G.lockAwayT||0)+dt;else G.lockAwayT=0;
+    /* ...UNLESS YOU ARE SHOOTING AT IT. The leaving rule is for running
+       PAST a pack, and it cut straight across the backpedal: giving
+       ground while firing is exactly "moving with it well behind your
+       heading", so after `LOCK_LEAVE` the eye dropped the horror, the
+       body squared up to the heading instead and the pilgrim sprinted
+       off with his back to the thing he was shooting. A worked gun holds
+       the lock, and brings it back. */
+    if(t&&!t.objective&&t.hp>0&&P.mvAmt>.4&&away(t)<-.2&&!gunWorked())G.lockAwayT=(G.lockAwayT||0)+dt;else G.lockAwayT=0;
     if(G.lockAwayT>LOCK_LEAVE){G.lockOff=true;G.lockAwayT=0;
       // the camera is about to come round behind you: until the stick is
       // moved, the hero keeps running the WORLD way it was running, so the
       // swing of the camera doesn't turn a held "back" into a charge
       G.holdMove={sx:IN.mx,sz:IN.mz,wx:P.mvx,wz:P.mvz};}
     if(G.lockOff){
-      const back=SWING_STATES.has(P.state)||P.state==='thrust'||P.state==='charge'||P.hurtGrace>0||P.mvAmt<.2||(cands.length&&P.mvAmt>.4&&away(cands[0])>.2);
+      const back=gunWorked()||SWING_STATES.has(P.state)||P.state==='thrust'||P.state==='charge'||P.hurtGrace>0||P.mvAmt<.2||(cands.length&&P.mvAmt>.4&&away(cands[0])>.2);
       if(back)G.lockOff=false;else{G.lockTarget=null;G.lockRivalT=0;lockMarker.visible=false;return;}
     }}
   let foe=null;
@@ -15094,6 +15132,7 @@ const SPREAD_CAP=2.6;
 const BRACE_SIDE=.95;
 // how long the trigger holds the weapon out of the running carry
 const GUN_READY=.28;
+const GUN_HOLD=1.2;      // how long after a round the pilgrim keeps his shoulder to the foe
 const SIGHTS=['iron','iron2','reddot','acog'];
 const ATTACH=[
   ['iron','iron sights','the sights the gun came with: a post and a notch, true at the top of the blade. nothing between you and the field'],
@@ -16259,6 +16298,7 @@ function rocketBurst(p,g,d){
 function fireGun(){
   const g=gunOf(),A=gunAmmo(g);
   A.mag--;FPS.shotT=g.rof;FPS.kick=1;FPS.kickSide=rr3(-1,1);FPS.flashT=.05;FPS.boltT=(g.bolt||g.pump)?0:99;
+  FPS.engageT=GUN_HOLD;                                    // the body stays squared up to what it is shooting at
   FPS.spread+=g.sp.shot;                                   // the hip's cone blooms (the sights' does not exist)
   // the climb, the gun's own: up, and a little to one side; the sights
   // hold nearly half of it, and a share of it settles back on its own
@@ -16463,6 +16503,7 @@ function updateGun(dt){
      never came down again. It belongs to the GUN, not to the viewmodel. */
   FPS.kick=Math.max(0,FPS.kick-dt*g.rec.recover);
   FPS.readyT=Math.max(0,(FPS.readyT||0)-dt);   // (the trigger's grip on the carry — see GUN_READY)
+  if(FPS.ads>.12)FPS.engageT=GUN_HOLD;else FPS.engageT=Math.max(0,(FPS.engageT||0)-dt);   // (the brace holds it open; a round refreshes it — see gunShoulder)
   if(FPS.reloading){
     FPS.reloadT+=dt;const u=FPS.reloadT/g.reload;
     if(FPS.rlStage<1&&u>.48){FPS.rlStage=1;AudioSys.magIn();}
