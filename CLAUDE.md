@@ -193,6 +193,28 @@ Known state of play:
   you stand can never disagree; every scattered copy of the literal 4.5
   now says `onStone`. And it holds on the path, because `cathZ` answers
   with whatever cathedral that stretch of corridor is carrying.
+  **AND THE PLOUGHED FURROW WAS NEVER GUARDED AT ALL** — the note above
+  `onStone` had promised "no ploughed furrow" since the boot-prints were
+  fixed, and the `TRAIL` simply was not covered: the only `onStone` in
+  that code was at the pilgrim's own CALL SITE, which is the very mistake
+  the boot-prints taught. In a blizzard every hollow that walked the nave
+  dragged a channel of snow the length of the flagstones. Measured, six
+  hollows and the pilgrim marched through the portal and up the nave:
+  **230 of 246 cross-sections laid on stone, 2519 of 2695 drawn vertices
+  on stone, reaching 13 metres inside the outer wall.** After: **0 and
+  0**, with the furrow on open ground untouched (284 sections / 3179
+  vertices, against 245 / 2959 before — slightly MORE, because none of it
+  is being spent on flagstones any more).
+  It takes TWO guards, and the second is the one you see:
+  - **`trailPush`** lays a section. One `onStone` on its first line covers
+    the pilgrim and the whole host together, and the call site's own copy
+    is deleted.
+  - **`trailHead`** builds a cut fresh every rewrite from where the body
+    is NOW, not from the last section laid. So `trailPush` alone stops the
+    ribbon GROWING while the head goes on reaching out of the last section
+    to the pilgrim's feet — a furrow that follows him across the nave with
+    nothing in the buffer to explain it. It asks about its own point too,
+    which is a third of a metre ahead of him.
 - **Three traps in that code, all of which cost hours:**
   1. A mark written BELOW the ground is invisible. The ground is one mesh
      and nothing carves into it, so everything sits above the surface

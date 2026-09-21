@@ -5788,6 +5788,14 @@ function trailHead(lane){
   const own=lane.own,S=lane.secs,last=S[S.length-1];
   const x=own.x,z=own.z,dx=x-last.x,dz=z-last.z,dd=Math.hypot(dx,dz);
   if(dd<.04)return null;
+  /* THE HEAD IS THE SECOND PRODUCER, AND IT IS THE ONE YOU SEE. It is
+     built fresh every rewrite from where the body is NOW rather than from
+     the last section laid — so a guard on `trailPush` alone stops the
+     ribbon growing and the head goes on reaching out of the last section
+     to the pilgrim's feet, dragging a cut of snow the whole length of the
+     nave behind him. It is a third of a metre AHEAD of him as well, so
+     both points are asked. */
+  if(onStone(x,z)||onStone(x+dx/dd*.34,z+dz/dd*.34))return null;
   const spd=own===player?(own.spd||0):(own.speed||2.2);
   const amt=Math.min(1,spd/5.5)*(own.state==='roll'?1.35:1);
   const sc={x:x+dx/dd*.34,z:z+dz/dd*.34,rx:-dz/dd,rz:dx/dd,
@@ -5824,6 +5832,14 @@ function trailStamp(lane,x,z,w){
   }
 }
 function trailPush(lane,x,z,w,d){
+  /* AND STONE TAKES NO FURROW EITHER. The note above `onStone` has
+     promised this since the boot-prints were fixed — and the PLOUGH was
+     never guarded, in either of its two producers. Only the pilgrim's own
+     call site asked, so every hollow that walked the nave dragged a
+     channel of snow across the flagstones, exactly the fault `snowStamp`
+     and `printSnow` were given the same guard for. It belongs HERE, where
+     a section is laid, and it covers the pilgrim and the host together. */
+  if(onStone(x,z))return;
   const S=lane.secs,last=S[S.length-1];
   if(last){
     const dx=x-last.x,dz=z-last.z,dd=Math.hypot(dx,dz);
@@ -5846,7 +5862,7 @@ function updateTrail(dt){
   if(!PLOUGHS()){if(TRAIL.mesh.visible)trailClear();return;}
   // lane 0 is always the pilgrim's; the rest go to the nearest hollows
   const L0=TRAIL.lanes[0];L0.own=player;
-  if(G.mode==='play'&&player.hp>0&&!onStone(player.x,player.z)&&!(player.rollAir>.04))
+  if(G.mode==='play'&&player.hp>0&&!(player.rollAir>.04))   // (the stone is `trailPush`'s own business now)
     /* WIDTH. A man wading leaves a channel about as wide as he is; it was
        coming out three times that, which is a cart track. Only a ROLL is
        wide, because that is the one time the whole body is on the ground

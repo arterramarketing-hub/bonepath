@@ -1211,6 +1211,13 @@ them the seed decides:
     you leave can never disagree about what is underfoot, and it holds
     wherever a cathedral stands: the field's, and every one the path
     builds.
+    The FURROW was the last thing to learn it, and it had never been asked
+    at all: in a blizzard every hollow that walked the nave dragged a
+    channel of snow the length of the flagstones, and so did you. Measured
+    over a march through the portal and up the nave, 230 of 246
+    cross-sections were being cut into stone, thirteen metres inside the
+    outer wall. Nothing is now, and the furrow out on the field is exactly
+    what it was.
   - **and snow goes up as well as down.** A furrow is what is left behind,
     and behind is mostly where the camera is — what you actually watch,
     pace after pace, is the snow the legs are shovelling aside right now.
