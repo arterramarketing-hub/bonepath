@@ -3278,9 +3278,18 @@ const Input=(()=>{
 
   const ctl=$('controls');
   let camLX=null,camLY=null;
+  /* WHICH THUMBS ARE ACTUALLY DOWN. The browser tells us a pointer went
+     down and tells us when it comes up; everything in between, it is on
+     the glass whatever the game has done to the stick in the meantime.
+     `livePtr` is that, and only that — it is emptied by an up or a
+     cancel and by NOTHING else, which is the whole point: a
+     `lostpointercapture`, a scene, a pause, a `releaseAll` all end the
+     STICK, and none of them ends the THUMB. */
+  const livePtr=new Map();
   ctl.addEventListener('pointerdown',e=>{
     if(e.target.closest('.btn'))return;
     e.preventDefault();st.anyPressed=true;
+    livePtr.set(e.pointerId,{left:e.clientX<innerWidth*.45});
     try{ctl.setPointerCapture(e.pointerId);}catch(err){}
     reapStale();                       // a thumb that never said goodbye is not still holding the stick
     if(fpsMode&&e.pointerType==='mouse'){
@@ -3308,6 +3317,32 @@ const Input=(()=>{
     }
   });
   ctl.addEventListener('pointermove',e=>{
+    /* AND A THUMB THAT NEVER LEFT THE GLASS TAKES THE STICK BACK. Every
+       way the stick is lost — a cutscene (`#controls` goes
+       `pointer-events:none` and `cutEnd` calls `releaseAll`), a pause, a
+       capture the browser took away, a system gesture — ended with the
+       player's thumb still pressed and the stick gone, and NOTHING could
+       bring it back but lifting and pressing again. Measured across a
+       ghoul's entrance with the thumb held the whole way: mz -1 going in,
+       0 coming out, 0 after moving the thumb, and only a lift and a fresh
+       press restored it. The pilgrim just stands there.
+       So a move from a pointer that is still down, landed on the left,
+       and is not the camera's, re-seats the stick UNDER THE THUMB — the
+       base is planted where the thumb is NOW, so nothing lurches and the
+       player pushes on from where they are. It heals every one of those
+       cases without knowing about any of them. */
+    if(stickId===null&&e.pointerId!==camId&&!(fpsMode&&e.pointerType==='mouse')){
+      const L=livePtr.get(e.pointerId);
+      if(L&&L.left){
+        stickId=e.pointerId;stickOX=e.clientX;stickOY=e.clientY;
+        stickHeld=ctl.hasPointerCapture(e.pointerId);
+        st.mx=0;st.mz=0;
+        base.style.display='block';nub.style.display='block';
+        base.style.left=(stickOX-48)+'px';base.style.top=(stickOY-48)+'px';
+        nub.style.left=(stickOX-20)+'px';nub.style.top=(stickOY-20)+'px';
+        return;
+      }
+    }
     if(e.pointerId===stickId){
       const dx=e.clientX-stickOX,dy=e.clientY-stickOY;
       const d=Math.hypot(dx,dy);
@@ -3368,6 +3403,8 @@ const Input=(()=>{
   }
   function releaseAll(){dropStick();dropCam();for(const k in keys)keys[k]=false;touchCharge=false;mouseFire=false;mouseAds=false;touchFireN=0;}
   function endPtr(e){
+    // a lost capture is not a lifted thumb: only an up or a cancel forgets it
+    if(e.type!=='lostpointercapture')livePtr.delete(e.pointerId);
     if(e.pointerType==='mouse'){if(e.button===0)mouseFire=false;if(e.button===2){if(mouseAds&&fpsMode&&fpsBlade)st.chargeRelease=true;mouseAds=false;}}
     if(e.pointerId===stickId)dropStick();
     if(e.pointerId===camId){
@@ -7312,19 +7349,34 @@ function poseWandCharge(r,q,t){
 /* the cast: the whole arm comes up and OVER from the hip, out past the
    shoulder, and the bubble is blown off the head at the top of it — the
    trunk unwinds behind the arm and the free hand sweeps back as the
-   counterweight. q rises to the blow and falls away after it. */
-function poseWandCast(r,q,t){
-  const e=easeOut(clamp(q,0,1));
-  r.torso.rotation.y=.34*e;r.torso.rotation.x-=.10*e;
-  r.body.rotation.y=.16*e;
+   counterweight. q rises to the blow and falls away after it.
+   AND IT ALTERNATES. `sd` is +1 for the forehand and -1 for the backhand,
+   and every lateral channel in the pose is signed by it — the trunk's
+   wind, the hips, the arm's sweep, the head, the counterweight, the feet.
+   One cast throws the rod out past the right shoulder; the next brings it
+   back across the body the other way, so a held tap reads as one weapon
+   being worked rather than the same gesture stamped over and over. The
+   hero's rig is `smoothPose`, so the springs give the whip and the
+   overshoot at the end of each sweep for nothing: the alternation is what
+   makes them visible.
+   `mv` is how much of him belongs to the WALK. The cast used to write the
+   legs, the hips and the body's height, which is fine standing still and
+   fights a stride outright — so at a run the trunk's twist and the arms
+   are all that is left of it and the feet are the walk's. */
+function poseWandCast(r,q,t,sd,mv){
+  const e=easeOut(clamp(q,0,1)),S=sd===undefined?1:sd,m=1-clamp(mv||0,0,1);
+  r.torso.rotation.y+=.52*e*S;r.torso.rotation.x-=.10*e;
+  r.body.rotation.y+=.22*e*S*m;
   // up and forward: the elbow leads, the forearm opens, the head is thrown out
-  r.armR.rotation.set(-1.62*e-.30*(1-e),.18*e,-.10+.30*e);
+  r.armR.rotation.set(-1.62*e-.30*(1-e),.30*e*S,-.10+.52*e*S);
   r.foreR.rotation.set(-.80*(1-e)-.34*e,0,.06);
-  r.weapon.rotation.set(-1.05*(1-e)-1.72*e,0,.06);
-  r.armL.rotation.set(.04+.62*e,0,.13+.26*e);r.foreL.rotation.set(-.34-.42*e,0,0);
-  r.head.rotation.y=.2*e;r.head.rotation.x-=.04*e;
-  r.legR.rotation.x=-.14*e;r.legL.rotation.x=.14*e;r.kneeR.rotation.x=.16*e;
-  r.body.position.y=r.baseY+.03*e*r.s;
+  r.weapon.rotation.set(-1.05*(1-e)-1.72*e,0,.06+.34*e*S);
+  r.armL.rotation.set(.04+.62*e,0,.13+.40*e*S);r.foreL.rotation.set(-.34-.42*e,0,0);
+  r.head.rotation.y+=.28*e*S;r.head.rotation.x-=.04*e;
+  if(m>.01){
+    r.legR.rotation.x+=-.14*e*m;r.legL.rotation.x+=.14*e*m;r.kneeR.rotation.x+=.16*e*m;
+    r.body.position.y+=.03*e*r.s*m;
+  }
   wandOrb(r,1+e*.45,.4+.6*e);
 }
 /* the draw: side-on to the mark, the bow arm out straight and level, the
@@ -10952,9 +11004,18 @@ const player={
        cast leaves behind goes on working after it. The arm comes over and
        a bubble is blown off the wand's head; the bubble does the rest. */
     const startCast=(s)=>{
+      /* IT ALTERNATES, AND IT DOES NOT TAKE HIS FEET AWAY. The side flips
+         every cast, so a held tap is a forehand and then a backhand and
+         then a forehand; and `sprintT`/`sprinting` are left alone, which
+         is the whole of casting on the move — they used to be zeroed
+         here, so the first tap out of a sprint stopped him dead and the
+         stride had to be built again from nothing. */
+      const chain=this.state==='cast';
       this.state='cast';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
-      this.queued=false;this.qDir=null;this.sprintT=0;this.sprinting=false;
+      this.queued=false;this.qDir=null;
+      this.castSide=-(this.castSide||-1);
       this.castN=1;this.castBig=false;
+      if(chain)seamGrab(this.rig);   // the springs carry the last sweep's speed into this one
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       else if(s&&s.sx!==null)this.facing=swipeWorld(s);
     };
@@ -10963,6 +11024,7 @@ const player={
       this.state='cast';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;
       this.queued=false;this.qDir=null;
       this.chargeFull=this.chargeT>=.6;
+      this.castSide=1;                 // the volley is always the wide forehand
       this.castN=kind==='bulwark'?1:3;this.castBig=kind==='bulwark';
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
     };
@@ -11487,6 +11549,21 @@ const player={
          on it — but nothing about the bubble depends on where he ends up:
          it leaves the wand and then it is its own. */
       const DUR=this.castBig?.62:.44,p=this.t/DUR;
+      /* AND HE WALKS THROUGH IT. A blade's swing plants the feet, and it
+         should; a wand is a free hand and a wizard casting is a wizard
+         still going where he was going. The stride carries at
+         `CAST_STRIDE` of the ground speed he had, so a cast slows him
+         without stopping him, and `moveAmt`/`strideT` keep running so the
+         legs under the sweep are the walk's own rather than a stand. */
+      const cm=this.mvAmt||0;
+      if(cm>0){
+        const csp=(this.sprinting?7.2:4.3*Math.min(1,cm*1.35))*(PATH.on?1.5:1)*CAST_STRIDE;
+        this.spd=lerp(this.spd||0,csp,Math.min(1,10*dt));
+        this.x+=this.mvx*this.spd*dt;this.z+=this.mvz*this.spd*dt;
+        this.moveX=this.mvx;this.moveZ=this.mvz;
+      }else this.spd=lerp(this.spd||0,0,Math.min(1,16*dt));
+      this.moveAmt=lerp(this.moveAmt,cm,10*dt);
+      this.strideT=(this.strideT||0)+dt*(this.spd/4.3);
       if(foe&&p<.5)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),13*dt);
       if(!this.hitDone&&p>=.52){
         this.hitDone=true;
@@ -11495,7 +11572,12 @@ const player={
         G.glowFlash=Math.max(G.glowFlash||0,this.castBig?.5:.22);
       }
       if(IN.swipe&&IN.swipe.kind==='atk'&&p>.56){this.queued=true;this.qDir=IN.swipe.sx!==null?swipeWorld(IN.swipe):null;}
-      if(p>=1){
+      /* the tail of a cast is the arm walking back to the carry, and a
+         cast with the next already queued has no use for it — the same
+         reason `CHAIN_OUT` exists for the blades. It leaves at
+         `CAST_OUT`, so a held tap is one continuous figure of eight
+         instead of a sweep, a return, a sweep. */
+      if(p>=(this.queued?CAST_OUT:1)){
         if(this.queued){const d=this.qDir;startCast(null);if(!foe&&d!==null)this.facing=d;}
         else this.state='free';
       }
@@ -11789,7 +11871,13 @@ const player={
     else if(this.state==='shoot'){const p=Math.min(1,this.t/.46);poseBowDraw(r,p<.42?p/.42:Math.max(0,1-(p-.42)/.3),t);}
     else if(this.state==='loose')poseBowDraw(r,Math.max(0,1-this.t/.4*1.4),t);
     else if(this.state==='cast'){const D=this.castBig?.62:.44,p=Math.min(1,this.t/D);
-      poseWandCast(r,p<.52?p/.52:Math.max(0,1-(p-.52)/.38),t);}
+      // the legs belong to the stride he is still carrying; the sweep is laid over them
+      const cmv=Math.min(1,(this.moveAmt||0)/.5);
+      if(cmv>.02){
+        if(this.sprinting&&this.moveAmt>.5)poseRun(r,t*(PATH.on?1.4:1),this.relF,this.relL);
+        else poseWalk(r,this.strideT||t,Math.min(1,this.moveAmt/.78),false,this.relF,this.relL);
+      }
+      poseWandCast(r,p<.52?p/.52:Math.max(0,1-(p-.52)/.38),t,this.castSide||1,cmv);}
     else if(this.state==='spin')poseSpin(r,Math.min(1,this.t/(.95*this.swing())));
     else if(this.state==='quake')poseQuakeStab(r,Math.min(1,this.t/1.0));
     else if(this.state==='falling')poseFall(r,this.t);
@@ -17574,6 +17662,20 @@ const ATK_ENTRY=.15;      // how far into the wind a chained swing begins
    follow-through is on screen and only the dead beat at the very end of it
    is gone: the full arc, a fifth less waiting, and the weight back. */
 const CHAIN_OUT=.88;
+/* THE WAND'S TWO. `CAST_OUT` is `CHAIN_OUT`'s cousin — where a cast with
+   the next already queued gives up its return, so a held tap is one
+   continuous figure of eight rather than sweep, return, sweep. It is
+   EARLIER than the blades' .88 because the bubble has already left the
+   rod at .52 and everything after that is the arm travelling home; there
+   is nothing in the tail to protect.
+   `CAST_STRIDE` is the share of his ground speed a wizard keeps while he
+   casts. It is not 1: a cast should cost something, and a man throwing
+   his arm across his body does shorten his stride. It is not 0 either,
+   which is what it used to be — the state simply did not move him, so
+   every tap at a sprint stopped him dead and the stride had to be rebuilt
+   from nothing afterwards. */
+const CAST_OUT=.80;
+const CAST_STRIDE=.72;
 /* How far the iaido draw will travel. The eye only reaches 15m, so anything
    it can lock, the draw can close — the step is sized to the foe and spent
    in the same sliver of the animation either way, so a distant one is
@@ -17943,7 +18045,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

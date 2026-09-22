@@ -489,6 +489,71 @@ Known state of play:
   cannot capture, so this path is untestable with dispatched events and
   needs CDP `Input.dispatchTouchEvent`), and a fresh left-half touch
   re-seating the stick outright. Do not remove the belt or the braces.
+- **A THUMB THAT NEVER LEFT THE GLASS TAKES THE STICK BACK** (`livePtr`,
+  the re-seat at the top of `pointermove`). Every way the stick is lost
+  ended with the player's thumb still pressed and the stick GONE, and
+  nothing could bring it back but lifting and pressing again — so the
+  pilgrim just stood there. The commonest case is a cutscene: `body.cine`
+  puts `#controls` to `pointer-events:none` and `cutEnd` calls
+  `Input.releaseAll()`, so *any* horror with an entrance of its own (the
+  ghoul, the Fallen One, the Bell-Called) took the stick away from a
+  player who was mid-sprint. Reproduced with the thumb held the whole way
+  through a ghoul's scene: **mz -1 going in, 0 coming out, 0 after moving
+  the thumb, and only a lift and a fresh press restored it.**
+  `livePtr` is which pointers the browser says are DOWN and which half
+  they landed on. It is emptied by an up or a cancel and **by nothing
+  else** — that is the whole point: a `lostpointercapture`, a scene, a
+  pause and a `releaseAll` all end the STICK, and none of them ends the
+  THUMB. So `endPtr` deletes from it only when `e.type!=='lostpointer
+  capture'`. A `pointermove` from a pointer that is still down, landed on
+  the left, and is not the camera's re-seats the stick **under the thumb**
+  — the base is planted where the thumb is NOW, so nothing lurches and the
+  first frame's deflection is zero by construction.
+  It heals every one of the five losses without knowing about any of them,
+  and it is the sixth way out, not a replacement for the others.
+  Verified after: re-seats and moves again without a lift; **a right-half
+  thumb dragged all the way across the midline still does not become the
+  stick** (it read as the roll flick it is), a right tap still strikes, an
+  ordinary press/move/release still zeroes, and a second left thumb still
+  takes the stick off the first.
+
+- **THE WAND CASTS ON THE MOVE, AND IT ALTERNATES** (`CAST_STRIDE`,
+  `CAST_OUT`, `castSide`, `poseWandCast(r,q,t,sd,mv)`).
+  - **`startCast` used to zero `sprintT` and `sprinting`**, and the cast
+    state moved him not at all — so a tap at a sprint stopped the wizard
+    dead and the stride had to be built again from nothing. The state
+    carries the stride now at `CAST_STRIDE` (.72) of the speed he had,
+    with `moveAmt`/`strideT` still running so the legs under the sweep are
+    the walk's own. Measured, five taps held down at a sprint: **4.33m
+    covered, speed 5.18 (which is .72 x 7.2), `moveAmt` 1, in `cast` the
+    whole way** — against a greatsword's 0.00m over the same test, which
+    is right: a blade plants the feet and a free hand does not.
+  - **`mv` is how much of him belongs to the WALK.** The pose wrote the
+    legs, the hips and the body's height, which is fine standing still and
+    fights a stride outright. At a run only the trunk's twist and the arms
+    are left of it.
+  - **`sd` alternates +1/-1 every cast** and signs every lateral channel —
+    the trunk's wind, the hips, the arm's sweep and yaw, the wand's own
+    roll, the counterweight, the head. Forehand, then backhand, then
+    forehand. Measured at the top of the sweep, the rod's head in the
+    hero's own frame: **+0.281 and -0.674, a 0.955m spread.** The first
+    pass only signed half the channels and got 0.565m with the pair
+    centred well off the body — if it stops reading as two sides, measure
+    that spread rather than looking at one frame.
+  - **The momentum is the SPRINGS, and alternation is what makes it
+    visible.** The hero's rig is `smoothPose`, so the whip and the
+    overshoot at the end of each sweep are free; a cast that always went
+    the same way just stamped the same gesture. `startCast` calls
+    `seamGrab(this.rig)` when one cast chains into another, so the springs
+    carry the last sweep's speed into the next instead of restarting.
+  - **`CAST_OUT` (.80) is `CHAIN_OUT`'s cousin** — where a cast with the
+    next already queued gives up its return. It is EARLIER than the
+    blades' .88 because the bubble has already left the rod at .52 and
+    everything after that is the arm travelling home; there is nothing in
+    the tail to protect.
+  - The charged volley pins `castSide=1`: it is one wide forehand and
+    always was.
+
 - **A rolling attack fires at `R.ROLLED`, not `R.LAND`.** `poseRoll` turns
   the trunk a full `TAU` over `0 → ROLLED`; LAND is only where the body
   first touches, about 58% of the way round. Cutting there snapped the rig

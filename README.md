@@ -84,7 +84,16 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
   fog on his own with nothing on screen to argue with. There are five ways
   out of that now, and the last one needs no clever plumbing at all: **a
   fresh touch anywhere on the left half re-seats the stick**, whatever
-  went wrong
+  went wrong.
+
+  **And you no longer have to lift.** The opposite fault was quieter and
+  worse: a horror with an entrance of its own would take the stick away
+  from you mid-sprint — the scene hides the controls, the controls let go
+  of your thumb, and when the picture came back the stick was gone and
+  the pilgrim stood still, with your thumb still pressed to the glass and
+  nothing you could do but lift it and press again. Any movement of a
+  thumb that is *still down* now re-seats the stick under it, wherever it
+  is. That is the sixth way out, and it heals the other five too
 - **Right thumb — tap to fight, hold to break them, flick to live:**
   - **tap** — swing the sword; keep tapping and the combo climbs:
     slash, backhand, crushing overhead, deep thrust, and around again
@@ -178,6 +187,22 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     come back to the ring; find another and they peel off again from
     wherever they were going. You do not aim a wizard; you build a cloud
     and then decide what it is for.
+
+    **And he casts on the move, with a hand that swings.** A blade's
+    swing plants the feet, and it should; a wand is a free hand, and a
+    wizard casting is a wizard still going where he was going. A tap at a
+    sprint used to stop him dead and cost him the whole stride. It costs
+    him a little speed now and nothing else — he keeps his feet under him
+    and the legs under the sweep are the stride's own.
+    The sweep **alternates**: the rod goes out past one shoulder and the
+    next cast brings it back across the body the other way, the trunk and
+    the cloak winding opposite each time. Held down it reads as one
+    weapon being worked in a figure of eight rather than the same gesture
+    stamped over and over, and the joint springs that give the blades
+    their whip and their overshoot finally have something to whip
+    *between*. A cast with the next already queued gives up its return,
+    the way a sword combo does — the bubble has left the rod by halfway,
+    and everything after that is only the arm walking home.
 
     **Eight is the cap and it is hard.** A ninth cast recycles the eldest
     rather than growing the swarm, so what a wizard costs the frame never
