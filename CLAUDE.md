@@ -2102,69 +2102,140 @@ Known state of play:
   **−11.0° → −4.5°**, and at 4.8m the whole body is inside the frame
   (feet −0.54, crown +0.13 in NDC).
 
-- **THE RISE IS A RATCHET, AND THREE SEPARATE THINGS MADE IT A FLOAT**
-  (`RISE_UP`, `riseUp`, `RISE_DEEP`, `RISE_CLAW`, `poseRise`).
+- **THE RISE IS A LEVER BEFORE IT IS A LIFT** (`RISE_UP`, `riseUp`,
+  `riseRate`, `RISE_DEEP`, `RISE_CLAW`, `RISE_PLANT`, `plantHand`,
+  `riseToWalk`, `poseRise`). A hand breaks the soil and claws; the thing
+  scrabbles its shoulders clear; then it puts ONE HAND FLAT ON THE GROUND
+  and straightens that arm, which is what actually brings the trunk out;
+  the second hand joins it and the two press the hips clear; and the last
+  beat is the hands leaving the soil and the pose walking away.
   1. **THE CLIMB CAME BACK TO ZERO BETWEEN HEAVES.** It was
      `up=max(h1*.3,h2*.6,h3)` where every `h` was a bump that returned to
      zero, so the body climbed a third, sank to the BOTTOM of its hole,
      climbed two thirds, sank to the bottom again, lay buried for a beat,
      and then glided the whole way up on one ease. Measured over sixty
      samples: **0.95m given back — the entire gain — and 21 of 60 frames
-     travelling DOWNWARD.** A third of the animation was the thing
-     sinking, which is the whole of "it floats up and down".
-     `RISE_UP` is a table of (time, height) so the ladder can be read and
-     retuned, and the interpolation is ASYMMETRIC because the two halves
-     of a failed lift do not look alike: a heave is explosive and runs out
-     of strength (ease-OUT), a slip holds an instant and then lets go
-     (ease-IN). Now: **0.465m of 2.05 given back, all of it inside the two
-     designed slips (.09 and .11 of the ladder), and the floor of the
-     grave is never touched twice.**
-     `RISE_EFF` normalises the steepest heave's rate, and `eff`/`slip`/
-     `stuck` are read off the ladder's own DERIVATIVE — so the shudder,
-     the arms, the head and the legs are hung on where the effort actually
-     is and can never disagree with the climb. **If you retune the table,
-     do not also hand-tune the secondary motion.**
-  2. **IT WAS BURIED SHALLOWER THAN IT IS TALL.** Measured off the rig,
-     the head's crown stands **1.89m above the root in the rise pose**
-     (2.53 on a neutral rig — the trunk fold drops it), and the start
-     depth was 1.55: the skull was **34cm PROUD OF THE SOIL on the first
-     frame** and the first thing out of a grave was a face. The hand only
-     overtook it at p .18. `RISE_DEEP` is 2.05, measured against that
-     crown, and the ladder's flat run moved .18 → .22. Order now, measured
-     as "first frame any part is above y=0": **hand and weapon p .06, head
-     p .215, second arm p .24, legs p .48.** If the rig's proportions
-     change, re-measure the crown — a start depth under it is a body lying
-     on the grass.
-  3. **THE TRUNK FOLD EATS THE REACH, AND THIS IS THE ONE WORTH
-     REMEMBERING.** The body is folded 1.3 rad over itself for the whole
-     climb, and that fold is what keeps the head down — so an arm "raised
-     overhead" at `armR.rotation.x = -2.75` comes out very nearly
-     HORIZONTAL and the hand cleared the soil by **4cm**. What you saw was
-     the weapon lying flat across the mound. Swept WITH the fold applied:
-     −3.2 puts the hand 0.79m proud, −3.6 puts it 1.20m and −4.0 1.36m,
-     with the head still 0.22m under at every one of them.
-     **Sweep the shoulder with the fold applied, never on a neutral rig** —
-     a neutral sweep says −2.75 reaches 3.72 above the root and is
-     useless.
-     `RISE_CLAW` is that extra rotation as a PULSE (`breach`) that is gone
-     by p .30, so the rest of the climb keeps the planted arms it always
-     had. **It is .45 and not .95 for a resolution reason:** at .95 the
-     hand stood 1.42m proud and the render is 383x216, so what came out of
-     the ground was a dark vertical bar — a FENCE POST, not a hand. At .45
-     the arm is about 45 degrees and the forearm and club read as a limb.
-     Anything thrust out of the soil has to be a diagonal at this
-     resolution.
-  **THE RISE CANNOT BE INTERRUPTED, so every heave is always seen:**
+     travelling DOWNWARD.** That is the whole of "it floats up and down".
+     `RISE_UP` is a table of (time, height) and the interpolation is
+     ASYMMETRIC because the halves of a failed lift do not look alike: a
+     heave is explosive and runs out (ease-OUT), a slip holds an instant
+     and then lets go (ease-IN). Now **0.17m of 2.10 given back on a
+     hollow and 0.25m of 3.00 on a brute** — 8% of the climb, all inside
+     the designed slips — and the floor of the grave is never touched
+     twice.
+  2. **`RISE_DEEP` IS PER METRE OF RIG (`*r.s`), NOT METRES.** The head's
+     crown stands 1.89m above the root in this pose (2.53 on a neutral
+     rig — the fold drops it), and the depth was a flat 1.55: the skull
+     was **34cm PROUD OF THE SOIL on the first frame** and the first thing
+     out of a grave was a face. A constant is only right for one body — at
+     2.05 a brute, whose crown is 2.85 above its root, stood most of a
+     metre out before it began. At 2.271 of its own scale every body
+     starts with its crown half a metre under, measured hollow −0.87 and
+     brute −1.13.
+  3. **THE TRUNK FOLD EATS THE REACH.** The body is folded `RISE_FOLD`
+     (1.3) over itself all the way up and that fold is what keeps the head
+     down — so an arm "raised overhead" at `armR.rotation.x = -2.75` comes
+     out nearly HORIZONTAL and the hand cleared the soil by **4cm**; what
+     you saw was the weapon lying flat on the mound. Swept WITH the fold
+     applied: −3.2 puts the hand 0.79m proud, −3.6 1.20m, −4.0 1.36m, the
+     head still 0.22m under at all of them. **Sweep the shoulder with the
+     fold applied, never on a neutral rig** — a neutral sweep says −2.75
+     reaches 3.72 above the root and is useless. `RISE_CLAW` is a PULSE
+     over the breach alone, and it is .45 and not .95 for a resolution
+     reason: at .95 the hand stood 1.42m proud and at 383x216 what came
+     out of the ground read as a FENCE POST. Anything thrust out of the
+     soil has to be a DIAGONAL at this size.
+  **A PLANTED HAND IS A CONSTRAINT, NOT AN ANIMATION**, which is why
+  `plantHand` bisects the shoulder every frame instead of playing a curve.
+  A hardcoded angle table was written and thrown away: hollows randomise
+  their scale and a brute is not a scaled hollow (its planting band is up
+  .42–.66 where a hollow's is .46–.78), so one table is wrong for almost
+  every body in the field. Measured, both hands now hold the soil to
+  **±2cm on the right and ±5mm on the left** across their presses.
+  Five things about it each cost a measurement:
+  - **THE TARGET IS 0.** The root carries the BURIAL OFFSET, so the soil
+    is y=0 in the rig's own frame and the game adds the ground height
+    afterwards. Solving against `-gy` — which looks reasonable, and was
+    the first version — pins the hands a metre ABOVE the ground: the right
+    hand ran −1.00 to +0.59 with a mean of +0.26 where every sample should
+    read 0.
+  - **THE TIP IS MEASURED PER ARM.** A hollow's LEFT ARM HAS NO HAND: the
+    right forearm reaches −0.55 to its fingertips, the left stops at the
+    wrist at −0.35. Taking the tip off `foreR` and using it for both put
+    the left solve 20cm out, so that palm floated a hand's width over the
+    soil for its whole press while every number in the solve read zero.
+  - **WHEN EACH HAND CAN BE DOWN IS THE ARM'S TO SAY.** The arm is 0.59
+    from shoulder to wrist and the shoulder sits 1.29 above the root, so
+    while the body is two metres down the shoulder is three quarters of a
+    metre UNDER the soil and **a plant is geometrically impossible** — the
+    hand can barely poke its fingers out. That is why the scrabble comes
+    first and both presses are in the upper half. The short left arm holds
+    the soil only while the root is under −0.78 and the right down to
+    −0.46, so the left joins EARLY and releases first and the longer right
+    arm finishes the push. `RISE_PLANT` is
+    `[rightDown, rightUntil, leftDown, leftUntil]`.
+  - **THE BRACKET'S LOW END IS THE ARM'S FURTHEST REACH, and that is not
+    where you would first put it.** The hand's height is not monotone in
+    the shoulder angle, it is a U: measured at p .78, 0.21 at armRx −1.2,
+    down through −0.00 at −0.4, up to 0.79 at +1.4. So the soil has TWO
+    solutions, the bisection crossed between branches, and when the near
+    one vanished the angle leapt from −0.16 to the bracket end — a 0.23m
+    teleport on a hollow and 0.44m on a brute in a hundredth of a second.
+    `PLANT_LO` is the bottom of that U (−.35, stable across the press),
+    the function is non-decreasing over the bracket, and the clamp at `lo`
+    is then the max-reach pose and moves smoothly as the shoulder rises.
+  - **THE RESIDUAL IS NOT A WEIGHT.** Fading the solve out as the arm ran
+    out of reach (`res>.02 ? max(0,1-res*2.2) : 1`) is a switch, and a
+    switch is a discontinuity. It guarded against nothing: out of reach,
+    the bisection already returns the lowest angle the shoulder CAN hold.
+  - Cost: **13–19us per rising body per frame** (software-rendered
+    harness, so the spread is the harness) against 1.4us for the same pose
+    with no plant — about 0.1% of a 60fps frame, and only while something
+    is rising. The ancestors are walked once per solve, not once per step.
+  **`eff` WAS DISCONTINUOUS AT EVERY BREAKPOINT IN THE LADDER**, and the
+  shudder, the head, the arms and the legs are all hung on it, so all of
+  them stepped together at every join. The cause is the EASE, not the
+  table: an ease-out segment arrives with a derivative near zero and the
+  next leaves with its steepest, so a central difference over a hundredth
+  of a second reads a cliff. Measured across p .86, `eff` jumped 0.35 in
+  one frame and every channel moved in exact proportion to its own eff
+  coefficient — kneeR −0.209 on a −.6, legR +0.174 on a +.5, head +0.187
+  on a +.55. `riseRate` reads the rate over THREE widths and averages.
+  **A one-sample derivative of a piecewise-eased table is always a cliff;
+  do not narrow that window.**
+  **AND A BLEND WANTS SMOOTHSTEP, NEVER EASE-OUT** (`sstep`). `easeOut`
+  has its STEEPEST slope at u=0, so the rise-to-walk hand-off spent eight
+  per cent of the whole gap on its first frame — a 0.24m step in the hand,
+  right at the seam it exists to hide. Every weight that blends one pose
+  into another goes through `sstep`; the ones that describe a MOTION (a
+  hand swinging over, a heave) keep their ease. For the same reason a
+  raise that hands over to a solve must fade on its own RELEASE and not
+  against the solve's weight — fading `lRaise` against `lOn` multiplied
+  two fast ramps and stepped the left shoulder 0.355 rad in one frame.
+  **IT FLOWS INTO THE WALK BECAUSE THE LAST BEAT IS THE WALK.** Horror
+  rigs are `smoothPose:false`, so a hand-off with nothing across it IS a
+  snap. `riseToWalk` snapshots the rise's channels, evaluates
+  `poseWalk` at the phase the chase will use that very frame
+  (`G.time+this.homeX`, passed in as `wt`), and lerps between them over
+  the last `1-RISE_WALK`. Measured, the pose step at the hand-off is 0.
+  **THE BOSS'S ENTRANCE IS NOT THIS.** The Warden rises in 1.1s inside its
+  own cutscene and hands over to a fight, not to a walk; there is no room
+  in a second for two plants to read. It is told apart by having no walk
+  phase passed in (`lever===false`) and keeps the old flat depth, so its
+  entrance is untouched.
+  **THE RISE CANNOT BE INTERRUPTED, so every beat is always seen:**
   `wake()` returns early unless the state is `dormant`, nothing else
   writes `state='rise'` on a live body, and a rising horror is excluded
   from auto-target, lock and `execTarget`. It runs the full 2.6s (1.1s for
   the boss — **if a harness reads 1.1, it picked the boss**; filter
   `!x.boss&&!x.mini`).
-  Two harness traps: the enemy rigs are `smoothPose:false`, so the raw
-  pose survives and the shudder is real; and `rig.imp` (the LOD impostor,
-  three boxes, a direct child of root) is the topmost mesh on the rig at
-  2.21 — exclude it, and the shadow disc's `lodKeep`, or every height
-  measurement is the impostor's.
+  Two more harness traps: `rig.imp` (the LOD impostor, three boxes, a
+  direct child of root) is the topmost mesh on the rig at 2.21, so exclude
+  it and the shadow disc's `lodKeep` or every height measurement is the
+  impostor's; and **`min y` of the forearm group is the ELBOW when the arm
+  is raised and the fingertips when it is planted** — which is why an
+  early sweep concluded the hand could not get within a metre of the
+  surface.
 
 - **THE LAG BEFORE A FINISHING CUT WAS SHADER COMPILATION, EVERY CUT.**
   `splitEnemy` clones every material on the body with a clipping plane,

@@ -1552,16 +1552,32 @@ floor of the grave twice.
 
 **It was also buried too shallow to be buried.** The skull's crown stood a
 third of a metre *proud of the grass* on the first frame, so the first
-thing that ever came out of a grave was a face. It starts a whole two
-metres down now, deeper than the body is tall, and the order is the order
-it should always have been: one **hand** out of the soil, alone, angled up
-out of the torn earth with the weapon still in it, clawing at nothing for a
-quarter of a second — then the **skull** through, then the second arm, then
-the legs last, kicking for purchase. The whole way up it shudders where the
-effort is, the trunk stays folded over itself and the head hangs, and by
-the middle of it both arms are braced on the lip of its own hole pressing
-the body out. Only at the very end does it straighten and remember what
-standing was — two and a half seconds end to end, where it used to be one. Under it is the
+thing that ever came out of a grave was a face. It is buried by its own
+height now — a brute deeper than a hollow, because a brute is bigger — and
+the order is the order it should always have been: one **hand** out of the
+soil, alone, angled up out of the torn earth with the weapon still in it,
+clawing at nothing; then the **skull** through, then the second arm, and
+the legs last, kicking for purchase.
+
+**And the middle of it is a LEVER, not a lift.** Once its shoulders are
+clear it puts **one hand flat on the ground** and straightens that arm,
+and *that* is what brings the trunk out — you can see the elbow open and
+the body go up with it. The second hand comes over and joins it and the
+two of them press the hips clear, both palms staying exactly where they
+were put while the shoulders climb away from them. Then the hands come off
+the soil, a leg swings under the body, and the last quarter of a second is
+no longer a rise at all: it is already the first stride of the walk it
+hands over to, so there is no moment where a thing that was climbing
+becomes a thing that is walking. Two and a half seconds end to end, where
+it used to be one.
+
+The hands are not animated onto the ground, they are *held* there — the
+shoulder angle is solved every frame from wherever the body has got to, so
+it is exact for a hollow, a brute, a Drowned and anything else that ever
+climbs out. Which arm can be down, and when, is the arm's own business:
+they are not the same length, and a hollow's left arm has no hand at all,
+so the short one joins early and lets go first while the long right arm
+finishes the push. Under it is the
 sound of soil giving way: a long low rumble that *swells* rather than starts
 — the ground shifting before anything shows — grit and small stones
 crumbling off it the whole way, and three heaves audible in it, the two that

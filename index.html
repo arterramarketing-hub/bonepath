@@ -8231,18 +8231,18 @@ function poseBossDeath(r,t){
   r.head.rotation.y=Math.sin(t*3)*.15*c*(1-b);
   r.root.rotation.x=1.3*b;                                   // face-first onto the flags
 }
-/* COMING UP OUT OF THE GROUND. The soil does not give, and a thing with no
-   muscle left on it has to argue with it. A hand breaches first and claws
-   at the dirt for a moment with nothing under it; then it HEAVES, gets a
-   third of the way, and the ground takes it back. It heaves again, gets
-   further, slips again. The third one takes. The whole way up it shudders,
-   the trunk stays folded over and the head hangs, and only at the very end
-   does the body straighten and remember what standing was. */
-/* THE CLIMB IS A RATCHET, AND IT USED TO BE A BOB. The three heaves were
+/* COMING UP OUT OF THE GROUND, AND IT IS A LEVER BEFORE IT IS A LIFT.
+   A hand breaks the soil and claws at it with nothing under it; the
+   thing scrabbles its shoulders clear; then it puts ONE HAND FLAT ON THE
+   GROUND and straightens that arm, which is what actually brings the
+   trunk out; the second hand comes over and joins it and the two of them
+   press the hips clear; and the last beat is the hands leaving the soil,
+   a leg coming under and the pose walking away.
+   THE CLIMB IS A RATCHET, AND IT USED TO BE A BOB. The three heaves were
    `max(h1*.3, h2*.6, h3)` where every `h` was a bump that came back to
    ZERO — so the body climbed a third of the way, sank ALL the way to the
    bottom of its hole, climbed two thirds, sank all the way again, lay
-   buried for a beat, and then glided the whole 1.55m up on one smooth
+   buried for a beat, and then glided the whole way up on one smooth
    ease. Measured over sixty samples: **0.95m given back**, the entire
    gain, and **21 of 60 frames travelling DOWNWARD**. A third of the
    animation was the thing sinking, which is the whole of "it floats up
@@ -8253,47 +8253,59 @@ function poseBossDeath(r,t){
    so it can be read and retuned, and the interpolation is asymmetric
    because the two halves of a failed lift do not look alike: a heave is
    EXPLOSIVE and runs out of strength (ease-out), a slip holds for an
-   instant and then lets go (ease-in). Now: 0.465m of the 2.05 given back,
-   ALL of it inside the two designed slips (.09 and .11 of the ladder),
-   and the floor of the grave is never touched twice.
+   instant and then lets go (ease-in). The floor of the grave is never
+   touched twice.
    `RISE_EFF` is the gain rate normalised — how hard it is pulling right
-   NOW — and it is what the shudder, the arms and the head are hung on, so
+   NOW — and it is what the shudder, the head and the legs are hung on, so
    the effort is where the movement is instead of smeared flat across the
    whole climb. */
 /* AND IT WAS BURIED TOO SHALLOW TO BE BURIED. Measured off the rig, the
    head's crown stands 1.89m above the root in this pose (2.53 on a
-   neutral rig — the fold drops it) and the start depth was 1.55 —
+   neutral rig — the fold drops it) and the start depth was a flat 1.55 —
    so the skull was 34cm PROUD OF THE SOIL on the first frame, and the
-   first thing that ever came out of a grave was a face. The hand only
-   overtook it at p .18. `RISE_DEEP` is measured against that crown
-   instead: 2.05 puts it 16cm under, the reach is quickened to p .13 and
-   the ladder's flat run pushed to .22, so the ORDER is a hand out of the
-   ground at p .13 (0.90m proud), a quarter of a second of it clawing at
-   nothing, and the head through at p .23. If the rig's proportions
-   change, re-measure the crown — a start depth under it is a body lying
-   on the grass. */
-const RISE_DEEP=2.05;                                 // deeper than the crown stands, or nothing is buried
-/* AND THE TRUNK FOLD WAS EATING THE REACH. The body is folded 1.3 rad
-   over itself for the whole climb (that fold is what keeps the head
-   down), so an arm "raised overhead" at `armR.rotation.x -2.75` comes out
-   pointing very nearly HORIZONTAL and the hand cleared the soil by 4cm —
-   what you saw was the weapon lying flat across the mound, not a hand
-   thrust up. Swept against the fold: at -3.6..-4.0 with the elbow at its
-   folded -.85 the hand stands 1.20-1.36m proud while the head is still
-   0.22m under. So `RISE_CLAW` is that extra rotation, applied as a PULSE
-   (`breach`) that is gone by p .30 — the rest of the climb keeps the
-   planted arms it always had. If the reach ever looks flat again, it is
-   the fold: sweep the shoulder WITH the fold applied, never on a neutral
-   rig (a neutral sweep says -2.75 reaches 3.72 above the root, and is
-   useless).
-   IT IS .45 AND NOT .95 FOR A RESOLUTION REASON. At .95 the hand stood
-   1.42m proud and the render is 383x216, so what came out of the ground
-   was a dark vertical bar — a FENCE POST, not a hand. At .45 the arm is
-   about 45 degrees (0.79m proud) and the forearm and club read as a limb.
-   Anything thrust out of the soil has to be a DIAGONAL at this size. */
+   first thing that ever came out of a grave was a face.
+   `RISE_DEEP` is per METRE OF RIG (`*r.s`) and not a constant, because a
+   constant is only ever right for one body: at a flat 2.05 a brute, whose
+   crown is 2.85 above its root, stood most of a metre out of the ground
+   before it had begun. At 2.27 of its own scale every body starts with
+   its crown half a metre under — measured, hollow -0.52 and brute -0.76.
+   If the rig's proportions change, re-measure the crown; a start depth
+   under it is a body lying on the grass. */
+const RISE_DEEP=2.271;                                // per metre of rig, not metres
+const RISE_UP=[[0,0],[.14,0],[.28,.44],[.34,.38],[.40,.38],[.66,.62],[.70,.60],[.86,.80],[1,1]];
+const RISE_EFF=2.75;                                  // the steepest heave's rate, for normalising
+const RISE_FOLD=1.3;                                  // the trunk fold — see RISE_CLAW
 const RISE_CLAW=.45;                                  // how far past overhead, to beat the fold
-const RISE_UP=[[0,0],[.22,0],[.34,.34],[.43,.25],[.46,.25],[.60,.68],[.69,.57],[.73,.57],[.90,.97],[1,1]];
-const RISE_EFF=2.8;                                   // the steepest heave's rate, for normalising
+const RISE_SPAN=.30;                                  // the hands go down BESIDE the body, not under it
+const RISE_WALK=.86;                                  // where the pose stops being a rise and becomes a walk
+/* WHEN EACH HAND CAN BE ON THE GROUND IS THE ARM'S TO SAY, NOT THE
+   ANIMATION'S. The two are not the same length: measured in the rig's own
+   local frame, the right forearm reaches -0.55 to its fingertips and the
+   LEFT STOPS AT THE WRIST at -0.35, because a hollow's left arm is built
+   without a hand. So a left plant staged as late as the right's simply
+   hangs in the air — measured, 20cm off the soil for its whole press with
+   the solve pinned against its bracket and a residual of 0.3 the whole
+   way. The left hand therefore joins EARLY, while the shoulder is still
+   low, and comes off again first; the longer right arm is the one that
+   finishes the push. Its ceiling was measured too: the left can hold the
+   soil while the root is under -0.78 and the right down to -0.46.
+   [rightDown, rightUntil, leftDown, leftUntil] */
+const RISE_PLANT=[.30,.78,.42,.66];
+const RISE_HOVER=.50;                                 // per metre of rig: where a hand starts its descent
+/* THE TRUNK FOLD EATS THE REACH, and this is the one worth remembering.
+   The body is folded `RISE_FOLD` over itself for the whole climb, and
+   that fold is what keeps the head down — so an arm "raised overhead" at
+   `armR.rotation.x -2.75` comes out very nearly HORIZONTAL and the hand
+   cleared the soil by 4cm. What you saw was the weapon lying flat across
+   the mound. Swept WITH the fold applied: -3.2 puts the hand 0.79m proud,
+   -3.6 1.20m, -4.0 1.36m, with the head still 0.22m under at every one.
+   Sweep the shoulder with the fold applied, NEVER on a neutral rig — a
+   neutral sweep says -2.75 reaches 3.72 above the root, and is useless.
+   `RISE_CLAW` is .45 and not .95 for a resolution reason: at .95 the hand
+   stood 1.42m proud, and at 383x216 what came out of the ground was a
+   dark vertical bar — a FENCE POST, not a hand. At .45 the arm is about
+   45 degrees and the forearm and its club read as a limb. Anything thrust
+   out of the soil has to be a DIAGONAL at this size. */
 function riseUp(p){
   const T=RISE_UP;
   for(let i=1;i<T.length;i++){
@@ -8305,40 +8317,231 @@ function riseUp(p){
   }
   return 1;
 }
-function poseRise(r,p){
+/* A PLANTED HAND IS A CONSTRAINT, NOT AN ANIMATION, AND THAT IS WHY IT IS
+   SOLVED EVERY FRAME. The arm runs 0.31 from the shoulder to the elbow
+   and 0.28 more to the wrist (0.53 to the fingertips) in the hollow's own
+   units, and the shoulder sits 1.29 above the root — so while the body is
+   two metres down the shoulder is three quarters of a metre UNDER the
+   soil and the hand physically cannot reach the surface. A plant is only
+   possible once the shoulder is above the ground, which is why the
+   scrabble comes first and the two presses are in the upper half: past
+   the reach limit the hand has to come OFF the soil again, which is what
+   running out of arm looks like.
+   A hardcoded angle table was written and thrown away. It cannot work:
+   hollows randomise their scale, and a brute is not a scaled hollow (its
+   planting band is up .42-.66 where a hollow's is .46-.78), so one table
+   is wrong for almost every body in the field. `plantHand` bisects the
+   shoulder instead — ten steps over a bracket the hand height is monotone
+   on — and is exact for any rig, any scale and any fold. It costs about
+   ten matrix composes a step on ONE arm's subtree, only while something
+   is rising.
+   The tip is the lowest point under the forearm in its OWN local frame,
+   the weapon excluded (a club cannot be planted on), measured once and
+   lazily because it is a property of the rig's build and not of the pose.
+   IT IS MEASURED PER ARM. The first version took it off `foreR` and used
+   it for both, which looks safe on a mirrored body and is not: measured,
+   the same offset put the left hand's solve 20cm out, so the left palm
+   floated a hand's width over the soil for its whole press while every
+   number in the solve read zero. */
+function riseTip(r,fore){
+  let m=1e9;const b=new THREE.Box3();
+  fore.updateWorldMatrix(true,true);
+  const inv=new THREE.Matrix4().copy(fore.matrixWorld).invert();
+  const inW=o=>{let q=o;while(q){if(q===r.weapon)return true;q=q.parent;}return false;};
+  fore.traverse(o=>{
+    if(!o.isMesh||inW(o))return;
+    o.geometry.computeBoundingBox();
+    b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+    if(isFinite(b.min.y)&&b.min.y<m)m=b.min.y;
+  });
+  return m<1e8?m:-.53*(r.s||1);
+}
+const _rtp=new THREE.Vector3();
+function riseHandY(fore,tip){return _rtp.set(0,tip,0).applyMatrix4(fore.matrixWorld).y;}
+/* AND THE BRACKET'S LOW END IS THE ARM'S FURTHEST REACH, WHICH IS NOT
+   WHERE YOU WOULD FIRST PUT IT. The hand's height is not monotone in the
+   shoulder angle — it is a U. Measured at p .78: 0.21 at armRx -1.2,
+   down through -0.00 at -0.4, up to 0.79 at +1.4. So the soil has TWO
+   solutions, the bisection crossed between the branches, and when the
+   near one vanished the angle leapt from -0.16 to the bracket end -1.20
+   — a 0.23m teleport on a hollow and 0.44m on a brute, in a hundredth of
+   a second.
+   The bottom of that U is the lowest the shoulder can put the hand, so
+   the bracket starts THERE (-.35, stable across the whole press) and the
+   function is non-decreasing over it. Then the clamp at `lo` is the
+   max-reach pose and moves smoothly as the shoulder rises, which is what
+   an arm running out of extension does. */
+const PLANT_LO=-.35, PLANT_HI=1.4, PLANT_IT=8;
+function plantHand(r,arm,fore,want,left){
+  const k=left?'handTipL':'handTipR';
+  if(r[k]===undefined)r[k]=riseTip(r,fore);
+  const tip=r[k];
+  /* the ancestors are fixed for the whole solve, so they are walked ONCE
+     and each step composes only the arm and what hangs off it. The first
+     version called `updateWorldMatrix(true,true)` per step and re-walked
+     the root, hips and chest eight times over for nothing: 13.9us a call
+     against 1.4us for the same pose with no plant. */
+  if(arm.parent)arm.parent.updateWorldMatrix(true,false);
+  let lo=PLANT_LO,hi=PLANT_HI,m=0;
+  for(let i=0;i<PLANT_IT;i++){
+    m=(lo+hi)*.5;arm.rotation.x=m;arm.updateMatrixWorld();
+    if(riseHandY(fore,tip)>want)hi=m;else lo=m;
+  }
+  arm.rotation.x=(lo+hi)*.5;
+  arm.updateMatrixWorld();
+  return riseHandY(fore,tip)-want;                    // >0: it has run out of arm
+}
+/* the pose channels the rise writes, so the last beat can be blended into
+   the walk rather than snapping to it. `smoothPose` is off on every
+   horror, so a hand-off with nothing across it IS a snap. */
+const RISE_CH=['body','torso','head','armR','foreR','armL','foreL','legR','kneeR','legL','kneeL'];
+function riseSnap(r){
+  const o=[];
+  for(const k of RISE_CH){const j=r[k].rotation;o.push(j.x,j.y,j.z);}
+  o.push(r.body.position.y);
+  return o;
+}
+/* A BLEND WANTS SMOOTHSTEP, NEVER EASE-OUT. `easeOut` has its STEEPEST
+   slope at u=0, so a hand-off weighted with it spends eight per cent of
+   the whole rise-to-walk gap on its first frame — measured as a 0.24m
+   step in the hand in a hundredth of a second, right at the seam it
+   exists to hide. `sstep` is flat at both ends, which is why the pose
+   springs' own seam blend uses it. Every weight that blends one pose into
+   another here goes through it; the ones that describe a MOTION (a hand
+   swinging over, a heave) keep their ease. */
+function sstep(u){return u*u*(3-2*u);}
+function riseToWalk(r,s,w,wt,sham){
+  resetPose(r);poseWalk(r,wt,1,sham);                 // where the walk wants to be, this very frame
+  let i=0;
+  for(const k of RISE_CH){const j=r[k].rotation;
+    j.x=lerp(s[i],j.x,w);j.y=lerp(s[i+1],j.y,w);j.z=lerp(s[i+2],j.z,w);i+=3;}
+  r.body.position.y=lerp(s[i],r.body.position.y,w);
+}
+/* AND `eff` WAS DISCONTINUOUS AT EVERY BREAKPOINT IN THE LADDER, which is
+   worth more than it sounds: the shudder, the head, the arms and the legs
+   are all hung on it, so all of them stepped together at every join.
+   The cause is the ease, not the table. An ease-out segment arrives at its
+   end with a derivative near zero and the next one leaves with its
+   steepest, so a central difference taken over a hundredth of a second
+   reads a cliff. Measured across p .86: `eff` jumped 0.35 in one frame and
+   every channel moved in exact proportion to its own eff coefficient —
+   kneeR -0.209 on a -.6, legR +0.174 on a +.5, head +0.187 on a +.55.
+   The rate is read over THREE widths and averaged, which blunts the joins
+   without flattening the heaves. A one-sample derivative of a
+   piecewise-eased table is always a cliff; do not narrow this window. */
+const RISE_RATE=[.012,.026,.042];
+function riseRate(p){
+  let a=0;
+  for(const h of RISE_RATE)a+=(riseUp(Math.min(1,p+h))-riseUp(Math.max(0,p-h)))/(2*h);
+  return a/RISE_RATE.length;
+}
+function poseRise(r,p,wt,sham){
   const reach=easeOut(clamp(p/.13,0,1));              // the hand breaches FIRST, before the head
   // a pulse over the breach alone: one hand straight up out of the soil
   const breach=easeOut(clamp(p/.11,0,1))*clamp(1-(p-.14)/.16,0,1);
   const claw=Math.sin(clamp((p-.1)/.22,0,1)*Math.PI*2.5)*clamp(1-(p-.1)/.3,0,1);   // and scrabbles at nothing
-  const up=riseUp(p),strain=1-up;
+  /* THE BOSS'S ENTRANCE IS NOT THIS. It rises in 1.1s inside its own
+     cutscene and hands over to a fight, not to a walk — there is no room
+     in a second for two plants to read, and nothing to blend into. It is
+     told apart by having no walk phase passed in, and keeps the old flat
+     depth so its entrance is untouched. */
+  const lever=wt!==undefined;
+  const up=riseUp(p),strain=1-up,deep=lever?RISE_DEEP*(r.s||1):1.55;
   // how hard it is pulling, and whether it is LOSING — read off the climb
   // itself rather than guessed, so the two can never disagree
-  const d=(riseUp(Math.min(1,p+.008))-riseUp(Math.max(0,p-.008)))/.016;
+  const d=riseRate(p);
   const eff=clamp(d/RISE_EFF,0,1),slip=clamp(-d/RISE_EFF,0,1);
   // and it is STUCK in the instant before each heave: gathering, not moving
   const stuck=clamp(1-Math.abs(d)/(RISE_EFF*.35),0,1)*strain;
+  const P=RISE_PLANT;
+  /* the hand is solved onto a point that COMES DOWN, not straight onto
+     the soil: the first version snapped the solve on at the plant and the
+     approach happened underground, where the ground mesh hides it, so the
+     one beat the whole move is named for was never seen. */
+  const rDown=lever?easeOut(clamp((p-P[0])/.08,0,1)):0;   // the right hand swings over and comes down
+  const rOn=lever?sstep(clamp((p-P[0])/.06,0,1)):0;       // ...and is on the soil
+  const rOff=lever?sstep(clamp((p-P[1])/.06,0,1)):0;      // ...and off it again at the end
+  const lDown=lever?easeOut(clamp((p-P[2])/.07,0,1)):0;
+  const lOn=lever?sstep(clamp((p-P[2])/.07,0,1)):0;
+  const lOff=lever?sstep(clamp((p-P[3])/.06,0,1)):0;
+  /* the second hand is brought up out of the soil BEFORE it is planted, or
+     the solve blends in from a hand that is still underground and pops.
+     IT FADES ON ITS RELEASE, NOT ON THE SOLVE. Fading it against `lOn`
+     multiplies two fast ramps: the pose the solve is blending FROM was
+     then travelling 1.75 rad over the same seventh of a second, and the
+     left shoulder stepped 0.355 rad in a single frame at p .446. The
+     lerp to the solved angle is the hand-over; the raise only has to be
+     gone by the time the arm lets go. */
+  const lRaise=lever?easeOut(clamp((p-P[2]+.10)/.10,0,1))*(1-lOff):0;
+  const hov=RISE_HOVER*(r.s||1);
+  const off=sstep(clamp((p-RISE_WALK)/.07,0,1));      // and the hands come off it again
   /* the shudder belongs to the EFFORT. It was `sin(p*52)*.028*strain` —
      the same buzz the whole way up, which reads as a hover. It spikes
      under a heave and dies away in a slip. */
-  r.root.position.y=lerp(-RISE_DEEP,0,up)+Math.sin(p*64)*.034*eff+Math.sin(p*17)*.012*stuck;
-  r.torso.rotation.x+=strain*1.3-eff*.34;             // folded over itself, and hauling the chest up out of it
+  const gy=lerp(-deep,0,up);
+  r.root.position.y=gy+Math.sin(p*64)*.034*eff+Math.sin(p*17)*.012*stuck;
+  r.torso.rotation.x+=strain*RISE_FOLD-eff*.34;       // folded over itself, and hauling the chest up out of it
   r.head.rotation.x-=strain*.85-eff*.55;              // the head snaps back on a heave and drops on a slip
   r.head.rotation.z=Math.sin(p*11)*.12*eff;
-  // and it WRENCHES: rocking side to side, twisting to get a shoulder free
-  r.body.rotation.z=(Math.sin(p*8.5)*.14+Math.sin(p*21)*.04)*strain+slip*.1;
-  r.body.rotation.y=Math.sin(p*5.5)*.22*strain+stuck*.2;
-  /* THE ARMS DO THE WORK. Under a heave both are planted and the elbows
-     EXTEND, which is what pressing a body out of a hole looks like; in a
-     slip they fold and the hands slide back toward it. */
+  /* it WRENCHES: rocking side to side, twisting to get a shoulder free —
+     but only while it is still scrabbling. A shoulder that keeps rolling
+     once a hand is planted drags that hand off the spot the solve has
+     just pinned it to, which reads as a skid. */
+  const wr=strain*(1-Math.max(rOn*(1-rOff),lOn*(1-lOff))*.8);
+  r.body.rotation.z=(Math.sin(p*8.5)*.14+Math.sin(p*21)*.04)*wr+slip*.1;
+  r.body.rotation.y=Math.sin(p*5.5)*.22*wr+stuck*.2;
+  /* THE ARMS. Before a plant they claw; on it they are a LEVER — the
+     shoulder angle is whatever puts the hand on the ground (solved), and
+     the elbow straightening is what raises the body. */
   r.armR.rotation.x=-2.75*reach+1.75*up-eff*.55+slip*.4-RISE_CLAW*breach;
-  r.armR.rotation.z=claw*.3+eff*.18;
-  r.foreR.rotation.x=-.85*strain+claw*.5+eff*.7-slip*.5;
-  r.armL.rotation.x=-1.5*reach*strain-.2*up-eff*.45+slip*.35;
-  r.armL.rotation.z=-claw*.22-eff*.16;
-  r.foreL.rotation.x=-.7*strain+eff*.6-slip*.45;
-  // the legs are still under the soil: they kick for purchase on a heave
+  r.armR.rotation.z=claw*.3+eff*.18+RISE_SPAN*rDown*(1-rOff);
+  r.foreR.rotation.x=lerp(-.85*strain+claw*.5+eff*.7-slip*.5,lerp(-1.25,-.1,up)-slip*.55,rDown);
+  r.armL.rotation.x=-1.5*reach*strain-.2*up-eff*.45+slip*.35-1.75*lRaise;
+  r.armL.rotation.z=-claw*.22-eff*.16-RISE_SPAN*lDown*(1-lOff);
+  r.foreL.rotation.x=lerp(-.7*strain+eff*.6-slip*.45,lerp(-1.15,-.1,up)-slip*.5,lDown);
+  // the legs are still under the soil: they kick for purchase on a heave,
+  // and the near one comes under the body once the hands have it up
+  const tuck=lever?clamp((p-RISE_WALK+.12)/.16,0,1):0;
   r.legR.rotation.x=-1.35*strain+eff*.5;r.kneeR.rotation.x=1.75*strain-eff*.6;
-  r.legL.rotation.x=-.7*strain+eff*.3;r.kneeL.rotation.x=1.25*strain-eff*.4;
+  r.legL.rotation.x=lerp(-.7*strain+eff*.3,-.55,tuck);r.kneeL.rotation.x=lerp(1.25*strain-eff*.4,1.0,tuck);
+  /* AND NOW THE HANDS ARE PUT ON THE GROUND. The solve runs last, after
+     everything that moves the shoulder, or it pins the hand against a
+     torso that then walks out from under it.
+     THE TARGET IS 0 AND NOTHING ELSE. The rig's root carries the BURIAL
+     OFFSET, so the soil is y=0 in the rig's own frame and the game adds
+     the real ground height afterwards. Solving against `-gy` instead --
+     which looks reasonable, and was the first version -- pins the hands a
+     metre ABOVE the ground: measured, the right hand ran -1.00 to +0.59
+     across the press with a mean of +0.26 where every sample should read
+     0. The residual says the arm has run out of reach, and when it has
+     the hand is left where the pose put it. */
+  /* AND THE RESIDUAL IS NOT A WEIGHT. The first version faded the solve
+     out as the arm ran out of reach — `res>.02 ? max(0,1-res*2.2) : 1` —
+     and that switch is a discontinuity: the hand teleported the moment it
+     tripped, measured at 0.35m of travel in a hundredth of a second on a
+     hollow and 0.82m on a brute, and again at each plant's blend-in.
+     It was guarding against nothing. When the hand cannot reach the soil
+     the bisection already returns the lowest angle the shoulder CAN hold,
+     which is a smooth function of how high the shoulder has got — so the
+     hand simply follows the ground until the arm is straight and then
+     rises with the body, which is what an arm at full extension does. */
+  const rw=rOn*(1-rOff)*(1-off),lw=lOn*(1-lOff);
+  if(rw>0){
+    const a0=r.armR.rotation.x;
+    plantHand(r,r.armR,r.foreR,lerp(hov,0,rDown),false);
+    r.armR.rotation.x=lerp(a0,r.armR.rotation.x,rw);
+  }
+  if(lw>0){
+    const a0=r.armL.rotation.x;
+    plantHand(r,r.armL,r.foreL,lerp(hov,0,lDown),true);
+    r.armL.rotation.x=lerp(a0,r.armL.rotation.x,lw);
+  }
+  // and the last beat is not a rise at all: it is the first stride
+  if(lever&&p>RISE_WALK){
+    const s=riseSnap(r),w=sstep(clamp((p-RISE_WALK)/(1-RISE_WALK),0,1));
+    riseToWalk(r,s,w,wt,sham);
+    r.root.position.y=gy;
+  }
 }
 function poseDrink(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
@@ -12277,7 +12480,7 @@ class Enemy{
         }
         break;
       case 'rise':
-        poseRise(r,Math.min(1,this.t/(this.boss?1.1:2.6)));
+        poseRise(r,Math.min(1,this.t/(this.boss?1.1:2.6)),this.boss?undefined:t+this.homeX,sham);
         break;
       case 'chase':case 'return':
         if(this.crawl)poseCrawl(r,t+this.homeX,1);else poseWalk(r,t+this.homeX,1,sham);break;
@@ -17714,7 +17917,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
