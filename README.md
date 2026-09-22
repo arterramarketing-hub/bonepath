@@ -492,7 +492,14 @@ into a shot you were already lined up for. Measured, the camera's
 distance, its height and its pitch: a blade 4.87m / 3.06 / 9.5°, a gun at
 rest 3.07 / 2.15 / 5.0, a gun aimed 2.56 / 1.82 / 2.7 — with the pilgrim
 going from a third of the screen's height to three-quarters of it, and
-from the middle of the frame to a quarter of the way off its left. There is a **mark on the screen**, and it is where the
+from the middle of the frame to a quarter of the way off its left.
+The aimed end has since come **in and up again**: nearer the shoulder,
+riding a little higher, the pilgrim pushed further out of the way. And
+the **gaze rises with it** — lift the camera and leave the point it is
+looking at where it was and all you have done is tip the lens down at
+your own man's helmet, which is not what a higher camera is for. It
+climbs, the gaze climbs with it, and the line out to the shot stays
+level. There is a **mark on the screen**, and it is where the
 ROUND lands rather than where the camera points, because the two are not
 the same thing in third person: the round leaves the hands, a metre and a
 half ahead of the body and off to one side, and goes to the eye's mark or

@@ -1145,6 +1145,25 @@ Known state of play:
        gun, aimed   2.56m / 1.82 / 2.7deg / 0.77h at cx -0.26
      The resting figures are the OLD AIMED ones to two places, which is
      the check that the request was honoured exactly.
+     **THE AIMED END HAS SINCE GONE IN AND UP AGAIN**, asked for by name —
+     closer over the shoulder and a little higher. Measured UNLOCKED at
+     760x428 (which is why the pitches read higher than the locked table
+     above; measure one way or the other, not both):
+       before  2.76m / 1.95 / 10.9deg / 0.62h at cx -0.45
+       after   2.46m / 2.17 / 12.7deg / 0.71h at cx -0.59
+     **AND THE LOOK POINT HAS TO RISE WITH THE EYE, or "higher" only ever
+     means "tipped further down".** The gaze is `hP+1.35+ADS_LOOK*ads`;
+     lifting `ADS_CAM.up` on its own took the aimed lens from 10.9 to
+     **15.0 degrees** while the camera climbed and the point it was
+     looking at did not — the shot ends up looking down at the pilgrim
+     rather than out past him. `ADS_LOOK` carries the gaze up by about
+     what the eye gains, so only the vantage moves.
+     Note also that `side` FIGHTS `in`: the reported distance is the
+     horizontal hypotenuse, so stepping further to the shoulder adds back
+     what pulling in took off. `in` went .58 -> .72 (the along-axis
+     distance 2.14m -> 1.43m) and the measured figure moved only 0.30.
+     The resting end (`GUN_CAM`) is untouched by all of it — verified
+     3.07 / 2.15 / 15.4deg before and after in the same harness.
      **A GUN OWNS `G.camPitch`'S RESTING VALUE — NOT THE PLAYER'S THUMB.**
      The two branches above lerp it to .3 for their own reasons and this
      used to lerp against them, so the lens settled wherever the tug of

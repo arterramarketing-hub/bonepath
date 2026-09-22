@@ -14866,7 +14866,14 @@ function onBossDead(){
    height, `side` the step to the pilgrim's screen-right, `pitch` the
    angle the lens settles to. A blade takes none of it. */
 const GUN_CAM={in:.42,up:.10,side:.95,pitch:.17};
-const ADS_CAM={in:.58,up:.08,side:1.42,pitch:.09};
+const ADS_CAM={in:.72,up:.55,side:1.60,pitch:.09};
+/* AND THE LOOK POINT RISES WITH THE EYE, or "higher" just means
+   "tipped further down". The gaze is `hP+1.35+ADS_LOOK*ads`; raising
+   `ADS_CAM.up` alone took the aimed lens from 10.9 to 15.0 degrees,
+   because the camera climbed while the point it is looking at did not.
+   `ADS_LOOK` carries the gaze up by about what the eye gained, so the
+   shot stays level and only the vantage moves. */
+const ADS_LOOK=.62;
 
 const camTmp=V3(0,0,0);
 let camIdle=9,lookX=0,lookY=1.35,lookZ=0;
@@ -15004,7 +15011,7 @@ function updateCamera(dt){
     camera.position.x+=(Math.random()-.5)*G.camShake*.3;
     camera.position.y+=(Math.random()-.5)*G.camShake*.3;
   }
-  let lx=player.x+brx,ly=hP+1.35+.22*ads,lz=player.z+brz;   // the gaze slides with the aim, so the pilgrim sits left of the line
+  let lx=player.x+brx,ly=hP+1.35+ADS_LOOK*ads,lz=player.z+brz;   // the gaze slides with the aim, so the pilgrim sits left of the line
   /* OVER THE BRINK, THE EYE GOES WITH HER. The body falls out of the world
      and the gaze was staying level with the rim, so the last you saw of
      yourself was a pair of boots leaving the bottom of the frame. It
