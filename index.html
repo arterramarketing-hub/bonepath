@@ -16069,30 +16069,45 @@ function buildGunModel(key,o){o=o||{};
        The body IS the mid tone now, and only the rib, the top edge and the
        beavertail — the three things a light overhead actually finds — are
        given the cream. */
-    g.body=vmOct(.046,.048,.262,M.goldM,0,.059,-.046);g.add(g.body);           // z .085 .. -.177
-    g.add(vmOct(.030,.012,.272,M.goldHi,0,.088,-.041));                        // the rib
-    g.add(vmBox(.0475,.005,.256,M.gold,0,.0805,-.046));                        // the slide's top edge under it
-    for(let i=0;i<4;i++)g.add(vmBox(.024,.005,.010,M.goldD,0,.0925,-.126+i*.046));  // the rib's slots, CUT: narrower than it and a step down
-    for(let i=0;i<6;i++)g.add(vmBox(.0492,.034,.005,M.goldD,0,.057,.070-i*.013));   // the serrations at the rear, PROUD of the flank
-    for(let i=0;i<3;i++)g.add(vmBox(.0492,.028,.005,M.goldD,0,.057,-.126-i*.013));  // ...and the set at the front
-    // THE BARREL out of it, and the GAS CYLINDER slung under — the bottom line
-    g.add(vmOct(.030,.030,.030,M.gold,0,.058,-.192));                          // the muzzle block, square off the slide's face
-    g.add(vmCyl(.0072,.034,8,M.dark,0,.058,-.196));                            // the bore
-    g.add(vmOct(.020,.020,.110,M.goldD,0,.024,-.120));
-    g.add(vmRing(.0115,.0028,10,M.goldM,0,.024,-.176));                        // its collar
-    /* THE FRAME: a hundred and fifty long against the slide's two-fifty,
-       and stepped DOWN off it. This is the whole of the silhouette fix. */
-    g.add(vmOct(.042,.032,.150,M.goldM,0,.017,.008));                          // z .083 .. -.067
-    g.add(vmBox(.0435,.005,.140,M.gold,0,.032,.008));                          // its top edge, where the slide's shadow ends
+    /* BOXY, BECAUSE THE REAL ONE IS. Measured off the Mark XIX: 10.75in
+       long, 6.25in tall and only 1.25in wide — a tall thin SLAB, not a
+       pistol with a tube on it. What the eye reads from the side is one
+       rectangle from the tang to the muzzle: the slide at the back and,
+       ahead of it, the BARREL BLOCK, which on a Desert Eagle is a solid
+       rectangle the full height of the gun with the gas system inside it
+       — not a bore with a cylinder slung underneath, which is what this
+       was. Its front face is FLAT and square, with the bore in the top
+       half and the gas port under it; the rib runs the whole length; the
+       guard is squared with a hook forward; the grip is wide and flat-
+       backed. The frame sits under the slide's rear only. */
+    g.body=vmOct(.046,.050,.170,M.goldM,0,.058,.000);g.add(g.body);            // the slide, z .085 .. -.085
+    g.add(vmOct(.046,.078,.128,M.gold,0,.044,-.141));                          // THE BARREL BLOCK: full height, z -.077 .. -.205
+    g.add(vmBox(.0475,.005,.290,M.gold,0,.0805,-.060));                        // the top edge the light finds, the whole length
+    g.add(vmOct(.030,.012,.288,M.goldHi,0,.088,-.061));                        // the rib, the whole length
+    for(let i=0;i<5;i++)g.add(vmBox(.024,.005,.010,M.goldD,0,.0925,-.160+i*.046));  // the rib's slots, CUT: narrower than it and a step down
+    for(let i=0;i<6;i++)g.add(vmBox(.0492,.036,.005,M.goldD,0,.057,.070-i*.013));   // the serrations at the rear, PROUD of the flank
+    for(let i=0;i<2;i++)g.add(vmBox(.0492,.036,.005,M.goldD,0,.057,-.062-i*.013));  // ...and the pair at the slide's front
+    g.add(vmBox(.0475,.004,.050,M.goldD,0,.0555,-.082));                        // the seam where the slide meets the block, a dark line across
+    // THE MUZZLE: a flat square face with the bore in its upper half and the gas port under it
+    g.add(vmCyl(.0072,.012,8,M.dark,0,.059,-.208));                            // the bore
+    g.add(vmCyl(.0055,.008,8,M.dark,0,.020,-.207));                            // the gas port
+    g.add(vmRing(.0095,.0025,10,M.goldHi,0,.059,-.2065));                      // the crown's lit lip
+    /* THE FRAME: under the slide's rear only — the block ahead of it is the
+       barrel's — and stepped down off it, so the L is still an L. */
+    g.add(vmOct(.042,.032,.160,M.goldM,0,.017,.006));                          // z .086 .. -.074
+    g.add(vmBox(.0435,.005,.150,M.gold,0,.032,.006));                          // its top edge, where the slide's shadow ends
     const bt=vmOct(.038,.009,.044,M.goldHi,0,.036,.076);bt.rotation.x=-.28;g.add(bt);   // the beavertail, curling back and DOWN over the web of the hand
-    // THE GUARD, squared and part of the frame — a thin hoop reads as a toy
-    g.add(vmOct(.026,.040,.012,M.goldM,0,-.019,-.014));                        // its front strap
-    g.add(vmOct(.026,.010,.060,M.goldM,0,-.038,.014));                         // and the flat underneath
+    // THE GUARD, SQUARED and hooked forward — a Desert Eagle's is a box, not a loop
+    g.add(vmOct(.028,.048,.012,M.goldM,0,-.020,-.024));                        // its front strap, tall
+    g.add(vmOct(.028,.010,.070,M.goldM,0,-.040,.006));                         // the flat underneath
+    g.add(vmOct(.028,.012,.016,M.goldM,0,-.046,-.030));                        // and the hook at the front corner
     g.add(vmBox(.008,.024,.007,M.dark,0,-.021,.006));                          // the trigger in it
-    /* THE GRIP, DARK, and raked. The gold stops here: a pistol that is one
-       colour from the muzzle to the heel is a water pistol. */
-    const gr=vmOct(.036,.112,.052,M.dark,0,-.052,.062);gr.rotation.x=.30;g.add(gr);
-    for(let i=0;i<5;i++){const ck=vmBox(.0368,.004,.030,M.gun,0,-.018-i*.021,.048+i*.0065);ck.rotation.x=.30;g.add(ck);}
+    /* THE GRIP, DARK, WIDE and FLAT-BACKED, raked less than a 1911's. The
+       gold stops here: a pistol that is one colour from the muzzle to the
+       heel is a water pistol. */
+    const rk=.26;
+    const gr=vmOct(.040,.112,.058,M.dark,0,-.052,.062);gr.rotation.x=rk;g.add(gr);
+    for(let i=0;i<5;i++){const ck=vmBox(.0408,.004,.034,M.gun,0,-.018-i*.021,.048+i*.006);ck.rotation.x=rk;g.add(ck);}
     /* THE MAGAZINE IS ONE GROUP. Its body and its base plate were two
        meshes on the gun, and the reload animated the body alone — the
        plate stayed in the grip while the magazine it closes fell out of
@@ -16101,15 +16116,16 @@ function buildGunModel(key,o){o=o||{};
        to the outer group's z is never fought. The grip is raked .30, so
        the magazine travels along `magAxis`, not straight down. */
     const magG=new THREE.Group(),magA=new THREE.Group();magG.add(magA);g.add(magG);
-    const mag=vmOct(.028,.100,.040,M.steel,0,-.058,.070);mag.rotation.x=.30;magA.add(mag);
-    const mb=vmOct(.040,.012,.050,M.goldM,0,-.110,.088);mb.rotation.x=.30;magA.add(mb);   // the base plate closing the grip
-    g.magG=magG;g.magA=magA;g.magAxis=new THREE.Vector3(0,-Math.cos(.30),Math.sin(.30));g.magDims=[.040,.100,.040];
+    const mag=vmOct(.030,.100,.044,M.steel,0,-.058,.070);mag.rotation.x=rk;magA.add(mag);
+    const mb=vmOct(.044,.012,.056,M.goldM,0,-.110,.086);mb.rotation.x=rk;magA.add(mb);   // the base plate closing the grip
+    g.magG=magG;g.magA=magA;g.magAxis=new THREE.Vector3(0,-Math.cos(rk),Math.sin(rk));g.magDims=[.044,.100,.044];
     // THE CONTROLS, and every one of them a step off the gold it sits on
-    g.add(vmOct(.010,.016,.032,M.goldD,-.025,.052,.046));                      // the safety, on the slide
+    g.add(vmOct(.010,.016,.032,M.goldD,-.025,.052,.046));                      // the safety, on the slide — BOTH sides, a Desert Eagle's is
+    g.add(vmOct(.010,.016,.032,M.goldD,.025,.052,.046));
     g.add(vmOct(.008,.012,.042,M.dark,-.023,.026,.008));                       // the slide stop
     g.add(vmBall(.006,M.goldD,-.022,.018,-.040));                              // the takedown pin
     g.add(vmBall(.0065,M.dark,-.023,-.004,.030));                              // the magazine catch
-    g.add(vmBox(.005,.024,.056,M.dark,.0235,.062,-.030));                      // the ejection port, cut in the right side
+    g.add(vmBox(.005,.030,.064,M.dark,.0235,.060,-.028));                      // the ejection port, cut in the right side, and it is BIG
     /* THE HAMMER. It was a rod run right through the slide with a dark
        block standing up off it — from the side that read as a second
        trigger at the back of the gun. A Desert Eagle's is a flat SPUR
@@ -16131,9 +16147,9 @@ function buildGunModel(key,o){o=o||{};
     iron.add(vmOct(.010,.014,.010,M.dark,-.009,.091,.092));iron.add(vmOct(.010,.014,.010,M.dark,.009,.091,.092));
     iron.add(vmBox(.003,.003,.002,M.pale,-.009,.0945,.0965));iron.add(vmBox(.003,.003,.002,M.pale,.009,.0945,.0965));
     g.add(iron);const rd=sightRedDot(.094,.02),ac=sightAcog(.094,.02);g.add(rd);g.add(ac);
-    hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.058,-.212);
+    hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.059,-.212);
     port.position.set(.028,.066,-.030);
-    g.flash=gunFlash(g,0,.058,-.212);g.slideStop=[-.023,.026,.008];g.wellAt=new THREE.Vector3(-.02,-.11,.085);g.actAt=new THREE.Vector3(-.045,.03,.01);
+    g.flash=gunFlash(g,0,.059,-.212);g.slideStop=[-.023,.026,.008];g.wellAt=new THREE.Vector3(-.02,-.11,.085);g.actAt=new THREE.Vector3(-.045,.03,.01);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
     g.hip=[.13,-.20,-.46];g.hipRy=.05;g.hipRz=-.12;
   }else if(key==='1911'){

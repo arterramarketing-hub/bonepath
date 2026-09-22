@@ -2070,6 +2070,21 @@ Known state of play:
   `HERO_OPTS`, the weapon bar's placeholder) — the key is still
   `deagle`. Its flash is the biggest of the pistols (.42 first person,
   .46 on the rig, `flashT` .08 against .05, `glowFlash` .7 against .45).
+  **AND IT IS A SLAB.** The Mark XIX is 10.75in long, 6.25in tall and
+  1.25in wide (Magnum Research's own figures) — a tall thin rectangle,
+  and from the side one rectangle from the tang to a flat square
+  muzzle. The model had a bore with a gas CYLINDER slung under it, which
+  is a revolver's silhouette; a Desert Eagle's barrel is a solid block
+  the full height of the gun with the gas system inside. So the front
+  .128 of the gun is one `vmOct` .078 tall (`M.gold`, a step lighter
+  than the slide so the seam reads), the slide behind it .050 tall over
+  the frame, the rib runs the whole .288, the muzzle face is flat with
+  the bore in its upper half and the gas port under it, the guard is a
+  squared box with a hook forward, the grip .040 wide and flat-backed at
+  rake .26 (the magazine follows it), the safety is on both sides and
+  the ejection port is big. The `iron` group is untouched, so
+  `sightZ.iron` (.0975) and the aimed picture are exactly what they were.
+  Measured after: 75 meshes, `adsZs` .80, every mode boots clean.
   `fireGun`'s `G.camShake` is `R.cam*4*(g.shake||1)`: the Barrett
   carries 2.6, the SPAS 2.2 and the Kar98k 1.6, every other gun 1.
   Measured at the shot: 1911 0.18, deagle 0.28, ump 0.044, m4 0.096,
