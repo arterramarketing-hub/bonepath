@@ -2102,6 +2102,70 @@ Known state of play:
   **−11.0° → −4.5°**, and at 4.8m the whole body is inside the frame
   (feet −0.54, crown +0.13 in NDC).
 
+- **THE RISE IS A RATCHET, AND THREE SEPARATE THINGS MADE IT A FLOAT**
+  (`RISE_UP`, `riseUp`, `RISE_DEEP`, `RISE_CLAW`, `poseRise`).
+  1. **THE CLIMB CAME BACK TO ZERO BETWEEN HEAVES.** It was
+     `up=max(h1*.3,h2*.6,h3)` where every `h` was a bump that returned to
+     zero, so the body climbed a third, sank to the BOTTOM of its hole,
+     climbed two thirds, sank to the bottom again, lay buried for a beat,
+     and then glided the whole way up on one ease. Measured over sixty
+     samples: **0.95m given back — the entire gain — and 21 of 60 frames
+     travelling DOWNWARD.** A third of the animation was the thing
+     sinking, which is the whole of "it floats up and down".
+     `RISE_UP` is a table of (time, height) so the ladder can be read and
+     retuned, and the interpolation is ASYMMETRIC because the two halves
+     of a failed lift do not look alike: a heave is explosive and runs out
+     of strength (ease-OUT), a slip holds an instant and then lets go
+     (ease-IN). Now: **0.465m of 2.05 given back, all of it inside the two
+     designed slips (.09 and .11 of the ladder), and the floor of the
+     grave is never touched twice.**
+     `RISE_EFF` normalises the steepest heave's rate, and `eff`/`slip`/
+     `stuck` are read off the ladder's own DERIVATIVE — so the shudder,
+     the arms, the head and the legs are hung on where the effort actually
+     is and can never disagree with the climb. **If you retune the table,
+     do not also hand-tune the secondary motion.**
+  2. **IT WAS BURIED SHALLOWER THAN IT IS TALL.** Measured off the rig,
+     the head's crown stands **1.89m above the root in the rise pose**
+     (2.53 on a neutral rig — the trunk fold drops it), and the start
+     depth was 1.55: the skull was **34cm PROUD OF THE SOIL on the first
+     frame** and the first thing out of a grave was a face. The hand only
+     overtook it at p .18. `RISE_DEEP` is 2.05, measured against that
+     crown, and the ladder's flat run moved .18 → .22. Order now, measured
+     as "first frame any part is above y=0": **hand and weapon p .06, head
+     p .215, second arm p .24, legs p .48.** If the rig's proportions
+     change, re-measure the crown — a start depth under it is a body lying
+     on the grass.
+  3. **THE TRUNK FOLD EATS THE REACH, AND THIS IS THE ONE WORTH
+     REMEMBERING.** The body is folded 1.3 rad over itself for the whole
+     climb, and that fold is what keeps the head down — so an arm "raised
+     overhead" at `armR.rotation.x = -2.75` comes out very nearly
+     HORIZONTAL and the hand cleared the soil by **4cm**. What you saw was
+     the weapon lying flat across the mound. Swept WITH the fold applied:
+     −3.2 puts the hand 0.79m proud, −3.6 puts it 1.20m and −4.0 1.36m,
+     with the head still 0.22m under at every one of them.
+     **Sweep the shoulder with the fold applied, never on a neutral rig** —
+     a neutral sweep says −2.75 reaches 3.72 above the root and is
+     useless.
+     `RISE_CLAW` is that extra rotation as a PULSE (`breach`) that is gone
+     by p .30, so the rest of the climb keeps the planted arms it always
+     had. **It is .45 and not .95 for a resolution reason:** at .95 the
+     hand stood 1.42m proud and the render is 383x216, so what came out of
+     the ground was a dark vertical bar — a FENCE POST, not a hand. At .45
+     the arm is about 45 degrees and the forearm and club read as a limb.
+     Anything thrust out of the soil has to be a diagonal at this
+     resolution.
+  **THE RISE CANNOT BE INTERRUPTED, so every heave is always seen:**
+  `wake()` returns early unless the state is `dormant`, nothing else
+  writes `state='rise'` on a live body, and a rising horror is excluded
+  from auto-target, lock and `execTarget`. It runs the full 2.6s (1.1s for
+  the boss — **if a harness reads 1.1, it picked the boss**; filter
+  `!x.boss&&!x.mini`).
+  Two harness traps: the enemy rigs are `smoothPose:false`, so the raw
+  pose survives and the shudder is real; and `rig.imp` (the LOD impostor,
+  three boxes, a direct child of root) is the topmost mesh on the rig at
+  2.21 — exclude it, and the shadow disc's `lodKeep`, or every height
+  measurement is the impostor's.
+
 - **THE LAG BEFORE A FINISHING CUT WAS SHADER COMPILATION, EVERY CUT.**
   `splitEnemy` clones every material on the body with a clipping plane,
   and a clipped material is its own shader program. three.js counts the

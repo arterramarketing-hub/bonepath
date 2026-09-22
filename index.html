@@ -8238,32 +8238,107 @@ function poseBossDeath(r,t){
    further, slips again. The third one takes. The whole way up it shudders,
    the trunk stays folded over and the head hangs, and only at the very end
    does the body straighten and remember what standing was. */
+/* THE CLIMB IS A RATCHET, AND IT USED TO BE A BOB. The three heaves were
+   `max(h1*.3, h2*.6, h3)` where every `h` was a bump that came back to
+   ZERO — so the body climbed a third of the way, sank ALL the way to the
+   bottom of its hole, climbed two thirds, sank all the way again, lay
+   buried for a beat, and then glided the whole 1.55m up on one smooth
+   ease. Measured over sixty samples: **0.95m given back**, the entire
+   gain, and **21 of 60 frames travelling DOWNWARD**. A third of the
+   animation was the thing sinking, which is the whole of "it floats up
+   and down".
+   A struggle RATCHETS. You heave, you gain, the grip fails and you lose a
+   HAND'S worth of it, and the next heave starts from where you got to —
+   never from the bottom. `RISE_UP` is that as a table of (time, height)
+   so it can be read and retuned, and the interpolation is asymmetric
+   because the two halves of a failed lift do not look alike: a heave is
+   EXPLOSIVE and runs out of strength (ease-out), a slip holds for an
+   instant and then lets go (ease-in). Now: 0.465m of the 2.05 given back,
+   ALL of it inside the two designed slips (.09 and .11 of the ladder),
+   and the floor of the grave is never touched twice.
+   `RISE_EFF` is the gain rate normalised — how hard it is pulling right
+   NOW — and it is what the shudder, the arms and the head are hung on, so
+   the effort is where the movement is instead of smeared flat across the
+   whole climb. */
+/* AND IT WAS BURIED TOO SHALLOW TO BE BURIED. Measured off the rig, the
+   head's crown stands 1.89m above the root in this pose (2.53 on a
+   neutral rig — the fold drops it) and the start depth was 1.55 —
+   so the skull was 34cm PROUD OF THE SOIL on the first frame, and the
+   first thing that ever came out of a grave was a face. The hand only
+   overtook it at p .18. `RISE_DEEP` is measured against that crown
+   instead: 2.05 puts it 16cm under, the reach is quickened to p .13 and
+   the ladder's flat run pushed to .22, so the ORDER is a hand out of the
+   ground at p .13 (0.90m proud), a quarter of a second of it clawing at
+   nothing, and the head through at p .23. If the rig's proportions
+   change, re-measure the crown — a start depth under it is a body lying
+   on the grass. */
+const RISE_DEEP=2.05;                                 // deeper than the crown stands, or nothing is buried
+/* AND THE TRUNK FOLD WAS EATING THE REACH. The body is folded 1.3 rad
+   over itself for the whole climb (that fold is what keeps the head
+   down), so an arm "raised overhead" at `armR.rotation.x -2.75` comes out
+   pointing very nearly HORIZONTAL and the hand cleared the soil by 4cm —
+   what you saw was the weapon lying flat across the mound, not a hand
+   thrust up. Swept against the fold: at -3.6..-4.0 with the elbow at its
+   folded -.85 the hand stands 1.20-1.36m proud while the head is still
+   0.22m under. So `RISE_CLAW` is that extra rotation, applied as a PULSE
+   (`breach`) that is gone by p .30 — the rest of the climb keeps the
+   planted arms it always had. If the reach ever looks flat again, it is
+   the fold: sweep the shoulder WITH the fold applied, never on a neutral
+   rig (a neutral sweep says -2.75 reaches 3.72 above the root, and is
+   useless).
+   IT IS .45 AND NOT .95 FOR A RESOLUTION REASON. At .95 the hand stood
+   1.42m proud and the render is 383x216, so what came out of the ground
+   was a dark vertical bar — a FENCE POST, not a hand. At .45 the arm is
+   about 45 degrees (0.79m proud) and the forearm and club read as a limb.
+   Anything thrust out of the soil has to be a DIAGONAL at this size. */
+const RISE_CLAW=.45;                                  // how far past overhead, to beat the fold
+const RISE_UP=[[0,0],[.22,0],[.34,.34],[.43,.25],[.46,.25],[.60,.68],[.69,.57],[.73,.57],[.90,.97],[1,1]];
+const RISE_EFF=2.8;                                   // the steepest heave's rate, for normalising
+function riseUp(p){
+  const T=RISE_UP;
+  for(let i=1;i<T.length;i++){
+    if(p<=T[i][0]){
+      const a=T[i-1],b=T[i],d=b[0]-a[0],u=d>1e-6?(p-a[0])/d:1;
+      // a heave is explosive and runs out; a slip holds, then lets go
+      return lerp(a[1],b[1],b[1]>=a[1]?easeOut(u):1-easeOut(1-u));
+    }
+  }
+  return 1;
+}
 function poseRise(r,p){
-  const ease=(a,b)=>easeInOut(clamp((p-a)/(b-a),0,1));
-  const reach=easeOut(clamp(p/.2,0,1));               // the hand breaches
+  const reach=easeOut(clamp(p/.13,0,1));              // the hand breaches FIRST, before the head
+  // a pulse over the breach alone: one hand straight up out of the soil
+  const breach=easeOut(clamp(p/.11,0,1))*clamp(1-(p-.14)/.16,0,1);
   const claw=Math.sin(clamp((p-.1)/.22,0,1)*Math.PI*2.5)*clamp(1-(p-.1)/.3,0,1);   // and scrabbles at nothing
-  const h1=ease(.22,.36)*(1-ease(.36,.50));           // up a third — and taken back
-  const h2=ease(.46,.62)*(1-ease(.62,.74));           // further — and taken back again
-  const h3=ease(.78,1);                               // this one holds
-  const up=Math.max(h1*.3,h2*.6,h3);
-  const strain=1-up;
-  // it is STUCK for a moment before each heave, and it shakes throughout —
-  // harder the deeper it still is
-  const stuck=Math.max(0,Math.sin(clamp((p-.5)/.28,0,1)*Math.PI));
-  r.root.position.y=lerp(-1.55,0,up)+Math.sin(p*52)*.028*strain;
-  r.torso.rotation.x+=strain*1.3;                     // folded over itself
-  r.head.rotation.x-=strain*.85;
+  const up=riseUp(p),strain=1-up;
+  // how hard it is pulling, and whether it is LOSING — read off the climb
+  // itself rather than guessed, so the two can never disagree
+  const d=(riseUp(Math.min(1,p+.008))-riseUp(Math.max(0,p-.008)))/.016;
+  const eff=clamp(d/RISE_EFF,0,1),slip=clamp(-d/RISE_EFF,0,1);
+  // and it is STUCK in the instant before each heave: gathering, not moving
+  const stuck=clamp(1-Math.abs(d)/(RISE_EFF*.35),0,1)*strain;
+  /* the shudder belongs to the EFFORT. It was `sin(p*52)*.028*strain` —
+     the same buzz the whole way up, which reads as a hover. It spikes
+     under a heave and dies away in a slip. */
+  r.root.position.y=lerp(-RISE_DEEP,0,up)+Math.sin(p*64)*.034*eff+Math.sin(p*17)*.012*stuck;
+  r.torso.rotation.x+=strain*1.3-eff*.34;             // folded over itself, and hauling the chest up out of it
+  r.head.rotation.x-=strain*.85-eff*.55;              // the head snaps back on a heave and drops on a slip
+  r.head.rotation.z=Math.sin(p*11)*.12*eff;
   // and it WRENCHES: rocking side to side, twisting to get a shoulder free
-  r.body.rotation.z=(Math.sin(p*8.5)*.14+Math.sin(p*21)*.04)*strain;
-  r.body.rotation.y=Math.sin(p*5.5)*.22*strain+stuck*.14;
-  r.armR.rotation.x=-2.75*reach+1.75*up;              // reach, claw, then push
-  r.armR.rotation.z=claw*.3;
-  r.foreR.rotation.x=-.85*strain+claw*.5;
-  r.armL.rotation.x=-1.5*reach*strain-.2*up;
-  r.armL.rotation.z=-claw*.22;
-  r.foreL.rotation.x=-.7*strain;
-  r.legR.rotation.x=-1.35*strain;r.kneeR.rotation.x=1.75*strain;
-  r.legL.rotation.x=-.7*strain;r.kneeL.rotation.x=1.25*strain;
+  r.body.rotation.z=(Math.sin(p*8.5)*.14+Math.sin(p*21)*.04)*strain+slip*.1;
+  r.body.rotation.y=Math.sin(p*5.5)*.22*strain+stuck*.2;
+  /* THE ARMS DO THE WORK. Under a heave both are planted and the elbows
+     EXTEND, which is what pressing a body out of a hole looks like; in a
+     slip they fold and the hands slide back toward it. */
+  r.armR.rotation.x=-2.75*reach+1.75*up-eff*.55+slip*.4-RISE_CLAW*breach;
+  r.armR.rotation.z=claw*.3+eff*.18;
+  r.foreR.rotation.x=-.85*strain+claw*.5+eff*.7-slip*.5;
+  r.armL.rotation.x=-1.5*reach*strain-.2*up-eff*.45+slip*.35;
+  r.armL.rotation.z=-claw*.22-eff*.16;
+  r.foreL.rotation.x=-.7*strain+eff*.6-slip*.45;
+  // the legs are still under the soil: they kick for purchase on a heave
+  r.legR.rotation.x=-1.35*strain+eff*.5;r.kneeR.rotation.x=1.75*strain-eff*.6;
+  r.legL.rotation.x=-.7*strain+eff*.3;r.kneeL.rotation.x=1.25*strain-eff*.4;
 }
 function poseDrink(r,p){
   const q=Math.sin(Math.min(1,p)*Math.PI);
@@ -17639,7 +17714,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

@@ -1536,13 +1536,32 @@ rise read as a fault rather than as a thing climbing: nothing was displaced.
 So the earth over it is **torn open in the paint**, and a **mound of spoil**
 is pushed up and heaved wider as the thing works at it, falling back flat
 once it is out — and the torn ground is left there for good. The soil does not give,
-and a thing with no muscle left on it has to argue with it. A hand breaches
-first and scrabbles at the dirt for a moment with nothing under it; then it
-*heaves*, gets a third of the way, and the ground takes it back. It heaves
-again, gets further, slips again. The third one holds. The whole way up it
-shudders, the trunk stays folded over itself and the head hangs, and only at
-the very end does the body straighten and remember what standing was — two
-and a half seconds end to end, where it used to be one. Under it is the
+and a thing with no muscle left on it has to argue with it.
+
+**And the climb is a RATCHET, not a bob.** For a long while it read as a
+thing floating up and down, and that was literal: the three heaves were
+each a bump that came back to *zero*, so the body climbed a third of the
+way, sank all the way to the bottom of its hole, climbed two thirds, sank
+all the way again, lay buried for a beat, and then glided the whole
+distance up on one smooth ease. A third of the animation was the thing
+*sinking*. A struggle ratchets. You heave, you gain, the grip fails and you
+lose a hand's worth of it, and **the next heave starts from where you got
+to** — never from the bottom. It gives back a fifth of the climb across the
+two failures now, against the whole of it before, and it never touches the
+floor of the grave twice.
+
+**It was also buried too shallow to be buried.** The skull's crown stood a
+third of a metre *proud of the grass* on the first frame, so the first
+thing that ever came out of a grave was a face. It starts a whole two
+metres down now, deeper than the body is tall, and the order is the order
+it should always have been: one **hand** out of the soil, alone, angled up
+out of the torn earth with the weapon still in it, clawing at nothing for a
+quarter of a second — then the **skull** through, then the second arm, then
+the legs last, kicking for purchase. The whole way up it shudders where the
+effort is, the trunk stays folded over itself and the head hangs, and by
+the middle of it both arms are braced on the lip of its own hole pressing
+the body out. Only at the very end does it straighten and remember what
+standing was — two and a half seconds end to end, where it used to be one. Under it is the
 sound of soil giving way: a long low rumble that *swells* rather than starts
 — the ground shifting before anything shows — grit and small stones
 crumbling off it the whole way, and three heaves audible in it, the two that
