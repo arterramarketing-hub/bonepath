@@ -2002,7 +2002,7 @@ Known state of play:
   — and at four a hollow is a door you open rather than a thing you fight.
   The brute is untouched at 140: the gap between a hollow and a brute was
   never the problem. Three things are tied to that 85 and must move with
-  it: **the bone sniper's 96 body damage** (its claim is one shot one
+  it: **the Kar98k's 96 body damage** (it was the bone sniper; the KEY is still `sniper`, only the name changed — its claim is one shot one
   body, and a hollow's life is deliberately just under it), the red-boned
   multiplier (2.2, not 3 — at three a red hollow is sixteen greatsword
   swings, which is the same fight held down twice as long, and it is
@@ -2011,6 +2011,20 @@ Known state of play:
   costs and the cathedral's gate are unchanged, so the field takes longer
   to clear but opens at the same point.
 
+- **THE 1911 IS THE EAGLE'S SLIM COUSIN, AND `shake` IS A MULTIPLIER.**
+  `GUNS['1911']` (key `'1911'`, a string — `isGunKey` names it) is a
+  9mm pistol on the UMP's pool: `RELOAD['1911']` is a `box` plan like the
+  Eagle's, its `magAxis` is raked .28 to follow the grip, and `rlCarry`
+  .55 keeps its short tang off the near plane the way the Eagle's does.
+  Its palette is `blue`/`blueD`/`blueHi`/`walnut` in `gunMats()` — blued
+  steel is a step DARKER than `M.gun`, not gold, and the panels are the
+  one warm thing on it. A cut in the slide is the slide's own colour
+  darkened and narrower than the slide (the Eagle's lesson).
+  `fireGun`'s `G.camShake` is `R.cam*4*(g.shake||1)`: the Kar98k carries
+  2.6 and the SPAS 2.2, every other gun 1. Measured at the shot: 1911
+  0.18, deagle 0.28, ump 0.044, m4 0.096, spas 0.968, sniper 1.768, rpg
+  0.36. The recoil itself (`rec`) is untouched — the shake is the
+  picture, not the aim.
 - **THERE IS NO BLADE VIEWMODEL** — see *THE FIRST-PERSON SWING IS THE
   THIRD-PERSON SWING*, far below. `VM_BLADE`, `ensureBladeVm`,
   `bladePose`, `VM_SEAM` and `SW_FLIP` are gone. The one thing worth

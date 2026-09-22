@@ -557,7 +557,7 @@ either view. A **box magazine** comes out and is *dropped* — it falls,
 bounces once and lies there — the fresh one comes up in the support hand
 and is rocked home, and the action is worked. The **shotgun** takes its
 shells one at a time through the loading port, each one counted as it
-goes in, and then the fore-end is run. The **bone sniper** has its bolt
+goes in, and then the fore-end is run. The **Kar98k** has its bolt
 opened and held open while the rounds are pressed into the box, then
 closed. The **launcher** takes its rocket down the tube from the front,
 the warhead standing out of the muzzle again as it seats. The gun comes
@@ -687,9 +687,15 @@ whatever it would have met on the way: the soil, the cathedral's stone, a
 trunk, a gravestone, a pew, the bell (three rounds call the Bell-Called,
 the same as three blows). The nearest thing takes the round.
 
+**The rifle and the shotgun throw the picture.** A `shake` on a gun
+multiplies the camera shake its climb alone would give: the Kar98k at
+2.6 and the SPAS at 2.2, so a .50 or a twelve-gauge going off is felt in
+the frame and not only heard.
+
 | | calibre | magazine · start | damage (body / head) | rate | the feel |
 |---|---|---|---|---|---|
 | **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down. The gold is a RANGE and not a colour — cream along the rib and the top edges where a light overhead finds them, a mid body, cuts nearly brown — because a flat yellow is what a toy is made of. Its slide is long and its frame short and stepped down off it, so the outline is an L rather than an equals sign, and the grip is dark, which is what stops the gold halfway down |
+| **Colt 1911** | 9mm | 9 · (the 9mm pool) | 14 / 27 | one, three times a second | the eagle's slim cousin in blued steel, walnut on the grip, a beavertail under the hand: half the eagle's kick and a hollow in seven, or four if they are all in the skull. It draws on the UMP's pool |
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. It is the one weapon that carries **two sets of its own sights** — the
 drum below, or a **ring sight**: no hood to look through, only a shallow
 notch at the back and a small ring standing at the muzzle end with an
@@ -698,7 +704,7 @@ the field left open above it. The ring sits down on the channel's own
 edges on a stub of a post, not up on a tower. Its top is a **channel** — a raised wall down each edge with a lit top face, and a sunken groove between them running away to the sights, so the eye is led down it — and the gun itself is dark, with light only on those two edges. Its irons are an **HK drum**, and they are **round** and SMALL: a rear peep bored through a drum at the back of the channel, a hooded post half a metre in front, and the front ring nests inside the rear aperture rather than filling it |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Built as a RIFLE rather than a compact: a twenty-seven centimetre quad rail with its rungs running the length of it, a barrel carrying well past that to a gas block and front sight, a flat-topped receiver with one rail unbroken from the stock to the muzzle, and a collapsing stock on a ribbed buffer tube. Its irons are a **ghost ring** — a fat hoop on the back of the rail with the post half a metre in front of it, which is what an aperture is for |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
-| **bone sniper** | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then the field coming back — a couple of returns off the stone you can still pick out, and then more of them, closer and closer together until they run into one another and the rest is a wash coming down, each darker than the last, with a roll going away under all of it. Four spaced returns is a canyon; a field answers with density. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+| **Kar98k** (the bone sniper, renamed) | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then the field coming back — a couple of returns off the stone you can still pick out, and then more of them, closer and closer together until they run into one another and the rest is a wash coming down, each darker than the last, with a roll going away under all of it. Four spaced returns is a canyon; a field answers with density. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
 | **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. The burst is a white flash gone before you can look at it, a fireball that swells and climbs as it burns out, and smoke that outlives both and is still standing when you look back — with two rings going out, one fast and bright and one slow and wide with dust, and the whole field lit for an instant the way lightning lights it. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
 
 **What a round leaves.** A body flinches and bleeds (or chips, if it is
@@ -1994,7 +2000,7 @@ where it was, because the gap between a hollow and a brute was never the
 complaint.
 
 The rifles move with them: the eagle takes a hollow in three rounds and
-the M4 in six. **The bone sniper still takes one in a single shot** — its
+the M4 in six. **The Kar98k still takes one in a single shot** — its
 body damage and a hollow's life are the same number on purpose, because
 that rifle's whole claim is one shot, one body. Raise one and the other
 has to move with it.
