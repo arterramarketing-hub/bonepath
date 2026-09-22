@@ -2032,6 +2032,21 @@ Known state of play:
   LOOP of a guard with the barrel showing through a bushing at the
   muzzle. If two guns ever read as one gun twice, change proportions,
   not colours.
+  **THE COLT'S REAR SIGHT IS ONE NOTCH.** Two chamfered posts with a
+  pale dot each (the Eagle's pattern) came up at ADS as two round-
+  shouldered bars with eyes on them; it is a low bed with two square
+  ears now, dark all over, and the front bead is the only pale thing in
+  the picture. The Eagle keeps its own two posts — those were asked for
+  as they stand.
+  **THE EAGLE'S TANG.** Its hammer was a rod run right through the slide
+  (`vmKnob` .050 across) with a dark block standing off it, and from the
+  side it read as a second trigger at the back of the gun. It is a flat
+  spur laid back over the beavertail now, in `goldD`, nothing crossing
+  the slide, and the beavertail curls back and DOWN (rotation.x −.28)
+  instead of standing out flat. Its name is "desert eagle" (`GUNS`,
+  `HERO_OPTS`, the weapon bar's placeholder) — the key is still
+  `deagle`. Its flash is the biggest of the pistols (.42 first person,
+  .46 on the rig, `flashT` .08 against .05, `glowFlash` .7 against .45).
   `fireGun`'s `G.camShake` is `R.cam*4*(g.shake||1)`: the Barrett
   carries 2.6, the SPAS 2.2 and the Kar98k 1.6, every other gun 1.
   Measured at the shot: 1911 0.18, deagle 0.28, ump 0.044, m4 0.096,

@@ -336,7 +336,7 @@
      bare field with no ground under them. Hence `#fpsCtl #fbSwap`, which
      is (2,0,0) and wins.
      It SIZES TO ITS CONTENTS now rather than to a typed width, because
-     the names are not one length — "golden eagle" is 95px of small caps
+     the names are not one length — "desert eagle" is 95px of small caps
      and "m4a1" is 37 — and a fixed box either clips the long one or
      leaves a gulf in the short one. A floor keeps it from shrinking to a
      stub, a ceiling keeps it off the triggers on a small screen, and the
@@ -473,7 +473,7 @@
     <div class="btn" id="fbReload"><span class="g">&#8635;</span><span class="t">reload</span></div>
     <div class="btn" id="fbRoll"><span class="g">&#8623;</span><span class="t">dodge</span></div>
     <div class="btn" id="fbZoom"><span class="g">&#9673;</span><span class="t">zoom</span></div>
-    <div class="btn" id="fbSwap"><span class="wn"><span id="fbGunName">golden eagle</span><br><span class="cal" id="fbCal">.50 cal</span></span><span class="wa"><b id="fbMag">7</b> <span id="fbRes">/ 35</span></span></div>
+    <div class="btn" id="fbSwap"><span class="wn"><span id="fbGunName">desert eagle</span><br><span class="cal" id="fbCal">.50 cal</span></span><span class="wa"><b id="fbMag">7</b> <span id="fbRes">/ 35</span></span></div>
   </div>
 </div>
 <div id="prompt"></div>
@@ -9204,7 +9204,7 @@ try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
 const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana'],['wand','wand'],
-    ['deagle','golden eagle'],['1911','colt 1911'],['ump','ump45'],['m4','m4a1'],['spas','spas-12'],['sniper','barrett .50'],['kar98k','kar98k'],['rpg','rpg-4']],
+    ['deagle','desert eagle'],['1911','colt 1911'],['ump','ump45'],['m4','m4a1'],['spas','spas-12'],['sniper','barrett .50'],['kar98k','kar98k'],['rpg','rpg-4']],
   katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl'],['throw','magic throw'],['thor',"thor's lightning"]],
   wandCharge:[['volley','bubble volley'],['bulwark','great bubble'],['thor',"thor's lightning"]],
   armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight'],['wizard','wizard cloak']],
@@ -15615,7 +15615,7 @@ const GUNS=[
      round FROM THE HIP has a cone of its own (`sp`: at rest, walking, and
      the bloom a shot adds) that the crosshair draws; on the sights the cone
      is gone and the round goes exactly where the sight is — see gunRay. */
-  {key:'deagle',name:'golden eagle',cal:'50',mag:7,dmg:34,head:2,rof:.36,auto:false,gap:6,rlCarry:.55,sp:{hip:.026,walk:.018,shot:.05},
+  {key:'deagle',name:'desert eagle',cal:'50',mag:7,dmg:34,head:2,rof:.36,auto:false,gap:6,rlCarry:.55,sp:{hip:.026,walk:.018,shot:.05},
     sway:{idle:.0045,rate:1.1,look:.0011,walk:.014,bob:.010},rec:{cam:.07,yaw:.018,back:.07,up:1.0,side:.25,recover:6,settle:.55},
     poise:2.2,kb:1.3,reload:1.5,adsFov:50,adsSpeed:9,range:60,
     note:'a hand cannon in gold, .50 cal: seven rounds, each a hollow\'s worth and two to a brute; a head under one comes off. it climbs hard and the sights hold half of it down'},
@@ -16065,7 +16065,7 @@ function buildGunModel(key,o){o=o||{};
        and stepped DOWN off it. This is the whole of the silhouette fix. */
     g.add(vmOct(.042,.032,.150,M.goldM,0,.017,.008));                          // z .083 .. -.067
     g.add(vmBox(.0435,.005,.140,M.gold,0,.032,.008));                          // its top edge, where the slide's shadow ends
-    g.add(vmOct(.044,.012,.052,M.goldHi,0,.037,.070));                         // the beavertail under the web of the hand
+    const bt=vmOct(.038,.009,.044,M.goldHi,0,.036,.076);bt.rotation.x=-.28;g.add(bt);   // the beavertail, curling back and DOWN over the web of the hand
     // THE GUARD, squared and part of the frame — a thin hoop reads as a toy
     g.add(vmOct(.026,.040,.012,M.goldM,0,-.019,-.014));                        // its front strap
     g.add(vmOct(.026,.010,.060,M.goldM,0,-.038,.014));                         // and the flat underneath
@@ -16091,8 +16091,13 @@ function buildGunModel(key,o){o=o||{};
     g.add(vmBall(.006,M.goldD,-.022,.018,-.040));                              // the takedown pin
     g.add(vmBall(.0065,M.dark,-.023,-.004,.030));                              // the magazine catch
     g.add(vmBox(.005,.024,.056,M.dark,.0235,.062,-.030));                      // the ejection port, cut in the right side
-    g.add(vmKnob(.005,.050,8,M.goldD,0,.062,.086,Math.PI/2));                  // the hammer's pin, kept LOW — see below
-    g.add(vmOct(.012,.022,.014,M.dark,0,.072,.099));                           // and the spur standing off it
+    /* THE HAMMER. It was a rod run right through the slide with a dark
+       block standing up off it — from the side that read as a second
+       trigger at the back of the gun. A Desert Eagle's is a flat SPUR
+       laid back over the tang: one thin plate, in the gold's own dark,
+       tilted back, and nothing crossing the slide. */
+    const hm=vmBox(.010,.022,.005,M.goldD,0,.064,.092);hm.rotation.x=.55;g.add(hm);   // the spur, laid back over the beavertail
+    g.add(vmBox(.011,.004,.006,M.goldD,0,.0735,.0975));                        // its serrated crown
     /* THE SIGHTS ARE UNCHANGED AND STAY THAT WAY. `sightZ.iron` is the rear
        notch's own z, which is what sets where the eye sits at ADS, so
        moving any of this moves the aimed picture. It was asked for as it
@@ -16171,14 +16176,21 @@ function buildGunModel(key,o){o=o||{};
     g.magG=magG;g.magA=magA;g.magAxis=new THREE.Vector3(0,-Math.cos(rk),Math.sin(rk));g.magDims=[.028,.100,.032];
     // THE SIGHTS: a front blade set into the slide's crown, a rear notch at its tail; the dot and the scope stand on it
     const iron=new THREE.Group();
-    iron.add(vmOct(.005,.012,.006,M.blueD,0,.086,-.140));iron.add(vmBox(.003,.003,.002,M.pale,0,.0905,-.137));
-    iron.add(vmOct(.006,.010,.008,M.blueD,-.006,.088,.066));iron.add(vmOct(.006,.010,.008,M.blueD,.006,.088,.066));
-    iron.add(vmBox(.0025,.0025,.002,M.pale,-.006,.0905,.070));iron.add(vmBox(.0025,.0025,.002,M.pale,.006,.0905,.070));
+    /* THE REAR IS A NOTCH, NOT TWO POSTS. Two separate chamfered posts
+       with a pale dot on each — the Eagle's pattern — came up at ADS as
+       two round-shouldered bars with eyes on them, standing apart. A
+       pistol's rear sight is ONE low blade with a square notch cut in it:
+       a wide bed, two short square ears rising off its ends, dark all
+       over, and the only pale thing in the picture the front bead sitting
+       in the gap. The sight line is the ears' top, level with the bead. */
+    iron.add(vmOct(.004,.014,.005,M.blueD,0,.0865,-.140));iron.add(vmBox(.0035,.003,.002,M.pale,0,.0925,-.137));   // the front blade, and its bead at the tip
+    iron.add(vmBox(.020,.006,.009,M.blueD,0,.0835,.066));                     // the rear bed
+    iron.add(vmBox(.006,.006,.009,M.blueD,-.007,.0895,.066));iron.add(vmBox(.006,.006,.009,M.blueD,.007,.0895,.066));   // the ears either side of the notch
     g.add(iron);const rd=sightRedDot(.081,-.01),ac=sightAcog(.081,-.01);g.add(rd);g.add(ac);
     hands(0,-.056,.060);grip.position.set(0,-.056,.054);muzzle.position.set(0,.066,-.176);
     port.position.set(.018,.064,-.030);
     g.flash=gunFlash(g,0,.066,-.176);g.slideStop=[-.017,.032,-.006];g.wellAt=new THREE.Vector3(-.02,-.10,.070);g.actAt=new THREE.Vector3(-.040,.030,-.005);
-    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.0905,reddot:rd.h,acog:ac.h};
+    g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.0925,reddot:rd.h,acog:ac.h};
     g.hip=[.13,-.20,-.45];g.hipRy=.05;g.hipRz=-.12;
   }else if(key==='ump'){
     /* THE UMP45, rebuilt against the reference's AIMED picture, because
@@ -17138,7 +17150,7 @@ function rocketBurst(p,g,d){
 }
 function fireGun(){
   const g=gunOf(),A=gunAmmo(g);
-  A.mag--;FPS.shotT=g.rof;FPS.kick=1;FPS.kickSide=rr3(-1,1);FPS.flashT=.05;FPS.boltT=(g.bolt||g.pump)?0:99;
+  A.mag--;FPS.shotT=g.rof;FPS.kick=1;FPS.kickSide=rr3(-1,1);FPS.flashT=g.key==='deagle'?.08:.05;FPS.boltT=(g.bolt||g.pump)?0:99;
   FPS.engageT=GUN_HOLD;                                    // the body stays squared up to what it is shooting at
   FPS.spread+=g.sp.shot;                                   // the hip's cone blooms (the sights' does not exist)
   // the climb, the gun's own: up, and a little to one side; the sights
@@ -17146,7 +17158,7 @@ function fireGun(){
   const R=g.rec,hold=1-.45*FPS.ads;
   if(FPS.on){const up=R.cam*hold*(.85+Math.random()*.3);FPS.pitch=clamp(FPS.pitch+up,-1.25,1.25);FPS.recP+=up*R.settle;G.camYaw+=rr3(-1,1)*R.yaw*hold;}
   AudioSys.gun(g.key);G.vibr(g.rocket?60:g.key==='sniper'||g.key==='kar98k'||g.pump?40:g.suppressed?5:18);
-  G.camShake=Math.max(G.camShake,R.cam*4*(g.shake||1));G.glowFlash=Math.max(G.glowFlash||0,g.suppressed?.12:.45);   // `shake`: the rifle and the shotgun throw the picture harder than their climb alone says
+  G.camShake=Math.max(G.camShake,R.cam*4*(g.shake||1));G.glowFlash=Math.max(G.glowFlash||0,g.suppressed?.12:g.key==='deagle'?.7:.45);   // `shake`: the rifle and the shotgun throw the picture harder than their climb alone says
   const mp=muzzleWorld().clone();
   if(!g.rocket){ejectShell();smokePuff(mp.x,mp.y+.02,mp.z,1);}   // the brass, and the smoke off the muzzle
   const o=FPS.on?camera.position.clone():mp.clone();
@@ -17473,7 +17485,7 @@ function updateRigGun(dt,g){
      half a metre from the lens. */
   const F=R.flash;if(!F)return;
   F.visible=FPS.flashT>0&&P.state!=='dead'&&G.mode==='play';
-  if(F.visible){const s=(g.suppressed?.10:g.rocket?.8:g.pellets?.48:g.key==='sniper'?.42:g.key==='kar98k'?.38:.32)*(.8+Math.random()*.5);
+  if(F.visible){const s=(g.suppressed?.10:g.rocket?.8:g.pellets?.48:g.key==='sniper'?.42:g.key==='kar98k'?.38:g.key==='deagle'?.46:.32)*(.8+Math.random()*.5);
     F.scale.set(s,s,1);F.material.rotation=Math.random()*TAU;}
 }
 /* THE RELOAD'S MOTION, off the plan. `reloadMotion(V,g)` moves whatever
@@ -17651,7 +17663,7 @@ function updateViewmodel(dt){
        (see `gunFlash`), so the aimed picture is a corona around the
        barrel's end, and the size is simply the size. The hip, where the
        two corrections were both 1, is unchanged to the pixel. */
-    const s=(g.suppressed?.06:g.rocket?.5:g.pellets?.3:g.key==='sniper'?.26:g.key==='kar98k'?.24:.2)*(.8+Math.random()*.5);
+    const s=(g.suppressed?.06:g.rocket?.5:g.pellets?.3:g.key==='sniper'?.26:g.key==='kar98k'?.24:g.key==='deagle'?.42:.2)*(.8+Math.random()*.5);   // the Eagle's is the pistol's whole feel: a .50 out of a hand should light the picture
     V.flash.scale.set(s,s,1);V.flash.material.rotation=Math.random()*TAU;}
   vm.visible=FPS.on&&!CUT.on&&gunHeld()&&!(inGlass(g)&&ads>.85)&&P.state!=='dead'&&G.mode!=='dead';
 
