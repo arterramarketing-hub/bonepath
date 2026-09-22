@@ -549,6 +549,24 @@ four and a half from the hip, with the first of the four removing its
 skull. Behind the eyes nothing has changed at all: there the crosshair is
 your own, and a rifle that aimed itself would be no rifle.
 
+**And you reload the thing.** A reload used to be the gun dipping once
+and a magazine sliding down and back up — and over the shoulder it was
+nothing at all: the pilgrim stood holding the rifle while the count
+refilled. Every gun reloads by its own mechanism now, and you see it in
+either view. A **box magazine** comes out and is *dropped* — it falls,
+bounces once and lies there — the fresh one comes up in the support hand
+and is rocked home, and the action is worked. The **shotgun** takes its
+shells one at a time through the loading port, each one counted as it
+goes in, and then the fore-end is run. The **bone sniper** has its bolt
+opened and held open while the rounds are pressed into the box, then
+closed. The **launcher** takes its rocket down the tube from the front,
+the warhead standing out of the muzzle again as it seats. The gun comes
+up and rolls toward you so the well is in the picture and the hand can be
+seen working it. A reload with rounds still in the magazine is the same
+reload as an empty one, and **only a dodge cancels it** — a swap is
+refused until it is done — and whatever went in before you dodged stays
+in: three shells in the tube are three shells in the tube.
+
 The rifle has a **muzzle flash** on it at last. And the **recoil is carried by the man**:
 the shoulder driven round and back, the head going with it, the knees
 taking the rest, riding the shot and settling rather than snapping.

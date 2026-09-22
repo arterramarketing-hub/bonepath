@@ -1363,6 +1363,79 @@ Known state of play:
      back to the facing and every further round flies past — a kill test
      that runs to its cap with the target on full health.
 
+- **THE RELOAD IS A PLAN** (`RELOAD`, `reloadPlan`, `startReload`,
+  `cancelReload`, `reloadMotion`, `rlArm`, `RL_CARRY`, `MAGDROPS`). It was
+  one sine hump on the whole gun plus a magazine sliding down and back,
+  and over the shoulder it was nothing at all — `poseGunCarry` never read
+  `FPS.reloading`, so the pilgrim stood holding the rifle while the
+  counter refilled. Now a reload is built once when it starts: a list of
+  timed events in SECONDS (`FPS.rl.ev` — what sounds, when the rounds are
+  credited, which prop moves), and the same list drives the sound, the
+  viewmodel's parts and hand, the rig's own gun and the pilgrim's arms.
+  One table, so none of them can drift.
+  - **Four mechanisms, not one.** A BOX (deagle, ump, m4): out, DROPPED
+    as a real prop, fresh one up and rocked home, the action worked. A
+    TUBE (spas): shells one at a time, each credited as it goes in, then
+    the fore-end. A TURN-BOLT (sniper): bolt opened and HELD open, singles
+    into the box, bolt closed — so the bolt sound is split into
+    `boltUp`/`boltDown`. A ROCKET (rpg): slid down the tube from the
+    front, the warhead re-appearing as it seats. The tube's and the
+    bolt's lengths are the rounds MISSING, so their `g.reload` is a
+    per-round figure.
+  - **A tactical reload is the same as an empty one** (by decision), and
+    **the ONLY cancel is a dodge** (`startDodge` → `cancelReload`). A swap
+    is REFUSED while one runs — it used to be a cancel through
+    `gunSwapped` — and death simply ends it. Whatever was credited before
+    a cancel stays: measured, a dodge at .65s of an m4 reload left 2 in
+    the magazine, a dodge at 1.28s (past the seat) left 30, and a spas
+    dodged after two shells kept 5.
+  - **The magazines are GROUPS now, and they had to be.** Each mag was a
+    body mesh plus separate ribs and a floor plate on the gun, and the old
+    animation moved the body alone — the plate stayed in the grip while
+    the magazine it closes fell out of it. `magG` (outer, a `vmPart` the
+    ADS split may move) holds `magA` (inner, what the reload moves), so
+    what `splitAds` does to the outer z is never fought. The pistol's
+    travels along `magAxis`, because its grip is raked.
+  - **THE CARRY IS A PLATEAU, AND IT COMES UP, NOT DOWN.** The whole
+    reload of every gun played BELOW THE SCREEN. Two causes, both
+    measured by projecting each gun's own `wellAt` to NDC: the old carry
+    dipped the gun down and pitched the muzzle up (both push the well
+    under the bottom edge — m4 well y -0.99 to -0.89 for the whole
+    reload), and my first replacement was a hump near zero at both ends,
+    so the hand went to a well that was still off screen. `RL_CARRY`
+    lifts, drops the muzzle and ROLLS the underside to the centre, held
+    for the whole reload: now m4 -0.39, ump -0.51, spas -0.33, sniper 0,
+    rpg -0.19, all in frame, hands in frame most or all of the time.
+    `g.rlCarry` scales it per gun — **the Eagle at .55**, because its
+    well is at the REAR of the gun and the full carry put the support
+    hand behind the near plane (+0.065 against -0.1); the launcher .75.
+  - **THREE SLABS, ALL THE SAME TRAP** (a flat box a hand's width from
+    the lens — see the UMP's receiver note): the support hand's forearm
+    angled BACK toward the eye (now it hangs down); the hand sent to the
+    m4's charging handle at the REAR of the receiver (it works the action
+    from the receiver's side, forward of the eye, and only the handle
+    mesh travels); and the GRIP hand's static sleeve, a .2 box angled
+    back that the lift brought up across the bottom of every reload —
+    shorter and hanging down it is still off the bottom at rest.
+    **Verified unchanged at rest by the hip-picture measurement: m4 0.48
+    x 0.43, ump 0.47 x 0.44 against the documented 0.47 x 0.43.**
+    After all three: **0 frames behind the near plane on the m4, ump and
+    deagle for the whole reload**; the spas, sniper and rpg still read
+    their STOCK there from frame one, which is the documented hip carry
+    and not the reload.
+  - Sound is once per beat, at its beat: the first version fired `magOut`
+    twice (once from `startReload`, once from the plan) and thudded the
+    dropped magazine on every bounce. `magDrop` plays on first touch only.
+  - **The pose returns exactly.** All seven arm/trunk/weapon channels
+    read identical before and after a third-person reload; the barrel
+    direction settles to 0.007 (the springs carry the pose for a few
+    frames past the fade — a harness that samples at the END reads 0.68
+    and is measuring the fade, not a fault).
+  - Harness traps: `FPS.vm` is null until `setPov(true)` builds it;
+    `wantAds` is gated `!FPS.reloading`, so a reload never happens on the
+    sights and an "ADS reload" cannot be measured; a per-trial drop count
+    must reset the pool or it counts the last trial's magazine.
+
 - **THE GROUND SHADE** (`SHADOW`, `shadowTick`, `shadeRig`, `shadeRigs`,
   beside `lodUpdate`). Every body stands on a flat black disc, built once
   in the humanoid rig and never touched again. Three things were wrong

@@ -2528,6 +2528,23 @@ const AudioSys=(()=>{
       mscrape(t,{peak:.07,dur:.05,f0:1100,f1:2100});                        // lips finding the well
       clack(t+.052,{peak:.28,body:126,ring:2200,dec:.07,bright:.95});       // SEATED — the weight of the reload
       clack(t+.072,{peak:.12,body:820,ring:5000,dec:.016,bright:1.35});},   // the catch taking it
+    /* A SHELL INTO THE TUBE: the rim past the lifter, the brass sliding
+       up the magazine, and the follower taking it. Small, and it plays
+       once a shell, so it must stay small. */
+    shellIn(){if(!ac)return;const t=now();
+      clack(t,{peak:.09,body:700,ring:4200,dec:.014,bright:1.25});
+      mscrape(t+.02,{peak:.055,dur:.05,f0:1400,f1:2400});
+      clack(t+.07,{peak:.13,body:210,ring:2600,dec:.03});},
+    /* THE ROCKET, seated: the tail slid down the tube and the shoulder of
+       the warhead stopping against the mouth — one heavy arrival. */
+    rocketIn(){if(!ac)return;const t=now();
+      mscrape(t,{peak:.09,dur:.14,f0:900,f1:1700});
+      clack(t+.15,{peak:.3,body:96,ring:1600,dec:.09,bright:.85});
+      clack(t+.17,{peak:.1,body:400,ring:3000,dec:.02,bright:1.1});},
+    // an empty magazine on the ground: a dull box, not a case
+    magDrop(){if(!ac)return;const t=now();
+      clack(t,{peak:.12,body:150,ring:1300,dec:.05,bright:.7});
+      clack(t+.05,{peak:.05,body:260,ring:1900,dec:.025,bright:.8});},
     rack(){if(!ac)return;const t=now();
       clack(t,{peak:.16,body:520,ring:3600,dec:.02,bright:1.2});            // the handle caught
       mscrape(t+.012,{peak:.1,dur:.062,f0:1600,f1:3100});                   // drawn back
@@ -2538,14 +2555,17 @@ const AudioSys=(()=>{
     /* A TURN-BOLT is four motions and you hear every one: the handle up,
        the bolt back over the spent case, the bolt forward over a live
        round, the handle down and locked. */
-    bolt(){if(!ac)return;const t=now();
+    bolt(){if(!ac)return;const t=now();this.boltUp(t);this.boltDown(t+.2);},
+    // the reload holds the bolt OPEN while the rounds go in, so it hears the two halves apart
+    boltUp(t0){if(!ac)return;const t=t0===undefined?now():t0;
       clack(t,{peak:.19,body:380,ring:3200,dec:.026,bright:1.15});          // lifted out of its lug
       mscrape(t+.03,{peak:.095,dur:.1,f0:1500,f1:2900});
       clack(t+.135,{peak:.22,body:210,ring:2700,dec:.034});                 // hard against the stop
-      clack(t+.16,{peak:.1,body:560,ring:4600,dec:.016,bright:1.3});        // the case flicked out
-      mscrape(t+.2,{peak:.09,dur:.09,f0:2900,f1:1400});
-      clack(t+.3,{peak:.24,body:140,ring:2300,dec:.06,bright:1.05});         // a round stripped and chambered
-      clack(t+.36,{peak:.20,body:320,ring:3000,dec:.03,bright:1.1});        // and locked down
+      clack(t+.16,{peak:.1,body:560,ring:4600,dec:.016,bright:1.3});},      // the case flicked out
+    boltDown(t0){if(!ac)return;const t=t0===undefined?now():t0;
+      mscrape(t,{peak:.09,dur:.09,f0:2900,f1:1400});
+      clack(t+.1,{peak:.24,body:140,ring:2300,dec:.06,bright:1.05});         // a round stripped and chambered
+      clack(t+.16,{peak:.20,body:320,ring:3000,dec:.03,bright:1.1});        // and locked down
       tone(t+.362,{f:2200,f2:1100,type:'triangle',peak:.035,att:.001,dec:.2});},
     /* BRASS ON SOIL. Small, bright and gone — and it must stay under the
        report that threw it, or a magazine reads as a bag of spoons.
@@ -10242,7 +10262,7 @@ const G={
    pilgrim's own rebuild asks it whether to hide the body, and that runs at
    boot. */
 const FPS={on:false,pitch:0,ads:0,adsOn:false,zoom:0,gun:0,ammo:{},bob:0,kick:0,swayX:0,swayY:0,sprintVm:0,
-  shotT:0,reloadT:0,reloading:false,rlStage:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,maskT:0,engageT:0};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
+  shotT:0,reloadT:0,reloading:false,rl:null,rlFade:0,boltT:99,spread:.03,hitT:0,killT:0,hitHead:false,flashT:0,hidRig:false,vm:null,eyeY:1.74,att:{},res:{},recP:0,kickSide:0,maskT:0,engageT:0};   // (the eye: inside the pilgrim's own helm — see the note in the FIRST PERSON section)
 /* Are the sights up? A function DECLARATION, and called only at frame
    time, so it may reach `gunHeld` (which is declared a long way below
    this line and reads a LOADOUT that does not exist yet at boot). */
@@ -10937,6 +10957,7 @@ const player={
       }
     };
     const startDodge=(s)=>{
+      if(FPS.reloading)cancelReload();               // the ONE thing that cancels a reload
       this.rollLanded=false;this.rollAir=0;this.dashGhost=0;
       if(isThief()){                                  // cloth and grit, and gone
         AudioSys.step(.8,onStone(this.x,this.z)?'stone':snowDeep()?'snow':'grass');
@@ -15582,7 +15603,7 @@ const GUNS=[
      round FROM THE HIP has a cone of its own (`sp`: at rest, walking, and
      the bloom a shot adds) that the crosshair draws; on the sights the cone
      is gone and the round goes exactly where the sight is — see gunRay. */
-  {key:'deagle',name:'golden eagle',cal:'50',mag:7,dmg:34,head:2,rof:.36,auto:false,gap:6,sp:{hip:.026,walk:.018,shot:.05},
+  {key:'deagle',name:'golden eagle',cal:'50',mag:7,dmg:34,head:2,rof:.36,auto:false,gap:6,rlCarry:.55,sp:{hip:.026,walk:.018,shot:.05},
     sway:{idle:.0045,rate:1.1,look:.0011,walk:.014,bob:.010},rec:{cam:.07,yaw:.018,back:.07,up:1.0,side:.25,recover:6,settle:.55},
     poise:2.2,kb:1.3,reload:1.5,adsFov:50,adsSpeed:9,range:60,
     note:'a hand cannon in gold, .50 cal: seven rounds, each a hollow\'s worth and two to a brute; a head under one comes off. it climbs hard and the sights hold half of it down'},
@@ -15602,7 +15623,7 @@ const GUNS=[
     sway:{idle:.006,rate:.8,look:.0015,walk:.02,bob:.012},rec:{cam:.17,yaw:.03,back:.13,up:1.3,side:.3,recover:5,settle:.6},
     poise:7,kb:2.4,reload:2.6,adsFov:[18,7],adsSpeed:6,range:130,
     note:'.50 cal, one shot one body, from wherever the fog lets you see; a head under it is gone. its own glass has two magnifications on the zoom button; from the hip it is a stick that goes off'},
-  {key:'rpg',name:'rpg-4',cal:'rkt',mag:1,dmg:150,head:1,rof:1.6,auto:false,rocket:true,gap:10,sp:{hip:.012,walk:.008,shot:0},
+  {key:'rpg',name:'rpg-4',cal:'rkt',mag:1,dmg:150,head:1,rof:1.6,auto:false,rocket:true,gap:10,rlCarry:.75,sp:{hip:.012,walk:.008,shot:0},
     sway:{idle:.007,rate:.7,look:.0018,walk:.024,bob:.014},rec:{cam:.09,yaw:.02,back:.16,up:.9,side:.2,recover:4,settle:.7},
     poise:99,kb:3,reload:3.0,adsFov:55,adsSpeed:6,range:120,blast:3.8,
     note:'one in the tube and four on the back. it flies, it is slow to arm again, and whatever stands within four metres of where it lands does not stand afterwards — you included'},
@@ -15843,6 +15864,52 @@ function ejectShell(){
   s.vx=_shr.x*sp+_shu.x*up+_shf.x*fw;s.vy=_shr.y*sp+_shu.y*up+_shf.y*fw;s.vz=_shr.z*sp+_shu.z*up+_shf.z*fw;
   s.sx=rr3(-16,16);s.sy=rr3(-16,16);s.sz=rr3(-16,16);
 }
+/* THE EMPTY MAGAZINE, DROPPED. Four dark boxes in a ring, sized at the
+   moment of the drop from the gun's own magazine (`magDims`), spawned at
+   the magazine's world position with a little of its own downward travel,
+   falling under gravity, one bounce, then still. The same shape of thing
+   as the brass, and for the same reason: one draw while it is in the air
+   and none once it has lain long enough. */
+const MAGDROPS={m:[],i:0};
+function magDropPool(){
+  if(MAGDROPS.m.length)return;
+  const geo=GOct(),mat=vmMat(0x2a2b2e);
+  for(let i=0;i<4;i++){const me=new THREE.Mesh(geo,mat);me.visible=false;me.frustumCulled=false;scene.add(me);
+    MAGDROPS.m.push({me,t:-1,vx:0,vy:0,vz:0,sx:0,sz:0,rest:false,hit:false});}
+}
+const _md1=new THREE.Vector3(),_mdq=new THREE.Quaternion(),_mdd=new THREE.Vector3();
+function dropMagazine(g){
+  const V=FPS.on?(FPS.vm&&FPS.vm.guns[g.key]):(player.rig&&player.rig.gunModel);
+  if(!V||!V.magA)return;
+  magDropPool();
+  (FPS.on?camera:player.rig.root).updateMatrixWorld(true);
+  V.magA.getWorldPosition(_md1);V.magA.getWorldQuaternion(_mdq);
+  _mdd.copy(V.magAxis).applyQuaternion(_mdq);
+  MAGDROPS.i=(MAGDROPS.i+1)%MAGDROPS.m.length;
+  const d=MAGDROPS.m[MAGDROPS.i],D=V.magDims,sc=V.vmScale||1;
+  d.me.scale.set(D[0]*sc,D[1]*sc,D[2]*sc);d.me.position.copy(_md1).addScaledVector(_mdd,.06*sc);
+  d.me.quaternion.copy(_mdq);d.me.visible=true;d.t=0;d.rest=false;d.hit=false;
+  d.vx=_mdd.x*.9+rr3(-.2,.2);d.vy=Math.min(-.2,_mdd.y*.9);d.vz=_mdd.z*.9+rr3(-.2,.2);
+  d.sx=rr3(-4,4);d.sz=rr3(-4,4);
+}
+function updateMagDrops(dt){
+  for(const d of MAGDROPS.m){
+    if(d.t<0)continue;
+    d.t+=dt;
+    if(!d.rest){
+      d.vy-=9.8*dt;
+      d.me.position.x+=d.vx*dt;d.me.position.y+=d.vy*dt;d.me.position.z+=d.vz*dt;
+      d.me.rotation.x+=d.sx*dt;d.me.rotation.z+=d.sz*dt;
+      const gy=heightAt(d.me.position.x,d.me.position.z)+d.me.scale.x*.5;
+      if(d.me.position.y<=gy){
+        d.me.position.y=gy;if(!d.hit){d.hit=true;AudioSys.magDrop();}   // one thud: a bounce that also thudded read as two magazines
+        if(Math.abs(d.vy)>1.2){d.vy=-d.vy*.25;d.vx*=.4;d.vz*=.4;d.sx*=.3;d.sz*=.3;}
+        else{d.rest=true;d.sx=d.sz=0;d.me.rotation.set(Math.PI/2+rr3(-.2,.2),rr3(0,TAU),0);}
+      }
+    }
+    if(d.t>7){d.t=-1;d.me.visible=false;}
+  }
+}
 let _shTink=0,_shRun=0;
 function updateShells(dt){
   _shTink-=dt;_shRun-=dt;
@@ -15906,7 +15973,14 @@ function buildGunModel(key,o){o=o||{};
   const M=gunMats(),g=new THREE.Group();
   const hands=(gx,gy,gz)=>{if(!o.hands)return;
     g.add(vmBox(.05,.062,.058,M.glove,gx,gy,gz));
-    const fa=vmBox(.056,.05,.2,M.sleeve,gx+.015,gy-.06,gz+.12);fa.rotation.x=.55;g.add(fa);};
+    /* THE GRIP HAND'S SLEEVE GOES DOWN, NOT BACK. It was a .2 box angled
+       back toward the eye — below the frame at rest, where it cost
+       nothing, and the first thing the reload's lift brought up: a flat
+       pale slab a hand's width from the lens across the bottom of every
+       reload. Shorter and hanging down it is still off the bottom at rest
+       (the hip picture is measured unchanged) and stays out of the lens
+       when the gun comes up. */
+    const fa=vmBox(.056,.05,.15,M.sleeve,gx+.012,gy-.085,gz+.06);fa.rotation.x=1.0;g.add(fa);};
   const grip=new THREE.Group();g.add(grip);g.grip=grip;
   const port=new THREE.Group();port.position.set(.028,.046,-.02);g.add(port);g.port=port;   // where the brass leaves (each gun moves it)
   const muzzle=new THREE.Group();g.add(muzzle);g.muzzle=muzzle;
@@ -15962,8 +16036,17 @@ function buildGunModel(key,o){o=o||{};
        colour from the muzzle to the heel is a water pistol. */
     const gr=vmOct(.036,.112,.052,M.dark,0,-.052,.062);gr.rotation.x=.30;g.add(gr);
     for(let i=0;i<5;i++){const ck=vmBox(.0368,.004,.030,M.gun,0,-.018-i*.021,.048+i*.0065);ck.rotation.x=.30;g.add(ck);}
-    const mag=vmOct(.028,.100,.040,M.steel,0,-.058,.070);mag.rotation.x=.30;g.add(mag);
-    const mb=vmOct(.040,.012,.050,M.goldM,0,-.110,.088);mb.rotation.x=.30;g.add(mb);   // the base plate closing the grip
+    /* THE MAGAZINE IS ONE GROUP. Its body and its base plate were two
+       meshes on the gun, and the reload animated the body alone — the
+       plate stayed in the grip while the magazine it closes fell out of
+       it. Everything that leaves with the magazine lives under `magG`;
+       `magA` inside it is what the reload moves, so what `splitAds` does
+       to the outer group's z is never fought. The grip is raked .30, so
+       the magazine travels along `magAxis`, not straight down. */
+    const magG=new THREE.Group(),magA=new THREE.Group();magG.add(magA);g.add(magG);
+    const mag=vmOct(.028,.100,.040,M.steel,0,-.058,.070);mag.rotation.x=.30;magA.add(mag);
+    const mb=vmOct(.040,.012,.050,M.goldM,0,-.110,.088);mb.rotation.x=.30;magA.add(mb);   // the base plate closing the grip
+    g.magG=magG;g.magA=magA;g.magAxis=new THREE.Vector3(0,-Math.cos(.30),Math.sin(.30));g.magDims=[.040,.100,.040];
     // THE CONTROLS, and every one of them a step off the gold it sits on
     g.add(vmOct(.010,.016,.032,M.goldD,-.025,.052,.046));                      // the safety, on the slide
     g.add(vmOct(.008,.012,.042,M.dark,-.023,.026,.008));                       // the slide stop
@@ -15988,7 +16071,7 @@ function buildGunModel(key,o){o=o||{};
     g.add(iron);const rd=sightRedDot(.094,.02),ac=sightAcog(.094,.02);g.add(rd);g.add(ac);
     hands(0,-.06,.07);grip.position.set(0,-.06,.06);muzzle.position.set(0,.058,-.212);
     port.position.set(.028,.066,-.030);
-    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.058,-.212);
+    g.flash=gunFlash(g,0,.058,-.212);g.slideStop=[-.023,.026,.008];g.wellAt=new THREE.Vector3(-.02,-.11,.085);g.actAt=new THREE.Vector3(-.045,.03,.01);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.097,reddot:rd.h,acog:ac.h};
     g.hip=[.13,-.20,-.46];g.hipRy=.05;g.hipRz=-.12;
   }else if(key==='ump'){
@@ -16033,10 +16116,15 @@ function buildGunModel(key,o){o=o||{};
     for(let i=0;i<4;i++)g.add(vmRing(.0178,.0022,12,M.gun,0,.042,-.362-i*.030));     // its bands
     g.add(vmRing(.0176,.003,12,M.gun,0,.042,-.464));                         // and its cap
     // THE MAGAZINE, raked forward out of its slanted well
-    const mag=vmOct(.029,.185,.05,M.gunD,0,-.082,-.10);mag.rotation.x=-.17;g.add(mag);
-    for(let i=0;i<4;i++){const rb=vmBox(.031,.004,.052,M.gun,0,-.026-i*.036,-.094-i*.0062);rb.rotation.x=-.17;g.add(rb);}
-    const mw=vmOct(.038,.052,.06,M.gunD,0,-.010,-.094);mw.rotation.x=-.17;g.add(mw);
-    const mb=vmOct(.033,.012,.056,M.gun,0,-.172,-.118);mb.rotation.x=-.17;g.add(mb);      // the floor plate
+    // the magazine, its witness ribs and its floor plate, as one thing that leaves (see the Eagle's note)
+    const magG=new THREE.Group(),magA=new THREE.Group();magG.add(magA);g.add(magG);
+    const mag=vmOct(.029,.185,.05,M.gunD,0,-.082,-.10);mag.rotation.x=-.17;magA.add(mag);
+    for(let i=0;i<4;i++){const rb=vmBox(.031,.004,.052,M.gun,0,-.026-i*.036,-.094-i*.0062);rb.rotation.x=-.17;magA.add(rb);}
+    const mw=vmOct(.038,.052,.06,M.gunD,0,-.010,-.094);mw.rotation.x=-.17;g.add(mw);      // the well stays on the gun
+    const mb=vmOct(.033,.012,.056,M.gun,0,-.172,-.118);mb.rotation.x=-.17;magA.add(mb);   // the floor plate
+    g.magG=magG;g.magA=magA;g.magAxis=new THREE.Vector3(0,-Math.cos(.17),-Math.sin(.17));g.magDims=[.031,.185,.052];
+    // the charging handle, on the left of the receiver: the reload racks it
+    const ch=vmOct(.014,.010,.026,M.grey,-.030,.062,-.150);g.add(ch);g.handle=ch;g.handleZ=ch.position.z;g.wellAt=new THREE.Vector3(-.03,-.17,-.115);g.actAt=new THREE.Vector3(-.058,.062,-.150);
     // THE GRIP, and the guard in front of it
     const gr=vmOct(.034,.105,.044,M.gunD,0,-.062,.062);gr.rotation.x=.24;g.add(gr);
     for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.032-i*.028,.036+i*.007);fg.rotation.x=.24;g.add(fg);}
@@ -16144,10 +16232,10 @@ function buildGunModel(key,o){o=o||{};
     iron2.add(vmBox(.0040,.0040,.004,M.bead,0,ay2,-.2665));                  // THE BEAD, dead centre of the ring: the point of aim
     g.add(iron2);g.iron2=iron2;
     const rd=sightRedDot(.081,-.02),ac=sightAcog(.081,-.02);g.add(rd);g.add(ac);
-    hands(0,-.062,.086);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222));
+    hands(0,-.062,.086);if(o.hands){g.foreHand=vmBox(.048,.05,.05,M.glove,-.008,-.004,-.222);g.add(g.foreHand);}
     grip.position.set(0,-.004,-.215);muzzle.position.set(0,.042,-.466);
     port.position.set(.030,.050,-.058);
-    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.042,-.466);
+    g.flash=gunFlash(g,0,.042,-.466);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,iron2:ay2,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.46];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='m4'){
@@ -16187,9 +16275,13 @@ function buildGunModel(key,o){o=o||{};
     for(let i=0;i<3;i++)g.add(vmBox(.030,.004,.008,M.grey,0,.0525,-.598+i*.013));   // its slots
     g.add(vmRing(.0138,.003,10,M.gun,0,.042,-.638));
     // THE THIRTY, curved forward out of a straight well
-    const mag=vmOct(.028,.155,.062,M.gunD,0,-.062,-.050);mag.rotation.x=-.18;g.add(mag);
-    for(let i=0;i<3;i++){const rb=vmBox(.030,.004,.064,M.gun,0,-.024-i*.042,-.043-i*.0076);rb.rotation.x=-.18;g.add(rb);}
-    const mf=vmOct(.031,.012,.066,M.grey,0,-.138,-.036);mf.rotation.x=-.18;g.add(mf);
+    const magG=new THREE.Group(),magA=new THREE.Group();magG.add(magA);g.add(magG);
+    const mag=vmOct(.028,.155,.062,M.gunD,0,-.062,-.050);mag.rotation.x=-.18;magA.add(mag);
+    for(let i=0;i<3;i++){const rb=vmBox(.030,.004,.064,M.gun,0,-.024-i*.042,-.043-i*.0076);rb.rotation.x=-.18;magA.add(rb);}
+    const mf=vmOct(.031,.012,.066,M.grey,0,-.138,-.036);mf.rotation.x=-.18;magA.add(mf);
+    g.magG=magG;g.magA=magA;g.magAxis=new THREE.Vector3(0,-Math.cos(.18),-Math.sin(.18));g.magDims=[.030,.155,.064];
+    // the charging handle at the back of the receiver, and its latch
+    const ch=vmOct(.030,.008,.022,M.grey,0,.060,.070);g.add(ch);g.handle=ch;g.handleZ=ch.position.z;g.wellAt=new THREE.Vector3(-.03,-.14,-.04);g.actAt=new THREE.Vector3(-.048,.040,-.055);   /* the hand works the action from the receiver's SIDE, forward of the eye: sent to the handle itself at the rear (z +.07) it sat a hand's width from the lens and rendered as a pale slab filling the lower frame */
     // THE GRIP and the guard
     const gr=vmOct(.034,.100,.045,M.gunD,0,-.058,.080);gr.rotation.x=.32;g.add(gr);
     for(let i=0;i<3;i++){const fg=vmBox(.036,.009,.010,M.gun,0,-.028-i*.026,.054+i*.009);fg.rotation.x=.32;g.add(fg);}
@@ -16242,10 +16334,10 @@ function buildGunModel(key,o){o=o||{};
     iron.add(vmBox(.003,.030,.008,M.gun,-.0085,.088,-.452));              // the ears either side of it
     iron.add(vmBox(.003,.030,.008,M.gun, .0085,.088,-.452));
     g.add(iron);const rd=sightRedDot(.0755,.0),ac=sightAcog(.0755,.0);g.add(rd);g.add(ac);
-    hands(0,-.062,.092);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.01,-.004,-.320));
+    hands(0,-.062,.092);if(o.hands){g.foreHand=vmBox(.048,.05,.05,M.glove,-.01,-.004,-.320);g.add(g.foreHand);}
     grip.position.set(0,.006,-.320);muzzle.position.set(0,.042,-.645);
     port.position.set(.032,.050,-.050);
-    g.mag=mag;g.magY=mag.position.y;g.flash=gunFlash(g,0,.042,-.645);
+    g.flash=gunFlash(g,0,.042,-.645);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:ay,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.48];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='spas'){
@@ -16279,10 +16371,10 @@ function buildGunModel(key,o){o=o||{};
     iron.add(vmOct(.006,.016,.006,M.dark,0,.082,-.24));iron.add(vmBox(.003,.003,.002,M.pale,0,.088,-.2375));
     iron.add(vmOct(.010,.014,.010,M.dark,-.009,.082,-.04));iron.add(vmOct(.010,.014,.010,M.dark,.009,.082,-.04));
     g.add(iron);const rd=sightRedDot(.06,-.05),ac=sightAcog(.06,-.05);g.add(rd);g.add(ac);
-    hands(0,-.065,.11);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.005,-.005,-.33));
+    hands(0,-.065,.11);if(o.hands){g.foreHand=vmBox(.048,.05,.05,M.glove,-.005,-.005,-.33);g.add(g.foreHand);}
     grip.position.set(0,.01,-.33);muzzle.position.set(0,.055,-.63);
     port.position.set(.028,.048,-.100);
-    g.pump=pump;g.pumpZ=pump.position.z;g.flash=gunFlash(g,0,.055,-.63);
+    g.pump=pump;g.pumpZ=pump.position.z;g.flash=gunFlash(g,0,.055,-.63);g.wellAt=new THREE.Vector3(-.005,-.05,-.12);
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.088,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.20,-.47];g.hipRy=.06;g.hipRz=-.15;
   }else if(key==='sniper'){
@@ -16317,10 +16409,10 @@ function buildGunModel(key,o){o=o||{};
     g.add(bolt);
     g.add(vmOct(.03,.06,.07,M.gunD,0,-.01,-.04));g.add(vmOct(.03,.012,.06,M.gunD,0,-.03,.02));
     const rd=sightRedDot(.076,-.03),ac=sightAcog(.076,-.03);g.add(rd);g.add(ac);
-    hands(0,-.04,.08);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.005,-.02,-.26));
+    hands(0,-.04,.08);if(o.hands){g.foreHand=vmBox(.048,.05,.05,M.glove,-.005,-.02,-.26);g.add(g.foreHand);}
     grip.position.set(0,-.01,-.26);muzzle.position.set(0,.05,-.74);
     port.position.set(.028,.058,.006);
-    g.bolt=bolt;g.boltZ=bolt.position.z;g.flash=gunFlash(g,0,.05,-.74);
+    g.bolt=bolt;g.boltZ=bolt.position.z;g.flash=gunFlash(g,0,.05,-.74);g.wellAt=new THREE.Vector3(.0,.075,.0);g.actAt=new THREE.Vector3(.07,.06,.03);
     g.iron=scope;g.reddot=rd;g.acog=ac;g.sightH={iron:.11,reddot:rd.h,acog:ac.h};
     g.hip=[.12,-.19,-.44];g.hipRy=.05;g.hipRz=-.14;
   }else{
@@ -16345,7 +16437,7 @@ function buildGunModel(key,o){o=o||{};
     g.add(vmOct(.03,.04,.06,M.gunD,0,-.045,-.14));                       // the fore grip
     g.add(vmOct(.014,.022,.030,M.gunD,0,-.016,-.14));
     g.add(vmOct(.016,.012,.040,M.gun,-.040,.038,-.100));                 // the firing mechanism's housing, on the left
-    const head=new THREE.Group();g.add(head);g.warhead=head;
+    const head=new THREE.Group();g.add(head);g.warhead=head;g.wellAt=new THREE.Vector3(.0,.02,-.52);
     head.add(vmCyl(.056,.10,12,M.olive,0,.02,-.400,.036));               // the bulb: a PG-7's warhead is FAT, and the fat is its whole silhouette
     head.add(vmCyl(.030,.115,12,M.olive,0,.02,-.508,.056));              // its shoulder, drawing down to the nose
     head.add(vmCyl(.026,.10,10,M.tan,0,.02,-.600,.008));                 // and the cone
@@ -16368,7 +16460,7 @@ function buildGunModel(key,o){o=o||{};
     g.add(vmOct(.030,.044,.052,M.gunD,0,.068,-.05));                     // the bracket
     g.add(vmOct(.020,.012,.062,M.gunD,0,.088,-.05));                     // and the rail on top of it
     g.add(iron);const rd=sightRedDot(.092,-.05),ac=sightAcog(.092,-.05);g.add(rd);g.add(ac);
-    hands(0,-.065,.03);if(o.hands)g.add(vmBox(.048,.05,.05,M.glove,-.005,-.02,-.14));
+    hands(0,-.065,.03);if(o.hands){g.foreHand=vmBox(.048,.05,.05,M.glove,-.005,-.02,-.14);g.add(g.foreHand);}
     grip.position.set(0,-.02,-.14);muzzle.position.set(0,.02,-.62);
     g.flash=gunFlash(g,0,.02,.4);                                        // the flash is the BACKBLAST
     g.iron=iron;g.reddot=rd;g.acog=ac;g.sightH={iron:.085,reddot:rd.h,acog:ac.h};
@@ -16401,6 +16493,33 @@ function buildGunModel(key,o){o=o||{};
      bb.setFromObject(o);o.userData.vmZ0=bb.max.z;o.userData.vmZ1=bb.min.z;parts.push(o);
    }
    g.vmParts=parts;g.splitAt=null;}
+  /* THE SUPPORT HAND, AND WHAT IT CARRIES. Built after the split has
+     taken its parts, so `splitAds` never reparents it — a hand that had
+     its z shifted into the aft group would reload a magazine into thin
+     air. It is one hand and a forearm (`handL`, the same glove and sleeve
+     the grip wears) on an inner node `handA` that the reload moves; at
+     rest it is hidden and the static fore-end glove stands in for it.
+     `shellA` is a shotgun shell and `roundA` a rifle cartridge, each
+     shown only in the hand on its way into the gun. */
+  if(o.hands){
+    const hl=new THREE.Group(),ha=new THREE.Group();hl.add(ha);g.add(hl);g.handL=hl;g.handA=ha;
+    ha.add(vmBox(.05,.06,.058,M.glove,0,0,0));
+    /* THE FOREARM HANGS DOWN, NOT BACK. Angled back toward the eye the
+       way the grip hand's sleeve is, it put the Eagle's reload behind the
+       near plane: the pistol's well is at the REAR of the gun, and once
+       the carry lifted and rolled it the sleeve ran straight into the
+       lens (measured, +0.065 against a near plane of -0.1, `handA` named
+       as the part). A support hand feeding a well from below has its
+       forearm going DOWN out of the frame. */
+    const fa=vmBox(.056,.05,.2,M.sleeve,.012,-.10,.045);fa.rotation.x=1.15;ha.add(fa);
+    for(let i=0;i<3;i++)ha.add(vmBox(.012,.014,.03,M.glove,-.016+i*.016,.02,-.038));   // knuckles over the top
+    const rest=g.foreHand?g.foreHand.position:new THREE.Vector3(0,-.02,-.2);
+    hl.position.copy(rest);g.handRest=rest.clone();hl.visible=false;
+    const sh=vmCyl(.0092,.058,8,vmMat(0xa8322a),0,0,0);sh.rotation.x=0;const shb=vmCyl(.0096,.012,8,M.steel,0,-.03,0);   // a red hull with a brass head
+    const shA=new THREE.Group();shA.add(sh);shA.add(shb);shA.visible=false;ha.add(shA);g.shellA=shA;
+    const rdA=new THREE.Group();rdA.add(vmCyl(.007,.052,8,M.steel,0,0,0));rdA.add(vmCyl(.0035,.02,6,vmMat(0xc9a24a),0,0,-.035,.001));
+    rdA.visible=false;ha.add(rdA);g.roundA=rdA;
+  }
   g.vmScale=o.scale||1;
   g.scale.setScalar(g.vmScale);
   return g;
@@ -16845,11 +16964,78 @@ function fireGun(){
   if(any)hitMark(kill,head);
   if(A.mag<=0&&resOf(g)>0&&!g.bolt&&!g.pump)startReload();   // an empty magazine goes on its own
 }
+/* ---------------- THE RELOAD ----------------
+   A reload is a PLAN, built once when it starts (`reloadPlan`): a list of
+   timed events in seconds — what sounds, when the ammunition is credited,
+   which prop moves — and the same list drives the sound, the viewmodel,
+   the pilgrim's arms over the shoulder and the rig's own gun. One table,
+   so none of them can drift from the others.
+   Four mechanisms, and they are not the same shape:
+   - a BOX magazine (deagle, ump, m4): the empty comes out and is DROPPED
+     (a real prop, falling), the fresh one comes up from below and is
+     rocked home, and the action is worked — the carbines' charging
+     handle, the pistol's slide stop. The rounds are credited at the SEAT.
+   - a TUBE (spas): shells one at a time through the loading port, each
+     credited as it goes in, then the fore-end run. Its length is the
+     number of shells missing, so `g.reload` for it is a PER-SHELL time.
+   - a TURN-BOLT (sniper): the bolt opened and HELD open, singles pressed
+     into the box, the bolt closed. Per-round, like the tube.
+   - a ROCKET (rpg): the round slid down the tube from the front, the
+     warhead re-appearing as it seats.
+   A tactical reload is the same as an empty one, by decision: the
+   magazine always leaves and a fresh one always comes up. And the ONLY
+   thing that cancels one is a dodge (`cancelReload`, from `startDodge`);
+   a swap is refused while it runs, and death simply ends it. Whatever was
+   credited before a cancel stays credited — three shells in a tube are
+   three shells in a tube. */
+const RELOAD={
+  deagle:{type:'box', out:[.05,.20],up:[.34,.54],seat:.54,act:[.68,.84]},
+  ump:   {type:'box', out:[.05,.20],up:[.32,.54],seat:.54,act:[.68,.88]},
+  m4:    {type:'box', out:[.05,.20],up:[.32,.54],seat:.54,act:[.68,.88]},
+  spas:  {type:'tube',lead:.34,per:.28,tail:.62},
+  sniper:{type:'bolt',open:.34,per:.30,close:.50},
+  rpg:   {type:'rocket',in:[.14,.62],seat:.62,ready:[.72,.92]},
+};
+function reloadPlan(g){
+  const R=RELOAD[g.key],A=gunAmmo(g),need=Math.min(g.mag-A.mag,resOf(g)),ev=[];
+  let dur=g.reload;
+  if(R.type==='box'){
+    ev.push({t:R.out[0]*dur,sfx:'magOut'});
+    ev.push({t:R.out[1]*dur,drop:true});
+    ev.push({t:R.seat*dur,sfx:'magIn',ammo:need});
+    ev.push({t:R.act[0]*dur,sfx:'rack'});
+  }else if(R.type==='tube'){
+    dur=R.lead+R.per*need+R.tail;
+    for(let i=0;i<need;i++)ev.push({t:R.lead+R.per*(i+.72),sfx:'shellIn',ammo:1});
+    ev.push({t:R.lead+R.per*need+.06,sfx:'pump',pump:true});
+  }else if(R.type==='bolt'){
+    dur=R.open+R.per*need+R.close;
+    ev.push({t:.02,sfx:'boltOpen'});
+    for(let i=0;i<need;i++)ev.push({t:R.open+R.per*(i+.70),sfx:'shellIn',ammo:1});
+    ev.push({t:R.open+R.per*need+.10,sfx:'boltClose'});
+  }else{
+    ev.push({t:R.seat*dur,sfx:'rocketIn',ammo:need,warhead:true});
+  }
+  ev.push({t:dur,done:true});
+  return {type:R.type,R,dur,ev,i:0,need,n:need};
+}
 function startReload(){
   const g=gunOf(),A=gunAmmo(g);
   if(FPS.reloading||A.mag>=g.mag||resOf(g)<=0)return;
-  FPS.reloading=true;FPS.reloadT=0;FPS.rlStage=0;AudioSys.magOut();
+  if(player.state==='roll')return;                       // (not out of a dodge: it would be cancelled by the frame after)
+  FPS.reloading=true;FPS.reloadT=0;FPS.rl=reloadPlan(g);FPS.rlFade=0;
 }
+/* the one way out. The plan is kept for a moment (`rlFade`) so the parts
+   can be blended back to rest from wherever they were rather than
+   snapping; the ammunition already credited is kept; and the bolt is
+   returned to battery so the gun can fire what it has. */
+function cancelReload(){
+  if(!FPS.reloading)return;
+  FPS.reloading=false;FPS.rlFade=RL_FADE;FPS.boltT=99;
+  // (a rocket not yet seated is not in the tube: the warhead stays gone and
+  //  the magazine stays empty, exactly as before the reload — nothing to undo)
+}
+const RL_FADE=.16;
 function gunSwapped(){
   FPS.reloading=false;FPS.shotT=Math.max(FPS.shotT,.4);FPS.zoom=0;FPS.kick=Math.max(FPS.kick,.6);FPS.boltT=99;
   if(FPS.on&&gunHeld())AudioSys.rack();
@@ -17022,16 +17208,28 @@ function updateGun(dt){
   FPS.kick=Math.max(0,FPS.kick-dt*g.rec.recover);
   FPS.readyT=Math.max(0,(FPS.readyT||0)-dt);   // (the trigger's grip on the carry — see GUN_READY)
   if(FPS.ads>.12)FPS.engageT=GUN_HOLD;else FPS.engageT=Math.max(0,(FPS.engageT||0)-dt);   // (the brace holds it open; a round refreshes it — see gunShoulder)
-  if(FPS.reloading){
-    FPS.reloadT+=dt;const u=FPS.reloadT/g.reload;
-    if(FPS.rlStage<1&&u>.48){FPS.rlStage=1;AudioSys.magIn();}
-    if(FPS.rlStage<2&&u>.82){FPS.rlStage=2;if(g.bolt)AudioSys.bolt();else if(g.pump)AudioSys.pump();else AudioSys.rack();}
-    if(u>=1){const take=Math.min(g.mag-A.mag,resOf(g));A.mag+=take;setRes(g,resOf(g)-take);FPS.reloading=false;
-      if(g.rocket){if(FPS.vm&&FPS.vm.guns.rpg.warhead)FPS.vm.guns.rpg.warhead.visible=true;if(P.rig&&P.rig.gunModel&&P.rig.gunModel.warhead)P.rig.gunModel.warhead.visible=true;}}
+  if(FPS.rlFade>0)FPS.rlFade=Math.max(0,FPS.rlFade-dt);
+  if(FPS.reloading&&FPS.rl){
+    FPS.reloadT+=dt;const rl=FPS.rl;
+    // every event whose time has come, in order — a long frame fires several, none is skipped
+    while(rl.i<rl.ev.length&&FPS.reloadT>=rl.ev[rl.i].t){
+      const e=rl.ev[rl.i++];
+      if(e.sfx==='boltOpen')AudioSys.boltUp();
+      else if(e.sfx==='boltClose')AudioSys.boltDown();
+      else if(e.sfx)AudioSys[e.sfx]();
+      if(e.drop)dropMagazine(g);
+      if(e.pump)FPS.boltT=0;                                // the fore-end's stroke is the one the shot already has
+      if(e.ammo){const take=Math.min(e.ammo,g.mag-A.mag,resOf(g));A.mag+=take;setRes(g,resOf(g)-take);}
+      if(e.warhead){if(FPS.vm&&FPS.vm.guns.rpg.warhead)FPS.vm.guns.rpg.warhead.visible=true;if(P.rig&&P.rig.gunModel&&P.rig.gunModel.warhead)P.rig.gunModel.warhead.visible=true;}
+      if(e.done){FPS.reloading=false;FPS.rlFade=RL_FADE;if(g.bolt)FPS.boltT=99;}
+    }
   }
   if(IN.reloadPressed)startReload();
-  if(IN.swapPressed)cycleGun(1);
-  if(IN.pickGun>=0&&IN.pickGun<GUNS.length&&GUNS[IN.pickGun].key!==LOADOUT.weapon){LOADOUT.weapon=GUNS[IN.pickGun].key;FPS.gun=IN.pickGun;saveLoadout();P.rebuild();gunSwapped();}
+  /* A SWAP IS REFUSED WHILE A RELOAD RUNS. It used to be a cancel (the
+     swap called `gunSwapped`, which clears `reloading`), and the only
+     thing that may cancel a reload is a dodge. */
+  if(IN.swapPressed&&!FPS.reloading)cycleGun(1);
+  if(!FPS.reloading&&IN.pickGun>=0&&IN.pickGun<GUNS.length&&GUNS[IN.pickGun].key!==LOADOUT.weapon){LOADOUT.weapon=GUNS[IN.pickGun].key;FPS.gun=IN.pickGun;saveLoadout();P.rebuild();gunSwapped();}
   if(IN.zoomPressed&&g.scope&&attOf(g)==='iron')FPS.zoom=FPS.zoom?0:1;
   const busy=!(P.state==='free'||P.state==='hurt'||(P.state==='roll'&&P.t>rollProf().ROLLED))||G.mode!=='play';
   const tap=IN.firePressed||(!FPS.on&&!!IN.swipe&&IN.swipe.kind==='atk');
@@ -17060,6 +17258,7 @@ function updateGun(dt){
 function updateRigGun(dt,g){
   const P=player,R=P.rig&&P.rig.gunModel;
   if(!R)return;
+  reloadMotion(R,g);                                          // the magazine, the handle, the bolt, the warhead: the same plan the viewmodel runs
   /* THE MUZZLE FLASH OVER THE SHOULDER. Every gun model builds one, and
      nothing ever showed it: `V.flash.visible` is written in
      `updateViewmodel`, which runs behind the eyes alone, so a rifle fired
@@ -17070,6 +17269,111 @@ function updateRigGun(dt,g){
   F.visible=FPS.flashT>0&&P.state!=='dead'&&G.mode==='play';
   if(F.visible){const s=(g.suppressed?.10:g.rocket?.8:g.pellets?.48:g.key==='sniper'?.42:.32)*(.8+Math.random()*.5);
     F.scale.set(s,s,1);F.material.rotation=Math.random()*TAU;}
+}
+/* THE RELOAD'S MOTION, off the plan. `reloadMotion(V,g)` moves whatever
+   parts the model `V` has — the magazine node, the charging handle, the
+   bolt, the warhead, and on the viewmodel the support hand and what it
+   carries — from `FPS.reloadT` against `FPS.rl`. The same function runs
+   on the rig's gun over the shoulder, which has no hand of its own: the
+   pilgrim's real left arm does that (see `poseGunCarry`).
+   `rlW` is how much of the reload is on the parts: 1 while it runs, and
+   easing back to 0 over `RL_FADE` after it ends or is cancelled, so a
+   dodge does not snap a half-out magazine back into the well.
+   Returns the whole-gun dip (0..1) for the viewmodel's carry to use. */
+const RL_CARRY={x:-.05,up:.13,back:0,pitch:-.34,yaw:.20,roll:-.62};   // where the gun goes while it is reloaded — see updateViewmodel. `back` is 0: a pull toward the eye put the Eagle's tang behind the near plane
+const _rlV=new THREE.Vector3(),_rlW=new THREE.Vector3();
+function rlW(){return FPS.reloading?1:FPS.rlFade>0?sstep(FPS.rlFade/RL_FADE):0;}
+function reloadMotion(V,g){
+  const w=rlW(),rl=FPS.rl;
+  const hand=V.handL,ha=V.handA,onVm=!!hand;
+  if(w<=0||!rl){
+    if(V.magA){V.magA.position.set(0,0,0);V.magA.rotation.set(0,0,0);V.magA.visible=true;}
+    if(V.handle)V.handle.position.z=V.handleZ;
+    if(hand){hand.visible=false;if(V.foreHand)V.foreHand.visible=true;if(V.shellA)V.shellA.visible=false;if(V.roundA)V.roundA.visible=false;}
+    return 0;                                                 // (the bolt is left to boltT)
+  }
+  const T=Math.min(FPS.reloadT,rl.dur),u=T/rl.dur,R=rl.R,sc=V.vmScale||1;
+  const seg=(a,b)=>clamp((T-a)/Math.max(1e-4,b-a),0,1);
+  /* THE CARRY IS A PLATEAU. It was shaped per mechanism as a hump that
+     peaked at the seat and was near zero at either end — so for the first
+     third of every reload, while the hand went to the well, the gun was
+     still in its hip carry and the well was off the bottom of the screen
+     (measured, m4: the well at NDC y -0.99 to -0.89 for the whole reload).
+     The gun comes up in the first fifth of a second, stays up until the
+     last, and comes down; what the mechanisms add is only a small extra
+     lift over the seat and the action. */
+  let dip=sstep(Math.min(1,T/.18))*(1-sstep(seg(rl.dur-.22,rl.dur)));
+  if(onVm){hand.visible=true;if(V.foreHand)V.foreHand.visible=false;}
+  const handTo=(x,y,z,k)=>{if(!ha)return;ha.position.x=lerp(ha.position.x,x-V.handRest.x,k);ha.position.y=lerp(ha.position.y,y-V.handRest.y,k);ha.position.z=lerp(ha.position.z,z-V.handRest.z,k);};
+  if(rl.type==='box'){
+    const o0=R.out[0]*rl.dur,o1=R.out[1]*rl.dur,u0=R.up[0]*rl.dur,u1=R.up[1]*rl.dur,st=R.seat*rl.dur,a0=R.act[0]*rl.dur,a1=R.act[1]*rl.dur;
+    // out: the magazine slides down its own axis and tips; then it is gone (dropped as a prop)
+    const out=easeOut(seg(o0,o1)),gone=T>=o1&&T<u0;
+    const up=T>=u0?1-Math.pow(1-seg(u0,u1),2):0;                 // the fresh one comes up fast and arrives
+    const rock=T>=st?Math.sin(Math.min(1,seg(st,st+.12))*Math.PI)*.10:0;
+    if(V.magA){
+      let d=0,vis=true,tip=0;
+      if(T<o1){d=out*.20;tip=out*.35;}
+      else if(gone){vis=false;}
+      else if(T<st){d=(1-up)*.24;tip=(1-up)*.5;}
+      else{d=0;tip=0;}
+      V.magA.visible=vis;
+      V.magA.position.copy(V.magAxis).multiplyScalar(d*w);
+      V.magA.rotation.set(tip*w-rock*w,0,0);
+    }
+    // the action: the handle back and forward
+    if(V.handle){const a=seg(a0,a1),k=a<.5?a/.5:1-(a-.5)/.5;V.handle.position.z=V.handleZ+.05*Math.sin(k*Math.PI*.5)*w;}
+    dip+=.15*Math.sin(seg(st-.1,st+.15)*Math.PI)+.12*Math.sin(seg(a0,a1)*Math.PI);
+    if(onVm){
+      // the hand: to the well and down with the empty, back from below with the full one, home, then the action
+      const W=V.wellAt,A=V.actAt||W,r=V.handRest;
+      if(T<o1){handTo(W.x,W.y-out*.20,W.z,.45);}
+      else if(gone){handTo(W.x-.02,W.y-(g.rlCarry?.20:.30),W.z-.05,.25);}   // (the pistol's reach is shallower: its well is near the eye)
+      else if(T<st){handTo(W.x,W.y-(1-up)*.24,W.z,.5);}
+      else if(T<a0){handTo(W.x,W.y-.004,W.z,.4);}
+      else if(T<a1){const a=seg(a0,a1),k=a<.5?a/.5:1-(a-.5)/.5;handTo(A.x,A.y,A.z+.05*Math.sin(k*Math.PI*.5),.5);}
+      else handTo(r.x,r.y,r.z,.3);
+    }
+  }else if(rl.type==='tube'){
+    const lead=R.lead,per=R.per,n=rl.n,tail=R.tail;
+    const W=V.wellAt;
+    if(T<lead+per*n){
+      const i=Math.max(0,Math.floor((T-lead)/per)),f=T<lead?0:clamp((T-lead-per*i)/per,0,1);
+      // each shell: the hand comes from below with it, presses it up into the port, and drops back for the next
+      const inY=f<.72?easeOut(f/.72):1,back=f<.72?0:(f-.72)/.28;
+      if(onVm){handTo(W.x,W.y-.16+.16*inY-.10*back,W.z,.6);
+        if(V.shellA){V.shellA.visible=f<.72;V.shellA.position.set(0,.05*inY,-.01);V.shellA.rotation.set(0,0,0);}}
+      dip+=.1*Math.sin(f*Math.PI);
+    }else{
+      if(onVm){if(V.shellA)V.shellA.visible=false;handTo(V.handRest.x,V.handRest.y,V.handRest.z,.35);}
+      dip+=.1*(1-seg(lead+per*n,rl.dur));
+    }
+  }else if(rl.type==='bolt'){
+    const open=R.open,per=R.per,n=rl.n,close=R.close,A=V.actAt,W=V.wellAt;
+    const op=easeOut(seg(0,open*.7)),cl=easeOut(seg(open+per*n,open+per*n+close*.8));
+    const lift=op*(1-cl);
+    if(V.bolt){V.bolt.rotation.z=-1.1*lift*w;V.bolt.position.z=V.boltZ+.05*lift*w;}
+    if(T<open+per*n&&T>=open){
+      const i=Math.floor((T-open)/per),f=clamp((T-open-per*i)/per,0,1),inY=f<.70?easeOut(f/.70):1,back=f<.70?0:(f-.70)/.30;
+      if(onVm){handTo(W.x,W.y+.06-.06*inY-.06*back,W.z-.02,.6);
+        if(V.roundA){V.roundA.visible=f<.70;V.roundA.position.set(0,.03*inY,-.02);V.roundA.rotation.set(0,0,0);}}
+    }else if(onVm){
+      if(V.roundA)V.roundA.visible=false;
+      if(T<open)handTo(A.x,A.y+.04*op,A.z+.05*op,.5);
+      else if(T<open+per*n+close)handTo(A.x,A.y+.04*(1-cl),A.z+.05*(1-cl),.5);
+      else handTo(V.handRest.x,V.handRest.y,V.handRest.z,.35);
+    }
+    dip+=.1*Math.sin(Math.PI*u);
+  }else{ // rocket
+    const i0=R.in[0]*rl.dur,i1=R.in[1]*rl.dur,r0=R.ready[0]*rl.dur,r1=R.ready[1]*rl.dur;
+    const inZ=T<i0?0:easeOut(seg(i0,i1));
+    if(V.warhead){V.warhead.visible=T>=i0;V.warhead.position.z=-.30*(1-inZ)*w;}
+    if(onVm){const W=V.wellAt;
+      if(T<i1)handTo(W.x,W.y,W.z-.30*(1-inZ),T<i0?.4:.7);
+      else handTo(V.handRest.x,V.handRest.y,V.handRest.z,.3);}
+    dip+=.15*Math.sin(Math.PI*Math.min(1,T/i1))+.1*Math.sin(seg(r0,r1)*Math.PI);
+  }
+  return Math.min(1.2,dip)*w;
 }
 function updateViewmodel(dt){
   const vm=FPS.vm;if(!vm)return;
@@ -17099,21 +17403,33 @@ function updateViewmodel(dt){
   const runCarry=P.sprinting&&mv>.5&&(FPS.readyT||0)<=0;
   FPS.sprintVm=lerp(FPS.sprintVm,runCarry?1:0,Math.min(1,(runCarry?6:9)*dt));
   const sr=FPS.sprintVm;
-  let rl=0;if(FPS.reloading)rl=Math.sin(Math.PI*Math.min(1,FPS.reloadT/g.reload));
+  const rl=reloadMotion(V,g);                                  // the reload, off its plan: the parts, the hand, and the dip the carry takes
   const hurt=P.state==='hurt'?Math.sin(Math.PI*Math.min(1,P.t/(P.hurtDur||.38)))*.12:0;
   const H=V.hip,A=V.ads;
   // the depth squash comes in with the sights (see VM_ZSQ_MARGIN)
   if(V.aft){const zs=lerp(1,V.adsZs===undefined?1:V.adsZs,ads);
    if(Math.abs(V.aft.scale.z-zs)>1e-4)V.aft.scale.z=zs;}
-  vm.position.set(lerp(H[0],A[0],ads)+bobX+idX+FPS.swayX-sr*.03+k*R.side*.02*ks*(1-.5*ads),
-                  lerp(H[1],A[1],ads)+bobY+idY+FPS.swayY-rl*.10-sr*.045-hurt*.4+k*R.back*.15,
-                  lerp(H[2],A[2],ads)+k*R.back+rl*.03+sr*.06);
-  vm.rotation.set(-k*R.up*.12+rl*.55-sr*.17+hurt,                                    // the muzzle DROPS, it does not rise
-                  lerp(V.hipRy,0,ads)+FPS.swayX*2.5-sr*.09+k*R.side*.1*ks,           // and barely turns: the yaw was the whole fault
-                  lerp(V.hipRz||0,0,ads)+rl*.4+sr*.62+FPS.swayX*.8+k*R.side*.15*ks); // the CANT carries the posture, and costs no aim
-  if(V.mag){const u=FPS.reloading?FPS.reloadT/g.reload:0,out=u<=0?0:u<.5?Math.min(1,u/.2):Math.max(0,(1-u)/.35);
-    V.mag.position.y=V.magY-out*.16;V.mag.rotation.z=out*.35;}
-  if(V.bolt){const u=clamp(FPS.boltT/.8,0,1),lift=Math.sin(u*Math.PI);   // the handle lifts, the bolt comes back, and goes home
+  /* THE RELOAD CARRY BRINGS THE WELL INTO THE FRAME. The old one dipped
+     the gun DOWN (-.10) and pitched the muzzle UP (+.55), which is what a
+     reload looks like from the outside and exactly wrong from behind the
+     eyes: the hip carry already holds the receiver at y -.20, and both
+     moves push the magazine well further under the bottom edge — rendered,
+     the whole reload of every gun played below the screen with only the
+     receiver's top in view. It comes UP, back toward the eye, the muzzle
+     DROPS, and it ROLLS so the underside turns to the centre of the
+     picture (`RL_CARRY`, measured by projecting each gun's own `wellAt`). */
+  /* `rlCarry` on a gun scales the whole carry: the Eagle's well is at the
+     REAR of the gun, a hand's width from the eye, and the full lift-and-
+     roll put the support hand behind the near plane (-0.043 against -0.1);
+     at .55 its well is still in the frame and the hand is not in the lens. */
+  const rc=rl*(g.rlCarry||1);
+  vm.position.set(lerp(H[0],A[0],ads)+bobX+idX+FPS.swayX-sr*.03+k*R.side*.02*ks*(1-.5*ads)+rc*RL_CARRY.x,
+                  lerp(H[1],A[1],ads)+bobY+idY+FPS.swayY+rc*RL_CARRY.up-sr*.045-hurt*.4+k*R.back*.15,
+                  lerp(H[2],A[2],ads)+k*R.back+rc*RL_CARRY.back+sr*.06);
+  vm.rotation.set(-k*R.up*.12+rc*RL_CARRY.pitch-sr*.17+hurt,                         // the muzzle DROPS, it does not rise
+                  lerp(V.hipRy,0,ads)+FPS.swayX*2.5-sr*.09+k*R.side*.1*ks+rc*RL_CARRY.yaw,   // and barely turns: the yaw was the whole fault
+                  lerp(V.hipRz||0,0,ads)+rc*RL_CARRY.roll+sr*.62+FPS.swayX*.8+k*R.side*.15*ks); // the CANT carries the posture, and costs no aim
+  if(V.bolt&&!(FPS.rl&&FPS.rl.type==='bolt'&&rlW()>0)){const u=clamp(FPS.boltT/.8,0,1),lift=Math.sin(u*Math.PI);   // the handle lifts, the bolt comes back, and goes home (the reload drives it itself)
     V.bolt.rotation.z=-1.1*Math.min(1,lift*1.4);V.bolt.position.z=V.boltZ+.05*Math.sin(Math.min(1,u*1.2)*Math.PI);}
   if(V.pump){const u=clamp((FPS.boltT-.12)/.5,0,1);V.pump.position.z=V.pumpZ+.08*Math.sin(u*Math.PI);}   // the fore-end back and forward
   V.flash.visible=FPS.flashT>0;
@@ -17336,17 +17652,55 @@ const GUN_L={obj:null,off:[0,0,0]};
    own `rec.recover`) and `FPS.kickSide` is which way this one threw him.
    It is the same pair the viewmodel uses behind the eyes, so what you see
    over the shoulder and what you feel down the sights are one number. */
+/* THE RELOAD OVER THE SHOULDER. The pilgrim used to reload by standing
+   there holding the rifle while the counter refilled: `poseGunCarry`
+   never read `FPS.reloading` at all. Now the gun comes down off the line
+   and cants in, and the LEFT ARM does the work the viewmodel's hand does
+   — down to the belt for the fresh magazine (or the shells, or the
+   round), up to the well, a press home, then to the action and back to
+   the fore-end. `rlArm(rl)` reads the same plan and answers with where
+   the hand is on a 0..1 line from the fore-end (0) through the well (.5)
+   to the belt (1), and the arm's joints are laid along it. The IK target
+   on the fore-end is dropped for the duration, or it drags the hand
+   straight back to the handguard every frame. */
+function rlArm(rl){
+  const T=Math.min(FPS.reloadT,rl.dur),R=rl.R,seg=(a,b)=>clamp((T-a)/Math.max(1e-4,b-a),0,1);
+  if(rl.type==='box'){
+    const o0=R.out[0]*rl.dur,o1=R.out[1]*rl.dur,u0=R.up[0]*rl.dur,u1=R.up[1]*rl.dur,st=R.seat*rl.dur,a0=R.act[0]*rl.dur,a1=R.act[1]*rl.dur;
+    if(T<o1)return .5+.3*easeOut(seg(o0,o1));
+    if(T<u0)return 1;
+    if(T<st)return 1-.5*(1-Math.pow(1-seg(u0,u1),2));
+    if(T<a0)return .5;
+    if(T<a1){const a=seg(a0,a1);return .5-.5*Math.sin(a*Math.PI)*.6;}
+    return 0;
+  }
+  if(rl.type==='tube'||rl.type==='bolt'){
+    const lead=rl.type==='tube'?R.lead:R.open,per=R.per,n=rl.n;
+    if(T<lead)return .5+.4*easeOut(seg(0,lead));
+    if(T<lead+per*n){const f=((T-lead)%per)/per;return f<.7?.9-.4*easeOut(f/.7):.5+.4*(f-.7)/.3;}
+    return .5*(1-seg(lead+per*n,rl.dur));
+  }
+  const i1=R.in[1]*rl.dur;                                   // rocket: out to the muzzle, and back
+  return T<i1?.15+.35*Math.sin(Math.PI*Math.min(1,T/i1)):0;
+}
 function poseGunCarry(r,t,P){
-  const kick=FPS.kick||0,side=FPS.kickSide||0;
-  r.armR.rotation.set(-1.42+kick*.30,-.1,-.2+kick*.12*side);
-  r.foreR.rotation.set(-.28+kick*.20,0,0);
+  const kick=FPS.kick||0,side=FPS.kickSide||0,w=rlW(),rl=FPS.rl;
+  r.armR.rotation.set(-1.42+kick*.30+.30*w,-.1,-.2+kick*.12*side+.12*w);     // the gun comes down off the line to reload
+  r.foreR.rotation.set(-.28+kick*.20-.10*w,0,0);
   r.armL.rotation.x-=kick*.16;                                // the support hand rides it too
-  r.torso.rotation.y+=.22+kick*.13*side;                      // the body turns a little off the line, and the shot drives the shoulder round
-  r.torso.rotation.x-=kick*.11;                               // ...and back into it
-  r.head.rotation.x-=kick*.14;                                // the head goes with the shoulder
+  r.torso.rotation.y+=.22+kick*.13*side-.10*w;                // the body turns a little off the line, and the shot drives the shoulder round
+  r.torso.rotation.x-=kick*.11-.08*w;                         // ...and back into it; and over the work
+  r.head.rotation.x-=kick*.14-.16*w;                          // the head goes with the shoulder, and looks down at the well
   r.body.position.y-=kick*.022;                               // and the knees take the rest
-  r.weapon.rotation.set(-.02-kick*.30,0,kick*.05*side);       // the muzzle climbs
-  if(r.gunGrip){GUN_L.obj=r.gunGrip;r.ikLeftT=GUN_L;}
+  r.weapon.rotation.set(-.02-kick*.30+.25*w,0,kick*.05*side-.30*w);   // the muzzle climbs; reloading it lies over, well up
+  if(w>0&&rl){
+    const h=rlArm(rl);                                        // 0 fore-end .. .5 well .. 1 belt
+    const ax=h<.5?lerp(-1.05,-.62,h/.5):lerp(-.62,.10,(h-.5)/.5);      // shoulder: forward on the guard, dropped at the belt
+    const fx=h<.5?lerp(-.55,-1.25,h/.5):lerp(-1.25,-.55,(h-.5)/.5);   // elbow: folded at the well, open at the belt
+    r.armL.rotation.x=lerp(r.armL.rotation.x,ax,w);r.armL.rotation.z=lerp(r.armL.rotation.z,.28,w);
+    r.foreL.rotation.x=lerp(r.foreL.rotation.x,fx,w);
+    r.ikLeftT=null;
+  }else if(r.gunGrip){GUN_L.obj=r.gunGrip;r.ikLeftT=GUN_L;}
 }
 /* ---------------- HUD & messaging ---------------- */
 function updateHUD(){
@@ -17927,7 +18281,7 @@ function frame(now){
   }
 
   if(G.mode==='play'||G.mode==='dead'){
-    updateShells(wdt);                                         // the brass, still falling — it does not care that you died
+    updateShells(wdt);updateMagDrops(wdt);                     // the brass and the magazines, still falling — they do not care that you died
     updateMarrow(wdt);                                         // and the marrow in the air, or lying where it fell
     if(G.mode==='play'){
       if(IN.swipe)$('swipeHint').style.opacity=0;
@@ -18045,7 +18399,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
