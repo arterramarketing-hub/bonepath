@@ -553,9 +553,10 @@ your own, and a rifle that aimed itself would be no rifle.
 and a magazine sliding down and back up — and over the shoulder it was
 nothing at all: the pilgrim stood holding the rifle while the count
 refilled. Every gun reloads by its own mechanism now, and you see it in
-either view. A **box magazine** comes out and is *dropped* — it falls,
-bounces once and lies there — the fresh one comes up in the support hand
-and is rocked home, and the action is worked. The **shotgun** takes its
+either view. A **box magazine** (the pistols, the UMP, the M4 and the Barrett) comes
+out and is *dropped* — it falls, bounces once and lies there — the fresh
+one comes up in the support hand and is rocked home, and the action is
+worked. The **shotgun** takes its
 shells one at a time through the loading port, each one counted as it
 goes in, and then the fore-end is run. The **Kar98k** has its bolt
 opened and held open while the rounds are pressed into the box, then
@@ -658,7 +659,7 @@ name, its calibre and its magazine over its reserve; tap it to swap. It
 **sizes itself to what it is carrying** — "golden eagle" is two and a half
 times the width of "m4a1" — so the name is never pushed off the panel and
 a short one never leaves a gulf before the count. A **zoom** button
-appears only when the sniper is in its scope. The pause button and the
+appears only when the Barrett is in its scope. The pause button and the
 hearts are where they were; there is no finishing mark.
 
 **A blade behind the eyes gets the same four**, and this was tried both
@@ -688,14 +689,15 @@ trunk, a gravestone, a pew, the bell (three rounds call the Bell-Called,
 the same as three blows). The nearest thing takes the round.
 
 **The rifle and the shotgun throw the picture.** A `shake` on a gun
-multiplies the camera shake its climb alone would give: the Kar98k at
-2.6 and the SPAS at 2.2, so a .50 or a twelve-gauge going off is felt in
-the frame and not only heard.
+multiplies the camera shake its climb alone would give: the Barrett at
+2.6, the SPAS at 2.2 and the Kar98k at 1.6, so a .50, a twelve-gauge or
+a full-power rifle round going off is felt in the frame and not only
+heard.
 
 | | calibre | magazine · start | damage (body / head) | rate | the feel |
 |---|---|---|---|---|---|
 | **golden eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down. The gold is a RANGE and not a colour — cream along the rib and the top edges where a light overhead finds them, a mid body, cuts nearly brown — because a flat yellow is what a toy is made of. Its slide is long and its frame short and stepped down off it, so the outline is an L rather than an equals sign, and the grip is dark, which is what stops the gold halfway down |
-| **Colt 1911** | 9mm | 9 · (the 9mm pool) | 14 / 27 | one, three times a second | the eagle's slim cousin in blued steel, walnut on the grip, a beavertail under the hand: half the eagle's kick and a hollow in seven, or four if they are all in the skull. It draws on the UMP's pool |
+| **Colt 1911** | 9mm | 9 · (the 9mm pool) | 14 / 27 | one, three times a second | blued steel, 9mm off the UMP's pool: half the eagle's kick and a hollow in seven, or four if they are all in the skull. **It is not the eagle in blue**: a narrow round-topped slide over a frame half its length, a round loop of a guard, the barrel showing through its bushing, a long slim nearly-straight grip with walnut on both flanks and an arched housing at the heel, and a spur hammer laid back over a beavertail. The first build was the eagle's shape with the colour swapped, and side by side they were one gun twice |
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. It is the one weapon that carries **two sets of its own sights** — the
 drum below, or a **ring sight**: no hood to look through, only a shallow
 notch at the back and a small ring standing at the muzzle end with an
@@ -704,7 +706,8 @@ the field left open above it. The ring sits down on the channel's own
 edges on a stub of a post, not up on a tower. Its top is a **channel** — a raised wall down each edge with a lit top face, and a sunken groove between them running away to the sights, so the eye is led down it — and the gun itself is dark, with light only on those two edges. Its irons are an **HK drum**, and they are **round** and SMALL: a rear peep bored through a drum at the back of the channel, a hooded post half a metre in front, and the front ring nests inside the rear aperture rather than filling it |
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Built as a RIFLE rather than a compact: a twenty-seven centimetre quad rail with its rungs running the length of it, a barrel carrying well past that to a gas block and front sight, a flat-topped receiver with one rail unbroken from the stock to the muzzle, and a collapsing stock on a ribbed buffer tube. Its irons are a **ghost ring** — a fat hoop on the back of the rail with the post half a metre in front of it, which is what an aperture is for |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
-| **Kar98k** (the bone sniper, renamed) | .50 cal | 5 · (the .50 pool) | 96 / 220 | one, then the bolt | one shot, one body; **a head under it is gone**. It is the one gun the field answers: the crack, and then the field coming back — a couple of returns off the stone you can still pick out, and then more of them, closer and closer together until they run into one another and the rest is a wash coming down, each darker than the last, with a roll going away under all of it. Four spaced returns is a canyon; a field answers with density. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+| **Barrett .50** (the bone sniper, renamed) | .50 cal | 10 · (the .50 pool) | 96 / 220 | one a second, semi-automatic | one shot, one body; **a head under it is gone**. It was a turn-bolt in wood and it is a Barrett now, in every line: a long flat-topped steel receiver with a rail the whole length of it, a fat box magazine under the front of it, a pistol grip and a squared tail with a monopod under the pad, a bipod folded back along a **fluted** barrel that ends in the **arrowhead brake** — chevron fins swept back off a block — parkerised grey-black with no wood anywhere. Ten in the box, the magazine dropped and the charging handle racked. It is the one gun the field answers: the crack, and then the field coming back — a couple of returns off the stone you can still pick out, and then more of them, closer and closer together until they run into one another and the rest is a wash coming down, each darker than the last, with a roll going away under all of it. Four spaced returns is a canyon; a field answers with density. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
+| **Kar98k** | 7.92mm | 5 · 40 (its own pool) | 60 / 132 | one, then the bolt | the turn-bolt, in wood, off the Mauser: a one-piece stock with the comb dropped under the bolt and a flat steel buttplate, an **upper handguard** over the barrel held by a band and a nose cap, the barrel bare past the cap to a **hooded post**, the cleaning rod's tip under it, a **tangent-leaf** rear sight out on the barrel and the bolt handle **turned down** along the stock. A hollow in two, or one in the skull, which comes off; the bolt between every shot; five rounds pressed into the box by hand with the bolt held open, and **it waits to be asked** — an empty box does not reload itself. Its eye sits back on the comb, so the leaf and the hood read small and far, which is what a Mauser's sight picture is; a dot or the ACOG will go on its receiver |
 | **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. The burst is a white flash gone before you can look at it, a fireball that swells and climbs as it burns out, and smoke that outlives both and is still standing when you look back — with two rings going out, one fast and bright and one slow and wide with dust, and the whole field lit for an instant the way lightning lights it. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
 
 **What a round leaves.** A body flinches and bleeds (or chips, if it is
@@ -905,7 +908,7 @@ donut sits on the mark with a post under it and a pair of stadia ticks
 either side, and you look down **one bore** — a scope whose body steps in
 width shows you the edge of every step, and reads as two rings inside one
 another rather than as a tube. It used to go to black glass with the weapon taken away —
-which is what a sniper's scope does, and the ACOG is not one. The sniper's own scope is its iron option (four and eight
+which is what a sniper's scope does, and the ACOG is not one. The Barrett's own scope is its iron option (four and eight
 times, the zoom button); give it a dot or an ACOG and it becomes a rifle
 you can fight close with.
 
@@ -919,7 +922,7 @@ views and on the keys.
 The thing that makes the field of view safe to change is that **a sight is
 stored as a magnification, not as an angle**. Every aimed field in the
 game — each gun's own irons, the red dot's 1.15x, the ACOG's 2x, the
-sniper's 4x and 8x — was tuned against the 68-degree lens, so each is read
+Barrett's 4x and 8x — was tuned against the 68-degree lens, so each is read
 back as the power it stood for and re-derived through whatever lens you
 have chosen. Set the field to a hundred and the red dot is still 1.15
 times, not a scope. The first-person turn additionally narrows with
@@ -943,7 +946,7 @@ a gun is in your hands.
 
 **Reloading.** The magazine runs down on the weapon bar; at zero the gun
 clicks and reloads on its own if there is a reserve to reload from
-(the sniper waits to be asked). The reload is the viewmodel: the gun
+(the Kar98k waits to be asked: its box is filled by hand). The reload is the viewmodel: the gun
 drops and rolls, the magazine falls out of the grip and is driven home,
 the action is racked, and the rounds move from reserve to magazine only
 when it is all done.
@@ -959,7 +962,7 @@ in the part afterwards, held five times longer and very quiet. The
 bolt-action is four such motions and you hear all four: the handle up,
 the bolt back over the spent case, forward over a live round, and down
 into its lug. A swap
-mid-reload abandons it. The sniper's bolt is worked after every shot,
+mid-reload abandons it. The Kar98k's bolt is worked after every shot,
 the handle lifting and the bolt coming back and going home, and the next
 round waits on it.
 
@@ -2000,10 +2003,11 @@ where it was, because the gap between a hollow and a brute was never the
 complaint.
 
 The rifles move with them: the eagle takes a hollow in three rounds and
-the M4 in six. **The Kar98k still takes one in a single shot** — its
+the M4 in six. **The Barrett .50 still takes one in a single shot** — its
 body damage and a hollow's life are the same number on purpose, because
 that rifle's whole claim is one shot, one body. Raise one and the other
-has to move with it.
+has to move with it. The Kar98k sits deliberately under it: sixty a
+round, so a hollow is two to the body and one to the skull.
 
 A **red-boned** horror carries a bit over twice a plain one's life rather
 than three times it, which leaves it almost exactly where it stood before

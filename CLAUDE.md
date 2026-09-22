@@ -2002,8 +2002,10 @@ Known state of play:
   — and at four a hollow is a door you open rather than a thing you fight.
   The brute is untouched at 140: the gap between a hollow and a brute was
   never the problem. Three things are tied to that 85 and must move with
-  it: **the Kar98k's 96 body damage** (it was the bone sniper; the KEY is still `sniper`, only the name changed — its claim is one shot one
-  body, and a hollow's life is deliberately just under it), the red-boned
+  it: **the Barrett .50's 96 body damage** (it was the bone sniper; the
+  KEY is still `sniper`, only the name and the model changed — its claim
+  is one shot one body, and a hollow's life is deliberately just under
+  it; the Kar98k's 60 is set so a hollow is TWO, and one in the skull), the red-boned
   multiplier (2.2, not 3 — at three a red hollow is sixteen greatsword
   swings, which is the same fight held down twice as long, and it is
   `Math.round`ed or hp lands on a fraction), and the README's gun table,
@@ -2011,20 +2013,66 @@ Known state of play:
   costs and the cathedral's gate are unchanged, so the field takes longer
   to clear but opens at the same point.
 
-- **THE 1911 IS THE EAGLE'S SLIM COUSIN, AND `shake` IS A MULTIPLIER.**
+- **THE 1911 IS NOT THE EAGLE IN BLUE, AND `shake` IS A MULTIPLIER.**
   `GUNS['1911']` (key `'1911'`, a string — `isGunKey` names it) is a
   9mm pistol on the UMP's pool: `RELOAD['1911']` is a `box` plan like the
-  Eagle's, its `magAxis` is raked .28 to follow the grip, and `rlCarry`
+  Eagle's, its `magAxis` is raked .20 to follow the grip, and `rlCarry`
   .55 keeps its short tang off the near plane the way the Eagle's does.
   Its palette is `blue`/`blueD`/`blueHi`/`walnut` in `gunMats()` — blued
   steel is a step DARKER than `M.gun`, not gold, and the panels are the
   one warm thing on it. A cut in the slide is the slide's own colour
   darkened and narrower than the slide (the Eagle's lesson).
-  `fireGun`'s `G.camShake` is `R.cam*4*(g.shake||1)`: the Kar98k carries
-  2.6 and the SPAS 2.2, every other gun 1. Measured at the shot: 1911
-  0.18, deagle 0.28, ump 0.044, m4 0.096, spas 0.968, sniper 1.768, rpg
-  0.36. The recoil itself (`rec`) is untouched — the shake is the
-  picture, not the aim.
+  **THE FIRST BUILD WAS THE EAGLE'S SHAPE WITH THE COLOUR SWAPPED**, and
+  a player said so. A palette does not tell two pistols apart; SHAPE
+  does, and four things carry it: a NARROW ROUND-TOPPED slide (a .030
+  body with a cylinder laid along its crown, against the Eagle's .046
+  slab with a rib), a FRAME HALF THE SLIDE'S LENGTH with a stub of a
+  dust cover, a LONG SLIM NEARLY-STRAIGHT GRIP (rake .20 against .30)
+  with an arched housing and a lanyard loop at the heel, and a ROUND
+  LOOP of a guard with the barrel showing through a bushing at the
+  muzzle. If two guns ever read as one gun twice, change proportions,
+  not colours.
+  `fireGun`'s `G.camShake` is `R.cam*4*(g.shake||1)`: the Barrett
+  carries 2.6, the SPAS 2.2 and the Kar98k 1.6, every other gun 1.
+  Measured at the shot: 1911 0.18, deagle 0.28, ump 0.044, m4 0.096,
+  spas 0.968, sniper 1.768, kar98k 0.768, rpg 0.36. The recoil itself
+  (`rec`) is untouched — the shake is the picture, not the aim.
+- **THE BARRETT AND THE KAR98K ARE TWO GUNS, AND THE OLD SNIPER IS THE
+  BARRETT.** Key `sniper` is the **Barrett .50** — the name and the model
+  changed, the key did not, so every saved loadout and attachment choice
+  survives. It is a SEMI-AUTOMATIC off a ten-round box now (`RELOAD.sniper`
+  is a `box` plan, `g.handle` is the charging handle the reload racks,
+  `rof` .95, no `bolt`), which is what an M82 is; the round, the glass,
+  `inGlass`, the zoom and the field's answer (`AudioSys.gun('sniper')`)
+  are untouched. `phos`/`phosD`/`phosHi` in `gunMats()` are its
+  parkerising — grey-green black, no blue in it, no wood.
+  **`kar98k`** is the new turn-bolt, on its own `792` calibre (7.92mm,
+  `strong`, so a head under it comes off). The `bolt` reload plan moved
+  to it unchanged. Three things about its model are load-bearing:
+  1. **`adsEye` (.38) puts the eye back on the comb.** A Mauser's rear
+     sight is out on the barrel (z −.136); the default `ADS_EYE` would
+     have put the eye level with the ejection port. So the leaf and the
+     hood read small and far — that IS the Mauser's picture.
+  2. **THE COMB DROPS, OR THE STOCK IS THE PICTURE.** The first pass ran
+     the wood up to the bolt (comb top .075 under a sight line of .0835)
+     and at ADS the squashed butt stood in the middle of the frame as a
+     wall the sight sat on — the UMP-receiver trap again, in wood. The
+     comb is 40mm under the sight line now (.058 under .0975) and the
+     stock is in the bottom quarter, where a cheek weld puts it. What
+     squashes on this gun is the BUTT (`adsZs` .3), never the receiver.
+  3. **`boltLift` gives the bolt's lift its sign.** Both bolt animations
+     wrote `rotation.z=-1.1*lift`, which on a handle standing straight
+     out to the right swings it DOWN (a −z rotation takes +x toward −y);
+     nobody had measured it. The Mauser's handle is built turned DOWN,
+     so a lift there is a rise: `V.boltLift` is +1.0 on it and the two
+     sites read `(V.boltLift||-1.1)`. The handle is `M.grey`, not steel:
+     at ADS it is the nearest thing in the frame.
+  Sites that key on `'sniper'` by name (tracer colour and life, the hole
+  size, the vibration, the two flash sizes) each carry a `kar98k` case;
+  a new heavy rifle needs the same five.
+  Measured: Kar98k reload well y −0.34..−0.02, hand in frame the whole
+  reload; Barrett well −0.78..−0.50, hand in frame 72% (the M4's own
+  figure is 76%); every mode boots with 0 errors.
 - **THERE IS NO BLADE VIEWMODEL** — see *THE FIRST-PERSON SWING IS THE
   THIRD-PERSON SWING*, far below. `VM_BLADE`, `ensureBladeVm`,
   `bladePose`, `VM_SEAM` and `SW_FLIP` are gone. The one thing worth
