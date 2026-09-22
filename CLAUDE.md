@@ -691,6 +691,29 @@ Known state of play:
     the chain bows from the knuckle to a claw in the soil. The first pass
     had the first joint negative and the thing was a bundle of sticks
     pointing at the sky.
+  - **THE HAND'S PHALANGES WERE UPRIGHT PEGS.** `GCyl` is a three.js
+    cylinder, which stands along Y, and `makeBoneHandRig`'s `finger()`
+    never turned it — every other cylinder in the game does (`vmCyl`
+    sets `rotation.x=π/2`, and the claw cone beside these did) — so each
+    bone was a vertical peg at the midpoint of where the bone should
+    lie, with a knuckle ball at each end of nothing. A player said "the
+    finger bones are not connected", and that was exactly it. The next
+    knuckle was also placed at `len*.98` for every joint while the
+    segments SHORTEN 16% each, so joints two and three sat past the end
+    of the bone before them. Each bone lies along z from its knuckle to
+    the next now (measured gap 0), thicker at the knuckle.
+    **AND THEN THE CLAWS WERE 0.8m UNDER THE SOIL**, because nobody had
+    ever seen the chain: with real bones the arch of `.62/.66/.58` off a
+    palm at `.56*s` reached 1.9m down from a knuckle at 1.07m. Fingers
+    `.40` (was `.46`), the last joint curled under (`1.02`, was `.58`),
+    the first eased (`.48`), and `baseY` `.80*s`: measured through the
+    stalk walk the two long fingers plant at −0.04..+0.02 and lift to
+    +0.2, the outer pair ride +0.14..+0.32, the thumb hovers +0.56 (it is
+    two bones and turned sideways; it never carried weight). The slam
+    still punches the claws under. **If the rig's fingers or palm ever
+    change, re-measure the claw tips against `heightAt` over a walk** —
+    `hand2.js` in the scratchpad did it by applying `matrixWorld` to the
+    last joint at `seg+.21*s`.
   - **HOW HIGH THE SKULL RIDES IS MEASURED, NOT GUESSED** (`SKULL_HIGH`,
     `SKULL_LOW`, `SKULL_REST`, declared above the class). The rig's root
     sits at the level of the FACE: the dome is 2.6m above it and — mouth

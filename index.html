@@ -13348,7 +13348,13 @@ function makeBoneHandRig(){
   const s=1.7,rig={s,fingers:[],mats:[]};
   const bone=mat('bone'),dark=lam({color:0x0a0a0c});
   const root=new THREE.Group();rig.root=root;
-  const body=new THREE.Group();body.position.y=.56*s;root.add(body);rig.body=body;rig.baseY=.56*s;
+  /* HOW HIGH THE PALM RIDES IS SET BY THE FINGERS, and it was not: with
+     the bones lying along the fingers (see below) the planted claws of
+     the old .56 stood 0.8m UNDER the soil through the whole walk, because
+     nobody had ever seen the chain. At .80 the two long fingers' claws
+     touch the ground at the bottom of their step (measured −0.04..+0.02)
+     and the short outer ones ride a little above it. */
+  const body=new THREE.Group();body.position.y=.80*s;root.add(body);rig.body=body;rig.baseY=.80*s;
   // the palm: a slab of carpals, broader at the knuckles, tilted forward
   const palm=new THREE.Group();body.add(palm);rig.palm=palm;
   const p1=M(GBox(.62*s,.15*s,.5*s),bone,0,0,0);palm.add(p1);
@@ -13361,19 +13367,32 @@ function makeBoneHandRig(){
    for(const[ox,oz,ln,tl] of[[-.07,-.86,.5,.3],[.08,-.78,.34,-.22]]){
      const sp=M(GCyl(.035*s,.055*s,ln*s,5),bone,ox*s,.02*s,oz*s);sp.rotation.set(Math.PI/2+tl*.4,0,tl);palm.add(sp);}}
   // four fingers and a thumb, each a chain of groups so they can walk and curl
+  /* THE PHALANGES LIE ALONG THE FINGER, AND THEY DID NOT. `GCyl` is a
+     three.js cylinder, which stands along Y; every other cylinder in the
+     game turns it (`vmCyl`, the claw below) and these never were — so
+     each bone was a PEG standing upright at the midpoint of where the
+     bone should lie, with a knuckle ball at each end of nothing. That is
+     the whole of "the finger bones are not connected". And the next
+     knuckle was placed at `len*.98` for every joint while the segments
+     SHORTEN by 16% each, so joints two and three sat a hand's width past
+     the end of the bone before them. Each bone runs along z now from its
+     knuckle to exactly where the next knuckle is, and tapers toward the
+     tip. The walking pose (`rotation.x` positive, bowing down) was
+     written for bones that lie along the finger; now they do. */
   const finger=(x,z,len,n,thick)=>{
-    const js=[];let parent=palm,py=.07*s,pz=z*s;
+    const js=[];let parent=palm,py=.07*s,pz=z*s,prev=0;
     for(let k=0;k<n;k++){
-      const g=new THREE.Group();g.position.set(k?0:x*s,k?0:py,k?(len*s*.98):pz);parent.add(g);
+      const g=new THREE.Group();g.position.set(k?0:x*s,k?0:py,k?prev*s:pz);parent.add(g);
       const seg=len*(1-k*.16);
-      g.add(M(GCyl(thick*s*(1-k*.13),thick*s*(1-k*.2),seg*s,5),bone,0,0,seg*s/2));
+      const ph=M(GCyl(thick*s*(1-k*.2)*.9,thick*s*(1-k*.13),seg*s,5),bone,0,0,seg*s/2);ph.rotation.x=Math.PI/2;g.add(ph);   // the bone, along the finger, thicker at the knuckle
       g.add(M(GSph(thick*1.08*s*(1-k*.15),5,4),bone,0,0,0));               // the knuckle
+      prev=seg;
       if(k===n-1){const cl=M(GCone(thick*.9*s,.22*s,5),bone,0,0,(seg+.1)*s);cl.rotation.x=Math.PI/2;g.add(cl);}   // and a claw on the end
       js.push(g);parent=g;py=0;pz=0;
     }
     return js;};
-  for(let i=0;i<4;i++)rig.fingers.push(finger(-.23+i*.155,.26,.46-Math.abs(i-1.4)*.045,3,.055));
-  rig.thumb=finger(-.34,.02,.4,2,.066);
+  for(let i=0;i<4;i++)rig.fingers.push(finger(-.23+i*.155,.26,.40-Math.abs(i-1.4)*.04,3,.055));
+  rig.thumb=finger(-.34,.02,.36,2,.066);
   rig.thumb[0].rotation.y=1.1;
   for(const o of[bone,dark])rig.mats.push(o);
   return rig;
@@ -13580,13 +13599,13 @@ class BoneHand{
          the STEP straightens one finger at a time and lifts it forward.
          The first pass had the first joint negative, which splayed all
          five upward and made the thing a bundle of sticks. */
-      r.fingers[i][0].rotation.x=.62-step*.42+c*.5;
+      r.fingers[i][0].rotation.x=.48-step*.42+c*.5;
       r.fingers[i][1].rotation.x=.66+step*.2+c*.8;
-      r.fingers[i][2].rotation.x=.58-step*.3+c*.7;
+      r.fingers[i][2].rotation.x=1.02-step*.3+c*.7;                     // the last bone curls UNDER, so the claw comes down close beneath the palm
       r.fingers[i][0].rotation.y=(i-1.5)*.14;
     }
     {const step=Math.max(0,Math.sin(this.walk+2.2)),c=curl*1.1;
-     r.thumb[0].rotation.x=.5-step*.35+c*.5;r.thumb[1].rotation.x=.62+step*.2+c*.8;}
+     r.thumb[0].rotation.x=.86-step*.35+c*.5;r.thumb[1].rotation.x=1.06+step*.2+c*.8;}   // the thumb is two bones and sideways: it bends harder to reach the soil
     if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)if(m.emissive)
       m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='swipe'||this.state==='slam')&&!this.hitDone?0x2e0c06:0x000000);

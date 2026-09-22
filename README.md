@@ -2307,7 +2307,13 @@ from it.
 - **The hands, first.** Two of them, each its own body with its own life
   (130 apiece). They do not walk, they *scuttle* — the palm rides on an
   arch of five fingers, each pair of them out of step with the next,
-  claws planted in the soil. Two moves, and both of them put you on the
+  claws planted in the soil. **The fingers are chains of bone now, and
+  they join**: each phalanx runs from its knuckle to exactly where the
+  next knuckle sits, tapering to the tip, and the last bone curls under
+  so the claw comes down close beneath the palm. They used to be
+  knuckle-balls with an upright peg between each pair, standing on
+  nothing — and the palm has come up to where the claws can actually
+  reach the soil, which is a good deal higher than it rode before. Two moves, and both of them put you on the
   ground: the **sweep**, where the hand pitches back onto its wrist and
   then scythes across its whole front, and the **slam**, where it rears
   up on its fingertips and comes down flat, throwing out a ring and
