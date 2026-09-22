@@ -504,8 +504,27 @@ ROUND lands rather than where the camera points, because the two are not
 the same thing in third person: the round leaves the hands, a metre and a
 half ahead of the body and off to one side, and goes to the eye's mark or
 straight along the facing. It rests at working range when there is
-nothing to hit and snaps onto whatever the line meets. The rifle has a
-**muzzle flash** on it at last. And the **recoil is carried by the man**:
+nothing to hit and snaps onto whatever the line meets.
+
+**And bringing the gun up puts the round in the skull.** Over the
+shoulder there is no free aim — the round goes to the horror the eye has
+marked, and *which part of it* is the only aim there is. That used to be
+the skull one time in four whatever you were doing. Now it rides the
+brace: from the hip it is still one in four, and fully braced it is a
+certainty. The reticle goes up with it and sits on the head, steady,
+instead of hovering between a head and a chest the way it did when the
+choice was a coin toss every frame.
+
+What that buys is a **decapitation, not a damage multiplier**. A rifle
+round or a .50 takes the head clean off, and after that there is no head
+to aim at — the second round of a braced burst is already going into the
+ribs. So a braced kill is a round or so quicker than a loose one and a
+great deal more final: measured on a thrower, four rounds braced against
+four and a half from the hip, with the first of the four removing its
+skull. Behind the eyes nothing has changed at all: there the crosshair is
+your own, and a rifle that aimed itself would be no rifle.
+
+The rifle has a **muzzle flash** on it at last. And the **recoil is carried by the man**:
 the shoulder driven round and back, the head going with it, the knees
 taking the rest, riding the shot and settling rather than snapping.
 

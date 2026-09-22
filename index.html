@@ -16474,12 +16474,31 @@ function gunRay(spread,base){
   }
   return _gv4.normalize().clone();
 }
-// third person: the round leaves the muzzle for the marked horror's body (its head, one time in four), or straight ahead
-function gunAimBase(o){
+/* THE HEAD IS THE BRACE'S OWN. Over the shoulder there is no free aim at
+   all — the round goes to the marked horror or straight along the facing,
+   and nothing the player does points it — so WHICH PART it goes to is the
+   only aim there is. It was one in four for the skull whatever you did,
+   braced or not, which made the brace worth nothing but a tighter cone
+   the third-person shot did not have anyway.
+   Bringing the gun up walks that to a CERTAINTY: a fully braced round is
+   a headshot, and the hip keeps its old one in four. It rides `FPS.ads`,
+   the brace's own lerp, so it is the same move as the camera coming in —
+   there is no switch and no threshold to sit on.
+   `hitscan` asks the spheres in order, head first, so a ray laid on the
+   skull's centre takes the skull; and `popHead` already refuses a boss
+   and a mini, so nothing here can decapitate the Warden.
+   `steady` is what the MARK asks for: the same choice with the die left
+   out. The mark is one `gunAimBase` a frame, so with a random pick it was
+   aimed at the skull on one frame in four and the chest on the others —
+   a reticle shivering a body's height, which the HUD's own smoothing then
+   parked at the AVERAGE of the two, pointing at neither. */
+const GUN_HEAD_HIP=.25;                                  // the hip's share; the brace walks it to 1
+function gunAimBase(o,steady){
   const foe=G.lockTarget&&!G.lockTarget.objective&&G.lockTarget.hp>0?G.lockTarget:null;
   if(foe&&shootable(foe)){
     const sp=gunSpheres(foe),hd=sp.find(q=>q.head),bd=sp.find(q=>!q.head&&!q.limb)||sp[0];
-    const s=hd&&Math.random()<.25?hd:bd;
+    const want=lerp(GUN_HEAD_HIP,1,FPS.ads);
+    const s=hd&&(steady?want>.5:Math.random()<want)?hd:bd;
     return new THREE.Vector3(s.x-o.x,s.y-o.y,s.z-o.z).normalize();
   }
   return new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
@@ -17139,7 +17158,7 @@ function updateGunHud(){
          gap is that cone's real radius at that range seen from where the
          camera is, which is a different angle from the muzzle's. One ray
          a frame, and only with a gun in hand over the shoulder. */
-      const o=muzzleWorld().clone(),d=gunAimBase(o),h=hitscan(o,d,g.range);
+      const o=muzzleWorld().clone(),d=gunAimBase(o,true),h=hitscan(o,d,g.range);
       /* WHERE TO PUT IT WHEN THE ROUND MEETS NOTHING. The round leaves
          LEVEL, and the field is near enough flat, so an unlocked shot at
          nothing runs the gun's whole range and the mark lands on the
@@ -17924,7 +17943,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

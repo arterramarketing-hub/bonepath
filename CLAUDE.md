@@ -1245,6 +1245,59 @@ Known state of play:
      `!FPS.on`): `adsWalk` there is still the sights alone, verified 6.1
      hip-firing and 3.7 with them up.
 
+- **THE BRACE AIMS AT THE HEAD** (`GUN_HEAD_HIP`, `gunAimBase`). Over the
+  shoulder there is NO FREE AIM at all — the round goes to the marked
+  horror or straight along the facing, and nothing the player does points
+  it — so *which part* it goes to is the only aim there is. It was one in
+  four for the skull whatever you did, braced or not, which left the brace
+  worth nothing but a tighter cone the third-person shot barely had.
+  It rides `FPS.ads` now: `lerp(GUN_HEAD_HIP, 1, ads)`, so the hip keeps
+  its old one in four and a fully braced round is a headshot. No switch
+  and no threshold to sit on — it is the same move as the camera coming
+  in. Measured over 400 rounds on a hollow at nine metres: **hip 22.8%,
+  half-braced 56.8%, braced 100.0%** (400 of 400).
+  - **IT IS FRONT-LOADED, AND THAT IS THE BEHAVIOUR, NOT A FAULT.** 5.56
+    and .50 are `strong` calibres, so the first braced round POPS THE HEAD
+    — and `gunSpheres` then offers no head sphere, so every round after it
+    goes to the body. Measured, six braced m4 rounds at one hollow kept
+    alive: **round 1 HEAD (head off), rounds 2-6 body.** That is why
+    rounds-to-kill barely moves: m4 on a 70hp thrower, **hip 4.5 (median
+    5), braced 4.0 (median 4)**. The brace buys a decapitation, not a
+    damage multiplier on every shot.
+  - **`steady` is what the MARK asks for.** The mark is one `gunAimBase` a
+    frame, so with a random head/body pick it aimed at the skull on one
+    frame in four and the chest on the others — a reticle shivering a
+    body's height, which `FHUD`'s own smoothing then parked at the AVERAGE
+    of the two, pointing at neither. `gunAimBase(o,true)` leaves the die
+    out. Measured over 40 still frames, the mark's y is now identical on
+    every one: **0.496 at the hip (the chest), 0.937 braced against a
+    skull whose centre is 0.92.**
+  - **FIRST PERSON IS UNTOUCHED AND CANNOT BE REACHED FROM HERE**:
+    `fireGun` passes `base=FPS.on?null:gunAimBase(o)`, so behind the eyes
+    the ray is the camera's and nothing else. Verified by wrapping the
+    function and firing in first person — **called 0 times**.
+  - `popHead` already refuses a boss and a mini, so nothing here can
+    decapitate the Warden; and a horror with no head sphere (a crow, a
+    heap, something already headless) falls through to the body exactly as
+    it did.
+  **THREE HARNESS TRAPS, ALL OF WHICH GAVE CONFIDENT WRONG ANSWERS:**
+  1. **`fireGun` fires from the RIG'S MUZZLE.** Moving `player.x/z` in a
+     harness without updating the rig leaves `muzzleWorld()` at the old
+     place, and the rounds go into the dirt — measured `FPS.lastHit
+     'ground'` on a shot whose own `gunAimBase` ray hit the foe cleanly.
+     Drive real frames between shots (`await new Promise(requestAnimation
+     Frame)` inside `page.evaluate`, which can await), or measure
+     `gunAimBase` directly with a synthetic origin.
+  2. **`FPS.ads` IS A LERP THAT `updateGun` OWNS.** Setting it from a
+     per-frame tick is pointless: the game pulls it straight back, because
+     the AIM button is not held. Set `FPS.adsOn` — the input — and let the
+     brace come up before counting. A whole "braced" run was measured at
+     `FPS.ads 0` before this was noticed.
+  3. **A burst skeleton is not shootable.** Body hits scatter a hollow
+     into a heap, `shootable()` excludes `scatter`, so `gunAimBase` falls
+     back to the facing and every further round flies past — a kill test
+     that runs to its cap with the target on full health.
+
 - **THE GROUND SHADE** (`SHADOW`, `shadowTick`, `shadeRig`, `shadeRigs`,
   beside `lodUpdate`). Every body stands on a flat black disc, built once
   in the humanoid rig and never touched again. Three things were wrong
