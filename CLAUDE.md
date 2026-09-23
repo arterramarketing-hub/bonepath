@@ -2320,6 +2320,58 @@ Known state of play:
   `groundGone` decides whether there is soil to land on. Measured: 23.1m
   out, 3.6m up at the top. A sword on the same crow still only wounds
   it.
+- **THE RAVINE (`RAVINE`, `ravineStart`, `PATH.rav`, CHUNKS.`ravine`,
+  `viaduct`, terrain feature `t:'ravine'`).** A path-only tile kind that
+  comes in RUNS of 2–5 tiles, in three variants (maple / shale / birch).
+  Load-bearing, in the order they bit:
+  - **ONE terrain feature per RUN, not per tile.** Pushed into
+    `PATH.terrain` when the run starts, it spans the whole run and eases
+    in only at the run's two ends (`tp` 12m), so the walls run unbroken
+    across every join. It rides in the LAST tile's `t.terrain`, because
+    teardown drops a tile's features from `PATH.terrain` — in the first
+    tile's list, the walls would vanish from under the tiles still
+    standing. A run never crosses a cathedral: `ravineStart` shortens it
+    to the room before the next `k%cathEvery===0`, and refuses under 2.
+  - **THE UNDERPASS REACHES ±28m FROM ITS TILE'S CENTRE**, so it is only
+    ever the middle of a run (never tile 0 or n−1, runs of 3+), where the
+    run's walls stand under all of it. Its tile's `heightAt` must answer
+    for the neighbours' ground, which is why the feature is per run.
+  - **THE KIND IS ROLLED FIRST, AND THE RAVINE ON ITS OWN HASHED
+    STREAM.** `rnd` is an LCG. Rolled second on the tile's stream, the
+    kind came out graves ×5, chapel ×3 — the second draw after a reseed
+    is correlated tile to tile. And a stream seeded by tileSeed's xor put
+    every run in the same slot of the six-tile block (the two before a
+    cathedral, and so never long enough for an underpass). `hash32`
+    (a murmur-style finaliser) seeds the ravine's stream. **Any new
+    per-tile roll wants its own hashed stream, not the second `rnd()`.**
+  - **EVERYTHING IS BUILT INTO ONE GROUP AND `bakeStatic`'d.** bakeWorld
+    is off on the path (it would break tileCapture's index count), but
+    bakeStatic on a group that is itself one world child is safe: the
+    child count and the shift are the group's. Measured by counting the
+    visible meshes each tile owns: a ravine tile 6–20, a wood tile 128, a
+    cathedral 160. The TRIANGLES are the cost: the whole frame reads
+    24–36k in a ravine against 12–14k on an ordinary stretch (the ICO
+    crowns and the highway's boxes). Do not add crowns or bents freely.
+  - **Trunks are obstacles tagged `wood`, NOT `tree`.** `markTree` and
+    `fellTree` need the trunk mesh in the scene, and the bake has taken
+    it out; `meleeHit` gives a `wood` obstacle a hit and no mark, and no
+    metal clang. Columns are `stone` (sparks, a bounce, cover).
+  - The chunk runs BEFORE the tile's road is laid, so `clearSpot` knows
+    nothing of the trail: the chunk's `free()` keeps |x|≥2.6 itself, and
+    the viaduct skips any bent with a column at |x|<2.6 (or past the
+    rim, |x|>21) — the deck spans the gap.
+  - Materials are made once per `buildWorld` (`ravMats`), from `lam`/`mat`
+    with a map, so they share programs already linked. Leaves are
+    painted GREY and tinted per variant (a green texture tinted orange is
+    mud); snow lerps the tint .72 toward white. Concrete and birch carry
+    a darkening `color` — both burned out to near white in a noon sun.
+  - The graffiti textures (`tagA`, `tagB`) are drawn in METRES on the
+    .85×3.2 foot block (`tagCtx` squashes the canvas by .85/3.2), or a
+    box face stretches every flower into an egg.
+  - The trail is `layRoad(...,'gravel')`; `rm.userData.tex` is what the
+    snow swap restores, so a ravine's trail comes back as gravel.
+  Measured: 0 errors walking 4km / 118 tiles of seed 2, and no ravine
+  feature left in `PATH.terrain` behind the pilgrim.
 - **THERE IS NO BLADE VIEWMODEL** — see *THE FIRST-PERSON SWING IS THE
   THIRD-PERSON SWING*, far below. `VM_BLADE`, `ensureBladeVm`,
   `bladePose`, `VM_SEAM` and `SW_FLIP` are gone. The one thing worth

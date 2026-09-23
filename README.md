@@ -1636,6 +1636,40 @@ them arrive (before the first frame the first two tiles are still
 built whole). Every step re-seeds the run's RNG, so a hex is still the
 seed's alone.
 
+**The ravine.** Every so often, about a fifth of the way, the path drops
+into a wooded cut: for two to five tiles the land rises on both sides of
+the trail into walls five to twelve metres high, tall trees up both
+slopes and along the rims — straight trunks eleven to sixteen metres
+tall leaning a little toward the light over the trail, their crowns
+overhead, thin saplings crowding the path's edges — and the flagstones
+give way to a trail of crushed pale gravel. The walls run on unbroken
+from one tile to the next and ease in and out only at the ravine's two
+ends. It comes in three kinds:
+- **the maple cut** — summer green, gentle walls, undergrowth along the
+  foot of them, a couple of fallen trunks, and an old snow fence down
+  one side of the trail, leaning, a slat gone here and there;
+- **the shale gully** — narrow and deep, the walls steep and broken by
+  ledges of grey rock bedded flat, fallen logs down the slopes, thinner
+  trees and more of them close to the trail;
+- **the birch fall** — pale birches, their leaves turned yellow and
+  going, a third of the trees already bare, the fall lying in drifts.
+Horror-wise it is walked ground: patrols and pairs on the trail and
+throwers up on the rims looking down.
+
+**The underpass.** A ravine three tiles long or more usually carries a
+highway across it: a concrete viaduct on tall bents that comes in off
+one rim, swings round to run straight over the trail, and swings out
+over the other rim — so you walk under a receding row of the same
+frame, each a pair of columns laddered with tie beams under a haunched
+cap, the deck twelve to fourteen metres up. A column that would stand
+on the trail is left out and the deck spans the gap. The feet of the
+columns you can walk up to are painted: a flower with a face in it, a
+red disc, somebody's grinning portrait, tags. The trees below keep
+under the deck. Columns are stone to the blade and cover to a round.
+All of a ravine tile's wood and concrete is folded by material when it
+is built, so a tile with fifty trees and a highway on it costs about
+twenty draws.
+
 Under the hood every tile is built with the same chunk code the field
 uses, in the origin's frame as the field's north wedge, and then
 shifted into place — objects, colliders, breakables, lanterns and the
