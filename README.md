@@ -1695,10 +1695,13 @@ the trail into walls five to twelve metres high, tall trees up both
 slopes and along the rims — straight trunks eleven to sixteen metres
 tall leaning a little toward the light over the trail, their crowns
 overhead, thin saplings crowding the path's edges — and the flagstones
-give way to a **dirt trail**: packed brown earth wandering a little from
-side to side down the floor, two lines worn in it where the feet go, a
-paler crown between them, stones trodden in, prints, and the grass coming
-in ragged at both verges. Its wander is set by the world's own distance
+give way to a **dirt trail**, **worn into the ground itself** rather than
+laid on it: the soil goes to packed brown earth down the floor, wandering
+a little from side to side, two lines worn in it where the feet go,
+stones trodden in, prints, and the colour of it bleeding raggedly out
+into the ground's own at both edges. (It used to be a strip laid over the
+soil, and it looked pasted on.) Under snow it is buried with everything
+else. Its wander is set by the world's own distance
 along the path, so it runs on across every join without a kink. Both
 verges are lined with scrub close enough to brush — six to eight a side a
 tile, forked switches with a skirt of last year's dead growth at the foot,
@@ -1754,8 +1757,8 @@ splashes. The water flows.
 
 **Where the road meets the trail.** At either end of every ravine the
 flagstones give out over eight metres: the setts break up and scatter,
-fewer and fewer, a last few lying loose in the dirt, until it is all the
-trail's packed earth and ruts — the road's width easing down to the
+fewer and fewer, a last few lying loose on the trail as it comes up out of
+the soil under them, until it is all the trail's packed earth and ruts — the road's width easing down to the
 trail's and the trail's wander easing in, so there is no line where one
 stops and the other starts.
 
@@ -2746,7 +2749,7 @@ pinnacle. The windows are **pointed, in pairs**, a round window over each
 pair and stone tracery framing them outside. The door is a **deep
 portal** — three pointed arches stepping out, each on its own slim
 columns, a carved panel over the lintel with a skull in a mandorla and
-two figures kneeling to it, a pillar parting the doorway, and a steep
+two figures kneeling to it, the doorway itself left open, and a steep
 crocketed gable over the whole with a pinnacle either side — and over it
 all a **traceried rose**. At the eaves, **gargoyles** look out between the
 windows, and **in rain they spout**, a stream arcing off every one. The

@@ -2526,6 +2526,24 @@ Known state of play:
   stretch of maple climbed to the rim; every walk out of the river gets
   out; 0 of 4,709 field spots blocked on three seeds. Enemies are not
   limited. The codex and the Warden's nave are exempt.
+- **THE TRAIL IS IN THE GROUND** (`TRAIL_GROUND`, `trailAt`, the ground's
+  `aTrail` attribute). The ravine's trail is no longer a ribbon: every path
+  tile's ground carries `aTrail` per vertex (`trailAt(t,z)`: 1 on a ravine
+  tile, smoothstepped over the eight metres of each seam), and the ground
+  shader finds the trail's centre from `TRAIL_WIG` REPEATED IN GLSL
+  (`TRAIL_GROUND.frag` — change one, change both), samples `trail`'s middle
+  band across it and mixes it in with a noisy soft edge, pulled 32% toward
+  the soil and darkened (.7) so the colours meet rather than butt. The
+  field's (and the Mire's) ground geometry carries an `aTrail` of zeros:
+  do not rely on a missing attribute reading 0 — a disabled vertex
+  attribute reads whatever constant that location was last given.
+  `TRAIL_GROUND.k` fades it under snow (set in `applyGroundSurface`, blended
+  in `xfTick`). The tile BEFORE a ravine is regrounded when a run begins
+  (it already was, for `pathEdge`); a run's last tile is regrounded when
+  another run begins straight after it, so it loses its fade-out. A
+  `roads` entry is still pushed for the decor to keep off. The seam's
+  texture keeps only its STONES (the rest is alpha 0), so its last setts
+  lie on the painted trail.
 - **THE SEAM** (`laySeam`, texture `seam`, `layPath`'s `opt`). Where a
   road meets a ravine trail, either way round, eight metres of block are
   laid centred on the join at `.058`, the width easing from the road's to
@@ -2537,6 +2555,29 @@ Known state of play:
   **The option is `opt`, not `o`, because `o` is the wander offset inside
   the loop** — named `o`, it was shadowed, and every seam came out a
   constant-width strip with the texture repeating up it.
+- **THE PATH DOES NOT LEAK, AND IT USED TO** (audited, measured over 120
+  hexes walked on seed 2 with `BP._reg()`): the heap went 34 → 264 MB and
+  GPU geometries 495 → 2,791; now the heap holds 45–70 MB and the geometry
+  count levels off. Four causes, each fixed where it starts:
+  1. **The rig geometry cache (`geoCache`) was keyed on exact floats**, and
+     every hollow is a random scale: 132 entries → 3,610 in forty hexes,
+     never freed. `gq()` quantizes every size to 5mm (0.5mm under 5cm)
+     before the key is made: it levels off near 550.
+  2. **A torn tile kept every list it was built with** (meshes with their
+     vertex arrays — `dispose` frees the GPU's copy, not JavaScript's —
+     its horrors, its obstacles), and `PATH.tiles` keeps every tile.
+     `teardownTile` now empties them IN PLACE (tile 0's arrays are shared
+     with `PATH.tile0`), drops the tile's `roadMeshes` and its `roads`
+     (tagged with `tile` in `layPath`), and disposes any texture flagged
+     `bpOwn` (a path cathedral's cloned floor and plinth maps; r128
+     textures have no `userData`).
+  3. **`GARG.a` pruned only while it rained**, so every hall's anchors —
+     and through them the hall — stayed; it prunes every 30 frames now.
+  4. **`pathCath`/`pathTileAt` walked every tile ever built** from every
+     `heightAt`, which got 6.6x slower over a run; the dead tiles are a
+     prefix and `PATH.lo` marks where the live ones start (advanced in
+     `teardownTile`, reset in `initPath`). Any new loop over the path's
+     tiles should start at `PATH.lo`.
 - **THE HEIGHT CARRIED FORWARD** (`pathBase`, `t.b0`/`t.b1`, `t.bs`/`t.be`,
   `tileCommit`'s `offY`). Every tile carries a base height at each end,
   starting from the last tile's `b1`; `pathBase(z)` is a smoothstep between
@@ -2847,7 +2888,9 @@ Known state of play:
   to `RIDGE`=27.5), aisles under lean-tos (`AE`→`AT`, 9.5→12.3), flying
   buttresses, stepped buttresses with gabled caps and pinnacles, paired
   pointed lancets under an oculus with outside tracery, a portal of three
-  archivolts with a tympanum, a trumeau and a wimperg, a traceried rose
+  archivolts with a tympanum and a wimperg (the trumeau — a pillar parting
+  the doorway — was built and taken out again by request: the opening is
+  clear), a traceried rose
   over each door, gargoyles, and a flèche. Helpers: `gArch` (a
   two-centred pointed arch's points, `k` the radius over the half-span),
   `lancetGeo` (a pointed ShapeGeometry with its uv put back to 0..1, which
@@ -2858,8 +2901,8 @@ Known state of play:
   more pair at z=±20. The towers stand IN the aisles' last bay at the
   front (x 8.8..13.8, z 18.3..24.3): an obstacle each for bodies, a box in
   `camStone` for the lens, and `TWR()` keeps buttresses, flyers, gargoyles
-  and the aisle roof out of them. The trumeau is an obstacle (r .38): the
-  door parts round it. On the path the towers are on the +z end only.
+  and the aisle roof out of them. On the path the towers are on the +z end
+  only.
   **The bay over the altar is still open, vault and slates** (`beamBay`).
   **Cost, measured**: draws unchanged (181 at one heading, seed 7); the
   cathedral from across the field 397 draws / 71k triangles, against 423 /
@@ -3168,6 +3211,12 @@ Known state of play:
      3, which no camera pass renders, so it can never fight the fourteen
      places that write `visible` on a rig, nor a severed limb, nor the
      LOD. Each mesh remembers its own mask and is put back to exactly it.
+  **Death takes the eye out of the helm, and the gun goes with it.**
+  `updateGun` stops running when G.mode leaves 'play', so dying behind the
+  eyes left the viewmodel, the crosshair and any scope hanging in front of
+  the ragdoll. `syncFpsRig` (which runs in dead frames) puts them away once
+  on the way down (`FPS.downHud`, `gunHudOff()`, `body.downed` hiding
+  `#fpsCtl`).
   **And the GUN puts itself away.** `updateViewmodel` is the only thing
   that writes the viewmodel's visibility and it runs inside `updateGun`,
   which a blade never calls — so a viewmodel raised once stood on the

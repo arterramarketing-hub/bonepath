@@ -260,6 +260,7 @@
     background:rgba(4,5,5,.0);opacity:0;pointer-events:none;transition:opacity 1.2s, background 1.2s;}
   #died .t{font-size:clamp(34px,9vw,84px);letter-spacing:.34em;text-transform:uppercase;
     color:#8f1d15;text-shadow:0 0 34px rgba(120,15,10,.8),0 2px 2px #000;font-weight:400;}
+  body.downed #fpsCtl{display:none!important;}
   #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(210px + env(safe-area-inset-bottom));
     z-index:12;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--bone);   /* (over the pause panel, z 10, and the shop, z 11: a refusal made there has to be read there) */
     text-shadow:0 1px 3px #000;opacity:0;transition:opacity .5s;pointer-events:none;text-align:center;}
@@ -1375,7 +1376,7 @@ function buildTextures(){
       for(let x=0;x<S;x++){const i=(y*S+x)*4,c=((x+off)/CW)|0,k=keep[r][c];
         if(k&&dR[i+3]>100){const dirt=(1-sh)*.35;d[i]=dR[i]+(dT[i]-dR[i])*dirt;d[i+1]=dR[i+1]+(dT[i+1]-dR[i+1])*dirt;d[i+2]=dR[i+2]+(dT[i+2]-dR[i+2])*dirt;d[i+3]=255;}
         else if(dR[i+3]<=100&&(x<52||x>S-52)&&rnd()<sh*.95){d[i+3]=0;}                      // the road's own worn verge: soil shows
-        else{d[i]=dT[i];d[i+1]=dT[i+1];d[i+2]=dT[i+2];d[i+3]=255;}}}
+        else d[i+3]=0;}}                                                             // (the dirt is the ground's own now: see THE TRAIL IS IN THE GROUND)
     ctx.putImageData(out,0,0);
   });
   /* -- the ravine's stream: clear dark water over stones, with pale
@@ -4155,7 +4156,7 @@ function rectSD(x,z,hw,hl){
   return Math.hypot(Math.max(dx,0),Math.max(dz,0))+Math.min(Math.max(dx,dz),0);
 }
 // which cathedral is at this z on the path (the tile that holds one), and its centre
-function pathCath(z){for(const t of PATH.tiles)if(t&&!t.dead&&t.cath&&z<t.z0+2&&z>t.z1-2)return t;return null;}
+function pathCath(z){const T=PATH.tiles;for(let k=PATH.lo||0;k<T.length;k++){const t=T[k];if(t&&!t.dead&&t.cath&&z<t.z0+2&&z>t.z1-2)return t;}return null;}   // (from the first live tile: the dead are a prefix — see teardownTile)
 function cathZ(z){if(!PATH.on)return 0;const t=pathCath(z);return t?t.czc:1e9;}   // (1e9: no cathedral anywhere near)
 const cathDist=(x,z)=>rectSD(x,z-cathZ(z),HW+WALLT,HL+WALLT);   // from the outer wall face
 /* STONE TAKES NO PRINT. The cathedral's flags, its stair and the apron
@@ -4583,7 +4584,7 @@ function layPath(pts,w,tex,wig,lift,closed,opt){   // (`opt.wAt(tt)`: the half-w
   if(tex==='road')w*=1.14;                  // (the worn texture eats its own verges: what is left is the width the road always had)
   const P=closed?pts.concat([pts[0]]):pts,seg=[];
   for(let k=0;k+1<P.length;k++){const ax=P[k][0],az=P[k][1],dx=P[k+1][0]-ax,dz=P[k+1][1]-az,len=Math.hypot(dx,dz);
-    if(len<1e-4)continue;roads.push({ax,az,bx:P[k+1][0],bz:P[k+1][1]});
+    if(len<1e-4)continue;roads.push({ax,az,bx:P[k+1][0],bz:P[k+1][1],tile:BUILD.tile});
     seg.push({ax,az,dx,dz,len,nx:-dz/len,nz:dx/len});}
   if(!seg.length)return;
   const total=seg.reduce((a,q)=>a+q.len,0);
@@ -5123,7 +5124,7 @@ function breakPew(b){
     AudioSys.hit();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.14);G.vibr(20);
     return;
   }
-  const y=PH+.6;
+  const fl=heightAt(b.x,b.z),y=fl+.6;          // (the floor it stood on: on the path a cathedral may be lifted onto high ground — see pathBase)
   boneBurst(b.x,y,b.z,0x5a4326,10,3.2);boneBurst(b.x,y,b.z,0x2e2216,6,2);   // splinters
   // and the planks: the seat, back, ends and kneeler come apart into
   // pieces that fly, tumble, land, and lie there
@@ -5131,7 +5132,7 @@ function breakPew(b){
   const planks=[[1.6,.1,.5,-.85,.62,0],[1.6,.1,.5,.85,.62,0],[1.6,.55,.1,-.85,.95,-.22],[1.6,.55,.1,.85,.95,-.22],
     [.1,.9,.55,-1.7,.45,0],[.1,.9,.55,1.7,.45,0],[1.5,.06,.4,-.8,.2,.05],[1.5,.06,.4,.8,.2,.05]];
   for(const [w,h,d,px,py,pz] of planks)
-    planetPiece(new THREE.BoxGeometry(w,h,d),woodM,b.x+px,PH+py,b.z+pz,Math.max(h,d)*.5,3.2,'woodFall');
+    planetPiece(new THREE.BoxGeometry(w,h,d),woodM,b.x+px,fl+py,b.z+pz,Math.max(h,d)*.5,3.2,'woodFall');
   AudioSys.hit();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.16);G.vibr(25);
 }
 /* a loose piece of the world: one particle with spin. It flies, hits the
@@ -5194,7 +5195,7 @@ function strikeBreakables(x,z,fx,fz,reach,arc,oneShot){
        in the nave, which is wrong out in the field. */
     b.hp-=(oneShot&&!b.tough)?99:1;hitAny=true;
     if(b.onHit){b.onHit(b,cx,cz);continue;}
-    boneBurst(cx,PH+.7,cz,0x5a4326,6,2);
+    boneBurst(cx,heightAt(cx,cz)+.7,cz,0x5a4326,6,2);   // (off the floor it stands on: PH+.7 was the field's nave, and on the path a cathedral may stand metres higher)
     if(b.hp<=0)breakPew(b);else{if(b.kind==='grave')AudioSys.clang('stone');else AudioSys.woodKnock();}
   }
   return hitAny;
@@ -5398,6 +5399,7 @@ function buildWorld(){
         :groundAt(x,z));
     }
     geo.computeVertexNormals();
+    geo.setAttribute('aTrail',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count),1));   // (no trail on the field: see TRAIL in the ground)
     const gm=matNS('dirt');
     M.dirt.map.repeat.set(30,30);
     // the paint layer: a second sheet over the whole field that marks are
@@ -5407,10 +5409,11 @@ function buildWorld(){
     GP.cv=document.createElement('canvas');GP.cv.width=GP.cv.height=GP.S;GP.ctx=GP.cv.getContext('2d');
     GP.tex=new THREE.CanvasTexture(GP.cv);GP.tex.magFilter=THREE.NearestFilter;GP.tex.minFilter=THREE.LinearFilter;GP.tex.generateMipmaps=false;GP.tex.encoding=THREE.sRGBEncoding;GP.tex.flipY=false;
     gm.onBeforeCompile=s=>{s.uniforms.uPaint={value:GP.tex};s.uniforms.uPaintZ={value:GP.oz};gm.userData.shader=s;
-      s.vertexShader='varying vec3 vWP;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.)).xyz;');
+      s.uniforms.uTrailMap={value:texCache.trail};s.uniforms.uTrailK=TRAIL_GROUND.k;
+      s.vertexShader='varying vec3 vWP;attribute float aTrail;varying float vTrail;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.)).xyz;vTrail=aTrail;');
       s.uniforms.uGB=XF.gb;s.uniforms.uGBMap=XF.gbMap;s.uniforms.uGBK=XF.gbK;   // (the snow coming over the ground in a gradual turn: see XF)
-      s.fragmentShader='uniform sampler2D uPaint;uniform float uPaintZ;varying vec3 vWP;uniform float uGB,uGBK;uniform sampler2D uGBMap;\n'+s.fragmentShader.replace('#include <map_fragment>',
-        '#include <map_fragment>\nif(uGB>0.){vec4 g2=mapTexelToLinear(texture2D(uGBMap,vUv*uGBK));diffuseColor.rgb=mix(diffuseColor.rgb,diffuse*g2.rgb,uGB);}\n{vec4 pc=texture2D(uPaint,(vWP.xz-vec2(0.,uPaintZ))/'+GP.EXT.toFixed(1)+'+0.5);pc=sRGBToLinear(pc);diffuseColor.rgb=mix(diffuseColor.rgb,pc.rgb,pc.a);}');};
+      s.fragmentShader='uniform sampler2D uPaint;uniform float uPaintZ;varying vec3 vWP;uniform float uGB,uGBK;uniform sampler2D uGBMap;uniform sampler2D uTrailMap;uniform float uTrailK;varying float vTrail;\n'+TRAIL_GROUND.glsl+s.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\nif(uGB>0.){vec4 g2=mapTexelToLinear(texture2D(uGBMap,vUv*uGBK));diffuseColor.rgb=mix(diffuseColor.rgb,diffuse*g2.rgb,uGB);}\n'+TRAIL_GROUND.frag+'\n{vec4 pc=texture2D(uPaint,(vWP.xz-vec2(0.,uPaintZ))/'+GP.EXT.toFixed(1)+'+0.5);pc=sRGBToLinear(pc);diffuseColor.rgb=mix(diffuseColor.rgb,pc.rgb,pc.a);}');};
     groundMat=gm;
     if(!PATH.on)world.add(new THREE.Mesh(geo,gm));
   }
@@ -5451,7 +5454,7 @@ function buildWorld(){
 
     // ---- the plinth: a stone platform, its rim a wall, a stair down the south face
     {
-      const topTex=texCache.flag.clone();topTex.needsUpdate=true;topTex.repeat.set(9,15);
+      const topTex=texCache.flag.clone();topTex.needsUpdate=true;topTex.repeat.set(9,15);topTex.bpOwn=true;   // (`own`: this hall's alone — freed when its tile goes)
       const top=new THREE.Mesh(new THREE.PlaneGeometry(PW*2,PL*2),new THREE.MeshLambertMaterial({map:topTex}));
       top.rotation.x=-Math.PI/2;top.position.set(0,PH+.02,0);world.add(top);
       const rimM=cathM;
@@ -5473,7 +5476,7 @@ function buildWorld(){
     }
     // ---- floor
     {
-      const ft=texCache.flag.clone();ft.needsUpdate=true;ft.repeat.set(6,11);
+      const ft=texCache.flag.clone();ft.needsUpdate=true;ft.repeat.set(6,11);ft.bpOwn=true;
       const fl=new THREE.Mesh(new THREE.PlaneGeometry(HW*2+1,HL*2+1),new THREE.MeshLambertMaterial({map:ft}));
       fl.rotation.x=-Math.PI/2;fl.position.y=.04;cath.add(fl);
     }
@@ -5575,7 +5578,6 @@ function buildWorld(){
         for(const sd of[1,-1]){const e=new THREE.Mesh(ICO,darkM);e.position.set(sd*.15,DH+1.42,end*(WZ+.86));e.scale.setScalar(.09);cath.add(e);}
         const md=new THREE.Mesh(new THREE.TorusGeometry(.78,.08,4,14),cathM);md.position.set(0,DH+1.35,end*(WZ+.56));md.scale.y=1.25;cath.add(md);
         for(const sd of[1,-1]){cbox(.3,.62,.3,cathM,sd*1.25,DH+.72,end*(WZ+.6));const hd=new THREE.Mesh(ICO,cathM);hd.position.set(sd*1.25,DH+1.14,end*(WZ+.6));hd.scale.setScalar(.14);cath.add(hd);}}   // two figures kneeling to it
-      cath.add(cyl(.26,.32,DH,6,cathM,0,DH/2,end*(WZ+.42)));addObstacle(0,end*(WZ+.42),.38,true,PH+DH);   // the trumeau: the door parts round it
       {const wg=DW+.32+1.0+.75,z=end*(WZ+1.5),top=DH+7.4;                   // the wimperg: a steep gable, its edges crocketed, a finial on its point
         const sh=new THREE.Shape();sh.moveTo(-wg,DH+1);sh.lineTo(0,top);sh.lineTo(wg,DH+1);sh.lineTo(-wg,DH+1);
         const tri=new THREE.Mesh(new THREE.ShapeGeometry(sh),cathM);tri.position.z=z-end*.12;if(end<0)tri.rotation.y=Math.PI;cath.add(tri);
@@ -6446,7 +6448,7 @@ function pathVertY(t,x,zl){
   const h=pathHeightAt(x,zl+t.zc);
   return ex>0?Math.min(h,pathBase(zl+t.zc))-(ex*1.1+ex*ex*.5):h;   // (the cliff falls from the land's own height, not from sea level)
 }
-function pathTileAt(z){for(const t of PATH.tiles)if(t&&!t.dead&&t.ground&&z<=t.z0+.6&&z>=t.z1-.6)return t;return null;}
+function pathTileAt(z){const T=PATH.tiles;for(let k=PATH.lo||0;k<T.length;k++){const t=T[k];if(t&&!t.dead&&t.ground&&z<=t.z0+.6&&z>=t.z1-.6)return t;}return null;}
 // the tile's ground as its card DRAWS it: bilinear over the mesh's own cells (2m across, about 1.6 along)
 function pathSurfaceY(x,z){
   const t=pathTileAt(z);if(!t)return -1e9;
@@ -6460,7 +6462,9 @@ function tileGround(t){
   const W=64,L=t.len+1.2,sx=32,sz=Math.max(4,Math.ceil(L/1.6));
   const geo=new THREE.PlaneGeometry(W,L,sx,sz);geo.rotateX(-Math.PI/2);
   const pos=geo.attributes.position;
-  for(let i=0;i<pos.count;i++)pos.setY(i,pathVertY(t,pos.getX(i),pos.getZ(i)));
+  const tr=new Float32Array(pos.count);
+  for(let i=0;i<pos.count;i++){pos.setY(i,pathVertY(t,pos.getX(i),pos.getZ(i)));tr[i]=PATH.on&&t.k>=0?trailAt(t,pos.getZ(i)+t.zc):0;}
+  geo.setAttribute('aTrail',new THREE.BufferAttribute(tr,1));   // (see THE TRAIL IS IN THE GROUND)
   geo.computeVertexNormals();
   const m=new THREE.Mesh(geo,groundMat);m.position.z=t.zc;world.add(m);t.ground=m;
 }
@@ -6499,7 +6503,7 @@ function startTile(k){
     if(R){   // a tile of a ravine run (see ravineStart)
       t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f,cross:R.cross};
       if(R.i===0&&PATH.ravCarry){t.terrain.push(PATH.ravCarry);PATH.ravCarry=null;}   // (the run before reaches twelve metres into this tile: it goes with it)
-      if(R.i===0&&prev&&!prev.rav)regroundTile(prev);                          // (it widens to meet the run: see pathEdge)
+      if(R.i===0&&prev)regroundTile(prev);                                     // (it widens to meet the run — see pathEdge — and its trail runs on, or eases in: see trailAt)
       R.i++;
       if(R.i>=R.n){if(PATH.only)PATH.ravCarry=R.f;else t.terrain.push(R.f);PATH.rav=null;}   // the run's walls go when its LAST tile goes
     }else{t.kind=typeof cx==='string'?cx:['graves','wood','ruins','hollow','causeway','chapel'][(roll*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);
@@ -6534,6 +6538,45 @@ const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6;
 const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond','stairs','barrow'];
 /* THE RAVINE'S TRAIL wanders by the world's own z (layRoad's `wig`), so
    the stream's footbridge — which has to sit ON it — asks the same. */
+/* ======= THE TRAIL IS IN THE GROUND =======
+   It was a ribbon laid over the soil — a strip with its own edges, its own
+   grass fringe and its own brightness — and it read as pasted on. A worn
+   path is not a thing on top of the ground; it is the ground, trodden. So
+   it is drawn by the ground's own shader now: every path tile's ground
+   carries `aTrail` (0..1, how much trail there is at that vertex — full
+   through a ravine, easing in and out over the eight metres of each seam),
+   and the fragment finds the trail's centre from the same wander the
+   ribbon used (`TRAIL_WIG`, repeated in GLSL below — change one, change
+   both), samples the trail's own dirt and ruts across it, and mixes it into
+   the soil's colour with a soft edge broken up by noise, so the grass
+   comes in raggedly and the colours meet rather than butt. It fades under
+   snow (`TRAIL_GROUND.k`, blended by XF). The seam block keeps only its
+   STONES now; its dirt is this. */
+const TRAIL_GROUND={k:{value:1},
+  glsl:`float trHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float trNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(trHash(i),trHash(i+vec2(1.,0.)),f.x),mix(trHash(i+vec2(0.,1.)),trHash(i+vec2(1.,1.)),f.x),f.y);}
+`,
+  frag:`if(vTrail>.001&&uTrailK>.001){
+  float wz=vWP.z,cx=.55*sin(wz*.083+.7)+.28*sin(wz*.29);
+  float dx=vWP.x-cx,n=trNoise(vWP.xz*1.7)*.55+trNoise(vWP.xz*.45)*.45;
+  float w=(1.-smoothstep(.4,1.9,abs(dx)+(n-.5)*1.0))*vTrail*uTrailK;
+  vec4 tc=mapTexelToLinear(texture2D(uTrailMap,vec2(.22+.56*clamp(dx/2.5+.5,0.,1.),wz/4.)));
+  vec3 tr=mix(tc.rgb*.7,diffuseColor.rgb,.32);                     // (the trail's dirt pulled toward the soil it is worn into: a change of colour, not a strip)
+  diffuseColor.rgb=mix(diffuseColor.rgb,tr,w*.88);}`};
+/* how much trail the ground has at world z on tile `t` (see above) */
+function trailAt(t,z){
+  const P=PATH.tiles,ss=u=>{u=clamp(u,0,1);return u*u*(3-2*u);};
+  const pv=P[t.k-1],nx=P[t.k+1];
+  if(t.rav){let w=1;
+    if(pv&&!pv.rav)w=Math.min(w,ss((t.z0+4-z)/8));
+    if(!PATH.only&&t.rav.i===t.rav.n-1&&!(nx&&nx.rav))w=Math.min(w,ss((z-(t.z1-4))/8));
+    return w;}
+  let w=0;
+  if(pv&&pv.rav)w=Math.max(w,ss((z-(t.z0-4))/8));
+  if(nx&&nx.rav)w=Math.max(w,ss((t.z1+4-z)/8));
+  return w;
+}
 function TRAIL_WIG(z){return .55*Math.sin(z*.083+.7)+.28*Math.sin(z*.29);}
 /* THE STREAM (`f.stream` on a maple or birch run: {sd,ph}). It keeps to
    the foot of one wall and, every hundred metres or so, swings across the
@@ -6602,7 +6645,7 @@ function pathWaterAt(x,z){if(!PATH.terrain)return null;
    deep and is walked back out of anything deeper, so what holds him is
    the channel he can see. */
 const RIVER_WAIST=.9;
-function riverHold(p,hero){if(!PATH.terrain)return;
+function riverHold(p,hero){if(!PATH.terrain||p.crow||p.flies||p.kind==='angel')return;   // (a thing in the air crosses water: a crow held at the bank could not circle a pilgrim on the bridge)
   for(const f of PATH.terrain){if(f.t!=='river')continue;const dz=p.z-f.zr,sd=dz<0?-1:1,lim=f.w*.8;
     if(PATH.decks.length&&deckAt(p.x,p.z)!==null)continue;
     if(hero){if(f.level-pathHeightAt(p.x,p.z)>RIVER_WAIST){let z=p.z;
@@ -6736,7 +6779,7 @@ function stepTile(){
     if(cath){layRoad(0,z0,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1,1.5);   // (to the tile's own edge: a road that stops half a metre short of it leaves a metre of soil at every join)
       for(const end of[1,-1])for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),zc+end*(PL-.9));}
     else{const f=t.rav&&t.rav.f;
-      if(t.rav)layRoad(0,z0,0,z1,1.25,'trail',TRAIL_WIG);            // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
+      if(t.rav)roads.push({ax:0,az:z0,bx:0,bz:z1,tile:k});                 // (the ravine's trail is painted into the ground itself — see THE TRAIL IS IN THE GROUND; the road entry keeps the decor off it)
       else if(t.kind==='fork')forkRoads(t);
       else if(t.kind==='river'){const d=t.terrain[0].deck;layRoad(0,z0,0,d.za-.2,1.5);layRoad(0,d.zb+.2,0,z1,1.5);}   // (the deck is the road over the water)
       else if(t.kind==='stairs'){const S=t.stairsF;layRoad(0,z0,0,S.za+.1,1.5);layRoad(0,S.zb-.1,0,z1,1.5);}           // (the flights are the road up the hill)
@@ -6838,7 +6881,7 @@ function forkHost(w,t,budget){
 }   // (all at once: before the first frame, or for a probe)
 function teardownTile(t){
   const shared=new Set(PATH.helpers.shared);
-  for(const o of t.objsW){world.remove(o);o.traverse(c=>{if(c.isMesh&&c.geometry&&!shared.has(c.geometry))c.geometry.dispose();});}
+  for(const o of t.objsW){world.remove(o);o.traverse(c=>{if(c.isMesh&&c.geometry&&!shared.has(c.geometry))c.geometry.dispose();const mp=c.material&&c.material.map;if(mp&&mp.bpOwn)mp.dispose();});}   // (and a texture cloned for this tile alone: a path cathedral's floor and plinth)
   for(const o of t.objsS)scene.remove(o);
   for(const o of t.hazes)hazeScene.remove(o);
   const drop=(arr,set)=>{for(let i=arr.length-1;i>=0;i--)if(set.has(arr[i]))arr.splice(i,1);};
@@ -6852,7 +6895,19 @@ function teardownTile(t){
   if(t.stairsF)PATH.stairs=PATH.stairs.filter(S=>S!==t.stairsF);
   {const gone=new Set(t.objsW);for(const [o,r] of BAKED){let p=r.mesh;while(p&&p.parent&&p.parent!==world)p=p.parent;if(gone.has(p))BAKED.delete(o);}}   // (a ravine's folded bushes)
   for(let i=MARKABLE.length-1;i>=0;i--){let o=MARKABLE[i];while(o.parent)o=o.parent;if(o!==scene){if(MARKABLE[i].markTex)MARKABLE[i].markTex.dispose();MARKABLE.splice(i,1);}}
+  /* AND LET GO OF IT. A torn-down tile used to keep every list it was
+     built with — its meshes (vertex arrays and all: `dispose` frees the
+     GPU's copy, not JavaScript's), its horrors, its obstacles — and
+     `PATH.tiles` keeps every tile for the base heights, so a long run held
+     every hex it had ever walked. The lists are emptied IN PLACE, because
+     tile 0's are shared with `PATH.tile0`. What stays is the tile's shape:
+     its ends, its base heights, its kind. The roads it laid (for the decor
+     and the snow) go too. */
+  {const gone=new Set(t.objsW);for(let i=roadMeshes.length-1;i>=0;i--)if(gone.has(roadMeshes[i]))roadMeshes.splice(i,1);}
+  for(let i=roads.length-1;i>=0;i--)if(roads[i].tile===t.k)roads.splice(i,1);
+  for(const k of['objsW','objsS','hazes','obs','brk','lamps','wisps','foes','terrain','disp'])if(t[k])t[k].length=0;
   t.dead=true;
+  while(PATH.tiles[PATH.lo]&&PATH.tiles[PATH.lo].dead)PATH.lo++;   // (the tiles behind are a prefix: the loops over them start past it)
   /* THE PATH BEHIND IS GONE, AND IT IS A DROP. The tile was only ever
      torn out of the scene; its ground stayed in the RULES, so the pilgrim
      could walk back fifty metres onto nothing and stand on air. Now the
@@ -6865,7 +6920,7 @@ function teardownTile(t){
 }
 function initPath(){
   const z1=-(PL+STAIR_L+4);
-  PATH.tiles=[Object.assign({k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false,foes:[],terrain:[],disp:[]},PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]})];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;PATH.backZ=null;PATH.decks=[];PATH.stairs=[];_pbK=0;
+  PATH.tiles=[Object.assign({k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false,foes:[],terrain:[],disp:[]},PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]})];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;PATH.backZ=null;PATH.decks=[];PATH.stairs=[];_pbK=0;PATH.lo=0;
   tileGround(PATH.tiles[0]);
   buildTile(1);buildTile(2);
   if(PATH.codex)for(let k=3;k<CODEX_TILES.length;k++)buildTile(k);   // (the codex's whole path stands from the start, and none of it is ever torn down)
@@ -6875,15 +6930,15 @@ function updatePath(dt){
   if(PATH.job)stepTile();                                                       // a tile under way: one step of it a frame
   else if(PATH.tiles[PATH.far].z1>pz-75)startTile(PATH.far+1);                   // two or three tiles always stand ahead
   drainSpawns(2);
-  for(const t of PATH.tiles)if(t&&!t.dead&&t.z1>pz+50&&t!==PATH.job)teardownTile(t);   // what is fifty metres behind is gone — the first cathedral too, and the ground falls away where it stood
+  for(let k=PATH.lo||0;k<PATH.tiles.length;k++){const t=PATH.tiles[k];if(t&&!t.dead&&t.z1>pz+50&&t!==PATH.job)teardownTile(t);}   // what is fifty metres behind is gone — the first cathedral too, and the ground falls away where it stood
   if(Math.abs(pz-GP.oz)>48)movePaint(Math.round(pz/30)*30);                     // the paint sheet keeps up
   if(STREAM_MAT)STREAM_MAT.map.offset.y-=dt*.32;                                   // the streams run
   if(RIVER_MAT){RIVER_MAT.map.offset.x+=dt*.1;FALL_MAT.map.offset.y+=dt*1.4;}       // the river runs, and the falls fall
   if(player.moveAmt>.2&&Math.random()<dt*7&&wading(player.x,player.z))boneBurst(player.x+rr3(-.3,.3),heightAt(player.x,player.z)+.42,player.z+rr3(-.3,.3),0x9fbcbc,2,1.3);   // and splash
   // THE FORK'S SHRINE gives what was left on it when you come to it (kept till then: the ground holds only four drops)
-  for(const t of PATH.tiles)if(t&&t.cache&&!t.cache.done&&!t.dead&&Math.hypot(player.x-t.cache.x,player.z-t.cache.z)<14){
+  for(let k=PATH.lo||0;k<PATH.tiles.length;k++){const t=PATH.tiles[k];if(t&&t.cache&&!t.cache.done&&!t.dead&&Math.hypot(player.x-t.cache.x,player.z-t.cache.z)<14){
     t.cache.done=true;spawnElemDrop(t.cache.x-.6,t.cache.z,Math.random()<.35?'skull':['fire','lightning','ice'][(Math.random()*3)|0]);
-    spawnElemDrop(t.cache.x+.6,t.cache.z+.3,'health');toast('something was left at the shrine');}
+    spawnElemDrop(t.cache.x+.6,t.cache.z+.3,'health');toast('something was left at the shrine');}}
   /* THE DAY TURNS AS YOU GO. At the middle of every cathedral's nave (and
      at the start of each run on the ravine-only path, which has no nave)
      the hour moves on one — sunrise, noon, dusk, night and round — and
@@ -6942,11 +6997,11 @@ const HOURS={};   // filled by buildWorld: night, dusk, sunrise, noon
 const GARG={a:[],pts:null,N:16*12,v:new THREE.Vector3(),
   add(list){for(const g of list)this.a.push(g);},
   tick(){
+    if((G.frameN||0)%30===0)this.a=this.a.filter(g=>{let o=g.o;while(o.parent)o=o.parent;return o===scene;});   // (a torn-down hall's anchors go, rain or not: held, they held the whole hall)
     const wet=(RUN.weather==='rain'||RUN.weather==='storm')&&WX.rain;
     if(!wet){if(this.pts)this.pts.visible=false;return;}
     if(!this.pts){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(this.N*3).fill(-999),3));
       this.pts=new THREE.Points(geo,new THREE.PointsMaterial({color:0xb8c6d4,size:.14,transparent:true,opacity:.7,depthWrite:false}));this.pts.frustumCulled=false;scene.add(this.pts);}
-    this.a=this.a.filter(g=>{let o=g.o;while(o.parent)o=o.parent;return o===scene;});
     const cx=camera.position.x,cz=camera.position.z,near=[];
     for(const g of this.a){g.o.getWorldPosition(this.v);const d=Math.hypot(this.v.x-cx,this.v.z-cz);if(d<45)near.push([d,this.v.x,this.v.y,this.v.z,g.dx,g.dz]);}
     near.sort((a,b)=>a[0]-b[0]);
@@ -7022,7 +7077,7 @@ function xfTick(dt){
     if(!XF.mid){const k=Math.max(0,1-2*u);if(WX.rain)WX.rain.material.opacity=XF.op0*k;AudioSys.setRain(XF.lv0*k);if(u>=.5)xfSwap();}
     else{const k=Math.max(0,Math.min(1,2*u-1));if(WX.rain)WX.rain.material.opacity=XF.op0*k;AudioSys.setRain(XF.lv0*k*(1+.9*(WX.squall||0)));}
   }
-  if(XF.gbMap.value)XF.gb.value=s;
+  if(XF.gbMap.value){XF.gb.value=s;const sa=XF.from==='snow'||XF.from==='blizzard',sb=XF.to==='snow'||XF.to==='blizzard';TRAIL_GROUND.k.value=(sa?0:1)+((sb?0:1)-(sa?0:1))*s;}
   LEAF.u.value=XF.leafA+(XF.leafB-XF.leafA)*s;
   if(u>=1)xfEnd();
 }
@@ -7137,6 +7192,7 @@ function applyGroundSurface(){
      the length in fours), so the snow gets its own copy of the texture
      with a repeat that matches the ground's tile size on both. */
   applyRoadSurface();
+  TRAIL_GROUND.k.value=snowy?0:1;                  // (the trail goes under the snow with everything else)
   if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
   trodClear();trailClear();
 }
@@ -8052,14 +8108,22 @@ const rr3=(a,b)=>a+Math.random()*(b-a);
    The rig interface (body/torso/head/armR/foreR/legR/kneeR/weapon/...)
    is unchanged, so poses and game logic bind the same way. */
 
+/* THE RIG GEOMETRY CACHE IS KEYED ON QUANTIZED SIZES. It was keyed on the
+   exact floats, and every hollow is built at a random scale — so nearly
+   every body made a fresh set of boxes and spheres that the cache then
+   held for ever (measured: 132 entries at the start of a path, 3,610
+   forty hexes on, and the heap climbing two megabytes a hex). A size is
+   rounded to 5mm (half a millimetre under 5cm), which no one can see at
+   383x216, and the cache stays bounded however far you go. */
 const geoCache={};
-function GBox(w,h,d){const k='b'+w+'|'+h+'|'+d;
+const gq=v=>Math.abs(v)<.05?Math.round(v*2000)/2000:Math.round(v*200)/200;
+function GBox(w,h,d){w=gq(w);h=gq(h);d=gq(d);const k='b'+w+'|'+h+'|'+d;
   return geoCache[k]||(geoCache[k]=new THREE.BoxGeometry(w,h,d));}
-function GCyl(rt,rb,h,seg){const k='c'+rt+'|'+rb+'|'+h+'|'+seg;
+function GCyl(rt,rb,h,seg){rt=gq(rt);rb=gq(rb);h=gq(h);const k='c'+rt+'|'+rb+'|'+h+'|'+seg;
   return geoCache[k]||(geoCache[k]=new THREE.CylinderGeometry(rt,rb,h,seg));}
-function GSph(r,ws,hs){const k='s'+r+'|'+ws+'|'+hs;
+function GSph(r,ws,hs){r=gq(r);const k='s'+r+'|'+ws+'|'+hs;
   return geoCache[k]||(geoCache[k]=new THREE.SphereGeometry(r,ws,hs));}
-function GCone(r,h,seg){const k='k'+r+'|'+h+'|'+seg;
+function GCone(r,h,seg){r=gq(r);h=gq(h);const k='k'+r+'|'+h+'|'+seg;
   return geoCache[k]||(geoCache[k]=new THREE.ConeGeometry(r,h,seg));}
 /* A BOX WITH ITS CORNERS TAKEN OFF, which is the cheapest honest way to
    round anything at this resolution: a unit eight-sided prism lying along
@@ -9431,27 +9495,6 @@ function poseBatCarry(r,t){
   r.armR.rotation.set(C.aRx+br,C.aRy,C.aRz);r.foreR.rotation.x=C.fRx-br;
   r.weapon.rotation.set(C.wx,C.wy,C.wz);
 }
-/* swap the greatsword between the back scabbard and the hands */
-function attachWeapon(r,toHand){
-  const w=r.weapon,s=r.s;
-  if(!w||!r.backSocket)return;
-  if(toHand){
-    r.handSocket.add(w);
-    w.position.set(0,-.34*s,0);
-  }else{
-    r.backSocket.add(w);
-    w.position.set(0,.18*s,0);
-  }
-  w.rotation.set(0,0,0);
-  if(r._sm)delete r._sm.weapon; // don't smooth across the re-parent
-}
-/* three-beat keyframe: wind to A, whip through to B, settle toward C.
-   The whip uses a hard quartic so peak blade speed lands at the hit frame. */
-function seg3(p,W,H,A,B,C){
-  if(p<W)return A*easeOut(p/W);
-  if(p<H)return A+(B-A)*(1-Math.pow(1-(p-W)/(H-W),3.5));
-  return B+(C-B)*easeInOut((p-H)/(1-H));
-}
 /* four-beat: blends OUT of a resting value S first — no more teleporting
    off the shoulder when a swing begins */
 /* THE SHAPE OF A SWING, and it was backwards.
@@ -9947,28 +9990,6 @@ function poseCharge(r,q,t){
   r.head.rotation.y=-.35*e;
   r.body.position.y=r.baseY-.08*e*r.s;
 }
-/* the heavy lunge itself: out of the coil, the whole body fires
-   forward behind the point, hangs at full extension, then hauls back */
-function poseLunge(r,p){
-  const C=(r.carry||CARRY);
-  const A={ty:.6,tx:.12,aR:-.55,aRz:-.2,fR:-1.05,wx:.15,wy:.5,aL:-.85,fL:-.75,lR:.25,lL:-.2,kL:.25,kR:.35};
-  const B={ty:-.95,tx:.42,aR:-1.75,aRz:.05,fR:.05,wx:.5,wy:0,aL:-1.35,fL:-.15,lR:-.75,lL:.55,kL:.6,kR:.1};
-  const E={ty:-.22,tx:.12,aR:C.aRx,aRz:C.aRz,fR:C.fRx,wx:C.wx,wy:C.wy,aL:C.aLx,fL:C.fLx,lR:-.1,lL:.1,kL:.2,kR:0};
-  let from,to,q;
-  if(p<.3){from=A;to=B;q=easeIn(p/.3);}                // explodes off the rear leg
-  else if(p<.55){from=B;to=B;q=0;}                      // hangs at full reach
-  else{from=B;to=E;q=easeOut((p-.55)/.45);}             // and drags itself back
-  const L=k=>from[k]+(to[k]-from[k])*q;
-  r.torso.rotation.y=L('ty');r.body.rotation.y=L('ty')*.5;
-  r.torso.rotation.x+=L('tx');
-  r.armR.rotation.x=L('aR');r.armR.rotation.z=L('aRz');r.foreR.rotation.x=L('fR');
-  r.weapon.rotation.x=L('wx');r.weapon.rotation.y=L('wy');r.weapon.rotation.z=C.wz;
-  r.armL.rotation.x=L('aL');r.armL.rotation.z=C.aLz;r.foreL.rotation.x=L('fL');
-  r.legR.rotation.x=L('lR');r.kneeR.rotation.x=L('kR');
-  r.legL.rotation.x=L('lL');r.kneeL.rotation.x=L('kL');
-  r.head.rotation.y=-L('ty')*.6;
-  r.body.position.y=r.baseY-(p<.55?.16:.16*(1-q))*r.s;
-}
 /* the running thrust: straight out of a sprint, the blade is drawn
    back along the hip mid-stride and driven forward, point first, the
    whole body behind it, the run's momentum carrying it home */
@@ -10414,11 +10435,6 @@ function poseRise(r,p,wt,sham){
     riseToWalk(r,s,w,wt,sham);
     r.root.position.y=gy;
   }
-}
-function poseDrink(r,p){
-  const q=Math.sin(Math.min(1,p)*Math.PI);
-  r.armL.rotation.x=-1.9*q;r.foreL.rotation.x=-1.1*q;
-  r.head.rotation.x-=.4*q;
 }
 function poseRest(r,p){
   const q=easeInOut(Math.min(1,p*2));
@@ -11902,27 +11918,6 @@ function scatterBones(x,z,ddx,ddz,dsp,red){
         if(life>2.1)piece.material.opacity=Math.max(0,1-(life-2.1)*4);
         if(life>2.4){scene.remove(piece);piece.material.dispose();return false;}
       }
-      return true;
-    }});
-  }
-}
-/* scattered bones drag themselves back together */
-function boneConverge(x,z){
-  for(let i=0;i<13;i++){
-    const a=Math.random()*TAU,r=1.1+Math.random()*1.3;
-    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,
-      color:[0xcfc4a3,0xb8ad8f,0xe8e0c8][(Math.random()*3)|0],
-      transparent:true,opacity:.9,depthWrite:false}));
-    const sc=.09+Math.random()*.08;
-    s.scale.set(sc,sc,1);
-    const sx=x+Math.cos(a)*r,sy=.08+Math.random()*.5,sz=z+Math.sin(a)*r;
-    s.position.set(sx,sy,sz);scene.add(s);
-    let life=0;const dur=.38+Math.random()*.22,ty=.5+Math.random()*.6;
-    effects.push({update(dt){
-      life+=dt;const p=Math.min(1,life/dur),e=p*p;
-      s.position.set(sx+(x-sx)*e,sy+(ty-sy)*e,sz+(z-sz)*e);
-      s.material.opacity=.9*(1-p*.55);
-      if(p>=1){scene.remove(s);s.material.dispose();return false;}
       return true;
     }});
   }
@@ -15431,7 +15426,11 @@ class ArmHorror{
           if(this.goHome){this.goHome=false;this.state='hidden';this.bx=this.homeX;this.bz=this.homeZ;this.engaged=false;}
           else{this.state='under';this.t=0;}}
         break;
-      case 'under':T.sink=1;if(this.t>=1.1&&P.state!=='dead')this.tell();break;
+      case 'under':T.sink=1;
+        if(this.t>=1.1&&P.state!=='dead'){
+          if(Math.hypot(P.x-this.homeX,P.z-this.homeZ)>26){this.state='hidden';this.bx=this.homeX;this.bz=this.homeZ;this.x=this.bx;this.z=this.bz;this.engaged=false;}   // (fled the barrow while it was under: it waits at home, it does not come up under you a hex away)
+          else this.tell();}
+        break;
       case 'dead':T.p1=Math.min(1.65,this.t*1.4);T.el=.2;T.curl=.8;T.sink=Math.max(0,(this.t-1.6)/2.2);rate=3;
         if(!this.crumbled&&this.t>1.4){this.crumbled=true;const q2=this.palm();boneBurst(q2.x,heightAt(q2.x,q2.z)+.4,q2.z,0xcfc4a3,26,3.6);scatterBones(q2.x,q2.z,0,0,2.4,false);}
         if(this.t>3.8)r.root.visible=false;
@@ -16805,11 +16804,6 @@ function katanaSlice(e,facing,cut){
    and with no hit-flash frozen into it. clipWarm makes the SAME clone, so
    the program it compiles is the one the halves will ask for */
 function clipMat(src){const m=src.clone();if(m.emissive)m.emissive.setHex(0x000000);m.transparent=true;m.side=THREE.DoubleSide;return m;}
-function clipSig(m){return m.type+'|'+(m.map?1:0)+'|'+(m.vertexColors?1:0)+'|'+(m.alphaTest>0?1:0)+'|'+(m.flatShading?1:0)+'|'+(m.emissiveMap?1:0)+'|'+(m.fog?1:0);}
-// and the geometry's layout: a part with no uv, or no normal, is a different
-// pipeline in the driver even under the same program (the vertex input
-// state is part of it), and one stand-in per material class left those cold
-function geoSig(g){const a=g.attributes;return Object.keys(a).sort().map(k=>k+a[k].itemSize+(a[k].normalized?'n':'')).join(',')+'|'+(g.index?g.index.array.BYTES_PER_ELEMENT:0);}
 function clipWarm(rig,kind){
   if(!rig||!rig.root||!rig.humanoid||CLIP_WARM.seen.has(kind))return;
   CLIP_WARM.seen.add(kind);
@@ -19263,7 +19257,7 @@ function hitscan(o,d,range){
       const t=Math.min(bt,i*step),px=o.x+d.x*t,py=yAt(t),pz=o.z+d.z*t;
       if(py<heightAt(px,pz)){bt=t;best={kind:'ground',t};break;}
       const cz=cathZ(pz);
-      if(cz<1e8&&py<PH+9&&camStone(px,pz-cz)){bt=t;best={kind:'wall',t};break;}
+      if(cz<1e8&&py<(PATH.on?(pathCath(pz)||{}).b0||0:0)+PH+10.5&&camStone(px,pz-cz)){bt=t;best={kind:'wall',t};break;}   // (the aisle walls' crown, on whatever ground the hall stands)
     }
   }
   const t=best?best.t:range;
@@ -19767,6 +19761,19 @@ function syncFpsRig(){
      once because none of them had been picked yet. It is one line and it
      belongs here, where what is shown behind the eyes is decided. */
   if(FPS.vm&&!gunHeld())FPS.vm.visible=false;
+  /* AND DEATH TAKES THE EYE OUT OF THE HELM TOO. The viewmodel's
+     visibility is written by `updateGun`, which stops running the moment
+     G.mode leaves 'play' — so dying behind the eyes with a gun left the
+     viewmodel hanging in front of the lens while the camera pulled out to
+     watch the ragdoll, and the crosshair and any scope with it. Put away
+     once, on the way in; `updateGun` raises them again after a respawn. */
+  const down=player.state==='dead'||G.mode==='dead';
+  if(down&&!FPS.downHud){FPS.downHud=true;if(FPS.vm)FPS.vm.visible=false;gunHudOff();document.body.classList.add('downed');}   // (and the shooter's buttons and ammo bar: nothing to press while you fall)
+  else if(!down&&FPS.downHud){FPS.downHud=false;document.body.classList.remove('downed');}
+}
+function gunHudOff(){
+  $('scope').classList.remove('on');$('acog').classList.remove('on');$('reddot').classList.remove('on');$('hitmark').className='';$('xhair').style.display='none';
+  FHUD.scope=false;FHUD.acog=false;FHUD.dot=false;FHUD.mark='';FHUD.gap=-1;
 }
 /* THE GUN'S FRAME — in either view. The trigger, the sights (first person
    only), the reload, the swap, the bolt or the pump. In third person the
@@ -20324,8 +20331,7 @@ function setPov(on){
   }else{
     if(FPS.vm)FPS.vm.visible=false;
     applyFov();
-    G.camPitch=.34;$('scope').classList.remove('on');$('acog').classList.remove('on');$('reddot').classList.remove('on');$('hitmark').className='';$('xhair').style.display='none';
-    FHUD.scope=false;FHUD.acog=false;FHUD.dot=false;FHUD.mark='';FHUD.gap=-1;
+    G.camPitch=.34;gunHudOff();
     if(player.rig&&FPS.hidRig){player.rig.root.visible=true;FPS.hidRig=false;}
     fpsMaskSet(player.rig,false);
   }
@@ -21391,7 +21397,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,GARG,ArmHorror,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,GARG,ArmHorror,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
