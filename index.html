@@ -682,19 +682,21 @@
    the player's two numbers ........... VIEW, baseFov, adsFovOf
    audio (every sound synthesized) .... AudioSys, metal, mscrape
    input: thumbs, keys, buttons ....... Input, livePtr, fireDown
-   the run and its modes .............. "THE RUN", RUN, PATH, CODEX, DEF, WX_NAMES
-   the ground as a function ........... heightAt, pathBase, groundGone, slopeHold, constrain
+   the run and its modes .............. "THE RUN", RUN, PATH, CASTLE, CODEX, DEF, WX_NAMES
+   the ground as a function ........... heightAt, pathBase, groundGone, slopeHold, constrain,
+                                        camStone, castleStone, castleWalk
    the Mire (defend mode) ............. "THE MIRE", "THE HOUSE", "THE ROUNDS", "THE SHOP"
    the folds .......................... bakeStatic, bakeWorld, unbake, BAKED
    the world .......................... buildWorld
      the gothic cathedral ............. buildCathedral, "THE GOTHIC CATHEDRAL", "THE ROOF"
-     the six wedges and the chunks .... "THE WEDGES", CHUNKS
+     the six wedges and the chunks .... "THE WEDGES", CHUNKS, "THE CASTLE" (CHUNKS.castle)
      landmarks, the bell .............. "THE LANDMARKS", "THE FALLEN BELL"
      sky, light, lanterns ............. "THE SKY AND ITS LIGHT", "THE LANTERNS"
    the path: tiles ahead, torn behind . "THE PATH: tiles", pathEdge, tileGround,
                                         startTile, stepTile, teardownTile, initPath, updatePath
      the ravine, its trail, stream .... "THE RAVINE", TRAIL_GROUND, "THE STREAM"
      stairs, specials, mileposts ...... "THE STAIRS", "THE SPECIAL HEXES", "THE MILEPOSTS"
+     the castle's gates ............... castleMats, winchStruck, castleTick, castleHost
      the day turning .................. turnDay, xfStart, xfTick, applyTime, setWeather
    gargoyles, the ground mesh ......... GARG, "THE GROUND MESH IS NOT THE GROUND FUNCTION"
    snow marks ......................... TROD, "THE FURROW", onStone, updateTrail, updateWeather
@@ -712,6 +714,7 @@
    crows and bats ..................... "the crows", Crow, batFor
    the Fallen One, the Unburied ....... FallenAngel, GraveGhoul
    the Arm ............................ "THE ARM", ArmHorror, makeArmRig
+   the Rider .......................... "THE RIDER", RiderHorror, makeRiderRig, riderFell, cutRider
    the Bell-Called .................... "THE BELL-CALLED", BoneHand, GiantSkull
    the wand's bubbles ................. "THE BUBBLES", castBubble
    the home run, the shatter .......... homeRun, batShatter, flyBone
@@ -3542,6 +3545,21 @@ const AudioSys=(()=>{
       for(let i=0;i<4;i++)
         noise(t+.1+i*.06+Math.random()*.03,{peak:.05,att:.002,dec:.05,f0:rr2(700,1400),f1:250});},
     parryTick(){tone(now(),{f:1680,f2:2200,type:'sine',peak:.05,dec:.07});},
+    /* THE CASTLE. The winch: a ratchet walked round a few teeth, more of
+       them each turn, and the chain taking the weight under it. */
+    winch(n){if(!ac)return;const t=now();
+      tone(t,{f:96,f2:70,type:'sawtooth',peak:.05,att:.04,dec:.6});
+      for(let i=0;i<4+n*2;i++)metal(t+i*.075+Math.random()*.02,{peak:.1,f:1700+Math.random()*700,dec:.035,body:420,bodyAmt:.25,nm:3});
+      noise(t+.05,{peak:.05,att:.05,dec:.5,f0:2600,f1:900,type:'bandpass',Q:2,white:true});},
+    // the horse: a scream that breaks and falls, breath through it
+    neigh(){if(!ac)return;const t=now();
+      for(let i=0;i<7;i++)tone(t+i*.085,{f:980-i*70+Math.random()*40,f2:900-i*80,type:'sawtooth',peak:.07-i*.006,att:.012,dec:.13});
+      tone(t,{f:520,f2:300,type:'square',peak:.035,att:.03,dec:.7});
+      noise(t,{peak:.09,att:.02,dec:.75,f0:3200,f1:700,type:'bandpass',Q:1.5,white:true});},
+    // a hoof on the ground: weight, and the earth's answer
+    hoof(k){if(!ac)return;const t=now();k=k||1;
+      tone(t,{f:120,f2:48,type:'sine',peak:.12*k,att:.002,dec:.14});
+      noise(t,{peak:.08*k,att:.002,dec:.08,f0:900,f1:140});},
     chargeReady(){const t=now();
       tone(t,{f:440,f2:880,type:'triangle',peak:.09,dec:.25});
       tone(t+.09,{f:1320,f2:1980,type:'sine',peak:.05,dec:.4});
@@ -4097,7 +4115,12 @@ const RUN={seed:0,time:'night',weather:'clear',wedges:[],terrain:[],landmarkWedg
    front, its host waiting inside. Ten thousand marrow wins; death ends
    it. Every tile is built in the ORIGIN'S frame (the same chunk code the
    field uses, as the north wedge) and then shifted into place. */
-const PATH={on:false,tiles:[],terrain:[],goal:6000,TILE:30,cathEvery:6,far:0,M:null,chunks:null,buildCath:null,helpers:null,job:null,spawnQ:[]};
+const PATH={on:false,tiles:[],terrain:[],goal:6000,TILE:30,cathEvery:6,castleK:30,castle:null,far:0,M:null,chunks:null,buildCath:null,helpers:null,job:null,spawnQ:[]};
+/* THE CASTLE'S MEASURE, in the tile's own frame (x across, zl along it,
+   +zl the side you come in by). One table, read by the build, the ground,
+   the edge, the camera and the Rider, so none of them can disagree. */
+const CASTLE={flat:38,edge:30,W:24,T:2.2,FZ:28,RZ:-28,H:8,GW:2,GH:4.6,GD:2.6,
+  KX:7,KZ0:-24,KZ1:-36,KH:17,TR:3.3,TH:12.5,YX:20,YZ0:-21,YZ1:23.5};
 /* THE CODEX (`?mode=codex`, see its section above the boot): a page that is the path with every kind of hex laid out once and nobody on it,
    where the horrors, the places, the arms, the armour and the weathers are called up one at a time and looked at. */
 const CODEX={on:false,cat:0,i:0,spec:[],hero:false,place:null,focus:new THREE.Vector3(),want:new THREE.Vector3(),yaw:.5,pitch:.2,dist:6,base:6,zoom:1,idleT:9,drag:null,pts:new Map(),auto:true,demoT:1,fire:0,holdT:0,reload:0,px:0,pz:0,snap:true};
@@ -4153,8 +4176,9 @@ function seedRun(){
     if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&WX_NAMES.includes(wq))RUN.weather=wq;}catch(e){}
   RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
   try{const m=new URLSearchParams(location.search).get('mode');if(m==='path')PATH.on=true;
-    if(m==='ravine'){PATH.on=true;PATH.only='ravine';PATH.cathEvery=Infinity;}
-    if(m==='codex'){PATH.on=true;PATH.codex=true;PATH.cathEvery=Infinity;const q=new URLSearchParams(location.search);if(!q.get('time'))RUN.time='noon';if(!q.get('wx'))RUN.weather='clear';RUN.lamp=.35;}}catch(e){}   // THE RAVINE: the path with nothing but its cuts (see ravineStart)
+    if(m==='ravine'){PATH.on=true;PATH.only='ravine';PATH.cathEvery=Infinity;PATH.castleK=-1;}
+    {const ck=parseInt(new URLSearchParams(location.search).get('castle'),10);if(ck>=3)PATH.castleK=ck;}   // (testing: ?castle=4 raises it sooner)
+    if(m==='codex'){PATH.on=true;PATH.codex=true;PATH.cathEvery=Infinity;PATH.castleK=-1;const q=new URLSearchParams(location.search);if(!q.get('time'))RUN.time='noon';if(!q.get('wx'))RUN.weather='clear';RUN.lamp=.35;}}catch(e){}   // THE RAVINE: the path with nothing but its cuts (see ravineStart)
   RUN.village=pick(['Ashmere','Gallowmoor','Hollowfen','Wrenhallow','Carrowdene','Blackwold','Sallow Cross','Marrowgate']);
   // the six wedges: a chunk each, no kind more than twice; the south
   // wedge (the pilgrim's walk in) is never walled off by ruins or a chapel
@@ -4257,12 +4281,34 @@ function camStone(x,zl){
   if(Math.abs(x)<CAM_DOOR&&(PATH.on?Math.abs(zl):zl)>HL-.4)return false;   // the portal stands open
   return true;
 }
+/* IS THIS POINT INSIDE THE CASTLE'S STONE? (tile frame; the camera's
+   question, as `camStone` is the cathedral's.) The walls, the gatehouse,
+   the four towers and the keep, with both gate passages cut out. */
+function castleStone(x,zl){
+  const C=CASTLE,ax=Math.abs(x);
+  if(ax<C.GW-.2&&zl>C.KZ1-1&&zl<C.FZ+C.GD+1)return false;                         // the road through both gates
+  if(Math.abs(zl-C.FZ)<C.GD&&ax<C.W+C.T/2)return true;                             // the front wall and its gatehouse
+  if(Math.abs(zl-C.RZ)<C.T/2&&ax<C.W+C.T/2)return true;                            // the rear wall
+  if(Math.abs(ax-C.W)<C.T/2+.2&&zl>C.RZ&&zl<C.FZ)return true;                      // the side walls
+  if(ax<C.KX+.2&&zl<C.KZ0+.2&&zl>C.KZ1-.2)return true;                             // the keep
+  for(const tz of[C.FZ,C.RZ])if(Math.hypot(ax-C.W,zl-tz)<C.TR+.2)return true;       // the towers at the four corners
+  return false;
+}
+// walk from the eye's subject out to where the lens wants to be, and stop at the first of the castle's stone
+function castleWalk(hx,hz,cx,cz){
+  const t=PATH.castle;if(!PATH.on||!t||t.dead||Math.abs(hz-t.zc)>t.len/2+20)return [cx,cz];
+  const dx=cx-hx,dz=cz-hz,L=Math.hypot(dx,dz);if(L<.05)return [cx,cz];
+  const n=Math.min(24,Math.max(2,Math.ceil(L/.3)));
+  for(let i=1;i<=n;i++){const k=i/n;if(castleStone(hx+dx*k,hz+dz*k-t.zc)){const u=(i-1)/n*.92;return [hx+dx*u,hz+dz*u];}}
+  return [cx,cz];
+}
 /* the path's ground: the same rolling swells as the field's, run on
    without the field's rim, flat against any cathedral's plinth, with the
    tiles' own shapes on top */
 function pathGround(x,z){
   let sw=(Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6+Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1;
   if(PATH.stairs&&PATH.stairs.length)sw*=stairFlat(x,z);                      // (the hillside under a stair is a clean slope: see THE STAIRS)
+  {const cs=PATH.castle;if(cs&&!cs.dead){const u=clamp((Math.abs(z-cs.zc)-CASTLE.flat)/12,0,1);sw*=u*u*(3-2*u);}}   // (the castle stands on a levelled crag)
   const c=pathCath(z);let inFade=1;
   if(c){const pd=Math.max(0,rectSD(x,z-c.czc,PW,PL));inFade=Math.min(1,pd/6);}
   return inFade*(sw+terrainAt(x,z))+pathBase(z);
@@ -6117,6 +6163,142 @@ function buildWorld(){
       for(let i=0,n=0;i<20&&n<4;i++){const x=(rnd()<.5?1:-1)*rr(3,15),z=zc+rr(-18,18);if(!clearSpot(x,z,.4))continue;n++;bonePile(x,z);}
       for(let i=0,n=0;i<20&&n<2;i++){const x=(rnd()<.5?1:-1)*rr(14,22),z=zc+rr(-18,18);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,true);}
     },
+    /* THE CASTLE (see CASTLE, and THE RIDER): the hex at `PATH.castleK`
+       takes the place of that stretch's cathedral. A curtain wall straight
+       across the path with a gatehouse in its middle — two round-fronted
+       towers, a portcullis down, a WINCH beside it that three blows wind
+       up — round towers at the four corners, a yard between the walls,
+       and at the far end the keep, with the road going on through a
+       passage in its foot under a second portcullis that only lifts when
+       what waits in the yard is dead. The walls run on down the cliff at
+       either end, so the only way in is the gate. All of it is folded
+       into one group; the two portcullises and the winch move, and are
+       built beside it. */
+    castle(w){
+      const t=w.t,off=BUILD.offZ,zc=t.zc-off,C=CASTLE,G=new THREE.Group();world.add(G);
+      const Z=zl=>zc+zl,gy=heightAt(0,zc),CM=castleMats(),SM=CM.stone,DOWN=.8,CLIFF=16;
+      const add=m=>{G.add(m);return m;};
+      // a length of curtain wall, rooted `down` into the ground, with its wall-walk: merlons on the outer lip, a low rail on the inner
+      const wall=(x0,z0,x1,z1,h,th,down,crenel)=>{
+        const dx=x1-x0,dz=z1-z0,L=Math.hypot(dx,dz),a=Math.atan2(dx,dz),mx=(x0+x1)/2,mz=(z0+z1)/2,lo=gy-down;
+        add(box(th,h+down,L,SM,mx,lo+(h+down)/2,mz,a));
+        if(!crenel)return;
+        const px=Math.cos(a),pz=-Math.sin(a),out=Math.sign(px*mx+pz*(mz-zc))||1;   // which face is the outside
+        const n=Math.max(1,Math.floor(L/1.6));
+        for(let i=0;i<n;i++){const u=(i+.5)/n-.5,x=mx+dx*u+px*out*(th/2-.28),z=mz+dz*u+pz*out*(th/2-.28);
+          add(box(.5,.95,.8,SM,x,gy+h+.47,z,a));}
+        add(box(.3,.45,L,SM,mx-px*out*(th/2-.15),gy+h+.22,mz-pz*out*(th/2-.15),a));
+        for(let s0=4+rnd()*3;s0<L-3;s0+=5.5+rnd()*3){const u=s0/L-.5;                  // arrow slits in the outer face
+          add(box(.06,1.1,.2,CM.dark,mx+dx*u+px*out*(th/2+.02),gy+h*.55,mz+dz*u+pz*out*(th/2+.02),a));}
+      };
+      // a round tower: corbelled at the top, merlons round it, slits up it, and a slate cone or an open broken crown
+      const tower=(x,z,r,h,roof,down)=>{
+        add(cyl(r,r*1.07,h+down,12,SM,x,gy-down+(h+down)/2,z));
+        add(cyl(r+.38,r,.7,12,SM,x,gy+h-.35,z));
+        for(let i=0;i<10;i++){const a=i/10*TAU;add(box(.55,1,.5,SM,x+Math.cos(a)*(r+.12),gy+h+.5,z+Math.sin(a)*(r+.12),-a));}
+        const outA=Math.atan2(x,z-zc);
+        for(let k=0;k<3;k++){const a=outA+(k-1)*.8+rr(-.15,.15),sy=gy+h*(.3+k*.2);
+          add(box(.2,1,.06,CM.dark,x+Math.sin(a)*(r*1.03+.02),sy,z+Math.cos(a)*(r*1.03+.02),a));}
+        if(roof){const cn=new THREE.Mesh(new THREE.ConeGeometry(r+.55,r*1.9,12),CM.slate);cn.position.set(x,gy+h+.35+r*.95,z);add(cn);
+          add(cyl(.05,.05,1.4,4,M.iron,x,gy+h+.35+r*1.9+.5,z));}
+      };
+      const XE=C.edge+2;
+      // ---- the curtain: the front either side of the gatehouse, the rear either side of the keep, the two flanks; and each end run on down the cliff
+      for(const sd of[1,-1]){
+        wall(sd*6.6,Z(C.FZ),sd*(C.W+C.TR*.6),Z(C.FZ),C.H,C.T,DOWN,true);
+        wall(sd*(C.W+C.TR*.6),Z(C.FZ),sd*XE,Z(C.FZ),C.H-1.5,C.T,CLIFF,true);
+        wall(sd*C.KX,Z(C.RZ),sd*(C.W+C.TR*.6),Z(C.RZ),C.H,C.T,DOWN,true);
+        wall(sd*(C.W+C.TR*.6),Z(C.RZ),sd*XE,Z(C.RZ),C.H-1.5,C.T,CLIFF,true);
+        wall(sd*C.W,Z(C.RZ+C.TR*.6),sd*C.W,Z(C.FZ-C.TR*.6),C.H,C.T,DOWN,true);
+        addWall(sd*6.6,Z(C.FZ),sd*XE,Z(C.FZ),C.T/2,true,gy+C.H+1);
+        addWall(sd*C.KX,Z(C.RZ),sd*XE,Z(C.RZ),C.T/2,true,gy+C.H+1);
+        addWall(sd*C.W,Z(C.RZ),sd*C.W,Z(C.FZ),C.T/2,true,gy+C.H+1);
+        for(const tz of[C.FZ,C.RZ]){tower(sd*C.W,Z(tz),C.TR,C.TH,tz>0?sd>0:sd<0,DOWN);addObstacle(sd*C.W,Z(tz),C.TR,true,gy+C.TH+1);}
+      }
+      // ---- the gatehouse: two blocks either side of the passage, the lintel over it, and round fronts on the blocks
+      const GH2=11,gz=Z(C.FZ);
+      for(const sd of[1,-1]){
+        add(box(4.8,GH2+DOWN,C.GD*2,SM,sd*(C.GW+2.4),gy-DOWN+(GH2+DOWN)/2,gz));
+        add(cyl(2.4,2.5,GH2+1.5+DOWN,12,SM,sd*(C.GW+2.4),gy-DOWN+(GH2+1.5+DOWN)/2,gz+C.GD));
+        for(let i=0;i<6;i++){const a=i/5*Math.PI;add(box(.5,1,.5,SM,sd*(C.GW+2.4)+Math.cos(a)*2.55,gy+GH2+2,gz+C.GD+Math.sin(a)*2.55,-a));}
+        add(box(.22,1.3,.06,CM.dark,sd*(C.GW+2.4),gy+4.2,gz+C.GD+2.52));
+        addWall(sd*(C.GW+2.4),gz-C.GD+2.4,sd*(C.GW+2.4),gz+C.GD,2.4,true,gy+GH2+1.5);
+        // the banners, long and torn, hanging off the gatehouse's face
+        add(box(1.1,3.8,.05,CM.banner,sd*(C.GW+2.4),gy+GH2-2.2,gz+C.GD+2.47));
+      }
+      add(box(C.GW*2+.2,GH2-C.GH,C.GD*2,SM,0,gy+C.GH+(GH2-C.GH)/2,gz));                 // over the passage
+      for(let i=0;i<7;i++)add(box(.5,.5,.6,SM,-1.9+i*.63,gy+GH2-.6,gz+C.GD+.3));          // machicolations under the front's parapet
+      add(box(C.GW*2+.6,.5,1.2,SM,0,gy+GH2-.1,gz+C.GD+.5));
+      for(let i=0;i<4;i++)add(box(.5,.9,.6,SM,-1.6+i*1.07,gy+GH2+.6,gz+C.GD+.8));
+      for(let k=0;k<5;k++){const a=Math.PI*(k/4);add(box(.55,.7,.5,SM,Math.cos(a)*-(C.GW+.25),gy+C.GH+Math.sin(a)*.9-.2,gz+C.GD+.02,0));}   // the arch's ring of voussoirs over the mouth
+      // ---- the keep, astride the road at the far end: two blocks and the lintel over its passage, turrets at its corners
+      const kz=Z((C.KZ0+C.KZ1)/2),KD=C.KZ0-C.KZ1;
+      for(const sd of[1,-1]){
+        add(box(C.KX-C.GW,C.KH+DOWN,KD,SM,sd*(C.GW+(C.KX-C.GW)/2),gy-DOWN+(C.KH+DOWN)/2,kz));
+        addWall(sd*4.5,Z(C.KZ0-2.5),sd*4.5,Z(C.KZ1+2.5),2.5,true,gy+C.KH);
+        for(const ez of[C.KZ0,C.KZ1]){const tx=sd*C.KX,tz2=Z(ez);
+          add(cyl(1.25,.6,2.4,10,SM,tx,gy+C.KH-3.2,tz2));add(cyl(1.25,1.25,4.2,10,SM,tx,gy+C.KH+.1,tz2));
+          if(sd>0&&ez===C.KZ1){const cn=new THREE.Mesh(new THREE.ConeGeometry(1.7,3.4,10),CM.slate);cn.position.set(tx,gy+C.KH+3.9,tz2);add(cn);}
+          else for(let i=0;i<6;i++){const a=i/6*TAU;add(box(.4,.8,.4,SM,tx+Math.cos(a)*1.15,gy+C.KH+2.6,tz2+Math.sin(a)*1.15,-a));}}
+        for(let k=0;k<3;k++)add(box(.08,1.6,.5,CM.dark,sd*(C.KX+.03),gy+5+k*3.6,kz+rr(-3,3)));   // windows in the flanks
+      }
+      add(box(C.GW*2+.2,C.KH-C.GH,KD,SM,0,gy+C.GH+(C.KH-C.GH)/2,kz));
+      for(const ez of[C.KZ0,C.KZ1]){const n=9;for(let i=0;i<n;i++){const x=-C.KX+.8+i*(2*C.KX-1.6)/(n-1);add(box(.6,.9,.45,SM,x,gy+C.KH+.45,Z(ez)+(ez===C.KZ0?-.25:.25)));}}
+      for(const sd of[1,-1])for(let k=0;k<2;k++)add(box(.5,1.6,.08,CM.dark,sd*3.8,gy+8+k*4,Z(C.KZ0)+.03));   // windows over the yard
+      {const bn=box(1.6,5,.05,CM.banner,0,gy+C.KH-3.4,Z(C.KZ0)+.06);add(bn);}              // one great banner over the keep's gate
+      for(let k=0;k<5;k++){const a=Math.PI*(k/4);add(box(.55,.7,.5,SM,Math.cos(a)*-(C.GW+.25),gy+C.GH+Math.sin(a)*.9-.2,Z(C.KZ0)+.02,0));}
+      // ---- the yard: kept clear down the middle for what rides in it; its things stand against the walls
+      {const wx=-14,wz=Z(9);                                                             // the well
+        add(cyl(1.1,1.2,.9,10,SM,wx,gy+.45,wz));add(cyl(.85,.85,.08,10,CM.dark,wx,gy+.86,wz));
+        for(const s2 of[1,-1])add(box(.18,2.2,.18,M.bark,wx+s2*1.0,gy+1.1,wz));
+        add(box(2.4,.14,.2,M.bark,wx,gy+2.2,wz));add(cyl(.12,.12,1.9,6,M.bark,wx,gy+1.85,wz).rotateZ(Math.PI/2));
+        addObstacle(wx,wz,1.3,true,gy+.9);}
+      {const cx=15,cz=Z(13),bed=box(1.7,.35,2.8,M.bark,cx,gy+.75,cz,.4);bed.rotation.z=.18;add(bed);   // a cart, one wheel off
+        const wh=new THREE.Mesh(new THREE.TorusGeometry(.55,.07,4,10),M.bark);wh.position.set(cx-.9,gy+.55,cz+.4);wh.rotation.y=.4+Math.PI/2;add(wh);
+        const w2=new THREE.Mesh(new THREE.TorusGeometry(.55,.07,4,10),M.bark);w2.position.set(cx+1.4,gy+.08,cz-.6);w2.rotation.x=Math.PI/2;add(w2);
+        addObstacle(cx,cz,1.6,false,gy+1.1);}
+      for(let i=0;i<5;i++){const bx=-19+(i%3)*.9,bz=Z(-15+Math.floor(i/3)*.95);add(cyl(.38,.42,.9,8,M.bark,bx,gy+.45,bz));}   // barrels
+      addObstacle(-18.1,Z(-14.5),1.5,false,gy+.95);
+      for(let i=0;i<4;i++){const o=new THREE.Mesh(ICO,CM.straw);o.position.set(18+rr(-1,1),gy+.25,Z(-13+rr(-1.2,1.2)));o.scale.set(rr(1,1.5),rr(.4,.6),rr(1,1.4));add(o);}   // straw where the horse stood
+      {const sx=21.4;for(const pz of[-6,-1,4]){add(box(.2,2.6,.2,M.bark,sx-1.8,gy+1.3,Z(pz)));addObstacle(sx-1.8,Z(pz),.25,false,gy+2.6);}   // its stall: posts and a lean-to against the wall
+        const rf=box(2.4,.1,11,M.bark,sx-.7,gy+2.75,Z(-1));rf.rotation.z=-.3;add(rf);}
+      {const rx=-10,rz=Z(-21.5);add(box(2.6,.12,.3,M.bark,rx,gy+1.5,rz));add(box(2.6,.12,.3,M.bark,rx,gy+.6,rz));   // a rack of spears against the keep
+        for(const s2 of[1,-1])add(box(.14,1.8,.14,M.bark,rx+s2*1.2,gy+.9,rz));
+        for(let i=0;i<5;i++){const sp=cyl(.03,.03,2.6,4,M.bark,rx-1+i*.5,gy+1.3,rz+.15);sp.rotation.z=rr(-.12,.12);add(sp);}
+        addObstacle(rx,rz,1.1,false,gy+1.8);}
+      // ---- outside the gate: a gibbet by the road, and the stones of what was there before
+      {const gx=-5.5,gz2=Z(41);add(box(.25,4.4,.25,M.bark,gx,gy+2.2,gz2));add(box(1.9,.2,.2,M.bark,gx+.85,gy+4.3,gz2));
+        const cg=new THREE.Group();cg.position.set(gx+1.6,gy+3.1,gz2);cg.rotation.z=.08;
+        for(let i=0;i<6;i++){const a=i/6*TAU;cg.add(box(.04,1.5,.04,M.iron,Math.cos(a)*.38,0,Math.sin(a)*.38));}
+        cg.add(new THREE.Mesh(new THREE.TorusGeometry(.4,.03,3,8),M.iron).rotateX(Math.PI/2));G.add(cg);
+        cg.add(box(.35,.5,.3,CM.boneM,0,-.3,0));
+        addObstacle(gx,gz2,.35,false,gy+4.4);}
+      bakeStatic(G);
+      for(let i=0,n=0;i<30&&n<5;i++){const x=(rnd()<.5?1:-1)*rr(4,20),z=Z(rr(33,47));if(!clearSpot(x,z,1))continue;n++;stone(x,z,rnd());}
+      for(let i=0,n=0;i<20&&n<3;i++){const x=(rnd()<.5?1:-1)*rr(3,18),z=Z(rr(-18,20));if(Math.abs(x)<5||!clearSpot(x,z,.6))continue;n++;bonePile(x,z);}
+      // ---- what moves: the two portcullises, and the winch that raises the first
+      const port=(z)=>{const P=new THREE.Group();P.position.set(0,gy,z);world.add(P);const B=new THREE.Group();P.add(B);
+        for(let i=0;i<11;i++){const x=-1.9+i*.38;B.add(box(.09,C.GH+.3,.09,M.iron,x,(C.GH+.3)/2,0));const sp=new THREE.Mesh(GCone(.06,.22,4),M.iron);sp.rotation.x=Math.PI;sp.position.set(x,-.1,0);B.add(sp);}
+        for(let k=0;k<5;k++)B.add(box(4.0,.09,.09,M.iron,0,.5+k*.95,0));
+        bakeStatic(B);return B;};   // (twenty-seven bars into one draw: the grille moves as one)
+      const cs=t.cs;cs.front=port(Z(C.FZ+C.GD-.3));cs.rear=port(Z(C.KZ0+.3));
+      addWall(-C.GW,Z(C.FZ+C.GD-.3),C.GW,Z(C.FZ+C.GD-.3),.3,true,gy+C.GH+.3);cs.blockF=obstacles[obstacles.length-1];
+      addWall(-C.GW,Z(C.KZ0+.3),C.GW,Z(C.KZ0+.3),.3,true,gy+C.GH+.3);cs.blockR=obstacles[obstacles.length-1];
+      {const wx=8.9,wz=Z(C.FZ+C.GD+2.3),Wg=new THREE.Group();Wg.position.set(wx,gy,wz);world.add(Wg);
+        const fr=new THREE.Group();Wg.add(fr);
+        for(const s2 of[1,-1]){const a=box(.16,1.9,.16,M.bark,s2*.62,.9,.35);a.rotation.x=-.3;fr.add(a);const b=box(.16,1.9,.16,M.bark,s2*.62,.9,-.35);b.rotation.x=.3;fr.add(b);}
+        fr.add(box(1.5,.14,.14,M.bark,0,.12,.55));fr.add(box(1.5,.14,.14,M.bark,0,.12,-.55));
+        const wh=new THREE.Group();wh.position.set(0,1.75,0);Wg.add(wh);
+        wh.add(cyl(.07,.07,1.5,6,M.iron,0,0,0).rotateZ(Math.PI/2));
+        wh.add(cyl(.28,.28,.7,8,M.bark,0,0,0).rotateZ(Math.PI/2));                          // the drum the chain winds on
+        for(const s2 of[1,-1]){const rim=new THREE.Mesh(new THREE.TorusGeometry(.9,.07,4,12),M.bark);rim.rotation.y=Math.PI/2;rim.position.x=s2*.5;wh.add(rim);
+          for(let i=0;i<6;i++){const sp=box(.06,1.8,.06,M.bark,s2*.5,0,0);sp.rotation.x=i/6*Math.PI;wh.add(sp);}}
+        {const ax=6.3-wx,ay=5.2-1.75,az=-2.3,L=Math.hypot(ax,ay,az),ch=box(.06,.06,L,M.iron,ax/2,1.75+ay/2,az/2);   // the chain, from the drum up into the gatehouse
+          ch.rotation.order='YXZ';ch.rotation.set(-Math.asin(ay/L),Math.atan2(ax,az),0);fr.add(ch);}
+        bakeStatic(fr);bakeStatic(wh);cs.wheel=wh;
+        addObstacle(wx,wz,.9,false,gy+2.2);
+        cs.winch=addBreakable({g:Wg,x:wx,z:wz,hw:.9,hd:.9,hp:3,obs:obstacles[obstacles.length-1],parent:world,kind:'winch',tough:true,onHit:winchStruck});}
+    },
     /* THE STAIRS (see stairAt, pathBase): flights of two worn steps up a
        hillside, a flagged landing between each, a low parapet either side
        with gaps where it has come down and blocks lying where they fell,
@@ -6500,7 +6682,9 @@ function pathEdge(t,zl){
      the sky through it. The neighbour's ground is rebuilt when a run begins
      after it (see regroundTile), so the two always agree. */
   if(t.rav)return 26;
-  const nb=PATH.tiles[zl>0?t.k-1:t.k+1];if(t.k>=0&&nb&&nb.rav&&!nb.dead)return 26;
+  const nb=PATH.tiles[zl>0?t.k-1:t.k+1];
+  if(t.kind==='castle'){const e0=nb&&nb.rav&&!nb.dead?26:21;return e0+(CASTLE.edge-e0)*sstep(clamp((t.len/2-Math.abs(zl))/14,0,1));}   // (the crag widens under the walls: see THE CASTLE)
+  if(t.k>=0&&nb&&nb.rav&&!nb.dead)return 26;
   return 21+5*(1-Math.min(1,Math.abs(zl)/(t.len/2)));
 }
 // a tile's ground rebuilt in place: its edge changed (a ravine began beside it) or the tile behind it is gone (see backCut)
@@ -6542,7 +6726,7 @@ function tileBudget(k){return k%PATH.cathEvery===0?Math.min(420,220+16*k):Math.m
    afresh, so what a hex holds is still the seed's alone. */
 function tileSeed(k,step){srand((RUN.seed^Math.imul(k+1,0x9e3779b1)^(step?Math.imul(step,0x85ebca6b):0))>>>0);for(let i=0;i<4;i++)rnd();}
 function startTile(k){
-  const prev=PATH.tiles[k-1],cath=k%PATH.cathEvery===0,special=cath||PATH.rav?null:specialAt(k,prev);
+  const prev=PATH.tiles[k-1],cath=k%PATH.cathEvery===0&&k!==PATH.castleK,special=cath||PATH.rav?null:specialAt(k,prev);
   const len=cath?2*(PL+STAIR_L)+8:special?SPECIAL[special].len:PATH.TILE;
   const z0=prev.z1,z1=z0-len,zc=(z0+z1)/2;
   const t={k,cath,special,z0,z1,zc,czc:zc,len,b0:prev.b1||0,b1:prev.b1||0,kind:cath?'cathedral':special,disp:[],objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false,step:0};
@@ -6598,7 +6782,7 @@ const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6;
 /* the codex's path: tile 0 is the cathedral as always, then one of every
    chunk, then the three ravines — the maple long enough to carry the
    underpass in its middle tile. Nobody is sown on any of it. */
-const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond','stairs','barrow'];
+const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond','stairs','barrow','castle'];
 /* THE RAVINE'S TRAIL wanders by the world's own z (layRoad's `wig`), so
    the stream's footbridge — which has to sit ON it — asks the same. */
 /* ======= THE TRAIL IS IN THE GROUND =======
@@ -6728,6 +6912,7 @@ function specialTerrain(t){   // (world frame; called from startTile, on the til
   else if(t.special==='pond'){const sd=rnd()<.5?1:-1;f={t:'pond',sd,cx:sd*10.5,cz:zc+rr(-3,3),r:6.8,d:1.5,cragX:16,H:8.5};PATH.terrain.push(f);
     let lo=1e9;for(let i=0;i<16;i++){const a=i/16*TAU;lo=Math.min(lo,pathHeightAt(f.cx+Math.cos(a)*f.r*1.02,f.cz+Math.sin(a)*f.r*1.02));}
     f.level=lo-.55;}
+  if(t.special==='castle'){PATH.castle=t;t.cs={turns:0,open:0,lift:0,rearLift:0,rider:null};}   // (level: see THE CASTLE)
   if(t.special==='stairs'){
     /* THE STAIRS: flights of two steps, a landing between each, climbing
        (or, when the land is already high, going down) five to seven metres
@@ -6759,6 +6944,37 @@ function stairFlat(x,z){
     const kx=clamp((Math.abs(x)-(S.hw+2.5))/10,0,1);f=Math.min(f,1-kz*(1-kx));}
   return f;
 }
+/* THE CASTLE's moving parts (the build is CHUNKS.castle). Its materials
+   are made once for the run: there is only ever one castle. */
+let CASTLE_M=null;
+function castleMats(){if(CASTLE_M)return CASTLE_M;const lin=h=>new THREE.Color(h).convertSRGBToLinear();
+  return CASTLE_M={stone:mat('cathedral'),dark:lam({color:lin(0x0c0b0a)}),slate:lam({color:lin(0x2c2f36)}),
+    banner:lam({color:0x781e15}),straw:lam({color:lin(0x9a8448)}),boneM:mat('bone')};}
+/* THE WINCH: three blows wind the portcullis up a third each — `tough`,
+   so the heaviest swing is still one turn (the bell's rule), and a round
+   from a gun turns it as well as a blade does. */
+function winchStruck(b,cx,cz){
+  b.hp=99;const t=PATH.castle;if(!t||!t.cs||t.cs.turns>=3)return;
+  const cs=t.cs;cs.turns++;
+  AudioSys.winch(cs.turns);G.camShake=Math.max(G.camShake,.12+cs.turns*.05);G.vibr([25,20,40]);
+  sparkBurst(cx,heightAt(cx,cz)+1.7,cz,4+cs.turns*2);
+  toast(cs.turns===1?'the chain takes up':cs.turns===2?'the portcullis lifts':'the gate stands open');
+}
+// the gates follow what raised them; each lets bodies through once it is most of the way up
+function castleTick(t,dt){
+  const cs=t.cs;if(!cs||!cs.front)return;
+  const f=cs.turns/3,r=cs.rearOpen?1:0,H=CASTLE.GH-.1;
+  const was=cs.lift;cs.lift+=clamp(f-cs.lift,-dt*.5,dt*.5);cs.front.position.y=cs.lift*H;
+  if(cs.wheel)cs.wheel.rotation.x=-cs.lift*TAU*2;
+  cs.rearLift+=clamp(r-cs.rearLift,-dt*.4,dt*.4);cs.rear.position.y=cs.rearLift*H;
+  if(cs.lift>.8&&!cs.open){cs.open=1;const i=obstacles.indexOf(cs.blockF);if(i>=0)obstacles.splice(i,1);}
+  if(cs.lift>=.999&&was<.999&&cs.turns>=3)AudioSys.slam();
+  if(cs.rearLift>.8&&!cs.rearGone){cs.rearGone=1;const i=obstacles.indexOf(cs.blockR);if(i>=0)obstacles.splice(i,1);}
+}
+// a few of the host stand guard on the approach; the yard is the Rider's
+function castleHost(){const K=hostKit('ruins'),Z=zl=>-37+zl;
+  for(const[x,zl]of[[-3.5,36],[3.8,37.5],[-8,42.5]])K.sow('hollow',x,Z(zl),{});
+  K.sow('caster',10,Z(44),{});K.sow('big',1.5,Z(46),{});}
 let RIVER_MAT=null,FALL_MAT=null,POND_MAT=null;
 function waterMats(){if(RIVER_MAT)return;
   const mk=(rot,rep,op,side)=>{const tx=texCache.stream.clone();tx.needsUpdate=true;tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.center.set(.5,.5);tx.rotation=rot;tx.repeat.set(rep[0],rep[1]);
@@ -6772,9 +6988,10 @@ function waterMats(){if(RIVER_MAT)return;
    that knocks a horror sideways is a kill. Rolled on a hashed stream of
    their own (the ravine's lesson), never two running, never inside a
    ravine, and never on the ravine-only path. */
-const SPECIAL={fork:{len:54,p:.08},narrows:{len:42,p:.06},river:{len:60,p:.05},pond:{len:48,p:.05},stairs:{len:66,p:.07},barrow:{len:54,p:.06}};
+const SPECIAL={fork:{len:54,p:.08},narrows:{len:42,p:.06},river:{len:60,p:.05},pond:{len:48,p:.05},stairs:{len:66,p:.07},barrow:{len:54,p:.06},castle:{len:100,p:0}};   // (the castle is never rolled: it stands at PATH.castleK — see THE CASTLE)
 function specialAt(k,prev){
   if(PATH.codex){const c=CODEX_TILES[k];return typeof c==='string'&&SPECIAL[c]?c:null;}
+  if(k===PATH.castleK)return 'castle';
   if(PATH.only||k<3||(prev&&(prev.special||prev.rav)))return null;          // (never beside a ravine: a narrows or a river against its walls opens them onto the sky)
   srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x85ebca6b)^0x5f0b)));let r=rnd();
   for(const key in SPECIAL){r-=SPECIAL[key].p;if(r<0)return key;}
@@ -6785,7 +7002,7 @@ function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named 
   if(!force&&(PATH.only?k<1:(k<2||rnd()>=RAV_CHANCE)))return null;
   if(!force&&PATH.tiles[k-1]&&PATH.tiles[k-1].special)return null;          // (nor straight after a special hex: see specialAt)
   let n=force?force.n:PATH.only?3+((rnd()*3)|0):2+((rnd()*4)|0),room=0;
-  for(let j=k;j<k+n&&j%PATH.cathEvery!==0;j++)room++;                       // (stop short of the next cathedral)
+  for(let j=k;j<k+n&&j%PATH.cathEvery!==0&&j!==PATH.castleK;j++)room++;   // (stop short of the next cathedral, and of the castle)
   n=Math.min(n,room);if(n<2)return null;
   let v=force?force.v:['maple','shale','birch'][(rnd()*3)|0];
   if(!force&&PATH.only&&v===PATH.ravLast)v=['maple','shale','birch'].filter(x=>x!==v)[(rnd()*2)|0];   // (the ravine-only path never runs one kind into the same kind)
@@ -6835,7 +7052,7 @@ function stepTile(){
     BUILD.offZ=0;tileCommit(t,c,offZ,cath?(t.b0||0):0);
   }else{
     // the host, sown into the queue (still in the origin's frame)...
-    BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex){if(t.kind==='fork')forkHost(w,t,tileBudget(k));else pathHost(w,tileBudget(k)*(t.kind==='barrow'?.35:1),cath);}BUILD.offZ=0;tileCommit(t,c,offZ);}
+    BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex){if(t.kind==='fork')forkHost(w,t,tileBudget(k));else if(t.kind==='castle')castleHost();else pathHost(w,tileBudget(k)*(t.kind==='barrow'?.35:1),cath);}BUILD.offZ=0;tileCommit(t,c,offZ);}
     // ...and in the world's own frame: the ground, the road through, a lantern or two
     const c=tileCapture(),{z0,z1,zc,len}=t;
     tileGround(t);
@@ -6847,7 +7064,8 @@ function stepTile(){
       else if(t.kind==='river'){const d=t.terrain[0].deck;layRoad(0,z0,0,d.za-.2,1.5);layRoad(0,d.zb+.2,0,z1,1.5);}   // (the deck is the road over the water)
       else if(t.kind==='stairs'){const S=t.stairsF;layRoad(0,z0,0,S.za+.1,1.5);layRoad(0,S.zb-.1,0,z1,1.5);}           // (the flights are the road up the hill)
       else layRoad(0,z0,0,z1,1.5);
-      const n=t.kind==='stairs'?0:1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4)&&pathWaterAt(lx,lz)===null&&!(PATH.decks.length&&deckAt(0,lz)!==null))makeLantern(lx,lz);}   // (never in the water, nor on a bridge)
+      if(t.kind==='castle')for(const sd of[1,-1]){makeLantern(sd*2.6,zc+CASTLE.FZ+CASTLE.GD+3.6);makeLantern(sd*3.3,zc+CASTLE.KZ0+3);}   // (at the gate, and at the keep's)
+      const n=t.kind==='stairs'||t.kind==='castle'?0:1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4)&&pathWaterAt(lx,lz)===null&&!(PATH.decks.length&&deckAt(0,lz)!==null))makeLantern(lx,lz);}   // (never in the water, nor on a bridge)
       if(f&&f.stream)buildStream(t,f);
       milepost(t);}
     tileCommit(t,c,0);
@@ -6857,6 +7075,7 @@ function stepTile(){
        own road or trail is still lying under the half it covered */
     {const pv=PATH.tiles[k-1];if(pv&&!pv.dead&&!!pv.rav!==!!t.rav){const c2=tileCapture();laySeam(t.z0,!!t.rav);tileCommit(pv,c2,0);}}
     if(t.kind==='barrow'&&!PATH.codex){const A=new ArmHorror(rr(-3,3),t.zc+rr(-4,4));enemies.push(A);t.foes.push(A);}   // (what the barrow keeps: see THE ARM)
+    if(t.kind==='castle'&&!PATH.codex){const R=new RiderHorror(0,t.zc+CASTLE.YZ0+5,t);enemies.push(R);t.foes.push(R);t.cs.rider=R;}   // (what the yard keeps: see THE RIDER)
     PATH.job=null;
   }
   BUILD.tile=-1;t.step++;
@@ -6956,6 +7175,7 @@ function teardownTile(t){
   for(const d of t.disp||[])d.dispose();                                          // (a milepost's carved face)
   if(t.decks)PATH.decks=PATH.decks.filter(d=>!t.decks.includes(d));
   if(t.stairsF)PATH.stairs=PATH.stairs.filter(S=>S!==t.stairsF);
+  if(PATH.castle===t)PATH.castle=null;
   {const gone=new Set(t.objsW);for(const [o,r] of BAKED){let p=r.mesh;while(p&&p.parent&&p.parent!==world)p=p.parent;if(gone.has(p))BAKED.delete(o);}}   // (a ravine's folded bushes)
   for(let i=MARKABLE.length-1;i>=0;i--){let o=MARKABLE[i];while(o.parent)o=o.parent;if(o!==scene){if(MARKABLE[i].markTex)MARKABLE[i].markTex.dispose();MARKABLE.splice(i,1);}}
   /* AND LET GO OF IT. A torn-down tile used to keep every list it was
@@ -6983,7 +7203,7 @@ function teardownTile(t){
 }
 function initPath(){
   const z1=-(PL+STAIR_L+4);
-  PATH.tiles=[Object.assign({k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false,foes:[],terrain:[],disp:[]},PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]})];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;PATH.backZ=null;PATH.decks=[];PATH.stairs=[];_pbK=0;PATH.lo=0;
+  PATH.tiles=[Object.assign({k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false,foes:[],terrain:[],disp:[]},PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]})];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;PATH.backZ=null;PATH.decks=[];PATH.stairs=[];PATH.castle=null;_pbK=0;PATH.lo=0;
   tileGround(PATH.tiles[0]);
   buildTile(1);buildTile(2);
   if(PATH.codex)for(let k=3;k<CODEX_TILES.length;k++)buildTile(k);   // (the codex's whole path stands from the start, and none of it is ever torn down)
@@ -6995,6 +7215,7 @@ function updatePath(dt){
   drainSpawns(2);
   for(let k=PATH.lo||0;k<PATH.tiles.length;k++){const t=PATH.tiles[k];if(t&&!t.dead&&t.z1>pz+50&&t!==PATH.job)teardownTile(t);}   // what is fifty metres behind is gone — the first cathedral too, and the ground falls away where it stood
   if(Math.abs(pz-GP.oz)>48)movePaint(Math.round(pz/30)*30);                     // the paint sheet keeps up
+  if(PATH.castle)castleTick(PATH.castle,dt);                                        // the castle's gates
   if(STREAM_MAT)STREAM_MAT.map.offset.y-=dt*.32;                                   // the streams run
   if(RIVER_MAT){RIVER_MAT.map.offset.x+=dt*.1;FALL_MAT.map.offset.y+=dt*1.4;}       // the river runs, and the falls fall
   if(player.moveAmt>.2&&Math.random()<dt*7&&wading(player.x,player.z))boneBurst(player.x+rr3(-.3,.3),heightAt(player.x,player.z)+.42,player.z+rr3(-.3,.3),0x9fbcbc,2,1.3);   // and splash
@@ -8845,6 +9066,27 @@ function buildHumanoid(o){
         M(GBox(.3*s,.05*s,.07*s),gripM,0,-.1*s,0),
         M(GSph(.045*s,5,4),gripM,0,.05*s,0));
       rig.reach=2.3*s;rig.bladeMesh=bl;
+    }else if(o.weapon==='lance'){
+      /* THE RIDER'S LANCE: a long ash shaft running DOWN the hand's -y the
+         way every blade here does, the butt a metre behind the grip, a
+         flared iron vamplate over the hand and a long iron head. */
+      w.add(M(GCyl(.035*s,.05*s,3.6*s,6),gripM,0,-1.0*s,0));
+      const vp=M(GCone(.16*s,.34*s,8),bladeM,0,-.2*s,0);vp.rotation.x=Math.PI;w.add(vp);
+      const hd=M(GCone(.055*s,.5*s,4),bladeM,0,-3.05*s,0);hd.rotation.x=Math.PI;w.add(hd);
+      rig.reach=3.4*s;rig.bladeMesh=hd;
+    }else if(o.weapon==='flail'){
+      /* THE RIDER'S FLAIL, afoot: a two-handed haft, and on three links of
+         chain a ball of iron the size of a head, spiked. The chain is a
+         group of its own (`rig.flail`) that the Rider swings as a
+         pendulum lagging behind the haft. */
+      w.add(M(GCyl(.035*s,.042*s,1.05*s,6),gripM,0,-.42*s,0));
+      w.add(M(GCyl(.06*s,.06*s,.1*s,6),bladeM,0,-.95*s,0));
+      const ch=new THREE.Group();ch.position.y=-1.0*s;w.add(ch);rig.flail=ch;
+      for(let i=0;i<3;i++){const l=M(GBox(.05*s,.13*s,.025*s),bladeM,0,(-.07-i*.12)*s,0);l.rotation.y=i%2?Math.PI/2:0;ch.add(l);}
+      const ball=M(GSph(.16*s,7,5),bladeM,0,-.52*s,0);ch.add(ball);
+      for(const[a,b]of[[0,0],[Math.PI,0],[Math.PI/2,0],[-Math.PI/2,0],[0,Math.PI/2],[0,-Math.PI/2]]){
+        const sp=M(GCone(.045*s,.16*s,4),bladeM,0,0,0);sp.rotation.set(a,0,b);sp.translateY(.2*s);sp.position.y+=-.52*s;ch.add(sp);}
+      rig.reach=3.0*s;rig.bladeMesh=ball;
     }else if(o.weapon==='club'){
       const cl=M(GCyl(.05*s,.07*s,.85*s,5),gripM,0,-.48*s,0);
       const kn=M(GBox(.2*s,.28*s,.2*s),gripM,0,-.9*s,0);
@@ -14066,8 +14308,9 @@ class Enemy{
        .50 through the body of a hollow still takes it, exactly, and that
        rifle's whole claim is one shot one body — if you raise this number
        again, raise that one with it. */
-    this.maxHp=this.boss?380:this.big?140:this.caster?70:85;
-    this.speed=this.boss?2.7:this.big?2.1:this.caster?2.3:2.5;
+    this.rider=!!opts.rider;                            // the Rider, unhorsed: the Warden's body of blows with a flail and a limp (see THE RIDER)
+    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:85;
+    this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:2.5;
     /* THE DROWNED: slow, heavy in the hand — a hundred, six swings of the
        greatsword — and they do not much care about you: under eight
        metres they come for you, further off they push for the house.
@@ -14091,14 +14334,14 @@ class Enemy{
       this.bashPower=this.mother||V==='hulk'?3:1;if(V==='hulk')this.heavyHitter=true;}
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
-    this.marrow=this.boss?800:this.big?120:this.caster?45:35;
+    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:35;
     if(this.zombie){const V=this.variant;this.poiseMax=this.mother?40:this.crawler?2:V==='hulk'?22:V==='runner'?2:7;this.marrow=this.mother?400:this.crawler?8:V==='hulk'?90:V==='runner'?25:40;
       if(this.mother){this.mini=true;this.name='THE CARRION MOTHER';this.engaged=true;this.spawnT=4;this.brood=[];}}
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
     this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;this.chillT=0;
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
-    this.rig=this.boss?makeWardenRig():this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
+    this.rig=this.boss?(this.rider?makeRiderFootRig():makeWardenRig()):this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
     if(!this.boss)clipWarm(this.rig,(this.zombie?'z'+(this.variant||'')+(this.mother?'m':'')+(this.crawler?'c':''):(this.big?'big':'')+(this.caster?'cast':'')+'h'));   // the cut's shaders and pipelines, built now rather than on the hit
     this.reach=this.boss?3.4:this.big?2.4:2.15;
     if(this.zombie){this.reach=this.mother?2.7:this.crawler?1.5:this.variant==='hulk'?2.3:1.95;
@@ -14125,6 +14368,8 @@ class Enemy{
       boneBurst(this.x,heightAt(this.x,this.z)+.25,this.z,wet?0x93aa9c:0x5a4d38,wet?12:8,wet?2.2:1.6);
     }
     if(this.crawler){this.state='chase';this.t=0;this.rig.root.position.y=heightAt(this.x,this.z);}
+    if(this.rider){this.mini=true;this.engaged=true;this.name='THE RIDER';this.phase2=true;this.reach=3.2;   // (enraged from the start: it has already lost the horse — and no banner for it)
+      Object.defineProperty(this,'barFrac',{get(){return .5*Math.max(0,this.hp)/this.maxHp;}});}   // the bottom half of the one bar
   }
   reset(){
     endRagdoll(this);this.lastHit=null;this.sliced=false;this.noRag=false;this.roseToPace=false;clearWounds(this);
@@ -14237,7 +14482,8 @@ class Enemy{
     else boneBurst(this.x,.9,this.z,0xcfc4a3,14,3);
     if(this.zombie&&DEF.on){DEF.kills=(DEF.kills||0)+1;if(this.mother)for(const c of this.brood)if(c.hp>0){c.lastDmg=999;c.takeHit(999,0,this.x,this.z,1);}}
     alertPack(this.x,this.z,this);     // the rest of them know
-    if(this.boss&&!DEF.on)onBossDead();
+    if(this.boss&&!DEF.on&&!this.rider)onBossDead();
+    if(this.rider)riderFell(this);
     // the body falls the way the blow sent it — or folds where it stood
     if(this.mound){scene.remove(this.mound);this.mound.geometry.dispose();this.mound=null;}
     if(!this.noRag&&this.rig.humanoid){
@@ -14491,7 +14737,8 @@ class Enemy{
          this.state!=='scatter'&&overBrink(this)>0&&
          (this.rag||this.state==='down'||this.state==='stagger'||
           Math.hypot(this.vx,this.vz)>2.6))this.plunge();
-      constrain(this,this.boss&&!DEF.on&&!CODEX.on);   // (a Warden in the Mire — or the codex — is not held to a nave it does not have)
+      constrain(this,this.boss&&!DEF.on&&!CODEX.on&&!this.rider);   // (a Warden in the Mire — or the codex — is not held to a nave it does not have; nor is the Rider, which has a yard)
+      if(this.rider)riderYard(this);
       pushOut(this,this.radius);
       // don't stack on other enemies
       for(const e of enemies){
@@ -14597,6 +14844,7 @@ class Enemy{
     if(this.state==='rise')r.root.position.y+=gh;      // poseRise set the burial offset
     else if(this.state!=='dormant')r.root.position.y=gh;
     r.root.rotation.y=this.facing;
+    if(r.flail)swingFlail(this,dt);                    // the Rider's flail head trails the haft
 
     if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:0x000000); // frost-bitten glow
@@ -15528,6 +15776,297 @@ function cutArm(e){
       fx:()=>{AudioSys.quake();AudioSys.skullShriek&&AudioSys.skullShriek();G.camShake=Math.max(G.camShake,.8);G.vibr([70,40,120]);}},
     {d:2.6,epithet:1,title:1,at:cutOrbit({a0:.14,a1:-.08,r0:8.0,r1:9.0,y0:4.6,y1:4.4,l0:5.0,l1:4.6,e:'out'})},
   ],'THE ARM','what the barrow keeps');
+}
+
+/* ======================= THE RIDER =======================
+   What the castle keeps (see THE CASTLE): a dead knight on a dead horse,
+   in the yard between the walls, behind the portcullis the winch lifts.
+     THE CHARGE. It trots to the end of the yard away from you, turns, the
+       horse REARS and screams — that is the tell — and it comes down the
+       yard at fourteen metres a second with the lance couched. It barely
+       steers once it has gone. Roll through the line, or be thrown.
+     THE WHEEL. At the far end it has to pull up and turn round, and for
+       that second and a half it is side-on and slow: every blow does half
+       again. This is where it is fought.
+     THE STAMP. Stand close to it and the horse rears and brings both
+       front hooves down in front of it.
+   At half the bar (the horse's whole life) THE HORSE GOES DOWN, the rider
+   is thrown clear and gets up, and the second half is fought on foot: the
+   Warden's body of blows (`Enemy('boss',{rider:true})`) with a war flail
+   and a limp. Its death lifts the keep's portcullis and the road goes on.
+   The bar is ONE bar across both: `barFrac` here is the top half, the
+   unhorsed Rider's is the bottom. */
+const RIDER={CH:14,RUN:34,HIT:1.9,WHEEL:1.6,REAR:.9,HS:1.15};
+function makeRiderRig(){
+  const rig={mats:[]},lin=h=>new THREE.Color(h).convertSRGBToLinear();
+  const bone=mat('bone'),iron=mat('iron'),dark=lam({color:lin(0x0b0a09)}),cloth=lam({color:0x661a12}),leather=mat('leather');
+  const root=new THREE.Group();rig.root=root;
+  const G=new THREE.Group();G.scale.setScalar(RIDER.HS);root.add(G);rig.g=G;
+  const P=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x||0,y||0,z||0);return o;};
+  // the pivot is at the hind legs, so a rear lifts the front and leaves the hooves planted
+  const pv=new THREE.Group();pv.position.set(0,1.1,-.9);G.add(pv);rig.pv=pv;
+  const hb=new THREE.Group();hb.position.set(0,.37,.9);pv.add(hb);rig.hb=hb;
+  const hbs=new THREE.Group();hb.add(hbs);                                            // (everything rigid on the barrel, folded at the end: see below)
+  hbs.add(P(GBox(.2,.16,2.3),bone,0,.42,0));                                          // the spine
+  for(let i=0;i<7;i++){const arc=3.7,tr=new THREE.Mesh(new THREE.TorusGeometry(.43-Math.abs(i-2)*.025,.035,3,8,arc),bone);   // the ribs, open underneath
+    tr.rotation.z=Math.PI/2-arc/2;tr.position.set(0,.05,.78-i*.2);tr.scale.y=1.12;hbs.add(tr);}
+  hbs.add(P(GBox(.12,.08,1.3),bone,0,-.43,.3));                                       // the sternum
+  hbs.add(P(GBox(.62,.3,.5),bone,0,.3,-.95));                                         // the pelvis
+  for(const sd of[1,-1]){hbs.add(P(GBox(.08,.5,.36),bone,sd*.36,.2,.72));              // the shoulder blades
+    hbs.add(P(GBox(.03,.42,1.5),cloth,sd*.47,.3,.1));                                  // the caparison over the ribs' top, and its rags
+    for(let i=0;i<6;i++)hbs.add(P(GBox(.03,.16+((i*7)%5)*.07,.2),cloth,sd*.47,.02-((i*7)%5)*.035,.72-i*.27));}
+  hbs.add(P(GBox(.52,.14,.62),leather,0,.56,.15));                                    // the saddle
+  hbs.add(P(GBox(.12,.22,.1),leather,0,.68,.46));
+  const saddle=new THREE.Group();saddle.position.set(0,.63,.12);hb.add(saddle);rig.saddle=saddle;
+  // the neck and the head, a chanfron of iron over the skull and embers in its sockets
+  const nk=new THREE.Group();nk.position.set(0,.4,1.12);nk.rotation.x=.98;hb.add(nk);rig.neck=nk;
+  const nks=new THREE.Group();nk.add(nks);
+  for(let i=0;i<4;i++)nks.add(P(GBox(.24-i*.02,.2,.22-i*.015),bone,0,.1+i*.2,0));
+  nks.add(P(GBox(.03,.78,.16),cloth,0,.42,-.13));                                     // what is left of the mane's cloth
+  const hd=new THREE.Group();hd.position.y=.86;hd.rotation.x=-.18;nk.add(hd);rig.head=hd;
+  const hds=new THREE.Group();hd.add(hds);
+  hds.add(P(GBox(.24,.26,.3),bone,0,.05,0));                                         // the cranium, and the long face tapering to the nose
+  {const mz=P(GCyl(.055,.11,.62,4),bone,0,-.01,.44);mz.rotation.set(Math.PI/2,Math.PI/4,0);mz.scale.set(1,1,1.25);hds.add(mz);}
+  const jaw=new THREE.Group();jaw.position.set(0,-.13,.05);hd.add(jaw);rig.jaw=jaw;jaw.add(P(GBox(.13,.05,.56),bone,0,0,.32));
+  {const ch=P(GBox(.2,.035,.62),iron,0,.14,.3);ch.rotation.x=.08;hds.add(ch);
+   const sp=P(GCone(.045,.3,4),iron,0,.27,.16);sp.rotation.x=-.5;hds.add(sp);}
+  for(const sd of[1,-1]){hds.add(P(GSph(.06,5,4),dark,sd*.13,.08,.1));
+    const e=new THREE.Mesh(GSph(.035,5,4),new THREE.MeshBasicMaterial({color:0xff5a1c,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+    e.position.set(sd*.155,.08,.12);hd.add(e);
+    const ear=P(GCone(.04,.16,4),bone,sd*.08,.26,-.08);ear.rotation.z=-sd*.25;hds.add(ear);}
+  for(const g of[hbs,nks,hds])bakeStatic(g);                                          // the rigid parts, folded by material: a horse of forty-odd pieces drawn in a dozen
+  // the legs: hip, knee, an iron shoe; the front pair at the shoulders, the hind pair at the pelvis
+  rig.legs=[];
+  for(const[fx,fz,front]of[[1,.75,1],[-1,.75,1],[1,-.92,0],[-1,-.92,0]]){
+    const hip=new THREE.Group();hip.position.set(fx*.27,-.12,fz);hb.add(hip);
+    hip.add(P(GCyl(.075,.06,.72,5),bone,0,-.36,0));
+    const kn=new THREE.Group();kn.position.y=-.72;hip.add(kn);kn.add(P(GSph(.07,5,4),bone,0,0,0));
+    kn.add(P(GCyl(.05,.045,.62,5),bone,0,-.31,0));kn.add(P(GBox(.15,.09,.19),iron,0,-.66,.02));
+    rig.legs.push({hip,kn,front,side:fx,off:front?(fx>0?0:.12):(fx>0?.5:.62)});}
+  rig.tail=[];{let par=hb,y=.33,z=-1.2;for(let i=0;i<5;i++){const tg=new THREE.Group();tg.position.set(0,y,z);tg.rotation.x=.35;par.add(tg);tg.add(P(GBox(.06,.06,.2),bone,0,0,-.08));rig.tail.push(tg);par=tg;y=0;z=-.18;}}
+  // the rider: a dead knight in what is left of his harness, in a great helm, with a lance
+  const r=buildHumanoid({scale:1.28,torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:bone,bladeMat:mat('blade'),gripMat:mat('bark'),weapon:'lance',skeletal:true,hunch:.1,eyes:0xc4702a});
+  riderHarness(r);
+  if(r.shade)r.shade.visible=false;                                                  // (his ground shade would hang under the saddle)
+  r.root.position.y=-r.body.position.y+.06;saddle.add(r.root);rig.rider=r;
+  // under it all, a shade of its own on the soil
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(1,12),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.34,depthWrite:false}));
+  sh.rotation.x=-Math.PI/2;sh.position.y=.03;sh.scale.set(.9,1.9,1);root.add(sh);rig.shadow=sh;
+  root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&!rig.mats.includes(o.material))rig.mats.push(o.material);});
+  return rig;
+}
+// what the rider wears, mounted or afoot: a great helm with a slit, a plume, a breastplate and one pauldron
+function riderHarness(r){
+  const s=r.s||1,iron=mat('iron'),dark=lam({color:new THREE.Color(0x0b0a09).convertSRGBToLinear()}),plume=mat('rag',{color:new THREE.Color(0x8a2a24).convertSRGBToLinear()});
+  const P=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x||0,y||0,z||0);return o;};
+  r.head.add(P(GBox(.3*s,.34*s,.32*s),iron,0,.15*s,.01*s));
+  r.head.add(P(GBox(.24*s,.035*s,.02*s),dark,0,.18*s,.17*s));
+  r.head.add(P(GBox(.05*s,.1*s,.4*s),plume,0,.37*s,-.02*s));
+  r.head.add(P(GBox(.04*s,.26*s,.08*s),plume,0,.24*s,-.2*s));
+  if(r.torso)r.torso.add(P(GBox(.42*s,.38*s,.1*s),iron,0,.3*s,.12*s));
+  if(r.armL)r.armL.add(P(GBox(.2*s,.1*s,.24*s),iron,0,.02*s,0));
+}
+function makeRiderFootRig(){
+  const r=buildHumanoid({scale:1.72,torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:mat('bone'),bladeMat:mat('blade'),gripMat:mat('bark'),weapon:'flail',skeletal:true,hunch:.16,eyes:0xc4702a,heart:true});
+  riderHarness(r);return r;
+}
+class RiderHorror{
+  constructor(x,z,t){
+    this.kind='rider';this.mini=true;this.name='THE RIDER';
+    this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.tile=t||null;this.cz=t?t.zc:z-CASTLE.YZ0-5;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;
+    this.radius=1.5;this.maxHp=440;this.hp=440;this.dmg=20;this.markUp=2.8;
+    this.poise=0;this.poiseMax=99;this.chillT=0;
+    this.rig=makeRiderRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.state='wait';this.t=0;this.cool=1;this.engaged=false;this.untouchable=true;this.metOnce=false;
+    this.spd=0;this.ph=0;this.rear=0;this.lance=0;this.lean=0;this.hitDone=false;this.flashUntil=0;this.exposed=0;this.crumbled=false;
+    this.cdx=0;this.cdz=1;this.run=0;this.hoofT=0;this.foot=null;
+  }
+  // the top half of the one bar: the horse's life (see the unhorsed Rider's for the rest)
+  get barFrac(){return this.state==='fall'||this.state==='dead'?.5:.5+.5*Math.max(0,this.hp)/this.maxHp;}
+  inYard(x,z){const C=CASTLE,zl=z-this.cz;return Math.abs(x)<C.W-1&&zl>C.KZ0&&zl<C.FZ-1;}
+  clampYard(p){const C=CASTLE;const x=clamp(p.x,-C.YX,C.YX),z=this.cz+clamp(p.z-this.cz,C.YZ0,C.YZ1),moved=x!==p.x||z!==p.z;p.x=x;p.z=z;return moved;}
+  go(s){this.state=s;this.t=0;this.hitDone=false;}
+  spheres(){const out=[],v=new THREE.Vector3(),r=this.rig;
+    const at=(o,y,z,rad,head)=>{v.set(0,y,z);o.localToWorld(v);out.push({x:v.x,y:v.y,z:v.z,r:rad,head});};
+    if(this.state==='dead'||!r.root.visible)return out;
+    at(r.hb,.05,.35,.72,false);at(r.hb,.1,-.6,.65,false);at(r.head,0,.2,.36,false);
+    if(r.rider.root.visible){at(r.rider.body,.35,0,.42,false);at(r.rider.head,.15,0,.3,true);}
+    return out;}
+  reset(){if(this.state==='fall'||this.state==='dead')return;
+    this.hp=this.maxHp;this.x=this.homeX;this.z=this.homeZ;this.facing=0;this.go('wait');this.spd=0;this.engaged=false;this.untouchable=true;}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0xffffff);}
+  scatter(){}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);
+    if(this.hp<=0||this.untouchable||this.state==='fall'||this.state==='dead')return;
+    const mul=this.exposed>0?1.5:1;this.hp-=dmg*mul;this.flash();
+    boneBurst(this.x,heightAt(this.x,this.z)+1.3,this.z,0xcfc4a3,this.exposed>0?9:5,2.2);
+    if(this.hp<=0)this.unhorse();
+  }
+  die(){this.unhorse();}   // (whatever kills the horse — a reaper's mark, a rocket — brings it down the same way)
+  unhorse(){
+    if(this.state==='fall'||this.state==='dead')return;
+    const P=player;
+    this.go('fall');this.hp=0;this.untouchable=true;this.engaged=false;this.spd=0;this.exposed=0;
+    shedMarrow(this,250);G.kills=(G.kills||0)+1;
+    AudioSys.neigh();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.6);G.hitstop=Math.max(G.hitstop,.12);G.vibr([60,30,90]);
+    // the rider is thrown clear, and gets up
+    const a=this.facing+(Math.random()<.5?1:-1)*Math.PI/2,p={x:this.x+Math.sin(a)*2.8,z:this.z+Math.cos(a)*2.8};
+    if(this.tile)this.clampYard(p);
+    const e=new Enemy('boss',p.x,p.z,{rider:true});e.facing=Math.atan2(P.x-p.x,P.z-p.z);e.state='rise';e.t=0;e.rig.root.position.y=heightAt(p.x,p.z);
+    e.yardOf=this.tile?this:null;enemies.push(e);if(this.tile)this.tile.foes.push(e);this.foot=e;
+    boneBurst(p.x,heightAt(p.x,p.z)+.4,p.z,0x5a4d38,14,2.4);
+    this.rig.rider.root.visible=false;
+    bannerShow('THE HORSE GOES DOWN','its rider gets up');
+  }
+  update(dt){
+    const P=player,C=CASTLE,r=this.rig,cs=this.tile&&this.tile.cs;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);this.exposed=Math.max(0,this.exposed-dt);
+    const sp=this.chillT>0?.45:1;
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz),toP=Math.atan2(dx,dz);
+    const pIn=P.state!=='dead'&&(!this.tile||this.inYard(P.x,P.z));
+    const live=G.mode==='play'&&!cutSubject(this);
+    let want=0,rear=0,lance=0,lean=0;
+    switch(this.state){
+      case 'wait':   // behind the portcullis, facing it, pawing
+        this.facing=angLerp(this.facing,0,dt*2);
+        if(this.tile&&cs&&cs.open&&pIn&&G.mode==='play'){
+          this.engaged=true;this.untouchable=false;
+          if(!this.metOnce){this.metOnce=true;this.go('intro');cutRider(this);}else{this.go('idle');this.cool=1;}}
+        else if(!this.tile&&G.mode==='play'){this.engaged=true;this.untouchable=false;this.go('idle');}
+        break;
+      case 'intro':   // its entrance: the horse rears and screams once, under the name
+        rear=this.t>.9&&this.t<2.3?Math.sin((this.t-.9)/1.4*Math.PI):0;lance=0;
+        if(this.t>.9&&!this.hitDone){this.hitDone=true;AudioSys.neigh();}
+        if(!CUT.on&&this.t>1){this.go('idle');this.cool=.8;}
+        break;
+      case 'idle':{   // to the end of the yard away from you; turn; face you
+        if(!pIn){this.engaged=false;const hx=this.homeX-this.x,hz=this.homeZ-this.z,hd=Math.hypot(hx,hz);
+          if(hd>1){this.facing=angLerp(this.facing,Math.atan2(hx,hz),dt*2.5);want=Math.min(4,hd*1.5);}
+          else{this.go('wait');this.untouchable=true;}
+          break;}
+        this.engaged=true;
+        const mid=(C.YZ0+C.YZ1)/2,far=(P.z-this.cz)>mid?C.YZ0+1.5:C.YZ1-1.5,tx=this.tile?clamp(P.x*.4,-9,9):this.homeX,tz=this.tile?this.cz+far:this.homeZ;
+        const ex=tx-this.x,ez=tz-this.z,ed=Math.hypot(ex,ez);
+        this.cool-=dt*sp;
+        if(dist<4.2&&this.cool<=0&&live){this.go('stamp');break;}
+        if(ed>2.4&&this.t<5){this.facing=angLerp(this.facing,Math.atan2(ex,ez),dt*2.8);want=Math.min(5.5,ed*1.6);}
+        else{this.facing=angLerp(this.facing,toP,dt*3.4);
+          if(this.cool<=0&&live&&Math.abs(wrapA(toP-this.facing))<.22)this.go('rear');}
+        break;}
+      case 'rear':   // THE TELL: up on its hind legs, and the scream
+        rear=Math.sin(Math.min(1,this.t/RIDER.REAR)*Math.PI);lance=Math.min(1,this.t/RIDER.REAR*1.4);
+        if(!this.hitDone&&this.t>.15){this.hitDone=true;AudioSys.neigh();}
+        this.facing=angLerp(this.facing,toP,dt*4.5);
+        if(this.t>=RIDER.REAR){this.go('charge');this.cdx=Math.sin(this.facing);this.cdz=Math.cos(this.facing);this.run=0;G.camShake=Math.max(G.camShake,.2);}
+        break;
+      case 'charge':{   // down the yard with the lance couched; it hardly steers once it has gone
+        lance=1;lean=1;want=RIDER.CH*sp;
+        const aim=Math.atan2(this.cdx,this.cdz),tw=wrapA(toP-aim);
+        this.facing=angLerp(this.facing,aim+clamp(tw,-.12,.12),dt*.8);this.cdx=Math.sin(this.facing);this.cdz=Math.cos(this.facing);
+        if(!this.hitDone&&live&&P.state!=='dead'){const fx=this.x+this.cdx*1.7,fz=this.z+this.cdz*1.7;
+          if(Math.hypot(P.x-fx,P.z-fz)<RIDER.HIT&&!P.iframes()){this.hitDone=true;
+            const side=Math.sign(this.cdz*(P.x-this.x)-this.cdx*(P.z-this.z))||1;   // thrown off the line, to whichever side she was on
+            P.floored(P.x-this.cdx*.6-this.cdz*side*.9,P.z-this.cdz*.6+this.cdx*side*.9,this.dmg);
+            AudioSys.slam();G.hitstop=Math.max(G.hitstop,.08);G.camShake=Math.max(G.camShake,.7);}}
+        this.run+=this.spd*dt;
+        if(this.run>=RIDER.RUN)this.go('skid');
+        break;}
+      case 'skid':lance=Math.max(0,1-this.t/.5);lean=-.6;want=0;
+        if(this.t>=.55){this.go('wheel');this.exposed=RIDER.WHEEL;}
+        break;
+      case 'wheel':   // pulling round, side-on and slow: where it is fought
+        this.facing=angLerp(this.facing,toP,dt*1.5);want=1.4;
+        if(this.t>=RIDER.WHEEL){this.go('idle');this.cool=.5+Math.random()*.7;}
+        break;
+      case 'stamp':{   // up, and both front hooves down in front of it
+        const u=this.t;rear=u<.5?sstep(u/.5)*.85:Math.max(0,.85-(u-.5)/.14*.85);
+        if(u<.45)this.facing=angLerp(this.facing,toP,dt*4);
+        if(!this.hitDone&&u>=.62){this.hitDone=true;const fx=this.x+Math.sin(this.facing)*2.2,fz=this.z+Math.cos(this.facing)*2.2;
+          AudioSys.slam();AudioSys.hoof(1.6);G.camShake=Math.max(G.camShake,.45);shockRing(fx,fz,0x8a7a5a,2.8,.3);boneBurst(fx,heightAt(fx,fz)+.1,fz,0x4a463a,12,2.2);
+          if(live&&Math.hypot(P.x-fx,P.z-fz)<2.4)P.floored(fx,fz,15);}
+        if(u>=1.1){this.go('idle');this.cool=1.1+Math.random()*.5;}
+        break;}
+      case 'fall':{   // the horse goes down on its side, and lies there, and comes apart
+        const u=Math.min(1,this.t/.9);r.pv.rotation.z=sstep(u)*1.42;r.pv.position.y=1.1-sstep(u)*.62;
+        for(const L of r.legs){L.hip.rotation.x=(L.front?-.5:.4)*u;L.kn.rotation.x=(L.front?.9:-.5)*u;}
+        r.neck.rotation.x=.98+u*.5;
+        if(!this.crumbled&&this.t>4.5){this.crumbled=true;boneBurst(this.x,heightAt(this.x,this.z)+.6,this.z,0xcfc4a3,24,3.4);scatterBones(this.x,this.z,0,0,2.8,false);}
+        if(this.t>4.8){r.root.visible=false;this.state='dead';}
+        break;}
+      case 'dead':r.root.visible=false;break;
+    }
+    if(this.state==='fall'||this.state==='dead'){r.root.position.set(this.x,heightAt(this.x,this.z),this.z);r.root.rotation.y=this.facing;return;}
+    // ---- how it moves
+    const acc=this.state==='charge'?10:this.state==='skid'?26:7;
+    this.spd+=clamp(want-this.spd,-acc*dt,acc*dt);
+    if(this.spd>.01){this.x+=Math.sin(this.facing)*this.spd*dt;this.z+=Math.cos(this.facing)*this.spd*dt;}
+    if(this.tile){if(this.clampYard(this)&&this.state==='charge')this.go('skid');}
+    else{this.x=clamp(this.x,this.homeX-14,this.homeX+14);this.z=clamp(this.z,this.homeZ-14,this.homeZ+14);}
+    constrain(this,false);
+    // ---- the rig: the gait follows the speed, the rear and the lance ease toward what the state asks
+    this.rear+=(rear-this.rear)*Math.min(1,9*dt);this.lance+=(lance-this.lance)*Math.min(1,5*dt);this.lean+=(lean-this.lean)*Math.min(1,6*dt);
+    const g=clamp(this.spd/RIDER.CH,0,1),gallop=this.spd>6;
+    this.ph+=dt*(this.spd<.2?0:gallop?2.3:.9+this.spd*.22);
+    const amp=this.spd<.2?0:gallop?.75:.35;
+    const gy=heightAt(this.x,this.z);
+    r.root.position.set(this.x,gy,this.z);r.root.rotation.y=this.facing;
+    r.pv.rotation.x=-this.rear*.95+this.lean*.06;r.pv.rotation.z=0;
+    r.pv.position.y=1.1+(gallop?Math.abs(Math.sin(this.ph*TAU))*.12:0)+(this.spd<.2&&this.state==='wait'?Math.sin(G.time*1.3)*.015:0);
+    for(const L of r.legs){
+      const q=(this.ph+L.off)*TAU,s1=Math.sin(q);
+      let hx=-s1*amp,kx=Math.max(0,Math.cos(q))*(gallop?1.1:.6)*(this.spd<.2?0:1);
+      if(!L.front){kx=-kx*.8;hx+=this.rear*.95;}                                   // the hind legs stay planted under a rear
+      else if(this.rear>.05){hx=-.6*this.rear+Math.sin(G.time*14+L.side)*.35*this.rear;kx=1.3*this.rear;}   // and the front ones paw the air
+      if(this.state==='wait'&&L.front&&L.side>0)kx=Math.max(kx,Math.max(0,Math.sin(G.time*2.1))*.8);   // pawing at the flags
+      L.hip.rotation.x=hx;L.kn.rotation.x=kx;}
+    r.neck.rotation.x=.98-this.rear*.4+g*.18;r.head.rotation.x=-.18-g*.25+Math.sin(G.time*1.7)*.05;
+    r.jaw.rotation.x=this.rear>.3?.35*this.rear:.04;
+    for(let i=0;i<r.tail.length;i++)r.tail[i].rotation.x=.35+g*.18+Math.sin(G.time*3+i)*.08;
+    r.shadow.scale.set(.9,1.9*(1-this.rear*.3),1);
+    // the rider sits the horse: the thighs forward over its flanks, the shins down, the lance raised or couched
+    const R=r.rider;
+    R.legR.rotation.set(-1.25,0,-.42);R.legL.rotation.set(-1.25,0,.42);R.kneeR.rotation.x=1.35;R.kneeL.rotation.x=1.35;
+    R.body.rotation.x=this.lean*.22-this.rear*.25;
+    R.armL.rotation.set(-.55,0,.1);R.foreL.rotation.x=-.9;
+    R.armR.rotation.set(-.35-.1*this.lance,0,-.12);R.foreR.rotation.x=-1.25+this.lance*.1;
+    if(R.weapon)R.weapon.rotation.x=lerp(-1.5,.05,this.lance);
+    // the footfalls
+    if(this.spd>1){this.hoofT-=dt;if(this.hoofT<=0){this.hoofT=gallop?.11:.3;AudioSys.hoof(gallop?1:.6);
+      if(gallop&&Math.random()<.5)boneBurst(this.x-Math.sin(this.facing)*.8,gy+.1,this.z-Math.cos(this.facing)*.8,0x4a463a,2,1.6);}}
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0x6e1410);}
+    if(G.time>=this.flashUntil)for(const m of this.mats)if(m.emissive)
+      m.emissive.setHex(this.chillT>0?0x0d3542:this.exposed>0?0x120e02:(this.state==='rear'||this.state==='stamp')?0x2e0c06:0x000000);
+  }
+}
+// the unhorsed Rider holds to the yard too, and its death opens the keep
+function riderYard(e){const H=e.yardOf;if(H&&H.tile&&!H.tile.dead)H.clampYard(e);}
+function riderFell(e){
+  const H=e.yardOf;if(H&&H.tile&&H.tile.cs)H.tile.cs.rearOpen=true;
+  setTimeout(()=>bannerShow('THE RIDER FALLS',H?'the keep stands open':'the dead knight is still'),900);
+  spawnElemDrop(e.x+.8,e.z,'health');spawnElemDrop(e.x-.8,e.z+.4);
+}
+// the flail's head swings behind the haft: a pendulum toward where gravity and the haft's own speed put it
+const _flV=new THREE.Vector3(),_flQ=new THREE.Quaternion(),_flD=new THREE.Vector3(),_flY=new THREE.Vector3(0,-1,0),_flT=new THREE.Quaternion();
+function swingFlail(e,dt){
+  const ch=e.rig.flail;if(!ch||!ch.parent)return;
+  ch.parent.updateMatrixWorld(true);ch.getWorldPosition(_flV);
+  const pv=e._flP||_flV.clone(),vx=(_flV.x-pv.x)/Math.max(dt,1e-3),vy=(_flV.y-pv.y)/Math.max(dt,1e-3),vz=(_flV.z-pv.z)/Math.max(dt,1e-3);
+  e._flP=_flV.clone();
+  _flD.set(-vx*.09,-1-vy*.09,-vz*.09).normalize();                                   // hanging, and dragged back by its own speed
+  ch.parent.getWorldQuaternion(_flQ).invert();_flD.applyQuaternion(_flQ);
+  _flT.setFromUnitVectors(_flY,_flD);ch.quaternion.slerp(_flT,Math.min(1,10*dt));
+}
+function cutRider(e){
+  cutPlay(e,[
+    {d:1.4,at:cutOrbit({a0:.55,a1:.4,r0:11,r1:9.5,y0:.6,y1:.9,l0:.4,l1:1.6,e:'out'})},
+    {d:1.9,at:cutOrbit({a0:.95,a1:.5,r0:5.2,r1:4.6,y0:.35,y1:1.2,l0:.6,l1:3.6})},
+    {d:1.3,at:cutOrbit({a0:.3,a1:.14,r0:6.5,r1:4.2,y0:2.8,y1:3.3,l0:3.0,l1:3.4,e:'in'}),
+      fx:()=>{G.camShake=Math.max(G.camShake,.5);G.vibr([50,30,80]);}},
+    {d:2.6,epithet:1,title:1,at:cutOrbit({a0:.16,a1:-.06,r0:7.5,r1:8.6,y0:2.4,y1:2.3,l0:2.4,l1:2.1,e:'out'})},
+  ],'THE RIDER','what the castle keeps');
 }
 
 /* ======================= THE BELL-CALLED =======================
@@ -17500,6 +18039,7 @@ function updateCamera(dt){
       }
     }
   }
+  {const w=castleWalk(player.x,player.z,cx,cz);cx=w[0];cz=w[1];}   // and the castle's, the same question of its own stone
   camTmp.set(cx,Math.max(heightAt(cx,cz)+.6,cy),cz);
   camera.position.lerp(camTmp,1-Math.pow(.0001,dt));
   /* A GUN SHAKES THE LOOK, NOT THE PLACE. Shaking the position turns into
@@ -17715,6 +18255,7 @@ function updateCut(dt){
      if(L>.05){const n=Math.min(24,Math.max(2,Math.ceil(L/.3)));let u=1;
        for(let i=1;i<=n;i++){const k=i/n;if(camStone(hx+dx*k,hz+dz*k)){u=(i-1)/n*.92;break;}}
        if(u<1){cx=hx+dx*u;cz=cc+hz+dz*u;}}}}
+  {const w=castleWalk(CUT_LK.x,CUT_LK.z,cx,cz);cx=w[0];cz=w[1];}
   camera.position.set(cx,Math.max(heightAt(cx,cz)+.55,CUT_EYE.y),cz);
   if(G.camShake>0){
     G.camShake=Math.max(0,G.camShake-dt*1.6);
@@ -20697,6 +21238,10 @@ const CODEX_CATS=[
       t:'slow, heavy and a hundred and forty life; its blows are two hearts and they break a raised guard. Every wedge of the field and every tile of the path tries to lead with one, so each has a big body in it.'},
     {k:'arm',name:'the Arm',ep:'what the barrow keeps',where:'the path: the barrow',make:(x,z,px,pz)=>{const a=new ArmHorror(x,z);a.metOnce=true;a.state='idle';a.sink=0;a.untouchable=false;a.engaged=true;a.rig.root.visible=true;a.cool=1;return [cxFoe(a,px,pz)];},
       t:'an arm the size of a tree, buried to the shoulder, with a hand at the end of it that wants you. The ground cracks in a ring under your feet and it comes up there. It SWEEPS the whole of its reach along the ground, it SLAMS down where you stand and lies there a moment (every blow nearly double), and it GRABS: caught, you are lifted in the fist, and every press you make is a fifth of the way out — fail, and it drags you into the earth for five hearts, or for good. Every third of its life it goes back under and comes up somewhere else. 460 life.'},
+    {k:'rider',name:'the Rider',ep:'what the castle keeps',where:'the path: the castle, hex thirty',make:(x,z,px,pz)=>{const R=new RiderHorror(x,z-3,null);R.metOnce=true;R.go('idle');R.untouchable=false;R.engaged=true;R.cool=1.5;return [cxFoe(R,px,pz)];},
+      t:'a dead knight on a dead horse, in the yard behind the castle\'s gate. It trots to the end of the yard away from you, turns, and the horse REARS and screams — the tell — and it comes down the yard at fourteen metres a second with its lance couched, hardly steering once it has gone: roll through the line or be thrown. At the far end it has to pull up and WHEEL round, side-on and slow, and every blow does half again — that is where it is fought. Stand close and the horse rears and STAMPS. Half its bar is the horse: bring that down and the rider is thrown clear and gets up.'},
+    {k:'rider · unhorsed',name:'the Rider, unhorsed',ep:'the second half of the bar',where:'the castle, when the horse goes down',make:(x,z,px,pz)=>{const e=new Enemy('boss',x,z-1.5,{rider:true});e.state='rise';e.t=0;e.rig.root.position.y=heightAt(x,z-1.5);return [cxFoe(e,px,pz)];},
+      t:'the Rider on foot, with a war flail on three links of chain and a limp: the Warden\'s body of blows, slower, the iron head swinging behind the haft. Its death lifts the keep\'s portcullis and the road goes on.'},
     {k:'bat',name:'the bat',ep:'the crow of the dark',where:'the field · the path, most at night, in fog and in the ravines',make:(x,z,px,pz)=>{const c=new Crow(x,z,{bat:true});c.state='roost';c.y=heightAt(x,z)+.25;return [cxFoe(c,px,pz)];},
       t:'the crow\'s place taken by a bat: a small dark body, big ears, wings of skin stretched on finger bones. It flies faster and never straight — its circle breathes in and out and it jinks as it goes — winds its dive in a third of a second and comes in at seventeen metres a second. Fourteen life, one heart a bite, and it squeaks. Half the crows are bats at night, in fog and in the ravines; about one in seven anywhere else.'},
     {k:'crow',name:'the crow',ep:'carrion bird',where:'the field · the path',make:(x,z,px,pz)=>{const c=new Crow(x,z);c.state='roost';c.y=heightAt(x,z)+.25;return [cxFoe(c,px,pz)];},
@@ -20753,6 +21298,8 @@ const CODEX_CATS=[
       t:'still water beside the trail under a crag, and a fall coming over the crag into it with a mist at its foot. It is shallow: you can wade it, slowly.'},
     {k:'barrow',name:'the barrow',ep:'a special hex',where:'the path, now and then',tile:20,look:'wide',
       t:'an old burial ground across the path: long low mounds grassed over, a ring of standing stones with gaps in it, slabs gone over, bones. Few horrors walk it, because something else is under it — see the Arm.'},
+    {k:'castle',name:'the castle',ep:'the thirtieth hex',where:'the path, once: hex thirty',tile:21,look:'castle',
+      t:'the thirtieth hex is not a cathedral but a castle, standing across the path on a levelled crag. A curtain wall with a gatehouse in its middle, round towers at the four corners, a yard between the walls, and a keep at the far end with the road running on through a passage in its foot. The portcullis is down: the winch beside the gate turns a third of the way with every blow, and three wind it up. The walls run on down the cliff at either end — the gate is the only way in, and the keep\'s portcullis lifts only when what waits in the yard is dead. See the Rider.'},
     {k:'stairs',name:'the stairs',ep:'a special hex',where:'the path, now and then',tile:19,look:'wide',
       t:'a long hex where the path climbs a hillside in flights of two worn steps, a flagged landing between each, five to seven metres from bottom to top — or goes down it, when the land is already high. A low parapet either side has come down in places, and posts stand in pairs at every third landing. The land carries its height on into the hexes after it.'},
     {k:'milepost',name:'the mileposts',ep:'every hex',where:'the path · the ravine',tile:9,look:'post',
@@ -20797,6 +21344,7 @@ function codexShow(ci,i){
       else if(it.look==='stream'){const f=t.rav&&t.rav.f,sz=f&&f.stream?streamCross(f.stream,zc):zc,sy=heightAt(TRAIL_WIG(sz),sz);C.place=new THREE.Vector3(TRAIL_WIG(sz),sy+.8,sz);C.base=11;C.pitch=.42;C.yaw=.9;}
       else if(it.look==='post'){const q=t.post||{x:2.95,z:t.z0-1.3};C.place=new THREE.Vector3(q.x,heightAt(q.x,q.z)+.55,q.z);C.base=3.2;C.pitch=.08;C.yaw=-Math.sign(q.x)*.25;}   // (face on: the number is cut in the face you walk up to)
       else if(it.look==='wide'){C.place=new THREE.Vector3(0,gy+1.5,zc);C.base=34;C.pitch=.62;C.yaw=Math.PI+.35;}
+      else if(it.look==='castle'){C.place=new THREE.Vector3(0,gy+4,zc+6);C.base=62;C.pitch=.5;C.yaw=.45;}   // (from the approach, high: the whole of it)
       else if(it.look==='ravine'){C.place=new THREE.Vector3(0,gy+2.5,zc);C.base=24;C.pitch=.3;C.yaw=.2;}
       else{C.place=new THREE.Vector3(0,gy+1.5,zc);C.base=23;C.pitch=.44;C.yaw=Math.PI+.55;}}   // (from the north: from the south the lens backs into the cathedral's stair)
     P.x=C.place.x;P.z=C.place.z;C.px=P.x;C.pz=P.z;
@@ -21460,7 +22008,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,GARG,ArmHorror,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,GARG,ArmHorror,CASTLE,RiderHorror,winchStruck,castleStone,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

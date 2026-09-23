@@ -9,7 +9,9 @@
 
    Checks: parse (every inline script compiles), boot (field, path, ravine
    and Mire each start with no error), codex (every entry of every section
-   shown in turn), path / ravine (walk ~70 hexes of each), leak (walk the
+   shown in turn), path / ravine (walk ~70 hexes of each), castle (raised
+   at hex 3: the winch, the gate, the Rider's two halves, the keep, the road
+   on), leak (walk the
    path to hex 80 and hold heap, GPU geometry and the registries to a
    ceiling). Chromium: $CHROME_PATH, else /opt/pw-browsers, else whatever
    playwright-core installed (`npx playwright-core install chromium`). */
@@ -17,7 +19,7 @@
 const fs=require('fs'),path=require('path');
 const argv=process.argv.slice(2);
 const FILE=path.resolve((argv.find(a=>a.startsWith('--file='))||'').slice(7)||path.join(__dirname,'../../index.html'));
-const ALL=['parse','boot','codex','path','ravine','leak'];
+const ALL=['parse','boot','codex','path','ravine','castle','leak'];
 const want=argv.filter(a=>!a.startsWith('--'));
 const RUN=want.length?want:ALL;
 for(const w of RUN)if(!ALL.includes(w)){console.error('unknown check '+w+' — one of '+ALL.join(', '));process.exit(2);}
@@ -117,6 +119,38 @@ async function walk(check,mode,id,seed){
   await pg.close();
 }
 
+/* ---- the castle, raised early: wind the gate, meet the Rider, bring down both halves, go on ---- */
+async function checkCastle(){
+  const {pg,errs}=await page(640,360);
+  await pg.goto(URL0+'?mode=path&seed=7&time=noon&wx=clear&castle=3',{waitUntil:'load'});
+  await pg.waitForTimeout(3500);
+  await press(pg,'modePath');
+  await pg.waitForTimeout(1500);
+  const r=await pg.evaluate(async()=>{const B=window.BP,P=B.player,PA=B.PATH,f=()=>new Promise(q=>requestAnimationFrame(q));
+    const frames=async(n,fn)=>{for(let i=0;i<n;i++){P.hp=P.maxHp;for(const e of B.enemies)if(!e.mini&&!e.boss&&e.kind!=='rider'&&e.kind!=='angel')e.x=300;if(fn)fn();await f();}};
+    let z=P.z;for(let i=0;i<400&&!(PA.castle&&PA.castle.ground&&!PA.job&&PA.tiles[4]);i++){z-=2;P.x=0;P.z=z;P.hp=P.maxHp;await f();}
+    const t=PA.castle;if(!t)return {fail:'no castle at hex 3'};
+    const cs=t.cs,R=cs.rider,zc=t.zc,out={};
+    await frames(10,()=>{P.x=0;P.z=zc+40;});
+    out.shut=+(await (async()=>{P.x=0;P.z=zc+34;for(let i=0;i<90;i++){P.z-=.12;P.hp=P.maxHp;await f();}return P.z-zc;})()).toFixed(2);
+    for(let i=0;i<3;i++){B.winchStruck(cs.winch,cs.winch.x,cs.winch.z);await frames(45,()=>{P.x=6;P.z=zc+34;});}
+    out.open=cs.open;
+    await frames(40,()=>{P.x=0;P.z=zc+18;});out.met=R.metOnce;
+    await frames(600,()=>{if(P.state==='free'){P.x=0;P.z=zc+10;}});   // the scene, then a charge or two
+    out.charged=R.state;
+    R.untouchable=false;R.hp=1;R.takeHit(99,1,R.x+1,R.z,1);await frames(120);
+    out.foot=!!R.foot&&R.foot.hp>0;out.bar=document.getElementById('bossfill').style.width;
+    for(let k=0;k<60&&R.foot&&R.foot.hp>0;k++){R.foot.takeHit(40,0,P.x,P.z,1);await frames(4);}
+    await frames(200,()=>{P.x=0;P.z=zc-18;});out.rear=cs.rearGone;
+    z=zc-18;for(let i=0;i<500;i++){z-=.35;P.x=0;P.z=z;P.hp=P.maxHp;await f();}
+    out.far=PA.far;out.torn=!PA.castle;out.mode=B.G.mode;
+    return out;});
+  const good=!r.fail&&r.shut>30.5&&r.open&&r.met&&r.foot&&r.bar==='50%'&&r.rear&&r.torn&&r.mode==='play'&&!errs.length;
+  const msg='gate held at '+r.shut+', open '+r.open+', met '+r.met+', unhorsed '+r.foot+' (bar '+r.bar+'), keep open '+r.rear+', walked on to hex '+r.far+', errors '+errs.length;
+  if(good)ok(msg);else fail('castle',(r.fail||msg)+' '+errs.slice(0,3).join(' | '));
+  await pg.close();
+}
+
 /* ---- leaks: walk to hex 80 and hold the line ---- */
 async function checkLeak(){
   const {pg,errs}=await page(640,360);
@@ -160,6 +194,7 @@ async function checkLeak(){
       if(w==='codex')await checkCodex();
       if(w==='path')await walk('path','path','modePath',3);
       if(w==='ravine')await walk('ravine','ravine','modeRavine',3);
+      if(w==='castle')await checkCastle();
       if(w==='leak')await checkLeak();
     }catch(e){fail(w,'harness: '+String(e&&e.message||e).split('\n')[0]);}
     console.log('  ('+((Date.now()-t)/1000).toFixed(0)+'s)');

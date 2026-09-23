@@ -144,6 +144,9 @@ Each line is a rule. The why is in NOTES under the same names.
   outline closes its gaps. The heart is `HEART_PX`, one map for the HUD
   and the drop: change it once.
 - Icon: a gap thinner than one cell does not render.
+- A strong colour on a dark texture (`rag`, `cloth`) reads near black under
+  Lambert, whatever the colour. For a flat bright colour (a banner) use an
+  untextured `lam`, and give the hex raw, not through `lin`.
 
 ### Snow and marks
 
@@ -317,6 +320,13 @@ Each line is a rule. The why is in NOTES under the same names.
 - `fellTree` wraps the tree in a pivot at its foot; the obstacle drops the
   instant it starts to fall.
 - NaN bounding spheres: the guard is in `tip()` and `boltLine`/`boltArc`.
+- **The Rider is two bodies.** Mounted it is `RiderHorror` (its own rig, the
+  top half of the bar; its `die()` unhorses). On foot it is
+  `Enemy('boss',{rider:true})`, so **every `this.boss` rule that means "the
+  Warden in the nave" also checks `!this.rider`** (`onBossDead`, the nave
+  clamp). `riderYard` holds it to the yard; `riderFell` opens the keep.
+  The horse's rigid parts are folded (`hbs`/`nks`/`hds`): anything that must
+  move goes on a joint group, never in those.
 
 ### The world, the path and the modes
 
@@ -347,6 +357,14 @@ Each line is a rule. The why is in NOTES under the same names.
   (`PATH.backZ`). `drainSpawns` clamps inside `pathEdge−1.4`.
 - A bridge is a deck in `heightAt` (`deckAt`), not in the ground.
 - Mileposts dispose their canvases on teardown.
+- **The castle** stands at `PATH.castleK` (30; -1 on the ravine-only path
+  and the codex, which lays its own; `?castle=N` for testing) and takes that
+  hex's cathedral slot. Its measure is ONE table, `CASTLE`, read by the
+  build, the flattened ground (`pathGround`), the widened edge (`pathEdge`),
+  the camera (`castleStone`/`castleWalk`) and the Rider's yard. **New stone
+  on it goes into `castleStone` too.** The gates are obstacles that
+  `castleTick` removes when they lift; the winch is a `tough` breakable with
+  `onHit` (the bell's rule).
 - **The Mire (`DEF`)**: every field-only gate is `!PATH.on&&!DEF.on`. Every
   rule that reasons from `HW/HL/PW/PL/PH` is a cathedral rule and needs a
   `!DEF.on` gate. `G.bossActive` is never set in the Mire; a round's boss
@@ -397,14 +415,15 @@ Each line is a rule. The why is in NOTES under the same names.
 
 ```sh
 cd tools/check && npm install     # once; playwright-core only
-node run.js                       # everything, ~5 minutes
+node run.js                       # everything, ~6 minutes
 node run.js parse boot            # the quick pass, ~1 minute
 ```
 
 Checks: `parse` (every inline script compiles), `boot` (field, path, ravine
 and Mire start clean), `codex` (every entry of every section), `path` and
-`ravine` (walk about seventy hexes), `leak` (walk to hex 80; ceilings on
-heap, geometry and the registries). Chromium comes from `$CHROME_PATH`,
+`ravine` (walk about seventy hexes), `castle` (raised at hex 3: the gate,
+the Rider's two halves, the keep, the road on), `leak` (walk to hex 80;
+ceilings on heap, geometry and the registries). Chromium comes from `$CHROME_PATH`,
 then `/opt/pw-browsers`, then playwright's own install.
 `.github/workflows/check.yml` runs all of it on every push; it never
 deploys.

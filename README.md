@@ -1660,7 +1660,8 @@ you start at goes the same way once you are fifty metres past it, road,
 lanterns and all. Nothing is ever drawn that you could not walk back to. **Every hex has a milepost**: a worn stone at
 the right-hand verge where it begins, its number cut into the face you
 walk up to, so a run can be told as a place ("I went at thirty-four").
-Every sixth hex is the cathedral, with a
+Every sixth hex is the cathedral — except the **thirtieth, which is the
+castle** (see *The castle*) — with a
 back door and stair mirrored from the front so you walk the nave
 straight through — and its host waits INSIDE the walls, a third of it
 brutes now. The path's tiles lead with a brute-bearing template the same
@@ -2700,6 +2701,54 @@ is what the blade reaches — the hand when it is down, the arm where it
 comes out of the soil when it is up — and a round finds it anywhere along
 its length.
 
+## The castle
+
+The thirtieth hex of the path is not a cathedral but a **castle**, standing
+across the road on a levelled crag. A curtain wall runs straight across the
+path with a gatehouse in its middle — two round-fronted towers, banners on
+them, and a **portcullis down** between them. Round towers stand at the four
+corners, two of them under slate cones; the walls carry merlons and arrow
+slits, and at each end they run on down the cliff, so the gate is the only
+way in. Behind the gate is a yard — a well, a cart with a wheel off, barrels,
+the horse's stall and its straw, a rack of spears — kept clear down the
+middle, and at the far end the **keep**, astride the road, with a passage
+through its foot under a second portcullis.
+
+Beside the gate stands a **winch**. Strike it — a blade, a round, anything —
+and it winds a third of the way, the ratchet walking round a few more teeth
+each time and the portcullis lifting in step. Three blows and the gate
+stands open. (It is the bell's rule: the heaviest swing in the game is still
+one turn.)
+
+A handful of the host stand guard on the approach. The yard is the Rider's.
+The keep's portcullis lifts only when the Rider is dead, and then the road
+goes on. The castle is built only on the path, never on the ravine-only
+path; `?castle=4` raises it at the fourth hex for testing.
+
+## The Rider
+
+What the castle keeps: a dead knight in a great helm on a dead warhorse,
+waiting in the yard with its lance up. Walk in through the gate and it is
+introduced — the place, the rise, the horse rearing and screaming, its name.
+
+- **The charge** — it trots to the end of the yard away from you, turns to
+  face you, and the horse **rears and screams**: that is the tell. Then it
+  comes down the yard at fourteen metres a second with the lance couched,
+  and it hardly steers once it has gone. Roll through the line; if it takes
+  you, you are thrown off it and down, two hearts gone.
+- **The wheel** — at the far end it has to pull up and turn round, and for a
+  second and a half it is side-on and slow, and **every blow does half
+  again**. That is where it is fought.
+- **The stamp** — stand close to it and the horse rears and brings both front
+  hooves down in front of it: a knock-down and a heart and a half.
+
+Its bar is **one bar in two halves**. The top half is the horse (440 life,
+250 marrow): bring it down and it falls on its side, the rider is thrown
+clear, and he gets up. The bottom half is the Rider **on foot** — the
+Warden's body of blows with a **war flail**, its spiked head swinging on
+three links of chain behind the haft, and a limp: slower than the Warden,
+340 life, 900 marrow. His death lifts the keep's portcullis.
+
 ## The bat
 
 In the dark the crows are **bats**: half of them at night, in fog and in
@@ -3054,7 +3103,8 @@ There is no unit-test suite; the game is one file, and the honest test is
 to load it and play it. `tools/check/run.js` does that headless and fails
 on any page error: every inline script compiles, the field, the path, the
 ravine and the Mire each boot clean, every entry of the codex is shown in
-turn, seventy-odd hexes of the path and of the ravine are walked, and the
+turn, seventy-odd hexes of the path and of the ravine are walked, the
+castle is raised early and fought through from the winch to the keep, and the
 path is walked to hex 80 and held to ceilings on heap, GPU geometry and
 the game's own registries, so a leak fails the build.
 

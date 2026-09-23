@@ -3406,3 +3406,50 @@ Known state of play:
     again on the first swing. A stand-in carries the attribute set of the
     thing it stands for.
 
+
+- **THE CASTLE AND THE RIDER** (`CASTLE`, `CHUNKS.castle`, `castleStone`,
+  `castleWalk`, `castleMats`, `winchStruck`, `castleTick`, `castleHost`,
+  `RiderHorror`, `makeRiderRig`, `makeRiderFootRig`, `riderHarness`,
+  `riderYard`, `riderFell`, `swingFlail`, `cutRider`). Asked for by name:
+  hex 30 of the first path mode is a castle, a waypoint (the path goes on
+  past it), with a new boss, and a gate opened by a lever or a bell. The
+  winch is the bell's machinery (`tough` + `onHit`), so any blow or round
+  is one turn.
+  - **It takes the cathedral's slot.** 30 is a multiple of `cathEvery`, so
+    `startTile`'s `cath` excludes `castleK`, and `ravineStart`'s room stops
+    short of it as it stops short of a cathedral. It is a `SPECIAL` with
+    `p:0`, which the roll never draws; `specialAt` answers it by index.
+  - **The ends of the curtain run down the cliff** (`CLIFF` 16m of wall
+    under the rim) because the crag's edge (`CASTLE.edge`, 30) is past the
+    corner towers: without the spurs there was a 1.8m strip round each
+    corner tower to walk past the gate on. Measured: walking straight at
+    the shut gate stops at zl 30.95 (the grille is at 30.3); at the wall at
+    x 12 and round both ends at x ±29, 29.45; at x 31.5, off the cliff.
+    The rear gate stops a body at zl −23.05 until the Rider is dead.
+  - **Draws.** As first built the castle view cost 382 draws at the
+    approach and 311 in the yard, against 85 on an ordinary stretch: the
+    two portcullises were 27 meshes each, the winch 20, and the horse 57.
+    Folding each rigid set on its own (`bakeStatic` on the grille, the
+    winch's frame and wheel, and three sub-groups of the horse) took it to
+    278 and 252 with the triangle count identical (24.2k / 21.8k) — the
+    check that the fold lost nothing. Castle meshes 118 → 47, the Rider's
+    107 → 74 (the rider's humanoid is most of what is left).
+  - **The banners were black**, three colours running, and the cause was
+    the texture, not the hex: `rag` and `cloth` are dark weaves, and a
+    saturated colour multiplied into one under a Lambert face comes out
+    near black. Recoloured pure green to prove it, it was still dark green.
+    An untextured `lam` reads as red. The horse's caparison went the same
+    way.
+  - **Harness traps.** Everything spawned for a tile arrives a couple a
+    frame through `drainSpawns`, so moving the guards aside once at the
+    start misses the ones still queued; the third of three winch swings
+    was once taken by a brute that arrived mid-test. An unlocked strike
+    turns the pilgrim to where the CAMERA looks, so point `G.camYaw` at the
+    winch (−π/2 faces +x). And the 800-marrow Fallen One arrives on the
+    path too: the Rider's two halves are worth 1150, so a cutscene starting
+    after the Rider dies is the angel, not a bug.
+  - Measured end to end on `?castle=3`: three sword swings wind the gate,
+    the scene plays, the charge floors a standing pilgrim for 20 and runs
+    on 34m to skid and wheel; the horse at zero throws the rider, the bar
+    reads 50% and hands over; the rider on foot killed lifts the keep and
+    the walk on to hex 10 tears the castle down with 0 errors.
