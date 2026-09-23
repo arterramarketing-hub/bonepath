@@ -1414,6 +1414,17 @@ Known state of play:
     a cancel stays: measured, a dodge at .65s of an m4 reload left 2 in
     the magazine, a dodge at 1.28s (past the seat) left 30, and a spas
     dodged after two shells kept 5.
+    **`gunSwapped()` CLEARS `reloading`, so every caller is a way out of a
+    reload, and three were.** `setPov` called it on every change of view
+    (the 1ST/3RD button on the HUD and on the pause screen), the pause
+    screen's weapon selector (`cycleLoadout`) swapped guns mid-reload
+    through it, and so did the Mire's shop. `setPov` now skips it while a
+    reload runs (the plan carries across: the viewmodel and the rig read
+    the same `FPS.rl`); the selector refuses with a toast; the shop sells
+    the gun but does not put it in the hands. Measured: a reload started,
+    the view switched both ways and the selector pressed, and each ran on
+    to a full 30. **Any new caller of `gunSwapped` must check
+    `FPS.reloading` first.**
   - **The magazines are GROUPS now, and they had to be.** Each mag was a
     body mesh plus separate ribs and a floor plate on the gun, and the old
     animation moved the body alone — the plate stayed in the grip while
@@ -1593,6 +1604,21 @@ Known state of play:
     into `camera.fov` is the bug, and it is invisible at the default.
   - `applyFov()` is the one place the lens is put back to rest; the two
     sites that used to write a literal 68 call it now. Do not add a third.
+  - **THE LENS AT REST IS `baseFov()`, NOT `VIEW.fov`** (declared beside
+    `adsFovOf`). three.js's `fov` is VERTICAL, so a phone held upright
+    kept 68 degrees top to bottom and saw about 34 across: the pilgrim
+    filled 0.44 of the width. Upright, `baseFov()` re-derives the field so
+    the WIDTH sees `VIEW.fov`, capped at `PORTRAIT_FOV_MAX` (100) because
+    past that the top and bottom of the frame stretch; `camPortrait()`
+    (up to 1.18) stands the follow camera back for the rest. Measured at
+    390x844: width share 0.44 → 0.20, and he stands 157px tall against
+    151px at 844x390, which is the check that the two orientations now
+    agree. Sideways `baseFov()` IS `VIEW.fov`, so landscape is untouched.
+    `resize()` calls `applyFov()`. Everything that read `VIEW.fov` as the
+    lens at rest — `adsFovOf`, the ADS lerp, the first-person turn, the
+    shake — reads `baseFov()`; the LOD reads the SHORT side's field
+    (`tan(fov/2)*min(1,aspect)`), which is what a body's size in pixels
+    follows. `VIEW.fov` is still the player's number and the slider's.
   - The first-person turn is `.0034*(camera.fov/VIEW.fov)*VIEW.sens` — the
     `camera.fov/VIEW.fov` share is what holds the rate ON THE SCREEN
     steady while the sights narrow, and it must be measured against
@@ -2188,6 +2214,15 @@ Known state of play:
   inside the palm's own box — the hand had four fingers. Measured now in
   the palm's frame: root x −0.58, tip x −1.42 against a palm half-width
   of 0.53, tip 0.53m above the soil.
+  **AND THE TWO HANDS ARE A LEFT AND A RIGHT** (`makeBoneHandRig(side)`).
+  As built, with the thumb at the rig's −x, the rig is a LEFT hand
+  palm-down, and both were built that way. `side` −1 (the skull's right)
+  sets `body.scale.x=-1`: every bone and every pose under `body` mirrors,
+  and three.js flips the winding itself for a negative determinant, so
+  nothing culls inside out. Measured: the thumb tip's offset toward the
+  skull is +0.66 and +0.22 (it was negative on the right hand). The body
+  is the one group the hand's code never scales; if anything ever writes
+  `rig.body.scale`, it must keep the sign.
 - **A CUTSCENE PUTS THE SIGHTS DOWN** (`cutPlay`, after its refusal
   check): `FPS.adsOn=false, ads=0, zoom=0, applyFov()`. It used to keep
   whatever lens the sights had — the Barrett's 8x is seven degrees — so
@@ -2391,6 +2426,36 @@ Known state of play:
   argument `wig(z)` bends the line by WORLD z, which is how the ravine's
   dirt trail (`'trail'` texture, half-width 1.25) wanders with no kink at a
   join. It stays inside |x|<2.1, inside the chunk's own `free()` margin.
+- **A ROAD IS A POLYLINE, AND IT IS WORN** (`layPath`, `layHub`, texture
+  `road`). `layRoad` is now `layPath` on two points. `layPath` lays one
+  ribbon down a whole line and MITRES each corner (the edge point on the
+  bisector, pushed out by 1/cos of the half-angle, clamped at 2), with `v`
+  running on down the length; a closed path is stretched to a whole number
+  of repeats; a single straight segment takes `v` off the world's own axis,
+  so two on one line carry the pattern across a join.
+  - **The joins, and the lifts that make them.** The ring is ONE closed
+    path at `.06`, laid over the ways out at `.05` (they start at its
+    centre line and run in under it). Each of the fork's branches is one
+    path from 1.5m back up the trunk, round both bends and 1.5m down the
+    far trunk, at `.065` and `.072` so the two do not fight where they
+    share the trunk; the trunk runs 1.5m on under the split. The Mire's
+    lanes all start at the yard, and `layHub` (a disc of the same stone at
+    `.07`) covers their square ends. Every path tile lays its road to `z0`
+    and `z1` EXACTLY — they stopped half a metre short, and left a metre
+    of soil at every join, the ravine's trail included. Tile 0 on the path
+    lays a spoke north from the ring to its own `z1` (initPath's
+    `-(PL+STAIR_L+4)`), or the ring and the first hex's road never met.
+  - **`road` is not `flag`.** The cathedral's plinth, floor and stair keep
+    `flag`. `road`'s canvas is ACROSS the road in x and four metres along
+    it in y, so everything in it wraps in y (the verges' wander is sines
+    of whole frequencies, the noise is a value lattice periodic in 256px,
+    and anything drawn near the top edge is drawn again across the seam),
+    or every road seams every four metres. A missing sett is a pit or a
+    hole to alpha 0; the material carries `alphaTest:.5` and the texture's
+    alpha is forced to 0 or 255, so the soil under the ribbon shows
+    through. `w` is multiplied by 1.14 for `road`, because the texture
+    eats its own verges. `rm.userData.tex` is `'road'`, which is what the
+    snow swap restores.
 - **THE PATH'S SHORN SIDES ARE A CLIFF** (`pathEdge`, `pathVertY`,
   `pathTileAt`, `pathSurfaceY`, beside `tileGround`). One rule, drawn by
   `tileGround` and read by the fall, so what you see is what holds you.

@@ -618,7 +618,13 @@ up and rolls toward you so the well is in the picture and the hand can be
 seen working it. A reload with rounds still in the magazine is the same
 reload as an empty one, and **only a dodge cancels it** — a swap is
 refused until it is done — and whatever went in before you dodged stays
-in: three shells in the tube are three shells in the tube.
+in: three shells in the tube are three shells in the tube. That rule
+had two holes, both closed: switching between first and third person
+(the 1ST/3RD button or the pause screen) quietly ended the reload, and
+the pause screen's weapon selector changed guns in the middle of one.
+Now the reload carries across a change of view, and the selector (and
+the Mire's shop) will not take the gun out of your hands until it is
+done.
 
 The rifle has a **muzzle flash** on it at last. And the **recoil is carried by the man**:
 the shoulder driven round and back, the head going with it, the knees
@@ -986,6 +992,13 @@ picture behind the pause screen redraws as you drag it so you judge the
 number on the field rather than on the number.
 **Turn speed** runs from 0.40 to 2.20 and multiplies every drag, in both
 views and on the keys.
+**Held upright, the phone keeps the same field across its width.** The
+field is set top to bottom on a screen held sideways, and a phone turned
+upright used to keep that top-to-bottom angle and see half as much across
+— the pilgrim filled the width of the screen. Upright, the width now sees
+what the height sees held sideways (up to a hundred degrees top to
+bottom), and the camera stands a little further back; measured, he stands
+the same number of pixels tall either way up. Sideways nothing changed.
 The thing that makes the field of view safe to change is that **a sight is
 stored as a magnification, not as an angle**. Every aimed field in the
 game — each gun's own irons, the red dot's 1.15x, the ACOG's 2x, the
@@ -2569,7 +2582,9 @@ from it.
   off the palm's inner edge — but it was swung the wrong way, in under
   the palm, where it lay buried inside the bone and the hand read as four
   fingers. It is swung OUT now, clear of the palm's edge and above the
-  soil, where a thumb belongs. Two moves, and both of them put you on the
+  soil, where a thumb belongs. **And they are a pair**: they were the same
+  left hand twice, and the one on the skull's right is its mirror now, so
+  both thumbs point in toward the skull between them. Two moves, and both of them put you on the
   ground: the **sweep**, where the hand pitches back onto its wrist and
   then scythes across its whole front, and the **slam**, where it rears
   up on its fingertips and comes down flat, throwing out a ring and
@@ -2637,6 +2652,17 @@ to the quarters: the pilgrim's approach in the south, the ordered
 grave rows in the east, the hollow wood's groves in the west, the
 ruins and fallen tower in the north — iron lanterns burning warm at
 the crossings and along the roads, the only kindness in the dark.
+**Nobody has kept the roads.** Setts are missing — some leave a dark pit,
+some a hole straight down to the soil — others sit crooked or sunk, a few
+lie loose off the edge where they were kicked, and both verges are worn
+ragged and buried under the soil creeping in, sometimes most of the way
+across. And they join: the ring is one road now rather than twenty-eight
+pieces, so its bends close up, the ways out run in under it, the fork's
+branches bend round their corners and leave from stone, the Mire's lanes
+meet in a round of the same stone in the yard, and every hex of the path
+lays its road right to its own edge — before, each stopped half a metre
+short and left a metre of soil at every join. On the path, the road out of
+the first cathedral now reaches the first hex.
 You start your pilgrimage at the field's far southern edge, the
 cathedral a distant beacon, carrying your own soft glow — a warm
 pool of light that walks with you through the dark, souls-fashion.

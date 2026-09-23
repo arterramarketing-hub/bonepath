@@ -825,6 +825,78 @@ function buildTextures(){
     speckle(ctx,S,260,['#11140f','#3a4034','#565c4c'],1,2);
   });
 
+  /* -- the ROAD: the flagstone laid as a way that nobody keeps up --
+     The cathedral's floor keeps `flag`; the roads have this. Across the
+     canvas is across the road (u 0..1 is one verge to the other) and down
+     it is four metres along it, so everything here WRAPS in y — the edges'
+     wander, the dirt's reach, the noise — or every road seams at every
+     four metres. Setts go missing (a dark pit, or a hole straight through
+     to the ground under the ribbon: alpha 0, and the material's
+     `alphaTest` lets the soil show), sit crooked and sunk, lie loose off
+     the edge where they were kicked, and the verges are eaten away and
+     buried under the soil coming in from either side. */
+  makeTex('road',256,(ctx,S)=>{
+    srand(13);
+    const PN=(()=>{const n=16,g=new Float32Array(n*n);for(let i=0;i<g.length;i++)g[i]=rnd();   // value noise, periodic in 256px
+      const at=(x,y)=>g[(((y%n)+n)%n)*n+(((x%n)+n)%n)];
+      const v=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),w=yf*yf*(3-2*yf);
+        return lerp(lerp(at(xi,yi),at(xi+1,yi),u),lerp(at(xi,yi+1),at(xi+1,yi+1),u),w);};
+      return(x,y)=>.6*v(x/16,y/16)+.4*v(x/8+5,y/8);})();
+    const ph=[];for(let i=0;i<9;i++)ph.push(rr(0,TAU));
+    const wav=(y,o)=>Math.sin(TAU*2*y/S+ph[o])*.5+Math.sin(TAU*5*y/S+ph[o+1])*.3+Math.sin(TAU*9*y/S+ph[o+2])*.2;   // -1..1, periodic
+    const eL=y=>18+15*wav(y,0),eR=y=>18+15*wav(y,3);        // how much of each verge is worn away
+    const wrap=(fn,y,h)=>{fn(0);if(y<h)fn(S);if(y>S-h)fn(-S);};   // draw across the seam as well
+    // the bed between the worn verges: packed soil in the joints
+    for(let y=0;y<S;y++){const a=eL(y)+rr(-2,2),b=S-eR(y)+rr(-2,2);
+      ctx.fillStyle=`rgb(${(34+rnd()*6)|0},${(33+rnd()*5)|0},${(27+rnd()*4)|0})`;ctx.fillRect(a,y,b-a,1);}
+    const holes=[],rows=8,h=S/rows;
+    for(let r=0;r<rows;r++){
+      let x=-rr(0,26);const y0=r*h;
+      while(x<S){
+        const w=rr(26,46),cx=x+w/2,cy=y0+h/2,inL=eL(cy),inR=S-eR(cy),edgeD=Math.min(cx-inL,inR-cx);
+        if(edgeD<-w*.3){                                    // past the worn edge: gone, bar one kicked loose now and then
+          if(rnd()<.2){const ox=cx+rr(-8,8),oy=cy+rr(-6,6),ang=rr(-.7,.7),g=rr(-18,4);
+            wrap(dy=>{ctx.save();ctx.translate(ox,oy+dy);ctx.rotate(ang);ctx.fillStyle=`rgb(${80+g},${81+g},${72+g})`;
+              ctx.fillRect(-w*.4,-h*.35,w*.8,h*.7);ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(-w*.4,h*.35-3,w*.8,3);ctx.restore();},oy,h);}
+          x+=w;continue;}
+        if(rnd()<.07+(edgeD<22?.24:0)){                      // missing
+          if(rnd()<.5)holes.push([x+3,y0+3,w-6,h-6]);
+          else{ctx.fillStyle='#16130e';wrap(dy=>ctx.fillRect(x+3,y0+3+dy,w-6,h-6),y0,h);}   // a pit where it was
+          x+=w;continue;}
+        const crooked=rnd()<.32,ang=crooked?rr(-.17,.17):rr(-.035,.035),sunk=rnd()<.16;
+        const g=rr(-15,10)-(sunk?14:0),warm=rnd()<.18?rr(6,16):0;
+        const ox=cx+rr(-2.5,2.5)+(crooked?rr(-3,3):0),oy=cy+rr(-2,2);
+        wrap(dy=>{ctx.save();ctx.translate(ox,oy+dy);ctx.rotate(ang);
+          const bw=w-5,bh=h-5;
+          ctx.fillStyle=`rgb(${86+g+warm},${87+g},${77+g-warm*.4})`;ctx.fillRect(-bw/2,-bh/2,bw,bh);
+          ctx.fillStyle=sunk?'rgba(0,0,0,.28)':'rgba(214,206,180,.17)';ctx.fillRect(-bw/2,-bh/2,bw,3);   // the lit lip (a sunk one's is in shadow)
+          ctx.fillStyle='rgba(0,0,0,.36)';ctx.fillRect(-bw/2,bh/2-3,bw,3);ctx.fillRect(bw/2-2,-bh/2,2,bh);
+          if(crooked){ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(-bw/2,-bh/2,2,bh);}   // a raised edge where it has tipped
+          ctx.restore();},oy,h);
+        if(rnd()<.45)crack(ctx,ox+rr(-w*.3,w*.3),oy+rr(-8,8),rr(3,7),rr(0,TAU),1,'#151713');
+        x+=w;
+      }
+    }
+    for(const[hx,hy,hw,hh]of holes)wrap(dy=>ctx.clearRect(hx,hy+dy,hw,hh),hy,h);   // straight through to the ground
+    // bone chips trodden in
+    for(let i=0;i<18;i++){ctx.save();ctx.translate(rr(40,S-40),rnd()*S);ctx.rotate(rnd()*TAU);
+      ctx.fillStyle=`rgba(${(190+rnd()*30)|0},${(180+rnd()*25)|0},${(150+rnd()*20)|0},.8)`;ctx.fillRect(-rr(2,5),-1,rr(4,10),2);ctx.restore();}
+    // the soil coming in over the verges, moss in the joints, grime, and grit
+    const id=ctx.getImageData(0,0,S,S),d=id.data;
+    for(let y=0;y<S;y++){
+      const reachL=eL(y)+8+30*Math.max(0,wav(y,6)),reachR=eR(y)+8+30*Math.max(0,-wav(y,6));
+      for(let x=0;x<S;x++){const i=(y*S+x)*4;if(d[i+3]<8)continue;
+        const n=PN(x,y),m=PN(x+131,y);
+        let a=Math.max(0,Math.min(1,(reachL+(n-.5)*22-x)/9),Math.min(1,(reachR+(n-.5)*22-(S-x))/9));
+        a=Math.max(a,Math.max(0,Math.min(1,(m-.74)/.08))*.88);   // and a drift of it across the middle now and then
+        if(a>0){const sr=48+n*24,sg=39+n*18,sb=27+n*12;d[i]+=(sr-d[i])*a;d[i+1]+=(sg-d[i+1])*a;d[i+2]+=(sb-d[i+2])*a;}
+        const gr=.5*n*n;d[i]+=(26-d[i])*gr;d[i+1]+=(32-d[i+1])*gr;d[i+2]+=(22-d[i+2])*gr;
+        if(d[i]<44&&m<.42){const mo=.4;d[i]+=(58-d[i])*mo;d[i+1]+=(84-d[i+1])*mo;d[i+2]+=(46-d[i+2])*mo;}   // moss where it is dark and damp
+        if(rnd()<.05){const k=rnd()<.5?.7:1.25;d[i]*=k;d[i+1]*=k;d[i+2]*=k;}
+        d[i+3]=d[i+3]>100?255:0;}}                          // (hard-edged: the alpha test wants 0 or 1)
+    ctx.putImageData(id,0,0);
+  });
+
   /* -- graveyard soil: root-veined dark earth -- */
   makeTex('dirt',256,(ctx,S)=>{
     srand(21);
@@ -1901,9 +1973,25 @@ function saveView(){try{localStorage.setItem('bp_view',JSON.stringify(VIEW));}ca
    the magnification it stood for and apply it to the player's own lens */
 function adsFovOf(deg){
   const mag=Math.tan(FOV_REF*Math.PI/360)/Math.tan(deg*Math.PI/360);
-  return 2*Math.atan(Math.tan(VIEW.fov*Math.PI/360)/mag)*180/Math.PI;
+  return 2*Math.atan(Math.tan(baseFov()*Math.PI/360)/mag)*180/Math.PI;
 }
-function applyFov(){if(Math.abs(camera.fov-VIEW.fov)>.001){camera.fov=VIEW.fov;camera.updateProjectionMatrix();}}
+/* THE PLAYER'S FIELD BELONGS TO THE SHORT SIDE OF THE SCREEN. three.js's
+   `fov` is VERTICAL, so a phone turned upright kept its 68 degrees top to
+   bottom and was left with about 34 across — the pilgrim filled the width
+   and the world round him was gone ("the hero is too close"). Upright, the
+   field is re-derived so the WIDTH sees what the height sees on its side,
+   capped at `PORTRAIT_FOV_MAX` because a vertical field much past a
+   hundred degrees stretches the top and bottom of the frame; the camera
+   stands a little further back (`camPortrait`) to make up the rest.
+   Landscape is untouched: `baseFov()` is `VIEW.fov` whenever the screen is
+   wider than it is tall. Everything that used to read `VIEW.fov` as the
+   lens at rest reads `baseFov()` — the sights stay magnifications of it,
+   and the turn and the shake stay steady on the screen. */
+const PORTRAIT_FOV_MAX=100;
+function baseFov(){const a=camera.aspect;if(!(a<1))return VIEW.fov;
+  return Math.min(PORTRAIT_FOV_MAX,2*Math.atan(Math.tan(VIEW.fov*Math.PI/360)/a)*180/Math.PI);}
+function camPortrait(){const a=camera.aspect;return a<1?1+.18*Math.min(1,(1-a)/.54):1;}
+function applyFov(){const f=baseFov();if(Math.abs(camera.fov-f)>.001){camera.fov=f;camera.updateProjectionMatrix();}}
 applyFov();
 
 /* grade pass — the PSX color pipeline:
@@ -2047,7 +2135,7 @@ function resize(){
   else renderer.setSize(iw,ih,false);
   rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
   gradeMat.uniforms.uPx.value.set(2/iw,2/ih);gradeMat.uniforms.uSize.value.set(iw,ih);
-  camera.aspect=w/h;camera.updateProjectionMatrix();
+  camera.aspect=w/h;camera.updateProjectionMatrix();applyFov();   // (the lens at rest depends on which way up the screen is)
   snapUniform.value.set(iw/2,ih/2);
 }
 addEventListener('resize',resize);
@@ -4373,25 +4461,69 @@ const roadMeshes=[];   // the flagstone ribbons, so the snow can bury them
    height, a ribbon across any slope buried its low side (the ravine's
    floor curls up at its verges). `wig` bends the ribbon's line by the
    world's own z, so a trail can wander without a seam at a tile's join. */
-function layRoad(ax,az,bx,bz,w,tex,wig,lift){   // (`lift`: a hair higher than .05, where two ribbons overlap at a join and would fight)
-  lift=lift||.05;
-  roads.push({ax,az,bx,bz});
-  const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);
-  const ux=dx/len,uz=dz/len,nx=-uz,nz=ux;
-  const N=Math.max(2,Math.ceil(len/1.5));    // the ground mesh's own cell: any coarser and the ribbon floats over every rise
-  const pos=[],uv=[],idx=[];
-  for(let i=0;i<=N;i++){
-    const t=i/N,px0=ax+dx*t,pz0=az+dz*t,o=wig?wig(pz0):0,px=px0+nx*o,pz=pz0+nz*o;
-    const lx=px+nx*w,lz=pz+nz*w,rx=px-nx*w,rz=pz-nz*w;
-    pos.push(lx,heightAt(lx,lz)+lift,lz, rx,heightAt(rx,rz)+lift,rz);
-    uv.push(0,t*len/4, 1,t*len/4);
-    if(i>0){const a=(i-1)*2;idx.push(a,a+2,a+1, a+1,a+2,a+3);}
+function layRoad(ax,az,bx,bz,w,tex,wig,lift){return layPath([[ax,az],[bx,bz]],w,tex,wig,lift);}   // (`lift`: a hair higher than .05, where two ribbons overlap at a join and would fight)
+/* A ROAD IS A LINE WITH CORNERS, NOT A HEAP OF STRAIGHT PIECES. The ring
+   round the cathedral was twenty-eight separate ribbons with square ends,
+   so every bend had a wedge of soil on its outside and two ribbons
+   fighting on its inside — and a road that turned a corner anywhere did
+   the same. `layPath` lays one ribbon down a whole polyline and MITRES each
+   corner (the edge point sits on the bisector, pushed out by 1/cos of the
+   half-angle so the width holds round the bend), and `v` runs on down the
+   length so the stone does not restart at a corner. A closed path (the
+   ring) is stretched to a whole number of repeats and meets itself. A
+   straight road takes its `v` from the world's own axis, so two laid end
+   to end on one line — every hex of the path — carry the pattern across
+   the join. */
+function layPath(pts,w,tex,wig,lift,closed){
+  lift=lift||.05;tex=tex||'road';
+  if(tex==='road')w*=1.14;                  // (the worn texture eats its own verges: what is left is the width the road always had)
+  const P=closed?pts.concat([pts[0]]):pts,seg=[];
+  for(let k=0;k+1<P.length;k++){const ax=P[k][0],az=P[k][1],dx=P[k+1][0]-ax,dz=P[k+1][1]-az,len=Math.hypot(dx,dz);
+    if(len<1e-4)continue;roads.push({ax,az,bx:P[k+1][0],bz:P[k+1][1]});
+    seg.push({ax,az,dx,dz,len,nx:-dz/len,nz:dx/len});}
+  if(!seg.length)return;
+  const total=seg.reduce((a,q)=>a+q.len,0);
+  const vk=closed?Math.max(1,Math.round(total/4))/total:.25;
+  const v0=(!closed&&seg.length===1)?(seg[0].ax*seg[0].dx+seg[0].az*seg[0].dz)/seg[0].len:0;
+  const mitre=(a,b)=>{let mx=a.nx+b.nx,mz=a.nz+b.nz;const ml=Math.hypot(mx,mz);if(ml<1e-3)return[a.nx,a.nz,1];mx/=ml;mz/=ml;return[mx,mz,1/Math.max(.5,mx*a.nx+mz*a.nz)];};
+  const pos=[],uv=[],idx=[];let row=0,acc=0;
+  for(let k=0;k<seg.length;k++){
+    const q=seg[k],N=Math.max(seg.length===1?2:1,Math.ceil(q.len/1.5));    // the ground mesh's own cell: any coarser and the ribbon floats over every rise
+    for(let i=(k===0?0:1);i<=N;i++){
+      const t=i/N,px0=q.ax+q.dx*t,pz0=q.az+q.dz*t;
+      let nx=q.nx,nz=q.nz,sc=1;
+      if(i===N&&(k<seg.length-1||closed))[nx,nz,sc]=mitre(q,seg[(k+1)%seg.length]);
+      else if(i===0&&closed)[nx,nz,sc]=mitre(seg[seg.length-1],q);
+      const o=wig?wig(pz0):0,px=px0+nx*o,pz=pz0+nz*o;
+      const lx=px+nx*w*sc,lz=pz+nz*w*sc,rx=px-nx*w*sc,rz=pz-nz*w*sc;
+      pos.push(lx,heightAt(lx,lz)+lift,lz, rx,heightAt(rx,rz)+lift,rz);
+      const v=(v0+acc+t*q.len)*vk;uv.push(0,v, 1,v);
+      if(row>0){const a=(row-1)*2;idx.push(a,a+2,a+1, a+1,a+2,a+3);}
+      row++;
+    }
+    acc+=q.len;
   }
   const g=new THREE.BufferGeometry();
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
   g.setIndex(idx);g.computeVertexNormals();
-  const rm=new THREE.Mesh(g,matNS(tex||'flag'));rm.userData.tex=tex||'flag';world.add(rm);roadMeshes.push(rm);   // (`tex`: the ravine's gravel)
+  const rm=new THREE.Mesh(g,matNS(tex,tex==='road'?{alphaTest:.5}:null));rm.userData.tex=tex;world.add(rm);roadMeshes.push(rm);   // (`tex`: the ravine's gravel)
+  return rm;
+}
+/* where several roads start from one point (the Mire's yard), their square
+   ends stick out past one another in a star: a round of the same stone
+   laid over the hub, a hair above them all, is the junction they meet in */
+function layHub(x,z,r,lift){
+  const n=14,pos=[],uv=[],idx=[];
+  pos.push(x,heightAt(x,z)+lift,z);uv.push(.5,z/4);
+  for(let i=0;i<=n;i++){const a=i/n*TAU,rr2=r*(.86+.14*posHash(x,z,i%n)),px=x+Math.cos(a)*rr2,pz=z+Math.sin(a)*rr2;
+    pos.push(px,heightAt(px,pz)+lift,pz);uv.push(.5+(px-x)/(2*r)*.8,pz/4);if(i>0)idx.push(0,i+1,i);}
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  g.setIndex(idx);g.computeVertexNormals();
+  const rm=new THREE.Mesh(g,matNS('road',{alphaTest:.5}));rm.userData.tex='road';world.add(rm);roadMeshes.push(rm);
+  return rm;
 }
 
 /* ======================= THE MIRE ========================
@@ -4406,6 +4538,7 @@ function buildMire(M,H){
   // ---- the lanes: three causeways from the yard south to the rim
   for(const a of MIRE.lanes)layRoad(hx,yardZ,hx+Math.cos(a)*(HEX_AP-4-yardZ*Math.sin(a)*0),yardZ+Math.sin(a)*(HEX_AP-6),1.5);
   layRoad(hx,hz+HOUSE.HZ+1,hx,yardZ,1.5);                                   // and the path from the door into the yard
+  layHub(hx,yardZ,2.4,.07);                                                  // (and the yard they all leave from, laid over their ends)
   // ---- the water: one sheet at WATER_Y, black-green, scummed
   {
     if(!texCache.bog)makeTex('bog',256,(ctx,S)=>{
@@ -4747,7 +4880,9 @@ function shopItems(){
   for(const [k,label] of HERO_OPTS.weapon){
     const owned=!!DEF.owned[k],held=LOADOUT.weapon===k,g=GUNS.find(q=>q.key===k);
     it.push({col:'arms',k:'w_'+k,label,note:owned?(held?'in hand':'owned'):(g&&g.note?g.note.split(/[.;—]/)[0]:''),price:owned?0:SHOP_ARMS[k],can:!held,own:owned,
-      act(){DEF.owned[k]=true;LOADOUT.weapon=k;player.rebuild();gunOf();gunSwapped();AudioSys.sheath();}});
+      act(){DEF.owned[k]=true;AudioSys.sheath();
+        if(FPS.reloading&&gunHeld()){toast('bought — take it up once the reload is done');return;}   // (a swap never ends a reload)
+        LOADOUT.weapon=k;player.rebuild();gunOf();gunSwapped();}});
   }
   const cals=new Set();for(const g of GUNS)if(DEF.owned[g.key])cals.add(g.cal);
   for(const cal of cals){const g=GUNS.find(q=>q.cal===cal),C=CALIBRES[cal],have=resOf(g);
@@ -5169,15 +5304,14 @@ function buildWorld(){
   if(!DEF.on){
     const cR=PATH.on?tileCapture():null;                   // (on the path these are tile 0's, torn down with it: see teardownTile)
     const SEG=28;
-    for(let i=0;i<SEG;i++){                              // the ring road follows the building's outline
-      const p0=ringPoint((i/SEG)*TAU,RING_OFF),p1=ringPoint(((i+1)/SEG)*TAU,RING_OFF);
-      layRoad(p0[0],p0[1],p1[0],p1[1],1.3);
-    }
+    {const ring=[];for(let i=0;i<SEG;i++)ring.push(ringPoint((i/SEG)*TAU,RING_OFF));   // the ring road follows the building's outline:
+     layPath(ring,1.3,null,null,.06,true);}              // ONE closed ribbon, mitred, over the ends of the ways out (which lie under it at .05)
     const QUARTERS=PATH.on?[Math.PI/2]:[Math.PI/2,0,Math.PI,-Math.PI/2]; // S, E, W, N (the path: only the way in — the first hex lays its own road out, and a second one doubled it)
     for(const a of QUARTERS){
       const p0=ringPoint(a,RING_OFF);
       layRoad(p0[0],p0[1],Math.cos(a)*(HEX_AP-6),Math.sin(a)*(HEX_AP-6),1.5);
     }
+    if(PATH.on){const p0=ringPoint(-Math.PI/2,RING_OFF);layRoad(p0[0],p0[1],0,-(PL+STAIR_L+4),1.5);}   // (and north only as far as tile 0's own edge, where the first hex's road takes it up: see initPath's z1. Stopping at the ring left a strip of soil between the two)
     if(cR){PATH.tile0={objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]};tileCommit(PATH.tile0,cR,0);}
   }
 
@@ -6267,13 +6401,13 @@ function stepTile(){
     // ...and in the world's own frame: the ground, the road through, a lantern or two
     const c=tileCapture(),{z0,z1,zc,len}=t;
     tileGround(t);
-    if(cath){layRoad(0,z0+.5,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1-.5,1.5);
+    if(cath){layRoad(0,z0,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1,1.5);   // (to the tile's own edge: a road that stops half a metre short of it leaves a metre of soil at every join)
       for(const end of[1,-1])for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),zc+end*(PL-.9));}
     else{const f=t.rav&&t.rav.f;
-      if(t.rav)layRoad(0,z0+.5,0,z1-.5,1.25,'trail',TRAIL_WIG);            // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
+      if(t.rav)layRoad(0,z0,0,z1,1.25,'trail',TRAIL_WIG);            // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
       else if(t.kind==='fork')forkRoads(t);
-      else if(t.kind==='river'){const d=t.terrain[0].deck;layRoad(0,z0+.5,0,d.za-.2,1.5);layRoad(0,d.zb+.2,0,z1-.5,1.5);}   // (the deck is the road over the water)
-      else layRoad(0,z0+.5,0,z1-.5,1.5);
+      else if(t.kind==='river'){const d=t.terrain[0].deck;layRoad(0,z0,0,d.za-.2,1.5);layRoad(0,d.zb+.2,0,z1,1.5);}   // (the deck is the road over the water)
+      else layRoad(0,z0,0,z1,1.5);
       const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4)&&pathWaterAt(lx,lz)===null&&!(PATH.decks.length&&deckAt(0,lz)!==null))makeLantern(lx,lz);}   // (never in the water, nor on a bridge)
       if(f&&f.stream)buildStream(t,f);
       milepost(t);}
@@ -6350,8 +6484,8 @@ function milepost(t){
    higher so they do not fight the straight pieces where they overlap. */
 function forkRoads(t){
   const {z0,z1,zc}=t;
-  layRoad(0,z0+.5,0,zc+22,1.5);layRoad(0,zc-22,0,z1-.5,1.5);
-  for(const sd of[1,-1]){layRoad(0,zc+22,sd*9,zc+15,1.3,null,null,.065);layRoad(sd*9,zc+15,sd*9,zc-15,1.3);layRoad(sd*9,zc-15,0,zc-22,1.3,null,null,.065);}
+  layRoad(0,z0,0,zc+20.5,1.5);layRoad(0,zc-20.5,0,z1,1.5);       // (the trunk runs on under the split, so the branches leave from stone)
+  for(const sd of[1,-1])layPath([[0,zc+23.5],[0,zc+22],[sd*9,zc+15],[sd*9,zc-15],[0,zc-22],[0,zc-23.5]],1.3,null,null,sd>0?.065:.072);   // each branch ONE mitred line, the two a hair apart where they share the trunk
 }
 /* THE FORK'S HOST: the host's side takes half again the hex's purse, all
    of it on its own ground and a third of it red-boned; the quiet side
@@ -6529,7 +6663,7 @@ function applyGroundSurface(){
      the length in fours), so the snow gets its own copy of the texture
      with a repeat that matches the ground's tile size on both. */
   if(snowy&&!texCache.snowRoad){const rt=t.clone();rt.needsUpdate=true;rt.repeat.set(.25,.35);texCache.snowRoad=rt;}
-  for(const rm of roadMeshes){rm.material.map=snowy?texCache.snowRoad:texCache[rm.userData.tex||'flag'];rm.material.needsUpdate=true;}
+  for(const rm of roadMeshes){rm.material.map=snowy?texCache.snowRoad:texCache[rm.userData.tex||'road'];rm.material.needsUpdate=true;}
   if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
   trodClear();trailClear();
 }
@@ -8346,7 +8480,7 @@ function lodSet(e,far){
    ragdolling or already hidden — the ragdoll writes the bones the boxes do
    not have. */
 function lodUpdate(){
-  const P=player,k=Math.tan(camera.fov*Math.PI/360)/Math.tan(FOV_REF*Math.PI/360);
+  const P=player,k=Math.tan(camera.fov*Math.PI/360)*Math.min(1,camera.aspect)/Math.tan(FOV_REF*Math.PI/360);   // (the SHORT side's field: upright, that is the width)
   for(const e of enemies){
     const r=e.rig;
     /* a body ON FIRE keeps every mesh it has: `setAblaze` hangs its flame
@@ -14578,7 +14712,7 @@ class GraveGhoul{
      THE HEAD, last. Break the jaw and it comes off — and the skull goes
        down after it, which is the only thing that was ever going to put
        it down. */
-function makeBoneHandRig(){
+function makeBoneHandRig(side){
   const s=1.7,rig={s,fingers:[],mats:[]};
   const bone=mat('bone'),dark=lam({color:0x0a0a0c});
   const root=new THREE.Group();rig.root=root;
@@ -14632,6 +14766,14 @@ function makeBoneHandRig(){
      diagonally under the palm and came out 0.35 past the far side, 0.73
      below it, where nothing could see it. The hand had no thumb. */
   rig.thumb[0].rotation.y=-.95;
+  /* A LEFT AND A RIGHT, NOT THE SAME HAND TWICE. Built as it stands, with
+     the thumb at the rig's −x, this is a LEFT hand palm-down — the one on
+     the skull's left (`side` 1). The other is the same rig MIRRORED:
+     `body.scale.x=-1` flips every bone, finger and pose under it, and
+     three.js turns the winding over for a negative determinant, so
+     nothing is culled inside out. The thumb of each now points in toward
+     the skull between them. */
+  if(side<0)body.scale.x=-1;
   for(const o of[bone,dark])rig.mats.push(o);
   return rig;
 }
@@ -14691,7 +14833,7 @@ class BoneHand{
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.side=side;this.skull=skull;this.facing=0;
     this.radius=.85;this.maxHp=130;this.hp=130;this.dmg=16;this.marrow=90;
     this.poise=0;this.poiseMax=9;this.chillT=0;this.speed=3.1;this.reach=2.9;
-    this.rig=makeBoneHandRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.rig=makeBoneHandRig(side);scene.add(this.rig.root);this.mats=this.rig.mats;
     this.state='rise';this.t=0;this.hitDone=false;this.flashUntil=0;this.cool=1.2;
     this.crumbled=false;this.vx=0;this.vz=0;this.engaged=true;this.untouchable=true;
     this.walk=Math.random()*TAU;this.tick=0;this.rear=0;this.lift=0;
@@ -16455,7 +16597,7 @@ function updateCamera(dt){
      here is the stick's own mapping (`cos yaw, -sin yaw`), and it is
      applied BEFORE the rim and the cathedral clamps, so a close camera is
      held out of stone exactly like a far one. */
-  const dist=(G.camDist||5.1)*(1-gIn),py=1.55+gUp;
+  const dist=(G.camDist||5.1)*camPortrait()*(1-gIn),py=1.55+gUp;
   const hP=heightAt(player.x,player.z);
   const brx=Math.cos(G.camYaw)*gSide,brz=-Math.sin(G.camYaw)*gSide;
   let cx=player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist+brx;
@@ -16700,7 +16842,7 @@ function cutEnd(){
 function camSnap(){
   const hP=heightAt(player.x,player.z);
   if(FPS.on&&player.state!=='dead'){updateFpsCamera(1);return;}
-  const dist=G.camDist||5.1;
+  const dist=(G.camDist||5.1)*camPortrait();
   camera.position.set(player.x+Math.sin(G.camYaw)*Math.cos(G.camPitch)*dist,
     hP+1.55+Math.sin(G.camPitch)*dist,
     player.z+Math.cos(G.camYaw)*Math.cos(G.camPitch)*dist);
@@ -18877,7 +19019,7 @@ function updateGun(dt){
   if(FPS.on&&!CUT.on){
     const att=attOf(g);
     const fovAim=adsFovOf(attFov(g,att));
-    const fov=lerp(VIEW.fov,fovAim,FPS.ads);
+    const fov=lerp(baseFov(),fovAim,FPS.ads);
     if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
   }
   /* THE HIP'S CONE: at rest, wider walking and wider at a sprint,
@@ -19240,7 +19382,7 @@ function updateViewmodel(dt){
    own, so nothing here need hold the lens inside anything. */
 function updateFpsCamera(dt){
   const P=player;
-  const sens=.0034*(camera.fov/VIEW.fov)*VIEW.sens;   // the rate on the SCREEN is what stays put, so it narrows with the sights
+  const sens=.0034*(camera.fov/baseFov())*VIEW.sens;   // the rate on the SCREEN is what stays put, so it narrows with the sights
   G.camYaw-=IN.camDX*sens;FPS.pitch=clamp(FPS.pitch-IN.camDY*sens,-1.25,1.25);
   const hP=heightAt(P.x,P.z)-snowSink(P.x,P.z);
   let ey=FPS.eyeY;
@@ -19283,7 +19425,7 @@ function updateFpsCamera(dt){
      movement ON THE SCREEN in either view, at the hip or in the glass. */
   let shP=0,shY=0;
   if(G.camShake>0){G.camShake=Math.max(0,G.camShake-dt*1.6);
-    const a=G.camShake*SHAKE_ANG*(camera.fov/VIEW.fov);shP=(Math.random()-.5)*a;shY=(Math.random()-.5)*a;}
+    const a=G.camShake*SHAKE_ANG*(camera.fov/baseFov());shP=(Math.random()-.5)*a;shY=(Math.random()-.5)*a;}
   const roll=(P.state==='floored'?.6*Math.min(1,P.t/FLOOR.LAND)*(P.t<FLOOR.RISE+.3?1:Math.max(0,1-(P.t-FLOOR.RISE-.3)/(FLOOR.DUR-FLOOR.RISE-.3))):0)+FPS.swayX*.5;
   camera.rotation.order='YXZ';
   camera.rotation.set(FPS.pitch+shP,G.camYaw+shY,roll);
@@ -19409,7 +19551,13 @@ function setPov(on){
     if(player.rig&&FPS.hidRig){player.rig.root.visible=true;FPS.hidRig=false;}
     fpsMaskSet(player.rig,false);
   }
-  syncGunUi();gunSwapped();
+  /* THE VIEW IS NOT THE WEAPON. This called `gunSwapped()` outright, which
+     clears `reloading` — so the 1ST/3RD button (on the HUD and on the
+     pause screen) was a second way out of a reload, beside the dodge that
+     is meant to be the only one. A reload carries across the switch now:
+     the plan runs on in the new view, the viewmodel and the rig both read
+     the same `FPS.rl`, and only the weapon's own settling is skipped. */
+  syncGunUi();if(FPS.reloading)FPS.zoom=0;else gunSwapped();
   if(G.paused)fillHero();
 }
 /* ---- the gun in the pilgrim's hands, third person ---- */
@@ -20140,6 +20288,11 @@ function cycleLoadout(k,d){
   if(k==='pov'){setPov(!FPS.on);return;}                 // (setPov refills the panel itself)
   if(k==='charge'&&gunHeld()){cycleAtt(d);fillHero();return;}   // a gun's charge is what sits on its rail
   if(k==='charge')k=chargeKey();
+  /* NO SWAP MID-RELOAD FROM HERE EITHER. The HUD's swap is refused while a
+     reload runs, but this selector wrote the loadout and called
+     `gunSwapped`, which ended the reload — the pause screen was a way
+     round the rule. */
+  if(k==='weapon'&&FPS.reloading&&gunHeld()){toast('reloading');return;}
   const list=(DEF.on&&k==='weapon')?HERO_OPTS.weapon.filter(o=>DEF.owned[o[0]]):HERO_OPTS[k];let i=list.findIndex(o=>o[0]===LOADOUT[k]);
   i=(i+d+list.length)%list.length;LOADOUT[k]=list[i][0];saveLoadout();
   player.rebuild();if(k==='weapon'){gunOf();gunSwapped();}fillHero();
