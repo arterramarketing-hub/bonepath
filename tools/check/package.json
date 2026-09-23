@@ -1,0 +1,11 @@
+{
+  "name": "bonepath-check",
+  "private": true,
+  "description": "Headless checks for BONEPATH: boot every mode, run the codex, walk the path, watch for leaks.",
+  "scripts": {
+    "check": "node run.js"
+  },
+  "devDependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

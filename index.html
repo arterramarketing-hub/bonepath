@@ -672,6 +672,69 @@
 /* ============================================================
    BONEPATH — a haunted PSX souls-like, in one file.
    ============================================================ */
+/* CONTENTS — in the order they appear. Search for the name on the right;
+   line numbers move with every edit, names do not. The rules for each part
+   are in CLAUDE.md, the history behind them in docs/NOTES.md.
+
+   utilities, noise, rng .............. clamp, srand, rnd, makeNoise
+   textures (all painted at boot) ..... buildTextures, HEART_PX
+   renderer and the PSX look .......... "renderer / PSX pipeline", psx, renderFrame
+   the player's two numbers ........... VIEW, baseFov, adsFovOf
+   audio (every sound synthesized) .... AudioSys, metal, mscrape
+   input: thumbs, keys, buttons ....... Input, livePtr, fireDown
+   the run and its modes .............. "THE RUN", RUN, PATH, CODEX, DEF, WX_NAMES
+   the ground as a function ........... heightAt, pathBase, groundGone, slopeHold, constrain
+   the Mire (defend mode) ............. "THE MIRE", "THE HOUSE", "THE ROUNDS", "THE SHOP"
+   the folds .......................... bakeStatic, bakeWorld, unbake, BAKED
+   the world .......................... buildWorld
+     the gothic cathedral ............. buildCathedral, "THE GOTHIC CATHEDRAL", "THE ROOF"
+     the six wedges and the chunks .... "THE WEDGES", CHUNKS
+     landmarks, the bell .............. "THE LANDMARKS", "THE FALLEN BELL"
+     sky, light, lanterns ............. "THE SKY AND ITS LIGHT", "THE LANTERNS"
+   the path: tiles ahead, torn behind . "THE PATH: tiles", pathEdge, tileGround,
+                                        startTile, stepTile, teardownTile, initPath, updatePath
+     the ravine, its trail, stream .... "THE RAVINE", TRAIL_GROUND, "THE STREAM"
+     stairs, specials, mileposts ...... "THE STAIRS", "THE SPECIAL HEXES", "THE MILEPOSTS"
+     the day turning .................. turnDay, xfStart, xfTick, applyTime, setWeather
+   gargoyles, the ground mesh ......... GARG, "THE GROUND MESH IS NOT THE GROUND FUNCTION"
+   snow marks ......................... TROD, "THE FURROW", onStone, updateTrail, updateWeather
+   ambience, the light pool ........... updateAmbient, LPOOL
+   rig geometry, the ground shade ..... geoCache, gq, "THE GROUND SHADE", shadeRigs
+   level of detail .................... lodUpdate
+   poses .............................. resetPose, seg4, poseWalk, poseRise, plantHand,
+                                        poseHomerun, poseFloored, seamGrab
+   rig builders ....................... makeKnightRig, makeHollowRig, makeCrowRig,
+                                        makeBatRig, makeWardenRig, makeAngelRig, ...
+   effects ............................ "effects", fellTree, "THE IMBUED WEAPON"
+   game state ......................... "global game state", G
+   the player ......................... "the player", player (die, takeHit, floored)
+   the host: enemies .................. "enemies", "THE PACK", Enemy, packSteer, alertPack
+   crows and bats ..................... "the crows", Crow, batFor
+   the Fallen One, the Unburied ....... FallenAngel, GraveGhoul
+   the Arm ............................ "THE ARM", ArmHorror, makeArmRig
+   the Bell-Called .................... "THE BELL-CALLED", BoneHand, GiantSkull
+   the wand's bubbles ................. "THE BUBBLES", castBubble
+   the home run, the shatter .......... homeRun, batShatter, flyBone
+   shader warming ..................... clipWarm, warmEffects, PROG_KEEP
+   the host's sowing .................. "population", spawnEnemies, hostKit, bigLead
+   the cathedral seal, the boss ....... "the sealed cathedral", makeFogGate
+   camera ............................. "camera", updateCamera, camStone, GUN_CAM
+   cutscenes .......................... CUT, cutPlay, updateCut
+   the lock ........................... updateLock, lockCands
+   first person and the guns .......... "FIRST PERSON, AND THE GUNS", FPS, GUNS
+     gun models ....................... "the gun models", buildGunModel, gunMats
+     the ray, the hit, the rocket ..... hitscan, gunRay, fireGun, fireRocket
+     the reload ....................... "THE RELOAD", RELOAD, reloadPlan
+     the gun each frame ............... updateGun, updateViewmodel, syncFpsRig
+     HUD, third-person gun ............ updateGunHud, updateRigGun, poseGunCarry
+   HUD and messages ................... updateHUD, toast
+   offerings, marrow .................. "interaction & offerings", MARROW, shedMarrow
+   grain overlay ...................... "grain overlay"
+   the codex .......................... "THE CODEX", CODEX_CATS, codexShow
+   boot and the main loop ............. begin, setAutoLock, frame
+   the pause .......................... setPaused, panelTab
+   test handle ........................ window.BP (BP._reg counts the registries)
+*/
 'use strict';
 (function(){
 

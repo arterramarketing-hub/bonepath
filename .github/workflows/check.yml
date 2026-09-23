@@ -1,0 +1,37 @@
+name: Check Bonepath
+
+# Loads the game headless and fails on any page error: every mode boots,
+# every codex entry shows, the path and the ravine are walked, and the path
+# is held to its memory ceilings. See tools/check/run.js.
+# This workflow never deploys. pages.yml alone publishes the site.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: tools/check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/check/package-lock.json
+      - run: npm ci
+      - run: npx playwright-core install --with-deps chromium
+      - run: node run.js

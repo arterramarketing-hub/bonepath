@@ -3047,3 +3047,23 @@ Everything is generated at boot inside the one file:
 
 Originally a Godot prototype; taken over and rebuilt as a web POC so it can
 be played instantly on a phone.
+
+## Checking it
+
+There is no unit-test suite; the game is one file, and the honest test is
+to load it and play it. `tools/check/run.js` does that headless and fails
+on any page error: every inline script compiles, the field, the path, the
+ravine and the Mire each boot clean, every entry of the codex is shown in
+turn, seventy-odd hexes of the path and of the ravine are walked, and the
+path is walked to hex 80 and held to ceilings on heap, GPU geometry and
+the game's own registries, so a leak fails the build.
+
+```sh
+cd tools/check && npm install   # playwright-core, once
+node run.js                     # all of it
+node run.js parse boot          # the quick pass
+```
+
+It runs on every push (`.github/workflows/check.yml`), which never deploys.
+The working rules for anyone changing the code are in `CLAUDE.md`; the
+history and the measurements behind them are in `docs/NOTES.md`.
