@@ -2326,7 +2326,7 @@ Known state of play:
   Load-bearing, in the order they bit:
   - **ONE terrain feature per RUN, not per tile.** Pushed into
     `PATH.terrain` when the run starts, it spans the whole run and eases
-    in only at the run's two ends (`tp` 12m), so the walls run unbroken
+    in only at the run's two ends (`tp0`/`tp1`, 12m; 24m on the ravine-only path), so the walls run unbroken
     across every join. It rides in the LAST tile's `t.terrain`, because
     teardown drops a tile's features from `PATH.terrain` — in the first
     tile's list, the walls would vanish from under the tiles still
@@ -2363,7 +2363,7 @@ Known state of play:
   - Materials are made once per `buildWorld` (`ravMats`), from `lam`/`mat`
     with a map, so they share programs already linked. Leaves are
     painted GREY and tinted per variant (a green texture tinted orange is
-    mud); snow lerps the tint .72 toward white. Concrete and birch carry
+    mud), and made by `leafMat`, so they are summer's alone (see SUMMER). Concrete and birch carry
     a darkening `color` — both burned out to near white in a noon sun.
   - The graffiti textures (`tagA`, `tagB`) are drawn in METRES on the
     .85×3.2 foot block (`tagCtx` squashes the canvas by .85/3.2), or a
@@ -2372,6 +2372,92 @@ Known state of play:
     snow swap restores, so a ravine's trail comes back as gravel.
   Measured: 0 errors walking 4km / 118 tiles of seed 2, and no ravine
   feature left in `PATH.terrain` behind the pilgrim.
+- **THE RAVINE-ONLY PATH (`?mode=ravine`, `PATH.only`, `PATH.ravCarry`,
+  `PATH.ravLast`).** `cathEvery` is `Infinity`, so tile 0 is the only
+  cathedral; `ravineStart` answers from tile 1 on, runs are 3–5 and never
+  the same variant twice running. Two things are load-bearing:
+  - **The runs CROSS-FADE, and the arithmetic is why it works.** A feature
+    carries `tp0`/`tp1` (its taper at each end) where it used to have one
+    `tp`. On this path each run reaches 12m past its end and eases over
+    24m, and the next run's feature reaches 12m back over the same ground
+    with the mirror taper — a smoothstep and its mirror sum to exactly one,
+    so the wall heights blend and never dip. Measured over 1.5km: the wall
+    above the trail never below 2.99m. `terrainAt` reads
+    `min(1,(z0-z)/tp0,(z-z1)/tp1)`; **any new terrain feature must carry
+    both**, or it divides by undefined and the ground goes NaN.
+  - **The feature that reaches into the next run's first tile goes WITH
+    that tile** (`ravCarry` is pushed into tile i=0's `t.terrain`), not with
+    its own last tile, or the teardown drops it from under the tile still
+    standing.
+- **SUMMER, AND WHY THE LEAVES ARE A MATERIAL FLAG** (`LEAF`, `leafMat`,
+  `syncLeaves`, `posHash`, beside `WEDGE_N`). Every tree and bush is BARE
+  unless `RUN.weather==='summer'`. The crowns are always BUILT and it is
+  the leaf MATERIALS' `visible` that switches: the ravine tiles are
+  `bakeStatic`'d and the field's groves `bakeWorld`'d, so a crown is not a
+  mesh anyone can find afterwards — but a folded mesh keeps its material,
+  and one flag on it takes a whole baked tile's leaves on or off with no
+  rebuild. `setWeather` calls `syncLeaves()`. **Every new piece of foliage
+  goes through `leafMat()`**, or it stays in leaf all year.
+  - The field's `tree()` shapes its crowns with `posHash(x,z,i)`, NOT
+    `rnd()`: a draw there would shift every placement after it and change
+    the whole field for every seed. Anything added to an existing chunk
+    wants the same.
+  - The ravine's FALLEN leaves (`RM.litter`) are a plain `lam`, not
+    `leafMat` — the fall lies on the ground in every season.
+  - Summer is in `WX_NAMES` (the one list: the seed's pick, `?wx=`, the
+    pause cycle and `setWeather` all validate against it). It has no
+    particles (`setupWeather` returns on it like clear); its whole look is
+    a branch in `applyTime` (fog toward 0xd6cc9e, hemi warmer, ground-glow
+    greener, key up 5%) and `applyGroundSurface` tinting `groundMat` off
+    `userData.base`. Measured on the field: 304 draws clear, 312 summer.
+- **THE AUTO-LOCK SWITCH** (`G.lockAuto`, `setAutoLock`, `#lockBtn`, T on
+  a keyboard, remembered as `bp_lock`). Off, `updateLock` takes its early
+  return — the same one a gun behind the eyes takes — so there is no mark,
+  no lock-facing and no camera on a foe. Nothing else reads it; do not
+  gate individual lock consumers on it, gate the lock.
+
+- **THE CODEX (`?mode=codex`, `PATH.codex`, `CODEX`, `CODEX_TILES`,
+  `CODEX_CATS`, `codexShow`, `codexTick`, `codexCam`, the section headed
+  THE CODEX just above `begin`).** A browser of everything in the game.
+  It is the PATH with `CODEX_TILES` forcing each tile's kind (one of every
+  chunk, then maple ×3 with the underpass in the middle, shale ×2, birch
+  ×2), all built at boot by `initPath`, `pathHost` skipped, `updatePath`
+  never run, and only the viewed tile ±1 drawn (`cxTiles`). Always seed 7,
+  noon, clear, unless the URL says otherwise. How it works, and what each
+  piece is guarding against:
+  - **`G.mode` is 'play' the whole time**, because every horror's AI is
+    gated on it (`dist<aggroR&&G.mode==='play'` and a dozen like it). So
+    the codex is play with four overrides: `codexTick` runs right before
+    `player.update` and owns `IN` outright (nothing the player's thumbs do
+    reaches the pilgrim; `#controls` is hidden by `body.codex`);
+    `player.takeHit` returns 'immune' on `CODEX.on`; `cutPlay` refuses on
+    it; and `codexCam` stands in for the follow camera.
+  - **For a horror the pilgrim is invisible and NOT UPDATED**, parked 4.5m
+    in front of the specimen (`CX_STAGE`, on tile 0's approach, well south
+    of the stair) so it has something to fight. He is never hurt, so he
+    never dies and `G.mode` never leaves 'play'.
+  - **The Warden needed one gate**: `constrain(this,this.boss&&...)` holds
+    a boss inside the nave, and in the codex that dragged it into the
+    cathedral and the lens after it. `&&!CODEX.on`, beside the Mire's own.
+  - **`opts.plain`** on `Enemy` stops the 14% red roll, so the codex's
+    hollow is a hollow. Do not use `red:false` for this — the host's
+    templates pass `red:false` everywhere and still expect the roll.
+  - **For arms and armour he IS updated** and swings at the air: `LOADOUT`
+    is written in memory (never `saveLoadout`) and `rebuild()` redresses
+    him. **His facing runs the other way from a horror's** (0 looks south
+    here) and a strike with nothing marked turns him to where the eye
+    looks, so `codexTick` pins `G.camYaw=π` or every swing turns his back
+    on the lens.
+  - **The horror section is a list of `make(x,z,px,pz)`** that build the
+    game's own classes exactly as the game does (the Warden as `defSummon`
+    makes it, the Bell-Called through `summonBellHorror`). **A new horror
+    is not in the codex until it has an entry there.** Weapons, armour and
+    weathers are read off `HERO_OPTS` and `WX_NAMES` at open, so a new one
+    appears by itself — but its words live in `CX_BLADES`, `CX_ARMOUR` and
+    `CX_WX`, and without a line there the card is blank.
+  - Measured: every entry of all five sections shown in turn, 0 errors;
+    boot about 6s in the software-rendered harness (thirteen tiles built at
+    once); 350–470 draws on a horror or the hero, 60–330 on a place.
 - **THERE IS NO BLADE VIEWMODEL** — see *THE FIRST-PERSON SWING IS THE
   THIRD-PERSON SWING*, far below. `VM_BLADE`, `ensureBladeVm`,
   `bladePose`, `VM_SEAM` and `SW_FLIP` are gone. The one thing worth

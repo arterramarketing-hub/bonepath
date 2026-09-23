@@ -246,7 +246,7 @@
     opacity:0;transition:opacity .6s;}
   #cine.on #cineSkip{opacity:.5;}
   body.cine #hud,body.cine #controls,body.cine #banner,body.cine #prompt,body.cine #toast,
-  body.cine #pauseBtn,body.cine #povBtn,body.cine #perf{
+  body.cine #pauseBtn,body.cine #povBtn,body.cine #lockBtn,body.cine #perf{
     opacity:0!important;transition:opacity .35s;}
   body.cine #controls{pointer-events:none;}
   #banner{position:fixed;left:0;right:0;top:34%;z-index:8;text-align:center;pointer-events:none;
@@ -300,6 +300,14 @@
     background:rgba(6,7,8,.55);color:var(--bone);font:11px/36px Georgia,serif;text-align:center;
     letter-spacing:.14em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
   #povBtn.on{display:block;}
+  /* the LOCK switch beside it: lit when the eye takes horrors on its own,
+     dim and struck through when it is off, for running a pack past */
+  #lockBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(108px + env(safe-area-inset-right));
+    z-index:9;width:52px;height:38px;border:1px solid rgba(200,190,160,.35);border-radius:4px;
+    background:rgba(6,7,8,.55);color:var(--bone);font:10px/36px Georgia,serif;text-align:center;
+    letter-spacing:.14em;display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;}
+  #lockBtn.on{display:block;}
+  #lockBtn.off{color:var(--bone-dim);opacity:.6;text-decoration:line-through;}
   /* which buttons show: the shooter's set behind the eyes, the weapon bar
      and the reload whenever a gun is in hand — either view. A BLADE gets
      the same four: the triggers strike, the aim button charges, the roll
@@ -420,6 +428,44 @@
     color:rgba(200,190,160,.62);text-shadow:0 1px 2px #000;line-height:1.5;}
   #perf.on{display:block;}
   #perf b{font-weight:normal;color:#e8dcc0;}
+  /* the codex (see THE CODEX in the script): a lens you turn with a finger, a list, and a card */
+  #codexBtn{margin-top:12px;padding:7px 16px 8px;border:1px solid rgba(200,190,160,.18);font-size:10px;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;color:var(--bone);
+    cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+  #codexBtn i{display:block;font-style:normal;font-size:8.5px;letter-spacing:.22em;text-indent:.22em;color:var(--bone-dim);margin-top:3px;text-transform:none;}
+  #codexBtn:active{background:rgba(200,190,160,.12);}
+  #codex{position:fixed;inset:0;z-index:9;display:none;font-family:Georgia,'Times New Roman',serif;color:var(--bone);pointer-events:none;}
+  body.codex #codex{display:block;}
+  body.codex #hud,body.codex #controls,body.codex #pauseBtn,body.codex #povBtn,body.codex #lockBtn,body.codex #shopBtn,body.codex #prompt,
+  body.codex #banner,body.codex #toast,body.codex #title,body.codex #hurt,body.codex #poison,body.codex #lowhp{display:none!important;}
+  #cxDrag{position:absolute;inset:0;pointer-events:auto;touch-action:none;cursor:grab;}
+  #codex .cx-head{position:absolute;top:calc(8px + env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:flex-start;gap:8px;pointer-events:none;}
+  #codex .cx-tabs{flex:1;display:flex;flex-wrap:wrap;gap:4px;}
+  #codex .cx-tabs div,#codex .cx-x,#codex .cx-list div,#codex .cx-b,#codex .cx-acts div{pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+  #codex .cx-tabs div{padding:7px 11px;font-size:9.5px;letter-spacing:.28em;text-indent:.28em;text-transform:uppercase;color:var(--bone-dim);
+    background:rgba(6,7,8,.62);border:1px solid rgba(200,190,160,.14);}
+  #codex .cx-tabs div.on{color:var(--ember-hi);border-color:rgba(240,166,72,.5);background:rgba(28,18,8,.72);}
+  #codex .cx-x{width:34px;height:30px;line-height:28px;text-align:center;font-size:20px;color:var(--bone);background:rgba(6,7,8,.62);border:1px solid rgba(200,190,160,.2);}
+  #codex .cx-list{position:absolute;top:calc(50px + env(safe-area-inset-top));left:12px;bottom:14px;width:176px;overflow-y:auto;pointer-events:auto;
+    background:linear-gradient(90deg,rgba(6,7,8,.7),rgba(6,7,8,.35));border-left:1px solid rgba(200,190,160,.14);scrollbar-width:thin;-webkit-overflow-scrolling:touch;}
+  #codex .cx-list div{padding:6px 10px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.06em;color:var(--bone-dim);border-bottom:1px solid rgba(200,190,160,.06);}
+  #codex .cx-list div.on{color:var(--ember-hi);background:rgba(208,118,43,.1);}
+  #codex .cx-card{position:absolute;right:12px;bottom:14px;width:min(46vw,380px);padding:10px 14px 10px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(11,13,12,.86),rgba(6,7,8,.9));border:1px solid rgba(200,190,160,.18);box-shadow:0 0 40px rgba(0,0,0,.6);}
+  #codex .cx-ep{font-size:8.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--ember);}
+  #codex .cx-nm{font-size:clamp(15px,2.6vw,21px);letter-spacing:.2em;text-transform:uppercase;margin:3px 0 2px;color:var(--bone);text-shadow:0 2px 0 #000;}
+  #codex .cx-key{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;color:#a79d82;letter-spacing:.04em;}
+  #codex .cx-tx{font-size:11px;line-height:1.5;color:#b6ad93;margin:7px 0 6px;max-height:34vh;overflow-y:auto;pointer-events:auto;}
+  #codex .cx-st{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--bone-dim);}
+  #codex .cx-st b{font-weight:normal;color:var(--bone);}
+  #codex .cx-row{display:flex;align-items:center;gap:6px;margin-top:8px;}
+  #codex .cx-b{width:36px;height:30px;line-height:27px;text-align:center;font-size:22px;border:1px solid rgba(200,190,160,.22);background:rgba(200,190,160,.05);}
+  #codex .cx-acts{flex:1;display:flex;gap:5px;flex-wrap:wrap;}
+  #codex .cx-acts div{padding:7px 10px;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ember-hi);border:1px solid rgba(240,166,72,.35);background:rgba(208,118,43,.07);}
+  #codex .cx-b:active,#codex .cx-acts div:active,#codex .cx-list div:active,#codex .cx-tabs div:active{background:rgba(200,190,160,.16);}
+  #codex .cx-n{font-size:9px;letter-spacing:.2em;color:var(--bone-faint);}
+  #codex .cx-hint{position:absolute;left:202px;bottom:16px;right:calc(min(46vw,380px) + 30px);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(200,190,160,.42);text-shadow:0 1px 2px #000;}
+  @media (max-width:640px){#codex .cx-list{width:120px;} #codex .cx-card{width:calc(100vw - 156px);} #codex .cx-hint{display:none;}}
+  @media (max-height:430px){#codex .cx-tx{max-height:26vh;font-size:10.5px;line-height:1.42;}}
   #begin{margin-top:2px;font-size:11.5px;letter-spacing:.46em;text-indent:.46em;text-transform:uppercase;
     color:var(--ember-hi);animation:breathe 2.6s ease-in-out infinite;}
   @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
@@ -479,6 +525,7 @@
 <div id="prompt"></div>
 <div id="pauseBtn">II</div>
 <div id="povBtn">3RD</div>
+<div id="lockBtn">LOCK</div>
 <div id="shopBtn">&#10022; spend</div>
 <div id="pause"><div class="panel">
   <h2>Paused</h2><div class="sub">the marrow remembers</div>
@@ -579,13 +626,31 @@
   <div id="modes">
     <div class="mode" id="modeField"><b>The field</b><i>the run</i><span>harvest a thousand marrow from the sleeping host, open the cathedral, and fell the Warden at its altar</span></div>
     <div class="mode" id="modePath"><b>The path</b><i>survival</i><span>hex after hex northward without end, a cathedral every sixth; six thousand marrow wins, and death ends it where you fall</span></div>
+    <div class="mode" id="modeRavine"><b>The ravine</b><i>path two</i><span>the path with nothing but its wooded cuts, one into the next, and the highway overhead now and then; the same six thousand marrow</span></div>
     <div class="mode" id="modeDefend"><b>The house</b><i>defender</i><span>hold a house in a drowned churchyard against the Drowned, round after endless round; the lull between is the shop<em id="bestDef"></em></span></div>
   </div>
   <div id="begin">touch a way to begin</div>
+  <div id="codexBtn">the codex<i>every horror, place, weapon and weather, to look at</i></div>
   <div class="hint" id="titleHint">left thumb &mdash; move &middot; tap &mdash; strike &middot; flick &mdash; roll &middot; hold &amp; drag &mdash; camera &middot; the 3RD / 1ST switch brings the guns out &middot; best in landscape</div>
 </div>
 
 <div id="perf"></div>
+
+<!-- THE CODEX: a page of its own (?mode=codex). The world behind it is the path, laid out once, with nobody on it. -->
+<div id="codex">
+  <div id="cxDrag"></div>
+  <div class="cx-head"><div class="cx-tabs" id="cxTabs"></div><div class="cx-x" id="cxExit">&times;</div></div>
+  <div class="cx-list" id="cxList"></div>
+  <div class="cx-card">
+    <div class="cx-ep" id="cxEp"></div>
+    <div class="cx-nm" id="cxName"></div>
+    <div class="cx-key" id="cxKey"></div>
+    <div class="cx-tx" id="cxText"></div>
+    <div class="cx-st" id="cxStats"></div>
+    <div class="cx-row"><div class="cx-b" id="cxPrev">&lsaquo;</div><div class="cx-acts" id="cxActs"></div><div class="cx-n" id="cxNum"></div><div class="cx-b" id="cxNext">&rsaquo;</div></div>
+  </div>
+  <div class="cx-hint">drag &mdash; turn<br>pinch &mdash; nearer<br>arrows &mdash; browse</div>
+</div>
 
 <div id="victory">
   <h2>The Warden Falls</h2>
@@ -3784,6 +3849,9 @@ const RUN={seed:0,time:'night',weather:'clear',wedges:[],terrain:[],landmarkWedg
    it. Every tile is built in the ORIGIN'S frame (the same chunk code the
    field uses, as the north wedge) and then shifted into place. */
 const PATH={on:false,tiles:[],terrain:[],goal:6000,TILE:30,cathEvery:6,far:0,M:null,chunks:null,buildCath:null,helpers:null,job:null,spawnQ:[]};
+/* THE CODEX (`?mode=codex`, see its section above the boot): a page that is the path with every kind of hex laid out once and nobody on it,
+   where the horrors, the places, the arms, the armour and the weathers are called up one at a time and looked at. */
+const CODEX={on:false,cat:0,i:0,spec:[],hero:false,place:null,focus:new THREE.Vector3(),want:new THREE.Vector3(),yaw:.5,pitch:.2,dist:6,base:6,zoom:1,idleT:9,drag:null,pts:new Map(),auto:true,demoT:1,fire:0,holdT:0,reload:0,px:0,pz:0,snap:true};
 const BUILD={offZ:0,tile:-1};   // while a tile is built in the origin's frame: the shift it will get, and its number
 /* DEFENDER (the house in the Mire): the one field again, but with the
    cathedral gone and a rotting timber house stood on its footing in a
@@ -3797,11 +3865,25 @@ const DEF_FOG=[11,54];                 // the Mire's own haze: closer than any w
 // the Mire's bought might, applied where every horror takes the pilgrim's blow — blade, round, shaft, bubble and bolt alike
 function heroDmg(d){return DEF.on&&DEF.might!==1?Math.round(d*DEF.might):d;}
 const WATER_Y=0;                       // the bog stands at this height; the causeways just clear it
+/* THE WEATHERS, and SUMMER is the one with leaves in it. Every tree and
+   bush in the game carries its crown always, drawn in a LEAF material
+   (`leafMat`) whose `visible` follows the weather — so the field's folded
+   groves, a marked tree put back in the scene and a ravine built mid-run
+   all come into leaf and out of it together, with nothing rebuilt: a
+   material that is not visible is never drawn. Out of summer the wood is
+   bare, which is what the Bone Path always was. */
+const WX_NAMES=['clear','summer','rain','storm','snow','blizzard'];
+const LEAF={mats:[]};
+function leafMat(col){const m=lam({map:texCache.leaves,color:new THREE.Color(col).convertSRGBToLinear()});m.visible=RUN.weather==='summer';LEAF.mats.push(m);return m;}
+function syncLeaves(){const on=RUN.weather==='summer';for(const m of LEAF.mats)m.visible=on;}
+// a crown's shape from where the tree stands, NOT from the seed's stream: drawing on `rnd` here would move every later thing the seed places
+const posHash=(x,z,i)=>{const v=Math.sin(x*12.9898+z*78.233+i*37.719)*43758.5453;return v-Math.floor(v);};
 const WEDGE_N=6;
 function wedgeAngle(i){return Math.PI/6+i*Math.PI/3;}          // 30, 90 (south: the start), 150, 210, 270 (north), 330 degrees
 function seedRun(){
   try{if(new URLSearchParams(location.search).get('mode')==='defend')DEF.on=true;}catch(e){}
   let s=0;try{const q=new URLSearchParams(location.search).get('seed');if(q)s=(parseInt(q,10)>>>0)||0;}catch(e){}
+  try{if(!s&&new URLSearchParams(location.search).get('mode')==='codex')s=7;}catch(e){}   // (the codex is always the same seed, so what it shows is always the same)
   if(!s)s=((Math.random()*4294967295)>>>0)||1;
   RUN.seed=s;
   // the generator is a plain LCG: neighbouring seeds share their first draws, so the seed is hashed first and the first few draws thrown away
@@ -3809,12 +3891,14 @@ function seedRun(){
   srand(h);for(let k=0;k<6;k++)rnd();
   const pick=a=>a[(rnd()*a.length)|0];
   RUN.time=pick(['sunrise','noon','dusk','night','night']);
-  RUN.weather=pick(['clear','clear','clear','rain','storm','snow','blizzard']);
+  RUN.weather=pick(['clear','clear','summer','summer','rain','storm','snow','blizzard']);
   if(DEF.on){RUN.time=pick(['dusk','night','night']);RUN.weather=pick(['clear','rain','rain','storm']);}   // the Mire is never seen by day, and never under snow
   try{const q=new URLSearchParams(location.search),ht=q.get('time'),wq=q.get('wx');     // (testing: ?time=noon&wx=storm names them outright, the rest of the field still the seed's)
-    if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&['clear','rain','storm','snow','blizzard'].includes(wq))RUN.weather=wq;}catch(e){}
+    if(ht&&['night','dusk','sunrise','noon'].includes(ht))RUN.time=ht;if(wq&&WX_NAMES.includes(wq))RUN.weather=wq;}catch(e){}
   RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[RUN.time];      // how much a lantern shows, by the hour
-  try{if(new URLSearchParams(location.search).get('mode')==='path')PATH.on=true;}catch(e){}
+  try{const m=new URLSearchParams(location.search).get('mode');if(m==='path')PATH.on=true;
+    if(m==='ravine'){PATH.on=true;PATH.only='ravine';PATH.cathEvery=Infinity;}
+    if(m==='codex'){PATH.on=true;PATH.codex=true;PATH.cathEvery=Infinity;const q=new URLSearchParams(location.search);if(!q.get('time'))RUN.time='noon';if(!q.get('wx'))RUN.weather='clear';RUN.lamp=.35;}}catch(e){}   // THE RAVINE: the path with nothing but its cuts (see ravineStart)
   RUN.village=pick(['Ashmere','Gallowmoor','Hollowfen','Wrenhallow','Carrowdene','Blackwold','Sallow Cross','Marrowgate']);
   // the six wedges: a chunk each, no kind more than twice; the south
   // wedge (the pilgrim's walk in) is never walled off by ruins or a chapel
@@ -3857,7 +3941,7 @@ function terrainAt(x,z){
     else if(f.t==='terrace'){const d=Math.hypot(x-f.cx,z-f.cz),k=clamp((f.r-d)/4,0,1);h+=f.h*k*k*(3-2*k);}
     else if(f.t==='ravine'){   // THE RAVINE: a floor either side of the trail, then a wall up to a wooded rim (see ravineStart)
       if(z>f.z0||z<f.z1)continue;
-      const e=Math.min(1,(f.z0-z)/f.tp,(z-f.z1)/f.tp),ee=e*e*(3-2*e);          // eased in and out at the run's two ends
+      const e=Math.min(1,(f.z0-z)/f.tp0,(z-f.z1)/f.tp1),ee=e*e*(3-2*e);          // eased in and out at the run's two ends
       const fw=f.fw+Math.sin(z*.17+f.ph)*.8+Math.sin(z*.063+f.ph*2.3)*1.2;     // the floor breathes wider and narrower
       const u=clamp((Math.abs(x)-fw)/f.sw,0,1),sm=u*u*(3-2*u);
       const lump=1+.16*Math.sin(z*.23+x*.31+f.ph)+.09*Math.sin(z*.61-x*.17);
@@ -4943,7 +5027,9 @@ function buildWorld(){
   const M={
     flag:mat('flag'),dirt:mat('dirt'),wall:mat('wall'),oss:mat('ossuary'),
     grave:mat('grave'),bone:mat('bone'),bark:mat('bark'),iron:mat('iron'),
+    leaf:leafMat(0x5b7e38),
   };
+  const ICO=new THREE.IcosahedronGeometry(1,0);   // a leaf clump: every crown in the game is a few of these
 
   // rolling ground (unsnapped — see matNS), displaced by heightAt.
   // Past the hexagon's edge the land simply ENDS — the ground shears
@@ -5176,6 +5262,8 @@ function buildWorld(){
       br.position.y=h*rr(.55,.95);br.rotation.z=rr(.5,1.2)*(rnd()<.5?1:-1);br.rotation.y=rnd()*TAU;br.translateY(.6);tr.add(br);
     }
     if(rnd()<.25)tr.add(cyl(.34,.22,.16,6,M.bark,rr(-.3,.3),h*rr(.7,.9),rr(-.3,.3)));
+    {const nl=tall?4:3;for(let i=0;i<nl;i++){const r=(1.0+posHash(px,pz,i)*.8)*(h/5),o=new THREE.Mesh(ICO,M.leaf);   // the crown: summer only (see LEAF)
+      o.position.set((posHash(px,pz,i+7)-.5)*1.8,h*(.72+posHash(px,pz,i+13)*.32),(posHash(px,pz,i+19)-.5)*1.8);o.scale.set(r,r*.7,r);o.rotation.y=posHash(px,pz,i+23)*TAU;tr.add(o);}}
     tr.position.set(px,heightAt(px,pz),pz);tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
     world.add(tr);addObstacle(px,pz,.4,false,heightAt(px,pz)+h);
     obstacles[obstacles.length-1].tree={h,r:.32-.18*Math.min(1,1.1/h),trunk,grp:tr};   // the trunk itself, its height and its girth at blade height: a swing marks its bark
@@ -5270,7 +5358,7 @@ function buildWorld(){
         const nb=thin?1:2+((rnd()*3)|0);
         for(let i=0;i<nb;i++){const br=new THREE.Mesh(new THREE.CylinderGeometry(r0*.12,r0*.3,rr(1.4,2.8)*(thin?.6:1),4,1),barkM);
           br.position.y=h*rr(.45,.85);br.rotation.z=rr(.5,1.1)*(rnd()<.5?1:-1);br.rotation.y=rnd()*TAU;br.translateY(.7);inner.add(br);}
-        if(rnd()>=V.bare){const nl=thin?1+((rnd()*2)|0):V.blobs[0]+((rnd()*(V.blobs[1]-V.blobs[0]+1))|0),sc=thin?1:Math.min(1.15,h/13);
+        rnd();{const nl=thin?1+((rnd()*2)|0):V.blobs[0]+((rnd()*(V.blobs[1]-V.blobs[0]+1))|0),sc=thin?1:Math.min(1.15,h/13);
           for(let i=0;i<nl;i++){const r=thin?rr(.7,1.2):rr(1.3,2.4)*sc,o=new THREE.Mesh(ICO,leafM);
             o.position.set(rr(-1.3,1.3)*sc,h*rr(.62,1.0),rr(-1.3,1.3)*sc);o.scale.set(r,r*rr(.62,.8),r);o.rotation.y=rnd()*TAU;inner.add(o);}}
         addObstacle(px,pz,thin?.22:.4,false,gy+h);obstacles[obstacles.length-1].wood=true;
@@ -5280,9 +5368,11 @@ function buildWorld(){
         let n=0;for(let i=0;i<90&&n<V.trees;i++){const px=sd*rr(f.fw+1,21),pz=zc+rr(-half,half);if(free(px,pz,1.6)&&treeAt(px,pz,false))n++;}
         n=0;for(let i=0;i<50&&n<V.saplings;i++){const px=sd*rr(2.8,f.fw+2.5),pz=zc+rr(-half,half);if(free(px,pz,.9)&&treeAt(px,pz,true))n++;}
       }
-      // undergrowth along the foot of the walls
+      // undergrowth along the foot of the walls: a clump of bare switches, and its leaves in summer
       for(let i=0;i<V.bushes;i++){const px=(rnd()<.5?1:-1)*rr(2.9,f.fw+3.5),pz=zc+rr(-half,half);if(!free(px,pz,.3))continue;
-        const r=rr(.5,1.1);add(ICO,leafM,px,heightAt(px,pz)+r*.25,pz,r*rr(1,1.4),r*.6,r*rr(1,1.4)).rotation.y=rnd()*TAU;}
+        const r=rr(.5,1.1),gy=heightAt(px,pz);add(ICO,leafM,px,gy+r*.3,pz,r*rr(1,1.4),r*.6,r*rr(1,1.4)).rotation.y=rnd()*TAU;
+        for(let k=0,n=4+((rnd()*3)|0);k<n;k++){const len=r*rr(1.1,1.7),a=rnd()*TAU,t=rr(.35,.75),sw=add(new THREE.CylinderGeometry(.012,.03,len,3,1),barkM,px,gy,pz);
+          sw.rotation.set(Math.cos(a)*t,0,Math.sin(a)*t);sw.translateY(len/2);}}
       // fallen trunks down the slopes
       for(let i=0;i<V.logs;i++){const px=(rnd()<.5?1:-1)*rr(3.4,f.fw+f.sw),pz=zc+rr(-half+2,half-2);if(!free(px,pz,.5))continue;
         const len=rr(3,6),r=rr(.14,.26),lg=add(new THREE.CylinderGeometry(r,r*1.1,len,5,1),barkM,px,heightAt(px,pz)+r*.8,pz);
@@ -5295,7 +5385,7 @@ function buildWorld(){
         addObstacle(px,pz,.7,true,gy+hh*1.1);}
       // BIRCH: the fall lying in drifts
       for(let i=0;i<V.litter;i++){const px=(rnd()<.5?1:-1)*rr(2.8,f.fw+4),pz=zc+rr(-half,half);if(!free(px,pz,.2))continue;
-        const r=rr(.6,1.3);add(ICO,leafM,px,heightAt(px,pz)+.02,pz,r*rr(1,1.6),r*.18,r*rr(1,1.6)).rotation.y=rnd()*TAU;}
+        const r=rr(.6,1.3);add(ICO,RM.litter,px,heightAt(px,pz)+.02,pz,r*rr(1,1.6),r*.18,r*rr(1,1.6)).rotation.y=rnd()*TAU;}
       // MAPLE: an old snow fence down one side of the trail, leaning, slats gone here and there
       if(V.fence&&!R.via){const sd=rnd()<.5?1:-1,fx=sd*3.3;let run=null;
         const close=()=>{if(run&&run.b)addWall(run.a[0],run.a[1],run.b[0],run.b[1],.15,false,run.y+1.1);run=null;};   // one wall a post-to-post span, not one a slat
@@ -5317,13 +5407,11 @@ function buildWorld(){
      of these trunks bites (`wood`) and leaves no mark. */
   let RAVM=null;
   const ravMats=()=>{if(RAVM)return RAVM;
-    const snowy=RUN.weather==='snow'||RUN.weather==='blizzard';
-    const leaf=c=>{const col=new THREE.Color(c);if(snowy)col.lerp(new THREE.Color(0xdfe6ee),.72);return lam({map:texCache.leaves,color:col.convertSRGBToLinear()});};
-    return RAVM={leaf:{maple:leaf(RAVINE.maple.leaf),shale:leaf(RAVINE.shale.leaf),birch:leaf(RAVINE.birch.leaf)},
+    return RAVM={leaf:{maple:leafMat(RAVINE.maple.leaf),shale:leafMat(RAVINE.shale.leaf),birch:leafMat(RAVINE.birch.leaf)},
+      litter:lam({map:texCache.leaves,color:new THREE.Color(0x8a6434).convertSRGBToLinear()}),   // last year's fall: on the ground whatever the weather
       birch:mat('birch',{color:new THREE.Color(0xa8a498).convertSRGBToLinear()}),conc:mat('concrete',{color:CONC()}),tagA:mat('tagA',{color:CONC()}),tagB:mat('tagB',{color:CONC()})};};
   // concrete is a MID grey: painted light and left white it rendered near white under a noon sun, where the real thing is weathered grey-brown
   const CONC=()=>new THREE.Color(0x9a978e).convertSRGBToLinear();
-  const ICO=new THREE.IcosahedronGeometry(1,0);
   /* THE UNDERPASS: a highway on concrete bents, the Don Valley's own. It
      comes in off one rim, swings round to run straight over the trail for
      a stretch, and swings out over the other rim — so you walk under a
@@ -5648,11 +5736,14 @@ function startTile(k){
        spot in the six-tile block (always the two before a cathedral). */
     const roll=rnd();
     if(!PATH.rav)srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x9e3779b1)^0x2b79)));
-    const R=PATH.rav||ravineStart(k,z0);
+    const cx=PATH.codex?CODEX_TILES[k]:undefined;                             // (the codex lays every kind down once, in order: see CODEX_TILES)
+    const R=PATH.rav||(PATH.codex?(cx&&cx.v?ravineStart(k,z0,cx):null):ravineStart(k,z0));
     if(R){   // a tile of a ravine run (see ravineStart)
-      t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f};R.i++;
-      if(R.i>=R.n){t.terrain=[R.f];PATH.rav=null;}                          // the run's walls go when its LAST tile goes
-    }else{t.kind=['graves','wood','ruins','hollow','causeway','chapel'][(roll*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);}
+      t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f};
+      if(R.i===0&&PATH.ravCarry){t.terrain.push(PATH.ravCarry);PATH.ravCarry=null;}   // (the run before reaches twelve metres into this tile: it goes with it)
+      R.i++;
+      if(R.i>=R.n){if(PATH.only)PATH.ravCarry=R.f;else t.terrain.push(R.f);PATH.rav=null;}   // the run's walls go when its LAST tile goes
+    }else{t.kind=typeof cx==='string'?cx:['graves','wood','ruins','hollow','causeway','chapel'][(roll*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);}
   }
   PATH.job=t;return t;
 }
@@ -5669,19 +5760,33 @@ function startTile(k){
    metres either way of its tile and needs the run's walls under all of
    it. Never through a cathedral: the run stops short of the next one. */
 const RAVINE={
-  maple:{h:5.2,fw:5.5,sw:7,  leaf:0x6a9442,bark:'bark', trees:11,saplings:6,blobs:[3,5],bare:.05,fence:true, bushes:14,logs:2,rocks:0, litter:0},
-  shale:{h:8.2,fw:4.4,sw:5.2,leaf:0x7f9e4c,bark:'bark', trees:8, saplings:8,blobs:[2,4],bare:.15,fence:false,bushes:6, logs:5,rocks:9, litter:0},
-  birch:{h:6.4,fw:6,  sw:6.5,leaf:0xd09a3c,bark:'birch',trees:10,saplings:5,blobs:[2,4],bare:.35,fence:false,bushes:5, logs:3,rocks:0, litter:10}};
-const RAV_CHANCE=.075,RAV_VIA=.6;   // (about a fifth of the path in ravines; the underpass in most runs long enough to hold one)
+  maple:{h:5.2,fw:5.5,sw:7,  leaf:0x5f8c3a,bark:'bark', trees:11,saplings:6,blobs:[3,5],bare:.05,fence:true, bushes:14,logs:2,rocks:0, litter:0},
+  shale:{h:8.2,fw:4.4,sw:5.2,leaf:0x78994a,bark:'bark', trees:8, saplings:8,blobs:[2,4],bare:.15,fence:false,bushes:6, logs:5,rocks:9, litter:0},
+  birch:{h:6.4,fw:6,  sw:6.5,leaf:0x9ab85a,bark:'birch',trees:10,saplings:5,blobs:[2,4],bare:.35,fence:false,bushes:5, logs:3,rocks:0, litter:10}};
+const RAV_CHANCE=.075,RAV_VIA=.6;
+/* the codex's path: tile 0 is the cathedral as always, then one of every
+   chunk, then the three ravines — the maple long enough to carry the
+   underpass in its middle tile. Nobody is sown on any of it. */
+const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1},'r','r',{v:'shale',n:2,via:-1},'r',{v:'birch',n:2,via:-1},'r'];   // (about a fifth of the path in ravines; the underpass in most runs long enough to hold one)
 function hash32(a){a^=a>>>16;a=Math.imul(a,0x7feb352d);a^=a>>>15;a=Math.imul(a,0x846ca68b);a^=a>>>16;return a>>>0;}
-function ravineStart(k,z0){
-  if(k<2||rnd()>=RAV_CHANCE)return null;
-  let n=2+((rnd()*4)|0),room=0;
+function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named outright)
+  if(!force&&(PATH.only?k<1:(k<2||rnd()>=RAV_CHANCE)))return null;
+  let n=force?force.n:PATH.only?3+((rnd()*3)|0):2+((rnd()*4)|0),room=0;
   for(let j=k;j<k+n&&j%PATH.cathEvery!==0;j++)room++;                       // (stop short of the next cathedral)
   n=Math.min(n,room);if(n<2)return null;
-  const v=['maple','shale','birch'][(rnd()*3)|0],V=RAVINE[v],len=n*PATH.TILE;
-  const f={t:'ravine',z0,z1:z0-len,tp:12,fw:V.fw,sw:V.sw,h:V.h,aL:rr(.8,1.15),aR:rr(.8,1.15),ph:rnd()*TAU};
-  const via=n>=3&&rnd()<RAV_VIA?1+((rnd()*(n-2))|0):-1;                     // never the first tile nor the last
+  let v=force?force.v:['maple','shale','birch'][(rnd()*3)|0];
+  if(!force&&PATH.only&&v===PATH.ravLast)v=['maple','shale','birch'].filter(x=>x!==v)[(rnd()*2)|0];   // (the ravine-only path never runs one kind into the same kind)
+  PATH.ravLast=v;
+  const V=RAVINE[v],len=n*PATH.TILE;
+  /* ON THE RAVINE-ONLY PATH the runs follow one another, and two runs
+     that each eased down to open ground would put a meadow between every
+     pair. So each reaches twelve metres PAST its own end and eases over
+     twenty-four: the next one does the same backwards, and because a
+     smoothstep and its mirror sum to exactly one, the walls cross-fade
+     from the one kind into the other with nothing lost between. */
+  const chainIn=PATH.only&&!!PATH.ravCarry,chainOut=!!PATH.only;
+  const f={t:'ravine',z0:z0+(chainIn?12:0),z1:z0-len-(chainOut?12:0),tp0:chainIn?24:12,tp1:chainOut?24:12,fw:V.fw,sw:V.sw,h:V.h,aL:rr(.8,1.15),aR:rr(.8,1.15),ph:rnd()*TAU};
+  const via=force?force.via:n>=3&&rnd()<RAV_VIA?1+((rnd()*(n-2))|0):-1;                     // never the first tile nor the last
   if(via>=0)f.h=Math.max(f.h,6.4);                                           // a bridge wants a gorge to cross
   PATH.terrain.push(f);
   return PATH.rav={v,n,i:0,via,f};
@@ -5713,7 +5818,7 @@ function stepTile(){
     BUILD.offZ=0;tileCommit(t,c,offZ);
   }else{
     // the host, sown into the queue (still in the origin's frame)...
-    BUILD.offZ=offZ;{const c=tileCapture();pathHost(w,tileBudget(k),cath);BUILD.offZ=0;tileCommit(t,c,offZ);}
+    BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex)pathHost(w,tileBudget(k),cath);BUILD.offZ=0;tileCommit(t,c,offZ);}
     // ...and in the world's own frame: the ground, the road through, a lantern or two
     const c=tileCapture(),{z0,z1,zc,len}=t;
     tileGround(t);
@@ -5753,9 +5858,10 @@ function teardownTile(t){
 }
 function initPath(){
   const z1=-(PL+STAIR_L+4);
-  PATH.tiles=[{k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false}];PATH.far=0;PATH.rav=null;
+  PATH.tiles=[{k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false}];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;
   tileGround(PATH.tiles[0]);
   buildTile(1);buildTile(2);
+  if(PATH.codex)for(let k=3;k<CODEX_TILES.length;k++)buildTile(k);   // (the codex's whole path stands from the start, and none of it is ever torn down)
 }
 function updatePath(dt){
   const pz=player.z;
@@ -5817,6 +5923,10 @@ function applyTime(name){
     worldLights.hemiBase*=(bliz?1.0:1.06)*(1-bright*(bliz?.26:.16));
     worldLights.expo*=1-bright*(bliz?.17:.1);
     worldLights.moonBase*=bliz?.25:.55;}
+  // SUMMER: the same open sky as a clear day, but the air is warm and full,
+  // the fill comes up off green ground, and the fog goes golden
+  if(RUN.weather==='summer'){RUN.fog.lerp(new THREE.Color(0xd6cc9e),name==='night'?.06:.2);
+    worldLights.hemi.color.lerp(new THREE.Color(0xf2e8bc),.22);worldLights.hemi.groundColor.lerp(new THREE.Color(0x4f6e2e),name==='night'?.15:.4);worldLights.hemiBase*=1.05;}
   worldLights.heroCol=snow?0xa9bccf:0xd9b072;worldLights.heroDim=snow?.5:1;   // (read by the frame: heroLight is not built yet at the first call)
   {const r=fogRange();if(scene.fog){scene.fog.near=r[0];scene.fog.far=r[1];}}
   if(worldLights.dust)worldLights.dust.opacity=T.dust;
@@ -5848,6 +5958,8 @@ function applyGroundSurface(){
   const w=RUN.weather;
   const snowy=w==='snow'||w==='blizzard';
   const t=w==='blizzard'?texCache.snowDeep:w==='snow'?texCache.snow:texCache.dirt;
+  if(!groundMat.userData.base)groundMat.userData.base=groundMat.color.clone();
+  groundMat.color.copy(groundMat.userData.base);if(w==='summer')groundMat.color.multiply(new THREE.Color(0xa8c882));   // the dead turf greens over in summer
   if(groundMat.map===t)return;
   t.repeat.set(w==='blizzard'?13:30,w==='blizzard'?13:30);   // deeper snow reads as bigger, longer drifts
   groundMat.map=t;groundMat.needsUpdate=true;
@@ -5863,17 +5975,18 @@ function applyGroundSurface(){
 }
 /* set the weather — clear, light rain, a storm, or snow — dropping whatever fell before */
 function setWeather(name){
-  if(!['clear','rain','storm','snow','blizzard'].includes(name))return;
+  if(!WX_NAMES.includes(name))return;
   if(WX.rain){scene.remove(WX.rain);WX.rain.geometry.dispose();WX.rain.material.dispose();WX.rain=null;WX.pts=null;WX.speeds=null;}
   WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;WX.squall=0;WX.squallT=9;WX.nextSquall=rr3(4,9);RUN.weather=name;
   AudioSys.setRain(0);
   setupWeather();
   applyTime(RUN.time);   // the sky, the fog and the light follow the weather
+  syncLeaves();          // ...and the trees come into leaf, or out of it
 }
 const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0,squall:0,nextSquall:0};
 function setupWeather(){
   applyGroundSurface();
-  if(RUN.weather==='clear')return;
+  if(RUN.weather==='clear'||RUN.weather==='summer')return;
   /* SNOW: not rain in another colour. It does not fall so much as it is
      let go of — slow, in every direction at once, and thick enough that
      the far side of the field is only a white idea. It is silent, too:
@@ -10985,6 +11098,7 @@ const player={
   takeHit(dmg,fx,fz,heavy,kind){
     if(this.state==='dead'||G.mode!=='play')return 'immune';
     if(CUT.on)return 'immune';          // not during an introduction: see CUT
+    if(CODEX.on)return 'immune';        // nor in the codex, where she is only there to be swung at
     if(this.iframes()){AudioSys.parryTick();return 'iframe';}
     if(this.hurtGrace>0)return 'immune';
     this.hp-=dmg;
@@ -12697,7 +12811,7 @@ class Enemy{
     // and twice the life, not three times: a red hollow at the old
     // multiplier would now be 285, which is not a harder fight, it is the
     // same fight held down for twice as long
-    this.red=!this.boss&&!this.mother&&(opts.red||(!this.zombie&&Math.random()<.14));
+    this.red=!this.boss&&!this.mother&&!opts.plain&&(opts.red||(!this.zombie&&Math.random()<.14));   // (`plain`: the codex's hollow is never the red one by chance)
     if(this.red){
       this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material=o.material.clone();o.material.color.setHex(0xd23c3c);}});
       this.maxHp=Math.round(this.maxHp*2.2);this.hp=this.maxHp;this.marrow=Math.round(this.marrow*2);
@@ -13079,7 +13193,7 @@ class Enemy{
          this.state!=='scatter'&&overBrink(this)>0&&
          (this.rag||this.state==='down'||this.state==='stagger'||
           Math.hypot(this.vx,this.vz)>2.6))this.plunge();
-      constrain(this,this.boss&&!DEF.on);   // (a Warden in the Mire is not held to a nave it does not have)
+      constrain(this,this.boss&&!DEF.on&&!CODEX.on);   // (a Warden in the Mire — or the codex — is not held to a nave it does not have)
       pushOut(this,this.radius);
       // don't stack on other enemies
       for(const e of enemies){
@@ -15986,7 +16100,7 @@ function cutPlay(e,shots,name,sub,then,extra){
      its whole introduction at 7 degrees — nearly ten times — and through
      the ACOG at 30. The sights come down and the lens goes back; the gun
      does not narrow it again while the scene runs (see `updateGun`). */
-  if(CUT.on||G.mode!=='play')return false;
+  if(CUT.on||G.mode!=='play'||CODEX.on)return false;   // (the codex shows the thing, not its introduction)
   FPS.adsOn=false;FPS.ads=0;FPS.zoom=0;applyFov();
   CUT.on=true;CUT.shots=shots;CUT.i=0;CUT.t=0;CUT.e=e;CUT.name=name||'';CUT.sub=sub||'';
   CUT.then=then||null;CUT.titled=false;CUT.epped=false;CUT.out=0;
@@ -16240,7 +16354,7 @@ function updateLock(){
      rule below, the follow camera's own, so the leaving, the stickiness
      and the half-second a fallen horror keeps the eye are the same
      wherever you are standing. There is no switch to turn it on. */
-  if(FPS.on&&gunHeld()){
+  if((FPS.on&&gunHeld())||G.lockAuto===false){   // (...and when the LOCK switch is off: see setAutoLock)
     G.lockTarget=null;G.lockOff=false;G.lockAwayT=0;G.lockDeadAt=undefined;G.lockRivalT=0;
     lockMarker.visible=false;return;
   }
@@ -18969,34 +19083,276 @@ function makeGrain(){
   g.style.background='url('+c.toDataURL()+')';
 }
 
+/* ---------------- THE CODEX ----------------
+   Every horror, place, weapon, armour and weather in the game, one at a
+   time, to look at and to name. `?mode=codex` (the button under the ways
+   on the title). It is the PATH with nothing sown on it: tile 0 the
+   cathedral as always, then one of each chunk and the three ravines,
+   the maple long enough for the underpass (CODEX_TILES) — all built at
+   boot and never torn down, with only the one being looked at and its
+   neighbours drawn. G.mode is 'play' throughout, because every horror's
+   AI is gated on it; what makes it a codex is four things:
+   - `codexTick` owns the input every frame (after Input.poll), so nothing
+     the player's thumbs do reaches the pilgrim — only the card's buttons;
+   - the pilgrim is IMMUNE (`takeHit` returns 'immune' on CODEX.on) and,
+     for a horror, INVISIBLE and not updated: he stands four and a half
+     metres in front of it so it has something to fight, and nothing it
+     does to him counts;
+   - `cutPlay` refuses, so a summoned boss comes on without its scene;
+   - `codexCam` replaces the follow camera: an orbit you turn with a
+     finger, that drifts round on its own when left alone.
+   The horrors are the game's own classes, made exactly as the game makes
+   them, and fight exactly as they fight; the arms and the armour are the
+   pilgrim's own rig, rebuilt, swinging at the air. LOADOUT is changed in
+   memory and never saved — leaving reloads the page. */
+const CX_STAGE={x:0,z:44,px:0,pz:48.5,hx:0,hz:47};   // (on the path's first stretch, the cathedral well behind: its stair ends at z 24.6, the soil at 61)
+const CX_WX={clear:'no weather at all. Every tree and bush stands BARE — every weather but summer is leafless, the dead of the year.',
+  summer:'the one weather in leaf: every tree and bush wears its crown, the light is warmer and yellower, the grass greener and the haze gold. The ravines are green in it; out of it they are winter wood.',
+  rain:'a pale overcast drawn over the sky and the sun, and streaks of rain living round the eye. Bare trees.',
+  storm:'a dark, lumpen cloud-roof, a greyer fog and the light down, so the bolts have something to light: the whole field flashes and the thunder comes after, late by how far off the bolt fell.',
+  snow:'light snow. The ground and the bodies whiten; every foot leaves a print in it — never on stone — and a body stands a little sunk in the drift.',
+  blizzard:'heavy snow. What walks through it ploughs a furrow behind it rather than leaving prints, and snow settles on the pilgrim.'};
+const CX_HOURS={sunrise:'the sun nine degrees up: long shadows thrown far off the feet, a cold pink sky, the lanterns still worth something.',
+  noon:'the sun high, the key light at its brightest, the ground shade nearly under the feet; a lantern hardly shows.',
+  dusk:'the sun going: a warm low light, a shade that leans a long way off every body, lanterns coming up.',
+  night:'the moon for a key light, the fog closing in, and every lantern, candle and marrow-glow at full.'};
+const CX_BLADES={sword:'the pilgrim\'s own: a long straight blade carried over the shoulder, a three-cut combo that chains into itself. The charge is chosen on the pause screen — double slash, whirlwind, earthshaker, piercing thrust, tiger blade or Thor\'s lightning.',
+  ultra:'the greatsword grown past sense: slower, every arc ending in a thud whether it lands or not, and it breaks what it meets in one blow — except the bell, which it has to ring three times like anything else.',
+  bow:'the longbow: the tap looses a shaft at the marked horror, solved as a real arc at its height. Past its range the shaft falls short. Charges: a knockback shot, a piercing shot, a bomb arrow, Thor.',
+  katana:'the quick blade: short cuts that chain fast. Charges: the iaido draw (a dash through the marked horror, up to eighteen metres), the thrust, the tiger blade, the waterfowl, the magic throw, and Thor.',
+  wand:'the wizard\'s: it never strikes. Every tap is a cast — a bubble off the rod, forehand then backhand, cast on the move — that orbits him until something is marked and then HUNTS it. Eight at most. Charges: a volley of three, one great bubble, Thor.',
+  bat:'the metal bat: blunt, so nothing is cut off. The charge is the HOME RUN — cocked behind the ear, then round flat and level, putting a head forty metres into the distance. Its finisher bursts a skeleton into eleven pieces, and a crow it meets goes flying.'};
+const CX_ARMOUR={knight:'the sculpted knight: a ridged helm with a bar down the middle, a small fur pelt on the shoulders, a teal scarf, a turned cuirass under a baldric, and a long split teal tabard of real cloth that swings over the legs.',
+  sheet:'hand-modelled after an eight-view reference sheet: a bascinet with one dark slit, a straw pelt torn to points, an olive cuirass, domed pauldrons, and a green tabard bordered in cream crosses and lilies.',
+  thief:'dark quilting, a leather jerkin, wrapped limbs, a deep hood and a full cloth cape. The thief does not roll — he DASHES, and never leaves the ground.',
+  og:'the first knight, as it was: all primitives and a hinged cape. Kept for old times.',
+  wizard:'no steel anywhere: a deep cowl drawn to a long point with nothing in it but shadow, a pale indigo robe, wrapped forearms, and a short cloak lined in warm gold. Taller than the knight, because nothing shortens him.'};
+function cxFoe(e,px,pz){enemies.push(e);e.facing=Math.atan2(px-e.x,pz-e.z);return e;}
+function cxEnemy(kind,opts){return (x,z,px,pz)=>[cxFoe(new Enemy(kind,x,z,Object.assign({spawned:true,plain:true},opts||{})),px,pz)];}
+const CODEX_CATS=[
+  {id:'horror',name:'horrors',items:[
+    {k:'hollow',name:'the hollow',ep:'the sleeping host',where:'the field · the path',make:cxEnemy('hollow'),
+      t:'a skeleton in rags with a blade: the common body of the host. In the field most of them are still in their graves and climb out when you come near; on the path they pace their posts. A telling blow bursts one into a heap of bones that drags itself back together; five greatsword swings, or one .50 round.'},
+    {k:'hollow · red',name:'the red-boned',ep:'the host, burning hotter',where:'the field · the path',make:cxEnemy('hollow',{red:true,plain:false}),
+      t:'about one in seven of the host comes up red — a hollow, a thrower or a brute alike: 2.2 times the life and twice the marrow. The same fight held down longer, and worth it.'},
+    {k:'caster',name:'the thrower',ep:'bone from a distance',where:'the field · the path',make:cxEnemy('caster'),
+      t:'a lighter skeleton that keeps about eleven metres off and lobs bone at you — half a heart a bone. It never stands still to do it: it works round you in a circle, turning its circle after every throw and whenever you close inside seven metres. On the ravine path they stand on the rims.'},
+    {k:'big',name:'the brute',ep:'the big skeleton',where:'the field · the path',make:cxEnemy('big'),
+      t:'slow, heavy and a hundred and forty life; its blows are two hearts and they break a raised guard. Every wedge of the field and every tile of the path tries to lead with one, so each has a big body in it.'},
+    {k:'crow',name:'the crow',ep:'carrion bird',where:'the field · the path',make:(x,z,px,pz)=>{const c=new Crow(x,z);c.state='roost';c.y=heightAt(x,z)+.25;return [cxFoe(c,px,pz)];},
+      t:'roosts on the soil until you come within eleven metres, then goes up and comes at you out of the air. A blade low enough reaches it; a metal bat bats it out of the field.'},
+    {k:'zombie',name:'the Drowned',ep:'what the bog keeps',where:'the house (the Mire)',make:cxEnemy('zombie'),
+      t:'the Mire\'s horror: a hollow\'s frame with the flesh still on it and the water still in it, up out of the bog. It does not much care about you: under eight metres it comes for you, further off it pushes for the house and pounds its walls.'},
+    {k:'zombie · runner',name:'the runner',ep:'thin, pale and quick',where:'the house, from round two',make:cxEnemy('zombie',{variant:'runner'}),
+      t:'never looks at the house. It only ever comes for you, at a run, and is gone in fewer blows.'},
+    {k:'zombie · hulk',name:'the hulk',ep:'waterlogged',where:'the house, from round four',make:cxEnemy('zombie',{variant:'hulk'}),
+      t:'half again the size, dark with the water, slow and unshakeable: two hundred and sixty life, blows worth a heart and a half, and three times a Drowned\'s weight against a wall.'},
+    {k:'zombie · mother',name:'the Carrion Mother',ep:'a round\'s boss',where:'the house, every fifth round',make:(x,z,px,pz)=>[cxFoe(new Enemy('zombie',x-1,z-1,{mother:true,spawned:true}),px,pz)],
+      t:'what the bog breeds, and keeps breeding: she comes up out of the water and throws off a crawler every few seconds, six at a time, whatever else she is doing.'},
+    {k:'boss',name:'the Gravewarden',ep:'at the altar',where:'the field (the nave) · the house, round four',
+      make:(x,z,px,pz)=>{const e=new Enemy('boss',x,z-1.5,{});e.mini=true;e.engaged=true;e.state='rise';e.t=0;e.rig.root.position.y=heightAt(x,z-1.5);return [cxFoe(e,px,pz)];},
+      t:'the field\'s end. It waits in the sealed cathedral until a thousand marrow opens the doors, and wakes when you step into the nave: a greatsword, three hundred and eighty life, blows worth two and a half hearts. There is no Warden on the path.'},
+    {k:'angel',name:'the Fallen One',ep:'carrion seraph, its halo cracked',where:'the field, at 800 marrow · the house',make:(x,z,px,pz)=>[cxFoe(new FallenAngel(x,z-2),px,pz)],
+      t:'comes down out of the sky once you hold eight hundred marrow. It hovers, rakes with its wings, and climbs five and a half metres to come down in a ground-pound.'},
+    {k:'ghoul',name:'the Unburied',ep:'rot-swollen thing of the grave rows',where:'the field (under a grave row) · the house',make:(x,z,px,pz)=>[cxFoe(new GraveGhoul(x,z-1),px,pz)],
+      t:'sleeps under the grave rows and erupts when you walk its row. Three moves: the RAKE of its long arm, which poisons; the RETCH, three globs of bile lobbed at you that leave puddles; and the BURROW — down into the soil, across, and up again behind you.'},
+    {k:'bell',name:'the Bell-Called',ep:'buried in three pieces',where:'the field (ring the bell three times) · the house',make:(x,z,px,pz)=>{const sk=summonBellHorror(x,z-5);return [sk];},
+      t:'a bell stands in one wedge of the field; strike it three times and this comes up: a giant skull and two bone hands, each out of its own hole. The skull is WARDED while a hand lives — a blow on it rings and does nothing — and its bar counts all three.'}]},
+  {id:'place',name:'places',items:[
+    {k:'cathedral',name:'the cathedral',ep:'the field\'s middle, and its end',where:'the field · every sixth hex of the path',tile:0,
+      t:'sealed behind a fog gate until you hold a thousand marrow; inside, the pews, the altar, and the Warden. On the path every sixth hex is one, with a back door and a stair so you walk the nave straight through — and its host waits inside the walls.'},
+    {k:'graves',name:'the grave rows',ep:'a chunk',where:'the field · the path',tile:1,
+      t:'ranks of headstones, crosses and slabs in arcs, every one facing the nave. Most of what lies here is still in its grave. A blade scores the stones, and they break.'},
+    {k:'wood',name:'the hollow wood',ep:'a chunk',where:'the field · the path',tile:2,
+      t:'three groves of dead trees, sometimes a dry stream bed bending through them. A blade marks the bark and a heavy one fells the trunk. In summer the crowns are in leaf.'},
+    {k:'ruins',name:'the ruins',ep:'a chunk',where:'the field · the path',tile:3,
+      t:'two roofless houses on a terrace with a soft scarp, and three times in four the fallen tower. Half of what is here is buried, half walks.'},
+    {k:'hollow',name:'the sunken hollow',ep:'a chunk',where:'the field · the path',tile:4,
+      t:'a bowl sunk in the ground, full of bone piles, with slabs about its rim.'},
+    {k:'causeway',name:'the causeway',ep:'a chunk',where:'the field · the path',tile:5,
+      t:'standing stones along the crest of a raised ridge, one of them fallen. Nothing waits under it; what is here is on its feet.'},
+    {k:'chapel',name:'the roofless chapel',ep:'a chunk',where:'the field · the path',tile:6,
+      t:'three walls on a terrace, a lancet still lit from within, a candle stand burning and four graves before its door.'},
+    {k:'ravine · maple',name:'the maple cut',ep:'a ravine',where:'the path (now and then) · the ravine',tile:7,look:'ravine',
+      t:'two to five tiles where the land rises on both sides into wooded walls and the flagstones give way to crushed gravel. The gentle one: undergrowth at the foot of the walls, a couple of fallen trunks, and an old snow fence leaning down one side of the trail.'},
+    {k:'ravine · shale',name:'the shale gully',ep:'a ravine',where:'the path (now and then) · the ravine',tile:10,look:'ravine',
+      t:'narrow and deep, the walls steep and broken by flat ledges of grey rock, logs down the slopes, thinner trees and more of them close to the trail.'},
+    {k:'ravine · birch',name:'the birch fall',ep:'a ravine',where:'the path (now and then) · the ravine',tile:12,look:'ravine',
+      t:'pale birches, a third of them bare before the rest, the fall lying in drifts on the gravel.'},
+    {k:'ravine · via',name:'the underpass',ep:'the highway overhead',where:'a ravine three tiles long or more',tile:8,look:'via',
+      t:'a concrete viaduct on tall bents that comes in off one rim, swings round over the trail and out over the other: a receding row of the same frame, the deck twelve to fourteen metres up. A column that would stand on the trail is left out. The feet you can walk up to are painted — a flower with a face, a red disc, a grinning portrait, tags.'}]},
+  {id:'arms',name:'arms',items:[]},
+  {id:'armour',name:'armour',items:[]},
+  {id:'sky',name:'weather',items:[]}];
+function cxFill(){   // (the rest is read off the game's own tables, at open, so it can never go out of date)
+  const A=CODEX_CATS[2].items,R=CODEX_CATS[3].items,W=CODEX_CATS[4].items;if(A.length)return;
+  for(const [k,n] of HERO_OPTS.weapon){const g=isGunKey(k)?GUNS.find(q=>q.key===k):null;
+    A.push({k:'weapon:'+k,w:k,name:n,ep:g?'a gun · '+g.mag+' in the '+(g.key==='spas'?'tube':g.key==='rpg'?'tube':'magazine')+(g.auto?' · automatic':''):k==='wand'?'a wand':k==='bow'?'a bow':k==='bat'?'a club':'a blade',where:'the pause screen · the house\'s shop',t:g?g.note:CX_BLADES[k]||''});}
+  for(const [k,n] of HERO_OPTS.armour)R.push({k:'armour:'+k,a:k,name:n,ep:'armour',where:'the pause screen',t:CX_ARMOUR[k]||''});
+  for(const k of WX_NAMES)W.push({k:'wx='+k,wx:k,name:cxWxName(k),ep:'weather',where:'the seed · the pause screen · ?wx='+k,t:CX_WX[k]||''});
+  for(const k of ['sunrise','noon','dusk','night'])W.push({k:'time='+k,hr:k,name:k,ep:'the hour',where:'the seed · the pause screen · ?time='+k,t:CX_HOURS[k]||''});
+}
+function cxWxName(k){return {clear:'clear',summer:'summer',rain:'rain',storm:'storm',snow:'snow',blizzard:'blizzard'}[k]||k;}
+// only the tile being looked at and its two neighbours are drawn: a frustum does not know about fog
+function cxTiles(k0){for(const t of PATH.tiles){if(!t||!t.k)continue;const v=Math.abs(t.k-k0)<=1;
+  for(const o of t.objsW)o.visible=v;for(const o of t.objsS)o.visible=v;if(t.ground)t.ground.visible=v;}}
+function cxClear(){
+  for(const e of enemies){if(e.burnT>0||e.flames)dowseFlames(e);clearWounds(e);if(e.rig&&e.rig.root)scene.remove(e.rig.root);}
+  enemies.length=0;CODEX.spec=[];G.lockTarget=null;
+}
+function codexShow(ci,i){
+  const C=CODEX,nc=CODEX_CATS.length;ci=(ci+nc)%nc;const cat=CODEX_CATS[ci];i=(i+cat.items.length)%cat.items.length;
+  const was=C.cat+':'+(C.hero?'h':C.place?'p':'s');C.cat=ci;C.i=i;const it=cat.items[i],P=player;
+  cxClear();C.hero=false;C.place=null;C.zoom=1;C.idleT=0;
+  let stats='';
+  if(cat.id==='horror'){
+    cxTiles(0);C.px=CX_STAGE.px;C.pz=CX_STAGE.pz;P.x=C.px;P.z=C.pz;P.facing=Math.PI;
+    C.spec=it.make(CX_STAGE.x,CX_STAGE.z,C.px,C.pz);C.yaw=.6;C.pitch=.2;
+    const e=C.spec[0];if(e){const bits=[];bits.push('life <b>'+Math.round(e.maxHp||e.hp||0)+'</b>');
+      if(e.dmg)bits.push('a blow <b>'+(e.dmg/HEART)+'</b> heart'+(e.dmg===HEART?'':'s'));if(e.speed)bits.push('pace <b>'+e.speed+'</b>');if(e.marrow)bits.push('marrow <b>'+e.marrow+'</b>');stats=bits.join(' &middot; ');}
+  }else if(cat.id==='place'||cat.id==='sky'){
+    if(it.wx){setWeather(it.wx);}else if(it.hr){applyTime(it.hr);RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[it.hr];}
+    const k=cat.id==='sky'?2:it.tile,t=PATH.tiles[k];cxTiles(k);
+    if(k===0){C.place=new THREE.Vector3(0,heightAt(0,10)+3,4);C.base=40;C.pitch=.42;C.yaw=.7;}
+    else{const zc=t.zc,gy=heightAt(0,zc);
+      if(it.look==='via'){C.place=new THREE.Vector3(0,gy+5.5,zc);C.base=24;C.pitch=.1;C.yaw=.12;}
+      else if(it.look==='ravine'){C.place=new THREE.Vector3(0,gy+2.5,zc);C.base=24;C.pitch=.3;C.yaw=.2;}
+      else{C.place=new THREE.Vector3(0,gy+1.5,zc);C.base=23;C.pitch=.44;C.yaw=Math.PI+.55;}}   // (from the north: from the south the lens backs into the cathedral's stair)
+    P.x=C.place.x;P.z=C.place.z;C.px=P.x;C.pz=P.z;
+    stats=cat.id==='sky'?'now: <b>'+cxWxName(RUN.weather)+'</b> &middot; <b>'+RUN.time+'</b>':'';
+  }else{
+    cxTiles(0);C.hero=true;
+    if(it.w){LOADOUT.weapon=it.w;}else if(it.a){LOADOUT.armour=it.a;}
+    P.x=CX_STAGE.hx;P.z=CX_STAGE.hz;P.state='free';P.t=0;P.rebuild();P.facing=0;
+    if(it.w){gunOf();gunSwapped();if(gunHeld()){const g=gunOf();setRes(g,400);}}
+    C.yaw=.5;C.pitch=.16;C.auto=true;C.demoT=1.1;C.fire=0;C.holdT=0;
+    stats='carrying <b>'+(HERO_OPTS.weapon.find(o=>o[0]===LOADOUT.weapon)||['',LOADOUT.weapon])[1]+'</b> &middot; wearing <b>'+(HERO_OPTS.armour.find(o=>o[0]===LOADOUT.armour)||['',LOADOUT.armour])[1]+'</b>';
+  }
+  C.snap=was!==C.cat+':'+(C.hero?'h':C.place?'p':'s')||!!C.place;
+  // the card
+  $('cxEp').textContent=it.ep||'';$('cxName').textContent=it.name;
+  $('cxKey').textContent=it.k+(it.where?'  ·  '+it.where:'');
+  $('cxText').textContent=it.t||'';$('cxText').scrollTop=0;$('cxStats').innerHTML=stats;
+  $('cxNum').textContent=(i+1)+' / '+cat.items.length;
+  const acts=$('cxActs');acts.innerHTML='';
+  const act=(label,fn)=>{const d=document.createElement('div');d.textContent=label;d.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();cxAudio();fn();});acts.appendChild(d);};
+  if(cat.id==='horror')act('again',()=>codexShow(C.cat,C.i));
+  if(C.hero){const gun=gunHeld();
+    act(gun?'fire':LOADOUT.weapon==='wand'?'cast':'strike',()=>{C.fire=1;C.auto=false;});
+    act(gun?'hold':'charge',()=>{C.holdT=gun?.9:1.0;C.auto=false;});
+    if(gun)act('reload',()=>{C.reload=1;C.auto=false;});
+    act('auto',()=>{C.auto=true;C.demoT=.2;});}
+  // the tabs and the list
+  const tabs=$('cxTabs');tabs.innerHTML='';
+  CODEX_CATS.forEach((c,j)=>{const d=document.createElement('div');d.textContent=c.name;if(j===ci)d.className='on';
+    d.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();cxAudio();codexShow(j,0);});tabs.appendChild(d);});
+  const list=$('cxList');list.innerHTML='';
+  cat.items.forEach((q,j)=>{const d=document.createElement('div');d.textContent=q.name;if(j===i)d.className='on';
+    d.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();cxAudio();codexShow(ci,j);});list.appendChild(d);});
+  const on=list.children[i];if(on&&on.scrollIntoView)try{on.scrollIntoView({block:'nearest'});}catch(e){}
+}
+function cxAudio(){if(!CODEX.sound){CODEX.sound=true;try{AudioSys.start();AudioSys.layersStart();}catch(e){}}}
+function codexTick(dt){
+  const C=CODEX,P=player;
+  IN.mx=0;IN.mz=0;IN.camDX=0;IN.camDY=0;IN.swipe=null;IN.firePressed=false;IN.fireHeld=false;IN.chargeHeld=false;IN.chargeRelease=false;
+  IN.interactPressed=false;IN.anyPressed=false;IN.reloadPressed=false;IN.swapPressed=false;IN.adsTap=false;IN.adsHeld=false;IN.adsRelease=false;IN.zoomPressed=false;IN.pickGun=-1;
+  P.hp=P.maxHp;G.lockAuto=false;
+  if(C.hero){
+    if(P.rig)P.rig.root.visible=true;
+    G.camYaw=Math.PI;   // (a strike with nothing marked goes where the eye looks: this one looks south, so he swings at the lens, not away from it)
+    if(C.auto){C.demoT-=dt;if(C.demoT<=0){C.demoT=2.3;C.fire=1;}}
+    if(C.fire){IN.firePressed=true;C.fire=0;}
+    if(C.holdT>0){C.holdT-=dt;IN.chargeHeld=C.holdT>0;}
+    if(C.reload){IN.reloadPressed=true;C.reload=0;}
+    if(P.state==='free'&&Math.hypot(P.x-CX_STAGE.hx,P.z-CX_STAGE.hz)>2.5){P.x=CX_STAGE.hx;P.z=CX_STAGE.hz;P.facing=0;}   // (a combo lunges: after a few he is put back on his mark)
+  }else{
+    if(P.rig)P.rig.root.visible=false;
+    P.x=C.px;P.z=C.pz;P.vx=0;P.vz=0;
+  }
+}
+function codexCam(dt){
+  const C=CODEX;let d=C.base;
+  if(C.hero){C.want.set(player.x,heightAt(player.x,player.z)+1.1,player.z);d=4.3;}
+  else if(C.place){C.want.copy(C.place);d=C.base;}
+  else{const e=C.spec[0];
+    if(e&&e.rig){const lo=foeY(e),hi=markY(e);C.want.set(e.x,(lo+hi)/2,e.z);d=e.hands?12:Math.max(3.6,Math.min(15,(hi-lo)*2.3+1.2));}   // (the Bell-Called is three things across six metres)
+    else C.want.set(CX_STAGE.x,heightAt(CX_STAGE.x,CX_STAGE.z)+1,CX_STAGE.z);}
+  if(C.snap){C.focus.copy(C.want);C.dist=d*C.zoom;C.snap=false;}
+  C.focus.lerp(C.want,1-Math.exp(-dt*3.5));
+  C.dist=lerp(C.dist,d*C.zoom,1-Math.exp(-dt*5));
+  if(!C.drag&&C.pts.size===0){C.idleT+=dt;if(C.idleT>2.5)C.yaw+=dt*.14*Math.min(1,(C.idleT-2.5));}
+  const cp=Math.cos(C.pitch);
+  camera.position.set(C.focus.x+Math.sin(C.yaw)*cp*C.dist,C.focus.y+Math.sin(C.pitch)*C.dist,C.focus.z+Math.cos(C.yaw)*cp*C.dist);
+  const gy=heightAt(camera.position.x,camera.position.z)+.35;if(camera.position.y<gy)camera.position.y=gy;
+  camera.lookAt(C.focus);
+}
+function codexOpen(){
+  CODEX.on=true;cxFill();
+  document.body.classList.add('codex');
+  G.mode='play';G.lockAuto=false;$('title').style.display='none';$('fade').style.opacity=0;
+  applyFov();
+  codexShow(0,0);
+  const D=$('cxDrag'),C=CODEX;
+  const pinch=()=>{const a=[...C.pts.values()];return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
+  D.addEventListener('pointerdown',e=>{e.preventDefault();cxAudio();C.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});try{D.setPointerCapture(e.pointerId);}catch(_){}
+    C.drag=C.pts.size===1?{x:e.clientX,y:e.clientY}:null;C.pd=pinch();C.idleT=0;});
+  D.addEventListener('pointermove',e=>{const p=C.pts.get(e.pointerId);if(!p)return;p.x=e.clientX;p.y=e.clientY;C.idleT=0;
+    if(C.pts.size>=2){const pd=pinch();if(C.pd>0&&pd>0)C.zoom=clamp(C.zoom*C.pd/pd,.35,2.6);C.pd=pd;return;}
+    if(C.drag){const s=VIEW.sens||1;C.yaw-=(e.clientX-C.drag.x)*.0085*s;C.pitch=clamp(C.pitch+(e.clientY-C.drag.y)*.006*s,-.08,1.35);C.drag.x=e.clientX;C.drag.y=e.clientY;}});
+  const up=e=>{C.pts.delete(e.pointerId);C.drag=null;C.pd=pinch();C.idleT=0;};
+  D.addEventListener('pointerup',up);D.addEventListener('pointercancel',up);D.addEventListener('lostpointercapture',up);
+  D.addEventListener('wheel',e=>{e.preventDefault();C.zoom=clamp(C.zoom*Math.exp(e.deltaY*.0012),.35,2.6);C.idleT=0;},{passive:false});
+  $('cxPrev').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cxAudio();codexShow(C.cat,C.i-1);});
+  $('cxNext').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();cxAudio();codexShow(C.cat,C.i+1);});
+  $('cxExit').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();codexExit();});
+  addEventListener('keydown',e=>{if(!CODEX.on||e.repeat)return;
+    if(e.code==='ArrowRight')codexShow(C.cat,C.i+1);else if(e.code==='ArrowLeft')codexShow(C.cat,C.i-1);
+    else if(e.code==='ArrowDown')codexShow(C.cat+1,0);else if(e.code==='ArrowUp')codexShow(C.cat-1,0);
+    else if(e.code==='Space'&&C.hero){C.fire=1;C.auto=false;}});
+}
+function codexExit(){gotoMode('');}
+
 /* ---------------- boot & main loop ---------------- */
 function begin(){
   if(G.mode!=='title')return;
   AudioSys.start();AudioSys.layersStart();   // no theme: wind, the three layers, and the Warden's drone
-  G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');$('povBtn').classList.add('on');
+  G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');$('povBtn').classList.add('on');$('lockBtn').classList.add('on');
   $('title').style.display='none';
   $('hud').style.display='block';
   $('fade').style.opacity=0;
   const el=document.documentElement;
   if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
-  bannerShow(DEF.on?'THE MIRE':'THE BONE PATH',DEF.on?'hold the house':'walk it to its end');
+  bannerShow(DEF.on?'THE MIRE':PATH.only?'THE RAVINE':'THE BONE PATH',DEF.on?'hold the house':'walk it to its end');
   if(DEF.on)defStart();
 }
 // the two ways: the field, or the path — a mode is a page (the world is built for one at load), so choosing the other reloads into it
 function gotoMode(m){const u=new URL(location.href);if(m)u.searchParams.set('mode',m);else u.searchParams.delete('mode');location.href=u.toString();}
 $('modeField').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(PATH.on)gotoMode('');else begin();});
-$('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on)gotoMode('path');else begin();});
+$('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on||PATH.only)gotoMode('path');else begin();});
+$('modeRavine').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.only)gotoMode('ravine');else begin();});
 $('modeDefend').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!DEF.on)gotoMode('defend');else begin();});
+$('codexBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();gotoMode('codex');});
 $('title').addEventListener('pointerdown',begin);   // (a touch anywhere else begins the way the page is set to)
 // first person is not a third way: it is a switch inside either, by the pause button
 // the cutscene's own catcher: any touch anywhere over it ends the scene
 $('cineCatch').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(CUT.on)cutEnd();});
 addEventListener('keydown',e=>{if(CUT.on&&!e.repeat)cutEnd();});
+addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&G.mode==='play'&&!G.paused)setAutoLock(!G.lockAuto);});   // (T on a keyboard)
 $('povBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(G.mode==='play'&&!G.paused)setPov(!FPS.on);});
+/* THE AUTO-LOCK SWITCH. The eye takes the nearest horror on its own, and
+   when you mean to run a pack past rather than fight it, that is the eye
+   pulling the camera round onto things you are leaving behind. Off, the
+   eye holds nothing at all — no mark, no lock-facing, no camera on a foe —
+   until it is switched back. Remembered by the browser (`bp_lock`). */
+function setAutoLock(on){G.lockAuto=on;try{localStorage.setItem('bp_lock',on?'1':'0');}catch(e){}
+  $('lockBtn').classList.toggle('off',!on);$('lockBtn').textContent=on?'LOCK':'FREE';}
+try{G.lockAuto=localStorage.getItem('bp_lock')!=='0';}catch(e){G.lockAuto=true;}
+setAutoLock(G.lockAuto!==false);
+$('lockBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(G.mode==='play'&&!G.paused)setAutoLock(!G.lockAuto);});
 
 buildTextures();
 buildWorld();
-$(PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
+$(PATH.only?'modeRavine':PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
 try{const b=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');if(b.round)$('bestDef').textContent='best \u00b7 round '+b.round+' held';}catch(e){}
 if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
@@ -19016,7 +19372,7 @@ resize();
 { // the view he last played in, remembered by the browser; the URL can ask for it too (?pov=1)
   let pov=false;try{pov=localStorage.getItem('bp_pov')==='1';}catch(e){}
   const q=new URL(location.href).searchParams.get('pov');if(q!==null)pov=q==='1';
-  if(pov)setPov(true);
+  if(pov&&!PATH.codex)setPov(true);
 }
 
 // the pilgrim carries their own light: a soft warm halo, souls-fashion,
@@ -19231,8 +19587,8 @@ document.querySelectorAll('#pause .arrow:not(.fld)').forEach(el=>el.addEventList
 /* the field's testing controls: the hour and the weather changed under the
    game, the effects and the music switched, and any seed's field reached
    by its number */
-const HOUR_LIST=['sunrise','noon','dusk','night'],WX_LIST=['clear','rain','storm','snow','blizzard'];
-const wxLabel=()=>({storm:'a storm',rain:'light rain',snow:'snowfall',blizzard:'a blizzard'})[RUN.weather]||'clear';
+const HOUR_LIST=['sunrise','noon','dusk','night'],WX_LIST=WX_NAMES;
+const wxLabel=()=>({storm:'a storm',rain:'light rain',snow:'snowfall',blizzard:'a blizzard',summer:'summer'})[RUN.weather]||'clear';
 function cycleField(k,d){
   if(k==='hour'){const i=(HOUR_LIST.indexOf(RUN.time)+d+4)%4;applyTime(HOUR_LIST[i]);}
   else if(k==='weather'){const i=(WX_LIST.indexOf(RUN.weather)+d+WX_LIST.length)%WX_LIST.length;setWeather(WX_LIST[i]);}
@@ -19353,7 +19709,7 @@ function frame(now){
   requestAnimationFrame(frame);
   perfTick(now);
   let dt=Math.min(.05,(now-last)/1000);last=now;
-  if(IN.pausePressed){IN.pausePressed=false;if(DEF.shopOpen)setShop(false);else setPaused(!G.paused);}
+  if(IN.pausePressed){IN.pausePressed=false;if(CODEX.on)codexExit();else if(DEF.shopOpen)setShop(false);else setPaused(!G.paused);}
   /* THE PAUSE SCREEN IS NOT A GAME. It used to render the whole field
      under the panel at sixty a second, which is the same heat as playing
      for a screen that does not move. Every fifth frame is twelve a second,
@@ -19387,7 +19743,8 @@ function frame(now){
     updateMarrow(wdt);                                         // and the marrow in the air, or lying where it fell
     if(G.mode==='play'){
       if(IN.swipe)$('swipeHint').style.opacity=0;
-      player.update(wdt);
+      if(CODEX.on)codexTick(wdt);                              // (the codex holds the input: see THE CODEX)
+      if(!CODEX.on||CODEX.hero)player.update(wdt);
       syncGunUi();
       if(gunHeld())updateGun(wdt);                             // the gun: the trigger, the sights, the reload — in either view
       bladeTrail.update(wdt);                                 // the blade's ribbon, off the rig as posed this frame
@@ -19407,7 +19764,7 @@ function frame(now){
       pruneFallen();
       lodUpdate();                                            // ...and the far bodies down to three boxes each — see THE FAR RIGS
       shadeRigs();                                            // every body's shade: on the soil, and leaning with the hour
-      if(PATH.on)updatePath(wdt);else if(DEF.on)updateDefend(wdt);
+      if(PATH.on){if(!CODEX.on)updatePath(wdt);}else if(DEF.on)updateDefend(wdt);
     }else{
       player.t+=wdt;
       /* WHOEVER PUTS THE BODY DOWN, PUTS IT DOWN. This used to end by
@@ -19485,7 +19842,8 @@ function frame(now){
     if(l.haze.visible){l.haze.position.copy(l.position);l.haze.material.color.copy(l.color);
       l.haze.material.opacity=.1+.06*l.intensity;}
   }
-  if(CUT.on)updateCut(dt);
+  if(CODEX.on)codexCam(dt);
+  else if(CUT.on)updateCut(dt);
   else if(FPS.on&&G.mode==='play'&&player.state!=='dead')updateFpsCamera(dt);else updateCamera(dt);
 
   grainT+=dt;
@@ -19496,11 +19854,13 @@ function frame(now){
   clipWarmTick();
   Input.consume();
 }
+if(PATH.codex)codexOpen();   // (the codex has no title: it opens on the first horror)
 requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
+window.BP={CODEX,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

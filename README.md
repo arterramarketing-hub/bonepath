@@ -520,8 +520,13 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 - **Right thumb, hold & drag** — turn the camera. All four of these are
   the same behind the eyes with a blade in hand: the thumb is the thumb,
   in either view.
-- **The eye never closes** — lock-on is automatic and buttonless, in
-  either view: the
+- **The eye never closes** — lock-on is automatic, in
+  either view — unless you close it: the **LOCK** button beside the
+  view switch (or **T** on a keyboard) turns the auto-lock off, and it
+  reads **FREE** while it is: no mark, no turning to face a horror, no
+  camera swung onto one — for running a pack past rather than fighting
+  it. Tap it again to open the eye. The browser remembers which. With
+  the eye open, the
   closest live horror is always marked (skeletons still clawing out of
   the ground don't count until they're up). When the marked one falls,
   the eye stays on it for half a second — the camera holds and you watch
@@ -1198,8 +1203,17 @@ them the seed decides:
   loudest things in the field by a distance, are pulled down harder still
   on top of that: the rain bed by nearly half, and every layer of the
   thunder by half.
-- **the weather** — clear (three in seven), light rain, a storm, snow, or
-  a blizzard.
+- **the weather** — clear, summer (a quarter of runs each), light rain,
+  a storm, snow, or a blizzard.
+  **Summer is the only weather in leaf.** Every tree and every bush in
+  the game — the field's groves, the path's woods, the ravines' tall
+  trunks and saplings and undergrowth — stands BARE in every other
+  weather, and wears its crown in summer: a few low-poly clumps of leaf
+  per tree, green in the maple cut, paler in the shale, yellow-green in
+  the birch. Summer also warms the light and the haze toward gold and
+  greens the grass. A fallen crown still lies on the ravine floor in any
+  season: it is the fall, and it is always there. Switching the weather
+  on the pause screen puts the leaves on or takes them off at once.
   Rain is a cloud of streaks that lives round the camera and falls
   through it, with its own hiss and patter under the wind; a storm has
   nine hundred of them, and every five to fourteen seconds a bolt: the
@@ -1596,12 +1610,12 @@ corridor that has been torn down behind her.
 
 ## The path — survival
 
-The title screen offers two ways, and a third that is only a note.
-**The field** is the game above. **FPS mode** is a placeholder: the
-button opens a description of a first-person revolver mode that is not
-built; its plan is in `docs/FPS_MODE_PLAN.md`, and a brief for an
-importable hero model made outside the game is in
-`docs/HERO_MODEL_BRIEF.md`. **The path** is survival: instead of the one hexagon, a chain of hex
+The title screen offers four ways — the field, the path, the ravine
+(path two, below) and the house — with the codex under them.
+**The field** is the game above. (The old first-person plan is in
+`docs/FPS_MODE_PLAN.md` and a brief for an importable hero model in
+`docs/HERO_MODEL_BRIEF.md`; first person itself is now a switch inside
+every way, see *First person*.) **The path** is survival: instead of the one hexagon, a chain of hex
 tiles laid end to end northward, without end — each an authored chunk
 (the grave rows, the wood, the ruins, a hollow, a causeway, a chapel)
 on its own seeded ground shape, with a road through, a lantern or two,
@@ -1645,16 +1659,28 @@ overhead, thin saplings crowding the path's edges — and the flagstones
 give way to a trail of crushed pale gravel. The walls run on unbroken
 from one tile to the next and ease in and out only at the ravine's two
 ends. It comes in three kinds:
-- **the maple cut** — summer green, gentle walls, undergrowth along the
+- **the maple cut** — gentle walls, undergrowth along the
   foot of them, a couple of fallen trunks, and an old snow fence down
   one side of the trail, leaning, a slat gone here and there;
 - **the shale gully** — narrow and deep, the walls steep and broken by
   ledges of grey rock bedded flat, fallen logs down the slopes, thinner
   trees and more of them close to the trail;
-- **the birch fall** — pale birches, their leaves turned yellow and
-  going, a third of the trees already bare, the fall lying in drifts.
+- **the birch fall** — pale birches, a third of them bare before the
+  rest, the fall lying in drifts on the gravel.
+The crowns are **summer's alone**: in any other weather the ravines are
+winter wood, trunks and bare switches standing over a trail of fallen
+leaves (see *summer*, under the weather).
 Horror-wise it is walked ground: patrols and pairs on the trail and
 throwers up on the rims looking down.
+
+**The ravine — path two.** A way of its own on the title: the path with
+nothing but its ravines, one run straight into the next, three to five
+tiles each, never the same kind twice in a row, and no cathedral after
+the one you start at. Each run reaches twelve metres past its own end
+and eases over twenty-four, and the next eases in over the same ground
+backwards, so the walls cross-fade from one kind into the next with no
+meadow between. The underpass comes over now and then as it does on the
+path, and the goal is the same six thousand marrow. `?mode=ravine`.
 
 **The underpass.** A ravine three tiles long or more usually carries a
 highway across it: a concrete viaduct on tall bents that comes in off
@@ -1766,6 +1792,43 @@ sound of soil giving way: a long low rumble that *swells* rather than starts
 crumbling off it the whole way, and three heaves audible in it, the two that
 fail and the one that does not. The earth keeps breaking around it until it
 is out.
+
+## The codex
+
+**Every horror, place, weapon, armour and weather in the game, one at a
+time, to look at and to name.** Under the four ways on the title is
+**the codex** (`?mode=codex`). It opens on a lens you turn with a finger
+(drag to turn, pinch or the wheel for nearer and further; left alone it
+drifts round on its own), a list down the left, and a card: the thing's
+name, the KEY the game knows it by (the word to use when asking for a
+change to it), where it is met, what it does, and — for a horror — its
+life, the weight of its blow in hearts, its pace and its marrow. Five
+sections across the top:
+
+- **horrors** — the hollow, the red-boned, the thrower, the brute, the
+  crow, the Drowned and its runner and hulk, the Carrion Mother, the
+  Gravewarden, the Fallen One, the Unburied and the Bell-Called. Each is
+  the game's own, made the way the game makes it and fighting the way it
+  fights: an invisible pilgrim stands four and a half metres in front of
+  it so it has something to swing at, and nothing it does to him counts.
+  So you see it come up out of the ground, close, wind up and strike —
+  the Mother breeding, the Fallen One diving, the Bell-Called's hands
+  slamming. **again** calls it up fresh. No boss's introduction plays.
+- **places** — the cathedral, the six chunks (the grave rows, the hollow
+  wood, the ruins, the sunken hollow, the causeway, the roofless chapel),
+  the three ravines and the underpass, each seen from above and turning.
+  The world behind the codex is the path laid out once with every kind
+  of hex on it and nobody sown, always the same seed.
+- **arms** — every weapon on the pilgrim, swinging or firing at the air
+  every couple of seconds; **strike**, **charge** (for a gun, **hold**
+  the trigger), **reload**, and **auto** to go back to the demonstration.
+- **armour** — the five suits, worn.
+- **weather** — the six weathers and the four hours, put over the hollow
+  wood so summer's leaves show. An hour keeps the weather and a weather
+  keeps the hour.
+
+Nothing in it is saved: the loadout it dresses him in is the codex's
+alone, and **×** (or Esc) goes back to the title.
 
 ## The house — defender
 
