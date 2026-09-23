@@ -2340,6 +2340,19 @@ const AudioSys=(()=>{
     tone(t+.03,{f:rr2(1500,1800),f2:2600,type:'triangle',peak:.012*w,att:.012,dec:.08});
     noise(t+.005,{peak:.05*w,att:.03,dec:.1,f0:420,f1:260,type:'bandpass',Q:1.1});    // only the faintest body to it
   }
+  /* THE BAT GOING THROUGH AIR. Not a blade's edge and not a slab's mass:
+     a HOLLOW TUBE. What you hear is the air rushing past a round barrel —
+     a whoosh with a hollow, tonal core that falls as it goes by (the open
+     end of the tube sounding), and a mid body the greatsword does not
+     have, because an aluminium barrel is thin-walled and rings a little
+     even in the air. No high hiss: nothing on it is sharp. */
+  function batCut(t,w){
+    w=w||1;
+    noise(t,{peak:.22*w,att:.05,dec:.18,f0:320,f1:1300,type:'bandpass',Q:2.2});      // the barrel sweeping through
+    noise(t+.035,{peak:.12*w,att:.03,dec:.14,f0:1500,f1:600,type:'bandpass',Q:2.6});  // and the air closing behind it
+    tone(t+.02,{f:rr2(820,940),f2:rr2(430,500),type:'sine',peak:.05*w,att:.03,dec:.16});   // the tube's own hollow note, falling past
+    tone(t+.01,{f:140,f2:90,type:'sine',peak:.06*w,att:.04,dec:.16});                // a little weight behind it
+  }
   function elemSwing(el,t,w){
     if(!el)return;
     if(el==='fire'){
@@ -2716,6 +2729,7 @@ const AudioSys=(()=>{
     // the whistle — the mass reads in the low end
     swing(el,blade){const t=now();
       if((blade||BLADE)==='katana'){katanaCut(t,1);elemSwing(el,t,.8);return;}
+      if((blade||BLADE)==='bat'){batCut(t,1);elemSwing(el,t,.9);return;}
       noise(t,{peak:.26,att:.06,dec:.22,f0:180,f1:1500,type:'bandpass',Q:1.4});
       noise(t+.03,{peak:.14,att:.04,dec:.16,f0:2200,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:80,f2:40,type:'sine',peak:.16,att:.04,dec:.24});
@@ -2724,10 +2738,43 @@ const AudioSys=(()=>{
       elemSwing(el,t,1);},
     heavySwing(el,blade){const t=now();
       if((blade||BLADE)==='katana'){katanaCut(t,1.25);elemSwing(el,t,1);return;}
+      if((blade||BLADE)==='bat'){batCut(t,1.3);elemSwing(el,t,1.1);return;}
       noise(t,{peak:.24,att:.09,dec:.24,f0:280,f1:1500,type:'bandpass',Q:1.6});
       noise(t+.04,{peak:.14,att:.05,dec:.2,f0:1900,f1:500,type:'bandpass',Q:1.2});
       tone(t,{f:110,f2:70,type:'sine',peak:.1,att:.06,dec:.3});
       elemSwing(el,t,1.3);},
+    /* ALUMINIUM ON BONE. The bat's blow is the one weapon in the game that
+       RINGS on a body: a thin-walled tube struck near its sweet spot sings
+       a bright INHARMONIC chord (1 : 1.64 : 2.69, nothing like a series,
+       or it would be a bell) over a dull knock of the impact, and the
+       ring is short — a quarter of a second — or it reads as a gong. It
+       sits UNDER the bone crunch `smack` plays; this is the steel's half. */
+    batPing(heavy){if(!ac)return;const t=now(),w=heavy?1.25:1,f=rr2(1380,1520);
+      noise(t,{peak:.2*w,att:.0006,dec:.03,f0:3800,f1:900,type:'bandpass',Q:1});      // the strike itself
+      tone(t,{f:190,f2:120,type:'sine',peak:.12*w,att:.001,dec:.07});                 // the knock of the body it met
+      tone(t+.001,{f:f,f2:f*.985,type:'triangle',peak:.07*w,att:.001,dec:.26*w});      // the barrel rings
+      tone(t+.002,{f:f*1.64,f2:f*1.62,type:'sine',peak:.04*w,att:.001,dec:.19*w});
+      tone(t+.003,{f:f*2.69,f2:f*2.66,type:'sine',peak:.022*w,att:.001,dec:.12*w});},
+    /* THE HOME RUN. The ping taken all the way: a crack with no attack at
+       all, the ring held three times as long and louder than any blow, a
+       thump of the whole body going with it — and then the head going
+       AWAY, a thin whistle falling in pitch and level over two seconds as
+       it sails out of the field. */
+    homeRun(){if(!ac)return;const t=now(),f=rr2(1420,1480);
+      noise(t,{peak:.42,att:.0004,dec:.05,f0:5200,f1:1100,type:'bandpass',Q:.9});     // the crack
+      noise(t+.004,{peak:.2,att:.002,dec:.14,f0:900,f1:200});                          // the air thrown off it
+      tone(t,{f:120,f2:48,type:'sine',peak:.28,att:.002,dec:.34});                     // the whole body going
+      tone(t+.001,{f:f,f2:f*.99,type:'triangle',peak:.13,att:.001,dec:.85});           // THE PING, and it holds
+      tone(t+.002,{f:f*1.64,f2:f*1.63,type:'sine',peak:.08,att:.001,dec:.62});
+      tone(t+.003,{f:f*2.69,f2:f*2.67,type:'sine',peak:.045,att:.001,dec:.4});
+      tone(t+.004,{f:f*4.05,f2:f*4.0,type:'sine',peak:.018,att:.001,dec:.22});
+      tone(t+.18,{f:1650,f2:520,type:'sine',peak:.03,att:.25,dec:2.1});               // and away: the whistle of it leaving
+      noise(t+.16,{peak:.05,att:.3,dec:1.8,f0:2400,f1:700,type:'bandpass',Q:3});},
+    // a skull coming down a long way off: small, dull, and a beat late
+    skullLand(v){if(!ac)return;const t=now();v=v==null?1:v;
+      noise(t,{peak:.09*v,att:.002,dec:.08,f0:700,f1:180,type:'bandpass',Q:1.2});
+      tone(t,{f:170,f2:95,type:'sine',peak:.07*v,att:.002,dec:.12});
+      noise(t+.09,{peak:.03*v,att:.004,dec:.05,f0:1200,f1:400,type:'bandpass',Q:1.5});},
     // steel into old bone: low body, mid crunch, dry crack
     // the sound of a blow landing on THIS horror: dry bone for the small
     // skeletons, a deeper crunch for the big, a wet thud for the Unburied,
@@ -4335,7 +4382,7 @@ function defRoundHeld(){
    Open in the lull only. It is its own pause (the pause screen is
    refused while it is up), and everything in it is bought with the
    marrow the round shed. The house is mended here and nowhere else. */
-const SHOP_ARMS={sword:0,ultra:180,bow:160,katana:220,wand:200,deagle:240,'1911':200,ump:300,m4:360,spas:340,sniper:440,kar98k:380,rpg:520};
+const SHOP_ARMS={sword:0,ultra:180,bow:160,katana:220,wand:200,bat:150,deagle:240,'1911':200,ump:300,m4:360,spas:340,sniper:440,kar98k:380,rpg:520};
 function setShop(on){
   if(on&&!(DEF.on&&DEF.phase==='lull'&&G.mode==='play'))return;
   if(on===DEF.shopOpen)return;
@@ -4500,9 +4547,9 @@ function planetPiece(geo,m,x,y,z,rest,speed,snd){
   loosePiece(piece,rest,Math.cos(a)*sp,Math.sin(a)*sp,2+Math.random()*3,true,snd);
 }
 // any object already placed in the scene, set loose with a velocity
-function loosePiece(piece,rest,vx,vz,vy,fade,snd){   // (snd: the sound it makes landing, by name)
-  let life=0;
-  let rx=(Math.random()-.5)*14,rz=(Math.random()-.5)*14,landed=0;
+function loosePiece(piece,rest,vx,vz,vy,fade,snd,spin){   // (snd: the sound it makes landing, by name; spin: how hard it tumbles)
+  let life=0;spin=spin||14;
+  let rx=(Math.random()-.5)*spin,rz=(Math.random()-.5)*spin,landed=0;
   const mats=[];piece.traverse(o=>{if(o.isMesh)for(const m of(Array.isArray(o.material)?o.material:[o.material])){m.transparent=true;if(!mats.includes(m))mats.push(m);}});
   const snap=q=>Math.round(q/(Math.PI/2))*(Math.PI/2);
   effects.push({update(dt){
@@ -4512,7 +4559,7 @@ function loosePiece(piece,rest,vx,vz,vy,fade,snd){   // (snd: the sound it makes
       vy-=10*dt;
       piece.position.x+=vx*dt;piece.position.y+=vy*dt;piece.position.z+=vz*dt;
       piece.rotation.x+=rx*dt;piece.rotation.z+=rz*dt;
-      pushOut(piece.position,.1);
+      if(piece.position.y-gy<2.5)pushOut(piece.position,.1);   // (only near the ground: a head forty feet up is not inside a tree)
       if(piece.position.y<=gy&&vy<0){
         piece.position.y=gy;landed++;
         if(snd&&AudioSys[snd]&&-vy>1.2)AudioSys[snd](Math.min(1,-vy/7));                  // it hits the floor, as hard as it fell
@@ -6939,6 +6986,26 @@ function buildHumanoid(o){
       w.add(M(GBox(.38*s,.1*s,.13*s),gripM,0,-.56*s,0));                 // the guard, a block of iron
       const bl=M(busterBlade(s),bladeM,0,0,0);w.add(bl);                  // the blade, the Buster's slab
       rig.reach=3.4*s;rig.bladeMesh=bl;rig.gripLo=-.44;rig.gripHi=.08;
+    }else if(o.weapon==='bat'){
+      /* THE METAL BAT. A knob, a taped handle as thin as a thumb, a long
+         taper swelling to a barrel twice the handle's width, and a flat end
+         cap. The shape is the whole read: a thin grip into a fat end is a
+         bat from across the field and nothing else is. The barrel is the
+         blade's own steel (`bladeM`), so an element still runs up it; a
+         dark band where the taper meets the barrel and the black tape at
+         the hands break it into the three parts a real one has. It is
+         shorter than any blade — a bat is swung close — and it is carried
+         on the shoulder the way the greatsword is, which is how a bat is
+         carried. */
+      const tapeM=o.clothMat?lam({color:0x1c1c20}):gripM;
+      w.add(M(GCyl(.036*s,.03*s,.035*s,8),gripM,0,.085*s,0));             // the knob
+      w.add(M(GCyl(.021*s,.021*s,.36*s,8),tapeM,0,-.1*s,0));             // the taped handle
+      for(let i=0;i<4;i++)w.add(M(GCyl(.0225*s,.0225*s,.012*s,8),gripM,0,(.04-i*.075)*s,0));   // the tape's wraps
+      const taper=M(GCyl(.022*s,.042*s,.32*s,10),bladeM,0,-.44*s,0);w.add(taper);   // the taper, swelling
+      w.add(M(GCyl(.0432*s,.0432*s,.05*s,10),tapeM,0,-.62*s,0));          // the dark band at the sweet spot's edge
+      const bl=M(GCyl(.044*s,.044*s,.42*s,10),bladeM,0,-.855*s,0);w.add(bl);   // THE BARREL
+      w.add(M(GCyl(.04*s,.04*s,.02*s,10),tapeM,0,-1.072*s,0));            // the end cap
+      rig.reach=2.2*s;rig.bladeMesh=bl;rig.gripLo=-.24;rig.gripHi=.05;rig.bat=true;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
          a LONG two-hand haft under a wheel pommel, guard far down the
@@ -8109,6 +8176,68 @@ function fitCape(r){
 /* the double slash: out of the coil, two cuts flung one after the other
    with almost no wind-up between them — the forward sweep, then the
    backhand straight back across the same line */
+/* THE BATTER'S LOAD: the bat cocked up behind the right ear, the barrel
+   up and back over the shoulder, the hands by the back shoulder, the
+   trunk wound away from the line and the FRONT FOOT LIFTED — the leg kick
+   — with the weight sat on the back leg. q is how full the charge is; at
+   full it trembles.
+   THE NUMBERS ARE SOLVED, NOT GUESSED (`BAT_LOAD`). Written by eye the
+   first time, the barrel pointed forward and DOWN at full load — measured
+   (.24, −.40, .88) in the rig's frame — and the strike pointed it at the
+   sky. They came out of a search over the right arm and the wrist for
+   the hand at (−.34, 1.62, −.16) — the right shoulder — and the barrel
+   along (−.25, .78, −.57), up and back; the left hand is the IK's. */
+const BAT_LOAD={ty:-.95,by:-.4,aRx:-.52,aRz:.5,fRx:-2.2,wx:-1.28,wy:-1.26,wz:-.89};
+function poseBatCharge(r,q,t){
+  const C=(r.carry||CARRY),L=BAT_LOAD,e=easeOut(Math.min(1,q)),tr=Math.sin(t*38)*.012*e;
+  const m=(a,b)=>a+(b-a)*e;
+  r.torso.rotation.y=L.ty*e;r.body.rotation.y=L.by*e;
+  r.torso.rotation.x+=.05*e;r.torso.rotation.z=.08*e;
+  r.armR.rotation.x=m(C.aRx,L.aRx)+tr;r.armR.rotation.z=m(C.aRz,L.aRz);
+  r.foreR.rotation.x=m(C.fRx,L.fRx);
+  r.weapon.rotation.x=m(C.wx,L.wx);r.weapon.rotation.y=m(C.wy,L.wy);r.weapon.rotation.z=m(C.wz,L.wz);
+  r.legL.rotation.x=-.55*e;r.kneeL.rotation.x=.85*e;                    // the leg kick
+  r.legR.rotation.x=.12*e;r.kneeR.rotation.x=.3*e;                      // sat on the back leg
+  r.head.rotation.y=.8*e;                                                // the eyes stay on the line
+  r.body.position.y=r.baseY-.08*e*r.s;
+}
+/* THE SWING, in five keys rather than seg4's four, because a batter does
+   one thing a sword never does: the barrel DROPS INTO THE SLOT before it
+   comes round. Out of the high load straight into the whip, the bat met
+   the body tilted thirty degrees at the sky (measured, barrel y .54 at
+   the blow) — a chop at a cloud. So: LOAD → a HITCH deeper into it → the
+   SLOT (the greatsword sweep's own windup: the barrel flat, out behind
+   the right hip) → THROUGH (the sweep's strike: the trunk opened right
+   round) → the FOLLOW. The slot-to-through leg is an ease-IN, the whip;
+   the blow lands in it at `HR_HIT`, where the barrel crosses the front of
+   the body level. The keys after the load ARE the sweep's, whose barrel
+   is measured travelling right → front → left: a flat bat path. */
+const HR_KEYS=[0,.14,.27,.44,1],HR_HIT=.38;
+function hrK(p,v){const K=HR_KEYS;let i=0;while(i<3&&p>K[i+1])i++;
+  const u=clamp((p-K[i])/(K[i+1]-K[i]),0,1),e=i===0?easeOut(u):i===2?u*u*u:easeInOut(u);
+  return v[i]+(v[i+1]-v[i])*e;}
+function poseHomerun(r,p){
+  const L=BAT_LOAD,C=(r.carry||CARRY),k=v=>hrK(p,v);
+  r.torso.rotation.y=k([L.ty,L.ty-.12,-.7,1.65,.6]);
+  r.body.rotation.y=k([L.by,L.by-.06,-.1,.85,.25]);
+  r.torso.rotation.x+=k([.05,.07,-.08,.2,.06]);
+  r.torso.rotation.z=k([.08,.1,.08,-.14,-.03]);
+  r.armR.rotation.x=k([L.aRx,L.aRx,-1.05,-1.2,-.7]);
+  r.armR.rotation.z=k([L.aRz,L.aRz+.04,-.55,-.03,C.aRz]);
+  r.foreR.rotation.x=k([L.fRx,L.fRx,-.45,-.1,-.6]);
+  r.weapon.rotation.x=k([L.wx,L.wx-.06,.35,-.1,-.9]);
+  r.weapon.rotation.y=k([L.wy,L.wy,0,0,C.wy]);
+  r.weapon.rotation.z=k([L.wz,L.wz,.3,-.12,0]);
+  r.armL.rotation.x=k([C.aLx,-.95,-.95,-1.15,-.65]);                    // (the IK has the left hand on the grip)
+  r.armL.rotation.z=k([C.aLz,-.45,-.45,0,C.aLz]);
+  r.foreL.rotation.x=k([C.fLx,-.6,-.6,-.2,-.75]);
+  r.legL.rotation.x=k([-.55,-.6,.1,.28,.12]);                            // the front foot comes down in the slot and braces
+  r.kneeL.rotation.x=k([.85,.9,.3,.12,.1]);
+  r.legR.rotation.x=k([.12,.14,.1,-.3,-.12]);                            // the back foot turns over
+  r.kneeR.rotation.x=k([.3,.32,.35,.55,.2]);
+  r.head.rotation.y=k([.8,.85,.6,-1.0,-.35]);                            // and the head follows it out
+  r.body.position.y=r.baseY-k([.08,.1,.12,.14,.04])*r.s;
+}
 function poseDouble(r,p){
   if(p<.5)poseLight(r,.3+.7*(p/.5),0);                  // the forward sweep
   else poseLight(r,.22+.78*((p-.5)/.5),1);              // and straight back — TWO cuts, no third
@@ -8852,9 +8981,9 @@ function updateRigExtras(r,dt){
 /* factory: the cast */
 function makeKnightRig(lo){
   lo=lo||{};
-  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',ultra=lo.weapon==='ultra',wand=lo.weapon==='wand',
+  const bow=lo.weapon==='bow',kat=lo.weapon==='katana',ultra=lo.weapon==='ultra',wand=lo.weapon==='wand',bat=lo.weapon==='bat',
         thief=lo.armour==='thief',og=lo.armour==='og',sheet=lo.armour==='sheet',wiz=lo.armour==='wizard';
-  const wpn=isGunKey(lo.weapon)?lo.weapon:bow?'bow':kat?'katana':wand?'wand':ultra?'ultra':sheet?'sheetsword':'claymore';   // (a gun's key passes through: the rig builds it)
+  const wpn=isGunKey(lo.weapon)?lo.weapon:bow?'bow':kat?'katana':wand?'wand':ultra?'ultra':bat?'bat':sheet?'sheetsword':'claymore';   // (a gun's key passes through: the rig builds it)
   const r=buildHumanoid(wiz?{
     /* THE WIZARD: no plate anywhere on him. A deep cowl with nothing in
        it but shadow, drawn out to a long point; a pale indigo robe,
@@ -9199,18 +9328,20 @@ const BS={t:new THREE.Vector3(),h:new THREE.Vector3(),d:new THREE.Vector3(),q:ne
    weapon, armour and the charged attack for each weapon, chosen on the
    pause screen and remembered by the browser */
 const LOADOUT_KEY='bonepath.loadout';
-const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock',katanaCharge:'iai',wandCharge:'volley'};
+const LOADOUT={weapon:'sword',armour:'knight',charge:'double',bowCharge:'knock',katanaCharge:'iai',wandCharge:'volley',batCharge:'homerun'};
 try{const j=JSON.parse(localStorage.getItem(LOADOUT_KEY)||'{}');
   for(const k in LOADOUT)if(typeof j[k]==='string')LOADOUT[k]=j[k];}catch(e){}
 function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(LOADOUT));}catch(e){}}
-const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana'],['wand','wand'],
+const HERO_OPTS={weapon:[['sword','greatsword'],['ultra','ultra greatsword'],['bow','longbow'],['katana','katana'],['wand','wand'],['bat','metal bat'],
     ['deagle','desert eagle'],['1911','colt 1911'],['ump','ump45'],['m4','m4a1'],['spas','spas-12'],['sniper','barrett .50'],['kar98k','kar98k'],['rpg','rpg-4']],
   katanaCharge:[['iai','iaido draw'],['thrust','piercing thrust'],['tiger','tiger blade'],['fowl','waterfowl'],['throw','magic throw'],['thor',"thor's lightning"]],
   wandCharge:[['volley','bubble volley'],['bulwark','great bubble'],['thor',"thor's lightning"]],
+  batCharge:[['homerun','home run'],['thor',"thor's lightning"]],
   armour:[['knight','knight plate'],['sheet','sheet knight'],['thief','thief cloth'],['og','OG knight'],['wizard','wizard cloak']],
   charge:[['double','double slash'],['spin','whirlwind'],['quake','earthshaker'],['thrust','piercing thrust'],['tiger','tiger blade'],['thor',"thor's lightning"]],
   bowCharge:[['knock','knockback shot'],['pierce','piercing shot'],['bomb','bomb arrow'],['thor',"thor's lightning"]]};
-const HERO_NOTES={double:'two fast cuts, forward and back, and nothing after; a full charge\'s second cut staggers all but the Warden',
+const HERO_NOTES={homerun:'the bat cocked high behind the ear, the front foot lifted and the whole body wound onto the back leg; release and it comes round flat and level through the lot of them. A full charge takes the head clean off anything with one and puts it into the far distance, the body going over backwards where it stood; half a charge only does it to what the blow would have killed anyway, and the Warden and his kind take the blow and stagger',
+  double:'two fast cuts, forward and back, and nothing after; a full charge\'s second cut staggers all but the Warden',
   thor:'the weapon raised to the sky and swept down to point at the marked horror — or the nearest, a crow in the air as readily as anything on the ground — and the bolt goes in the one motion: off the tip, up over the hero and down on them, holding them where they stand, stunned; two more near it catch the leap. Any weapon',
   throw:'the blade raised overhead, then THROWN, point first: it drives into the chest of whatever it meets for twice a cut and stands there while they reel round it. One near its end it goes clean through — they burst apart — and the blade turns in the air and comes home to the hand. While it stands in a horror, a charge (or a tap) calls it back like a thing pulled on a string, cutting whatever lies between',
   spin:'the blade held out level while the whole body turns twice — four cuts all round, the last staggers',
@@ -9387,7 +9518,7 @@ function shockRing(x,z,color,maxR,dur){
    knight, and only in a swinging state. */
 const TRAIL_N=12,TRAIL_LIFE=.1,TRAIL_SPEED=15,TRAIL_SUB=4;
 const EYE_CUE=.25;      // how long before the blow the eyes flare: a roll (untouchable from .03 to .38 s in) begun on the flare, even a beat late, carries through it
-const SWING_STATES=new Set(['attack','dslash','spin','rollatk','sprintatk','execute','backstab','iai','kthrust','tiger','fowl','quake']);
+const SWING_STATES=new Set(['attack','dslash','homerun','spin','rollatk','sprintatk','execute','backstab','iai','kthrust','tiger','fowl','quake']);
 const bladeTrail=(()=>{
   const geo=new THREE.BufferGeometry();
   const NV=(TRAIL_N+1)*TRAIL_SUB+1,pos=new Float32Array(NV*2*3),col=new Float32Array(NV*2*3),alp=new Float32Array(NV*2);
@@ -10332,7 +10463,7 @@ const player={
     G.camShake=Math.max(G.camShake,.42);AudioSys.bodyfall();AudioSys.soilDrag();G.vibr([40,20,50]);
     const a=this.facing;
     boneBurst(this.x+Math.sin(a)*1.5,heightAt(this.x,this.z)+.12,this.z+Math.cos(a)*1.5,0x5a4c38,7,1.8);}},   // the ultra's swings take half again as long
-  atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.ultra()?1.05:.68;},
+  atkDurFor(){return this.element==='lightning'?.5:this.weapon()==='katana'?.52:this.weapon()==='bat'?.6:this.ultra()?1.05:.68;},   // (a bat is short and light: quicker round than a greatsword, slower than the katana)
   /* A CHAINED SWING DOES NOT START FROM REST. Every pose in the game is
      four keys — carry, wind, strike, follow-through — and the wind takes
      the first forty-two hundredths of the swing. Start the second cut of a
@@ -10768,6 +10899,10 @@ const player={
       // THE MARK IS SPENT HERE. The blade doesn't wound anything it can
       // finish — it finishes it, and moves on to the next. A parried blade
       // is nowhere near the body, so it takes nothing with it.
+      // THE HOME RUN spends the swing on the head: see homeRun
+      if(opts.homerun!==undefined&&!parry&&homeRunOK(e)&&(opts.homerun||e.hp<=opts.homerunDmg)){
+        homeRun(e,this.facing);hitAny=true;continue;
+      }
       if(this.reaperT>0&&!parry){
         if(e.boss)dmg=Math.round(dmg*2.6);      // the Warden only staggers under it
         else{reaperFinish(e,hv,this.facing);hitAny=true;continue;}
@@ -10785,7 +10920,7 @@ const player={
       }
       // a clean cut takes something with it — an arm off a sweep or a
       // thrust, the head off an overhead — and the thing keeps coming
-      if(e.hp>0&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&this.weapon()!=='katana'&&Math.random()<.17)
+      if(e.hp>0&&!e.boss&&!e.mini&&!e.crow&&e.rig.humanoid&&e.state!=='scatter'&&this.weapon()!=='katana'&&this.weapon()!=='bat'&&Math.random()<.17)
         severLimb(e,tr,hv,e.zombie&&Math.random()<.45?(Math.random()<.5?'legL':'legR'):undefined);   // (never the katana: its cut is the whole body, clean; a Drowned loses legs too)
       // the katana: below half their life, the edge simply goes through them
       // — whether the cut leaves them standing or is the one that kills
@@ -10793,6 +10928,7 @@ const player={
         katanaSlice(e,this.facing,opts.cut);
       impactBurst((this.x+e.x)/2,1.15*(e.boss?1.5:1),(this.z+e.z)/2,crit?18:dmg>20?13:9,crit||dmg>20||this.ultra());
       AudioSys.smack(e);                                              // the sound of THIS horror being hit
+      if(this.weapon()==='bat')AudioSys.batPing(dmg>20||crit);         // ...and the bat's own ring over it: it is the one weapon that sings on a body
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
         // if life remains in it, the bones will crawl back together
@@ -11095,6 +11231,14 @@ const player={
       if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
       G.glowFlash=1;
     };
+    // THE HOME RUN: the coil lets go into one flat swing through everything in front
+    const startHomerun=()=>{
+      this.state='homerun';this.t=0;this.hitDone=false;this.sfxDone=false;this.thudDone=false;this.queued=false;this.qDir=null;
+      this.chargeFull=this.chargeT>=.6;
+      if(foe)this.facing=Math.atan2(foe.x-this.x,foe.z-this.z);
+      G.glowFlash=1;G.camShake=Math.max(G.camShake,.1);
+      boneBurst(this.x,.15,this.z,0x4a463a,5,1.5);   // the front foot comes down and the ground takes it
+    };
     // the double slash: the coil lets go into two fast cuts, forward and back
     const startDouble=()=>{
       this.state='dslash';this.t=0;this.hitDone=0;this.sfxDone=0;this.thudDone=0;this.queued=false;this.qDir=null;
@@ -11285,7 +11429,7 @@ const player={
     }
     else if(this.state==='charge'){
       this.chargeT+=dt;
-      if(this.weapon()==='sword'&&LOADOUT.charge==='quake'){ // the ground groans under the wound blade
+      if(this.weapon()==='sword'&&LOADOUT.charge==='quake'){   // (the bat is its own weapon() and has its own charge: never this) // the ground groans under the wound blade
         G.camShake=Math.max(G.camShake,.12+.4*Math.min(1,this.chargeT/.6));
         this.rumbleT=(this.rumbleT||0)-dt;if(this.rumbleT<=0){this.rumbleT=.3;AudioSys.rumble();G.vibr(15);}
       }
@@ -11303,6 +11447,7 @@ const player={
         else if(this.weapon()==='wand'){if(this.chargeT<.3)startCast(null);else if(LOADOUT.wandCharge==='thor')startThor();else startVolley(LOADOUT.wandCharge);}
         else if(this.chargeT<(this.weapon()==='katana'&&katSheathes()?.5:.3))startAttack(null);   // barely held: it's just a strike (a draw needs its blade home first)
         else if(LOADOUT[chargeKey()]==='thor')startThor();
+        else if(this.weapon()==='bat')startHomerun();
         else if(this.weapon()==='katana'){if(LOADOUT.katanaCharge==='thrust')startKThrust();else if(LOADOUT.katanaCharge==='tiger')startTiger();else if(LOADOUT.katanaCharge==='fowl')startFowl();else if(LOADOUT.katanaCharge==='throw')startKThrow();else startIai();}
         else if(LOADOUT.charge==='spin')startSpin();
         else if(LOADOUT.charge==='quake')startQuake();
@@ -11310,6 +11455,22 @@ const player={
         else if(LOADOUT.charge==='tiger')startTiger();
         else startDouble();
       }
+    }
+    else if(this.state==='homerun'){
+      /* THE HOME RUN. The charge held the coil; the swing starts from it.
+         A hitch deeper into the coil (the load), the front foot planted,
+         then the bat comes round flat and level through the whole front
+         and on round into the follow-through over the left shoulder. The
+         blow lands where the bat crosses the line of the body. */
+      const DUR=.95,p=this.t/DUR;
+      if(foe&&p<.2)this.facing=angLerp(this.facing,Math.atan2(foe.x-this.x,foe.z-this.z),14*dt);
+      if(p>.14&&p<HR_HIT){this.x+=Math.sin(this.facing)*3.2*dt;this.z+=Math.cos(this.facing)*3.2*dt;}   // the stride into it
+      if(!this.sfxDone&&p>=HR_HIT-.1){this.sfxDone=true;AudioSys.heavySwing(this.element);G.camShake=Math.max(G.camShake,.12);}
+      if(!this.hitDone&&p>=HR_HIT){this.hitDone=true;
+        const dmg=this.chargeFull?40:30;
+        const hit=this.meleeHit(dmg,2.9,1.5,99,.9,{trail:'sweep',dir:1,staggerAll:true,homerun:this.chargeFull,homerunDmg:dmg});
+        if(hit){G.camShake=Math.max(G.camShake,.45);G.hitstop=Math.max(G.hitstop,.12);}}
+      if(p>=1)this.state='free';
     }
     else if(this.state==='dslash'){
       const DUR=.62*this.swing(),p=this.t/DUR;                    // quick: two cuts inside two-thirds of a swing's time
@@ -11873,7 +12034,7 @@ const player={
     if(this.katThrown)r.armed=false;                                                          // (the blade away: the hands are empty)
     if(r.gun)r.ikLeftT=null;                                                                   // (the gun's fore-end hand is set by its carry, free frames only)
     r.ikLeftArm=!bow&&!wnd&&!r.gun&&!thorPose&&!this.katThrown&&!(kat&&((this.state==='charge'&&katSheathes())||this.state==='iai'))&&
-      ['free','attack','rollatk','charge','dslash','spin','sprintatk','execute','backstab','kthrust','tiger','fowl'].includes(this.state);
+      ['free','attack','rollatk','charge','dslash','homerun','spin','sprintatk','execute','backstab','kthrust','tiger','fowl'].includes(this.state);
     resetPose(r);
     const t=G.time;
     if(this.state==='free'){
@@ -11888,6 +12049,7 @@ const player={
       else if(LOADOUT[chargeKey()]==='thor')poseSkyPoint(r,this.chargeT/.6,t,0);else if(bow)poseBowDraw(r,this.chargeT/.6,t);
       else if(wnd)poseWandCharge(r,Math.min(1,this.chargeT/.6),t);
       else if(kat){if(LOADOUT.katanaCharge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);else if(LOADOUT.katanaCharge==='throw')poseSkyPoint(r,this.chargeT/.6,t,0);else poseIaiCharge(r,this.chargeT/.6,t);}   // (the draw and the waterfowl both wind in the saya)
+      else if(this.weapon()==='bat')poseBatCharge(r,this.chargeT/.6,t);
       else if(LOADOUT.charge==='thrust')poseKThrustCharge(r,this.chargeT/.6,t);
       else if(LOADOUT.charge==='tiger')poseTigerCharge(r,this.chargeT/.6,t);
       else poseCharge(r,this.chargeT/.6,t);}
@@ -11915,6 +12077,7 @@ const player={
     else if(this.state==='backstab'){const p=Math.min(1,this.t/1.1);
       if(bow)poseBowDraw(r,p<.4?p/.4:Math.max(0,1-(p-.4)/.3),t);else poseBackstab(r,p);}
     else if(this.state==='dslash')poseDouble(r,Math.min(1,this.t/(.5*this.swing())));
+    else if(this.state==='homerun')poseHomerun(r,Math.min(1,this.t/.95));
     else if(this.state==='sprintatk')poseSprintAtk(r,Math.min(1,this.t/(.5*this.swing())));
     else if(this.state==='execute'){if(bow)poseBowDraw(r,Math.min(1,this.t/.6),t);else poseUppercut(r,Math.min(1,this.t/(.62*this.swing())));}
     else if(this.state==='roll'){
@@ -14450,7 +14613,49 @@ function reaperFinish(e,hv,facing){
   }
   if(e.hp>0)e.die();                  // a crow, a bone heap, a thing with no head left
 }
-function severLimb(e,trail,hv,want){
+/* THE HOME RUN. A full swing of the bat takes the head clean off
+   anything that has one and is not an event (`homeRunOK`), and sends it
+   the length of the field: fired forward along the swing and pulled a
+   little to the batter's left — a right-handed swing pulls — at
+   `HOMERUN_V` and `HOMERUN_UP`, which under the pieces' own gravity of 10
+   is a flight of about two and a quarter seconds and forty metres. A pale
+   streak rides behind it so the eye can follow it out, and it lands with
+   a small knock a long way off. The body is killed where it stood and
+   goes over backwards the way the blow went.
+   It spends the game's existing kill (the reaper's pattern): hp parked
+   at 999 across `severLimb`, which would otherwise kill on its own and
+   count the marrow twice, then put back and `die()`. */
+const HOMERUN_V=17,HOMERUN_UP=11.5;
+function homeRunOK(e){return e.rig&&e.rig.humanoid&&e.rig.head&&!e.boss&&!e.mini&&!e.crow&&!e.severedHead&&e.state!=='scatter'&&e.state!=='rise';}
+function homeRun(e,facing){
+  const fx=Math.sin(facing),fz=Math.cos(facing),lx=fz,lz=-fx;         // (fz,-fx) is the batter's left
+  let dx=fx*.93+lx*.3,dz=fz*.93+lz*.3;{const l=Math.hypot(dx,dz);dx/=l;dz/=l;}
+  const hv={dx,dz,up:1.6},gy=heightAt(e.x,e.z);
+  const v=HOMERUN_V*rr3(.92,1.08);
+  AudioSys.homeRun();AudioSys.smack(e);
+  G.hitstop=Math.max(G.hitstop,.22);G.camShake=Math.max(G.camShake,.6);G.vibr([60,30,110]);G.glowFlash=1;
+  impactBurst(e.x,gy+(e.big?1.9:1.5),e.z,20,true);
+  e.poise=0;e.lastHit={dx,dz,kb:3.2,up:1.8};
+  const keep=e.hp;e.hp=999;
+  severLimb(e,'sweep',hv,'head',{vx:dx*v,vz:dz*v,vy:HOMERUN_UP*rr3(.94,1.06),snd:'skullLand',spin:22,onPiece:homeRunStreak});
+  e.hp=keep;
+  if(e.hp>0)e.die();
+  toast('home run');
+}
+// the pale streak behind the head, so the eye can follow it out of the field
+function homeRunStreak(head){
+  let t=0,acc=0;const last=head.position.clone();
+  effects.push({update(dt){t+=dt;acc+=dt;
+    const moved=head.position.distanceTo(last);
+    if(acc>.025&&moved>.05){acc=0;
+      const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xf2ead0,transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending}));
+      s.scale.set(.5,.5,1);s.position.copy(head.position);scene.add(s);let l=0;
+      effects.push({update(d){l+=d;s.material.opacity=.7*Math.max(0,1-l/.45);s.scale.setScalar(.5+l*.8);
+        if(l>.45){scene.remove(s);s.material.dispose();return false;}return true;}});}
+    last.copy(head.position);
+    return t<3&&(moved>.001||t<.2);}});
+}
+function severLimb(e,trail,hv,want,launch){
   const r=e.rig;
   const wantHead=trail==='overhead'||(trail==='sweep'&&Math.random()<.4);
   let key=want||null;
@@ -14476,8 +14681,10 @@ function severLimb(e,trail,hv,want){
   // the horror at this instant, and a copy of it would stay red for good
   g.traverse(o=>{if(o.isMesh){o.material=o.material.clone();if(o.material.emissive)o.material.emissive.setHex(0x000000);}});
   g.position.copy(wp);g.quaternion.copy(wq);scene.add(g);
-  loosePiece(g,key==='head'?.16*(r.s||1):key[0]==='l'?.09*(r.s||1):.07*(r.s||1),
+  if(launch)loosePiece(g,key==='head'?.16*(r.s||1):.08*(r.s||1),launch.vx,launch.vz,launch.vy,true,launch.snd,launch.spin);   // (the home run: its own flight)
+  else loosePiece(g,key==='head'?.16*(r.s||1):key[0]==='l'?.09*(r.s||1):.07*(r.s||1),
     hv.dx*2.4+rr3(-.8,.8),hv.dz*2.4+rr3(-.8,.8),2.6+Math.random()*1.6,true);
+  if(launch&&launch.onPiece)launch.onPiece(g);
   e.hp-=key==='head'?6:4;
   gore(e,wp.x,wp.y,wp.z,14,1.2);goreDecal(e,e.x+rr3(-.4,.4),e.z+rr3(-.4,.4),.45);
   AudioSys.sever();G.camShake=Math.max(G.camShake,.3);G.hitstop=Math.max(G.hitstop,.08);G.vibr([20,15,50]);
@@ -18351,7 +18558,7 @@ function renderHero(){
   ctx.putImageData(img,0,0);
 }
 function loadoutLabel(k){const v=LOADOUT[k];return (HERO_OPTS[k].find(o=>o[0]===v)||HERO_OPTS[k][0])[1];}
-function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon==='katana'?'katanaCharge':LOADOUT.weapon==='wand'?'wandCharge':'charge';}
+function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon==='katana'?'katanaCharge':LOADOUT.weapon==='wand'?'wandCharge':LOADOUT.weapon==='bat'?'batCharge':'charge';}
 // which katana specials wind in the saya (and so need the blade home before they fire)
 function katSheathes(){return LOADOUT.katanaCharge==='iai'||LOADOUT.katanaCharge==='fowl';}
 function cycleLoadout(k,d){
@@ -18652,7 +18859,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>

@@ -2126,6 +2126,49 @@ Known state of play:
   Measured: Kar98k reload well y −0.34..−0.02, hand in frame the whole
   reload; Barrett well −0.78..−0.50, hand in frame 72% (the M4's own
   figure is 76%); every mode boots with 0 errors.
+- **THE METAL BAT** (`weapon:'bat'`, `batCharge:'homerun'`). It is its own
+  `weapon()` — NOT mapped to `'sword'` the way the ultra is — so the
+  greatsword's quake rumble (`weapon()==='sword'&&LOADOUT.charge==='quake'`)
+  and its thrust multipliers never reach it, and every other rule falls
+  through to the greatsword's default branch (the carry, the combo poses,
+  the IK'd left hand). `chargeKey()` answers `batCharge`; the charge
+  dispatch sends it to `startHomerun` right after Thor; `rig.bat`, reach
+  2.2, grip -.24..05. `meleeHit` never rolls `severLimb` for it (blunt)
+  and plays `AudioSys.batPing` over `smack`; `BLADE==='bat'` gives
+  `swing`/`heavySwing` the hollow `batCut`.
+  **THE HOME RUN** (`homerun` state, `homeRun`, `homeRunOK`,
+  `homeRunStreak`, `HOMERUN_V`/`HOMERUN_UP`, `BAT_LOAD`, `HR_KEYS`,
+  `HR_HIT`, `poseBatCharge`, `poseHomerun`). `meleeHit` takes
+  `opts.homerun` (full charge) and `opts.homerunDmg`; a target that
+  `homeRunOK` (humanoid, headed, not boss/mini/crow, not scattering or
+  rising) and is either under a full charge or dies to the blow is
+  handed to `homeRun` BEFORE `takeHit`, the reaper's pattern: hp parked
+  at 999 across `severLimb` (which kills on its own and would count the
+  marrow twice), then `die()`. `severLimb` takes a fifth argument,
+  `launch` `{vx,vy,vz,snd,spin,onPiece}`, which `loosePiece` flies
+  instead of the usual toss; `loosePiece` only `pushOut`s within 2.5m of
+  the ground now, or a head forty feet up is shoved out of the trees
+  under it. Measured: heads land **41–47m** out, peaking **7–8m**, over
+  about 2.3s; a half charge leaves a healthy hollow at 55/85 with its
+  head on and takes the head off one at 20.
+  **THE POSES ARE SOLVED AND MEASURED, AND THE FIRST PASS WAS WRONG BOTH
+  WAYS.** Written by eye, the load pointed the barrel forward and DOWN
+  (.24, −.40, .88 in the rig's frame) and the strike pointed it at the
+  sky. `BAT_LOAD` came out of a search for the hand at the right shoulder
+  (−.34, 1.62, −.16) with the barrel up and back (−.25, .78, −.57). And a
+  batter drops the barrel into the SLOT before it comes round, which a
+  sword never does: straight out of the high load the bat met the body
+  tilted 30° at the sky. So the swing is FIVE keys (`hrK`) — load,
+  hitch, slot, through, follow — and the slot and through keys are the
+  greatsword sweep's own windup and strike, whose barrel travels right →
+  front → left. It now crosses dead ahead at `HR_HIT` (.38), head ~20°
+  below the hands, which is where a real bat meets the ball.
+  **If you touch either pose, trace the barrel**: `(0,−1,0)` through the
+  weapon's world quaternion, with the root at the origin facing +z.
+  **Harness trap:** `IN.chargeHeld` set before a frame is wiped by
+  `Input.poll`, so the charge releases on the first frame as a TAP. Set
+  `player.state='charge'` and `chargeT` to what you want and let the next
+  frame release it.
 - **THERE IS NO BLADE VIEWMODEL** — see *THE FIRST-PERSON SWING IS THE
   THIRD-PERSON SWING*, far below. `VM_BLADE`, `ensureBladeVm`,
   `bladePose`, `VM_SEAM` and `SW_FLIP` are gone. The one thing worth

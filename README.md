@@ -166,6 +166,32 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     swing, landed or not, drags a furrow of torn earth along the arc the
     edge travelled — once per swing, where the arc was, with the dust and
     the thud of the weight landing separate from it.
+  - **the metal bat** — aluminium: a knob, a taped handle as thin as a
+    thumb, a long taper swelling to a barrel twice as wide, a dark band
+    at the sweet spot and a flat end cap. The shape is the whole read — a
+    thin grip into a fat end is a bat from across the field and nothing
+    else is. It is shorter than any blade and quicker round than the
+    greatsword (0.6s a swing), it rides the shoulder the way a bat is
+    carried, and it is **blunt**: it never takes an arm off, though a
+    telling blow still bursts a small skeleton. It has its own voice — a
+    hollow whoosh with a falling tube-note in it, and on a body a bright
+    inharmonic **ping** over the crunch of the bone, the one weapon in
+    the game that sings when it lands.
+    Its charge is the **home run**. The bat cocked high behind the ear,
+    the front foot lifted in a leg kick and the weight sat on the back
+    leg; release and the front foot plants, the barrel drops into the
+    slot behind the hip and comes round flat through the whole front.
+    **A full charge takes the head clean off anything that has one** —
+    hollow, thrower or brute, whatever its life — and sends it out of the
+    field: forty-odd metres, seven or eight up at the top of its arc, a
+    pale streak behind it so you can watch it go, and a small knock a
+    long way off when it comes down. The body goes over backwards where
+    it stood. The crack is a ping held three times as long as any other
+    blow, with the whistle of the head leaving under it. **Half a charge**
+    does it only to what the blow would have killed anyway, and anything
+    that is an event — the Warden, the mini-bosses, a crow — takes the
+    blow and staggers. Thor's lightning is its other charge, as it is
+    every weapon's.
   - **the wand** — the one weapon on the pilgrim that does not strike
     anything. A short crooked rod of black wood, its head split into
     three claws with a bubble of light standing in them, and a tap
