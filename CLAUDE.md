@@ -2425,6 +2425,77 @@ Known state of play:
   |x| 2.75–5.4, each a `leafMat` blob (summer's), a `RM.litter` skirt
   (every season — out of summer a bush of bare switches alone was three
   sticks at 383x216) and six to nine forked switches, some thick.
+- **EVERY BUSH BREAKS, AND IT IS STILL FOLDED** (`kind:'bush'`, `bushHit`,
+  the `bush` branch of `breakPew`, `bakeStatic(root,rec)`). Held out of the
+  bake, a tile's twenty bushes would be two hundred draws. So the ravine's
+  `bakeStatic(G,true)` RECORDS every mesh it folds in `BAKED` (bakeWorld's
+  scheme) and lets a bush's group be folded (it claims only `b.obs`, which a
+  bush does not have — no collider, you walk through scrub); `breakPew`'s
+  existing `unbakeGroup(b.g)` collapses its runs and puts the meshes back,
+  and the group is removed. `teardownTile` deletes a torn tile's records
+  from `BAKED`, or the Map would hold every bush of a long run. A bush has
+  `onHit` because `strikeBreakables`' generic splinters are thrown at the
+  PEWS' height (`PH+.7`). Measured: 83 bushes over the standing tiles, 19
+  records for the one struck, 0 after, 0 errors.
+- **THE STREAM** (`STREAM`, `streamX`, `streamCross`, `streamStones`,
+  `streamCarve`, `streamNear`, `streamAt`, `buildStream`, `f.stream`).
+  A maple or birch run carries one six times in ten (`RAV_STREAM`, the last
+  draw on the run's stream). Everything is a function of WORLD z. The bed
+  is a carve in `terrainAt`'s ravine branch; the water is ONE ribbon a
+  tile, laid in step 1 in the world's frame at half the bed's depth under
+  the UNCUT bank, so its edges are buried and it runs under the bridge's
+  strip without showing. Three load-bearing things:
+  - **The footbridge is dry ground, not a deck the pilgrim stands on.**
+    `heightAt` knows nothing of planks, so the carve is simply switched off
+    within 1.3m of the trail over a crossing (`TRAIL_WIG`, which is the
+    trail's own wander, hoisted out of `layRoad`'s call for this). The
+    planks sit on that strip; the water is on either side of it.
+  - **A stepping stone is a shallow spot in the carve** (×.22 within .34m
+    of each stone), so the pilgrim stands on the stones and `wading`
+    (which on the path is `streamAt(x,z)` with the carve over .3) is false
+    there.
+  - **Nothing stands in the bed**: the chunk's `free()`, the maple's fence,
+    the viaduct's columns, the lanterns and the milepost all ask
+    `streamNear`. Anything new that places things in a ravine must too.
+  The codex's maple run is forced to cross in the middle of its second
+  tile (`force.stream` sets `ph`), where the codex looks.
+- **THE SPECIAL HEXES** (`SPECIAL`, `specialAt`, `t.special`, CHUNKS.`fork`
+  and `.narrows`, `forkRoads`, `forkHost`, `t.cache`). Rolled FIRST in
+  `startTile` on their own hashed stream (the ravine's lesson), because
+  they change the tile's LENGTH (fork 54m, narrows 42m) and `len` is fixed
+  before anything else. Never two running, never in a run, never on the
+  ravine-only path. `t.terrain` is empty for both: no bowl under a spine.
+  - **The narrows are nothing but `pathEdge`**: 21 at the joins down to
+    4.5 through the middle. The ground, the fall, `overBrink` and the
+    clamp all follow. The parapet has NO collider — a body knocked over it
+    must go.
+  - **`drainSpawns` clamps every queued horror inside `pathEdge−1.4`.**
+    The host sows by the WEDGE (up to 19m out), which on the narrows was a
+    host buried in the air; it also fixes the joins of ordinary hexes.
+  - **The fork's host is its own** (`forkHost`, replacing `pathHost` on
+    that tile): half again the purse, all on the host's side, a third
+    red; one `ambush` on the quiet side. The quiet side's shrine sets
+    `t.cache`, and `updatePath` spends it (an element — a third of the
+    time `skull` — and a `health` drop) when the pilgrim comes within 14m:
+    spawned at build it would be culled by the four-drop cap long before
+    anyone got there.
+  - **The signpost is read by COLOUR, not letters** (`armQuiet` bone,
+    `armHost` blood with a skull): a word on a 1.7m board is about five
+    pixels tall at six metres. The canvas is drawn stretched 3.4x
+    vertically because the box maps it onto a face that much wider than
+    tall.
+  - `layRoad` takes an eighth argument, `lift`: the fork's diagonals ride
+    at .065 so they do not z-fight the straight ribbons where they overlap.
+- **THE MILEPOSTS** (`milepost`, `t.post`, `t.disp`). A box with a material
+  ARRAY, the number on face 4 (+z, the face walked up to). Each face is its
+  own 64px canvas; `t.disp` holds it and its material and `teardownTile`
+  disposes them, or a long run leaks one texture a hex.
+- **THE DAY TURNS** (`turnDay`, `HOUR_NEXT`, `WX_WORD`, `PATH.turnK`). In
+  the middle of each cathedral's nave, or on the ravine-only path at a
+  run's start, never within six hexes of the last: the hour moves on one
+  and 40% of the time the weather too (`setWeather` applies the hour, so
+  `RUN.time` is set first). The change is made under a 0.47s dip of
+  `#fade`, whose own 1s transition is swapped out and put back.
 - **THE RAVINE-ONLY PATH (`?mode=ravine`, `PATH.only`, `PATH.ravCarry`,
   `PATH.ravLast`).** `cathEvery` is `Infinity`, so tile 0 is the only
   cathedral; `ravineStart` answers from tile 1 on, runs are 3–5 and never
@@ -2470,12 +2541,29 @@ Known state of play:
   gate individual lock consumers on it, gate the lock. The Mire's SPEND button
   used to sit exactly where LOCK now does (`right:108px`); it is at 166, left of it.
 
+- **THE CATHEDRAL'S ROOF IS A CATHEDRAL'S** (the block headed THE ROOF in
+  `buildCathedral`). It was tie beams under a ridge 1.9m over the walls,
+  and read as a shack. Now: a pointed barrel VAULT (`VY0` 7.9 → crown
+  15.1, two arcs struck from ±`VC`), transverse ribs at every bay line,
+  diagonal ribs corner to corner following `vaultY`, a boss where they
+  cross; a steep slate ROOF on rafters to `RIDGE` (WH+11); stepped GABLES
+  both ends with a small rose in the portal's; pinnacles on every
+  buttress; a gable over each portal; and a leaning lead SPIRE on the
+  ridge. `beamTo` lays a box between two points with a quaternion — the
+  cathedral group is not yet shifted when it is built, so never use
+  `lookAt` (world space) there.
+  **The bay over the altar is always open, vault AND slates** (`beamBay`),
+  because the moon's pillar (`beam`) comes down through it. Folded by
+  `bakeStatic` with the rest: measured on the field, seed 7, three
+  headings, **+1 draw and +8.7k triangles** (422/43.5k → 423/52.2k).
+  The transverse ribs stop short of the end walls: at z=±HL they covered
+  the rose window.
 - **THE CODEX (`?mode=codex`, `PATH.codex`, `CODEX`, `CODEX_TILES`,
   `CODEX_CATS`, `codexShow`, `codexTick`, `codexCam`, the section headed
   THE CODEX just above `begin`).** A browser of everything in the game.
   It is the PATH with `CODEX_TILES` forcing each tile's kind (one of every
-  chunk, then maple ×3 with the underpass in the middle, shale ×3 with
-  the crossing in the middle, birch ×2), all built at boot by `initPath`, `pathHost` skipped, `updatePath`
+  chunk, then maple ×3 with the underpass and the stream, shale ×3 with
+  the crossing in the middle, birch ×2, a fork and the narrows), all built at boot by `initPath`, `pathHost` skipped, `updatePath`
   never run, and only the viewed tile ±1 drawn (`cxTiles`). Always seed 7,
   noon, clear, unless the URL says otherwise. How it works, and what each
   piece is guarding against:

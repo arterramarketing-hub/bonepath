@@ -1626,7 +1626,10 @@ tiles laid end to end northward, without end — each an authored chunk
 on its own seeded ground shape, with a flagstone road through, a lantern or two,
 and a host sown to a budget that grows with every hex. Two or three
 tiles always stand ahead of you, built as you come; what is fifty
-metres behind is torn down. Every sixth hex is the cathedral, with a
+metres behind is torn down. **Every hex has a milepost**: a worn stone at
+the right-hand verge where it begins, its number cut into the face you
+walk up to, so a run can be told as a place ("I went at thirty-four").
+Every sixth hex is the cathedral, with a
 back door and stair mirrored from the front so you walk the nave
 straight through — and its host waits INSIDE the walls, a third of it
 brutes now. The path's tiles lead with a brute-bearing template the same
@@ -1707,9 +1710,47 @@ under the deck. **A little under half the highways cross instead**
 (**the crossing**): straight over the gorge from one rim to the other,
 square to the trail, the same bents stepping down the walls either side
 and the deck passing over once, with sky on both sides of it. Columns are stone to the blade and cover to a round.
+
+**The stream.** Six maple or birch ravines in ten carry water down the
+floor. It keeps to the foot of one wall and, every hundred metres or
+so, swings across to the other; where it crosses the trail there is a
+plank footbridge with a rail each side, and by the wall there is now
+and then a row of stepping stones. Standing in it is WADING — the
+pilgrim at six tenths of his pace, a horror at eight tenths — and it
+splashes. The water flows.
+
+**Every bush breaks.** The scrub along the verges and at the foot of the
+walls is torn out by a blade, a round or a blast: leaves (last year's,
+out of summer) and twigs fly, and it is gone. A bush never stops you —
+you walk through scrub — it is only a thing to cut.
 All of a ravine tile's wood and concrete is folded by material when it
 is built, so a tile with fifty trees and a highway on it costs about
 twenty draws.
+
+**The special hexes.** Now and then a hex is not a chunk at all:
+- **the fork** — a long hex where the trail splits round a spine of rock
+  and a signpost at the split says which way is which: a bone-pale arm
+  for the **QUIET** way and a blood-red one with a skull on it for the
+  **HOST**. The quiet side has a few trees, one thing lying in wait, and a
+  shrine at the far end with something left on it: an element for the
+  blade (a third of the time the reaper's mark) and a heart, given when
+  you come to it. The host's side has half again the hex's horrors, a
+  third of them red-boned (twice the marrow), among bones and broken
+  stone. The trails come back together past the spine.
+- **the narrows** — the land falls away on both sides to a causeway nine
+  metres wide, lined with a broken parapet that stops nothing. The path's
+  edge is a cliff (see *The brink*), so here walking off is death and a
+  blow that knocks a horror sideways is a kill; every horror of the hex
+  stands on the causeway with you.
+Never two special hexes running, never inside a ravine, and never on the
+ravine-only path.
+
+**The day turns as you go.** In the middle of every cathedral's nave (and,
+on the ravine-only path, at the start of a run at least six hexes on from
+the last) the hour moves on one — sunrise, noon, dusk, night, and round —
+and four times in ten the weather turns with it, under a short dip to dark
+and a line saying what came ("the dark comes on · a storm breaks"). How far
+you have walked is on the sky, and the night brings its own difficulty.
 
 Under the hood every tile is built with the same chunk code the field
 uses, in the origin's frame as the field's north wedge, and then
@@ -1831,7 +1872,8 @@ sections across the top:
   slamming. **again** calls it up fresh. No boss's introduction plays.
 - **places** — the cathedral, the six chunks (the grave rows, the hollow
   wood, the ruins, the sunken hollow, the causeway, the roofless chapel),
-  the three ravines, the underpass and the crossing, each seen from above
+  the three ravines, the stream, the underpass and the crossing, the fork,
+  the narrows and the mileposts, each seen from above
   and turning.
   The world behind the codex is the path laid out once with every kind
   of hex on it and nobody sown, always the same seed.
@@ -2560,6 +2602,15 @@ becomes a way of surviving something lethal.
 The Bonefield is one giant hexagon of rolling, haunted ground under
 true night — over 130 meters across — with the ruined cathedral sealed at
 its center under a pillar of moonlight you can steer by from anywhere.
+**It is a cathedral from outside as well as in**: a steep slate roof on
+rafters, near forty degrees to a ridge twenty metres up, with slates gone
+so the timbers show against the sky; stepped gables closing both ends,
+the portal's with a small rose; a pinnacle on every buttress and a gable
+over the door; and a lead spire standing on the ridge, leaning a little,
+that you can see from anywhere on the field. Inside, the nave is under a
+pointed stone vault, ribbed across at every bay and crossed diagonally in
+each, with a boss where the diagonals meet — fallen in here and there,
+and always over the altar's end, where the moon comes down.
 A flagstone ring road (drawn at last — every road in the game was wound
 face-down and never reached the screen until the ravine's trail was
 found missing) circles the nave with straight roads running out

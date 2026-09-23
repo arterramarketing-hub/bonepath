@@ -1281,6 +1281,33 @@ function buildTextures(){
       ctx.fillStyle=`rgba(${(46+rnd()*14)|0},${(58+rnd()*16)|0},${(34+rnd()*10)|0},${.75+rnd()*.25})`;ctx.fillRect(sd?S-d:0,y,d,2);
       if(rnd()<.18){ctx.fillStyle='rgba(70,86,48,.9)';ctx.fillRect(sd?S-d-rr(2,7):d,y,rr(2,6),1);}}
   });
+  /* -- the ravine's stream: clear dark water over stones, with pale
+     ripple streaks drawn ALONG its length (v), which is the way the
+     material's offset runs them, so it flows -- */
+  makeTex('stream',256,(ctx,S)=>{
+    srand(197);
+    ctx.fillStyle='#2c4448';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,10,[44,70,72],.45);
+    for(let i=0;i<120;i++){ctx.fillStyle=`rgba(${(60+rnd()*30)|0},${(70+rnd()*30)|0},${(60+rnd()*20)|0},.35)`;ctx.beginPath();ctx.ellipse(rnd()*S,rnd()*S,rr(3,9),rr(3,8),rnd()*3,0,TAU);ctx.fill();}   // the stones under it
+    for(let i=0;i<90;i++){const x=rnd()*S,y=rnd()*S,l=rr(10,40);ctx.fillStyle=`rgba(200,220,215,${.12+rnd()*.22})`;ctx.fillRect(x|0,y|0,1+((rnd()*2)|0),l|0);}   // ripples, along the flow
+    for(let i=0;i<40;i++){ctx.fillStyle='rgba(230,240,235,.5)';ctx.fillRect((rnd()*S)|0,(rnd()*S)|0,2,2);}   // foam
+  });
+  /* -- the fork's signpost: one board for each way, cut and painted.
+     Drawn wide (2:1) because the arm is; the letters are the size that
+     still reads at 383x216 from a few strides off. -- */
+  // (the letters alone do not read at six metres — about five pixels tall — so the two boards are told apart by COLOUR first: bone for the quiet way, blood for the host, with a skull on it)
+  const armTex=(name,word,bg,ink,skull)=>makeTex(name,256,(ctx,S)=>{
+    ctx.fillStyle=bg;ctx.fillRect(0,0,S,S);
+    for(let y=0;y<S;y+=3){ctx.fillStyle=`rgba(0,0,0,${.06+Math.random()*.1})`;ctx.fillRect(0,y,S,1);}   // the grain
+    ctx.strokeStyle='rgba(20,14,8,.75)';ctx.lineWidth=8;ctx.strokeRect(4,4,S-8,S-8);
+    // the board's face is 3.4 times wider than it is tall and the box maps the whole canvas onto it, so everything is drawn that much taller to land square
+    ctx.save();ctx.scale(1,3.4);const cy=S/2/3.4;
+    if(skull){ctx.fillStyle='#e8e0cc';ctx.beginPath();ctx.ellipse(34,cy-3,17,15,0,0,TAU);ctx.fill();ctx.fillRect(25,cy+6,18,10);
+      ctx.fillStyle='#2a0c08';ctx.beginPath();ctx.ellipse(27,cy-3,5,5,0,0,TAU);ctx.ellipse(41,cy-3,5,5,0,0,TAU);ctx.fill();ctx.fillRect(28,cy+11,2,5);ctx.fillRect(33,cy+11,2,5);ctx.fillRect(38,cy+11,2,5);}
+    ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 46px Georgia,serif';ctx.fillText(word,skull?150:S/2,cy+2);ctx.restore();
+  });
+  armTex('armQuiet','QUIET','#cfc6ae','#2a241a',false);
+  armTex('armHost','HOST','#6a1a14','#f0dcc4',true);
   /* -- GRAFFITI on the foot of a column. The lower block it is painted on
      is .85 wide and 3.2 tall, and a box face maps the whole canvas onto
      it: so everything is drawn in METRES, with the canvas squashed
@@ -3148,6 +3175,9 @@ const AudioSys=(()=>{
       tone(t+.005,{f:rr2(1100,1300),f2:900,type:'triangle',peak:.035,att:.001,dec:.12});
       tone(t,{f:90,f2:50,type:'sine',peak:.1,dec:.08});},
     // the blade into a pew: a knock of old oak
+    // a bush torn apart: leaves and twigs, a dry crackle and the rush of them going
+    bush(){const t=now();rustle(t,.34,.075);rustle(t+.08,.26,.05);
+      for(let i=0;i<4;i++)noise(t+rr2(0,.12),{peak:.05*rr2(.6,1),att:.0005,dec:.012,f0:rr2(2600,4200),f1:1500,type:'bandpass',Q:1.2,white:true});},
     woodKnock(){const t=now();
       tone(t,{f:rr2(170,230),f2:90,type:'triangle',peak:.2,att:.002,dec:.1});
       noise(t,{peak:.2,att:.002,dec:.07,f0:1400,f1:300});
@@ -3966,7 +3996,8 @@ function terrainAt(x,z){
       const fw=f.fw+Math.sin(z*.17+f.ph)*.8+Math.sin(z*.063+f.ph*2.3)*1.2;     // the floor breathes wider and narrower
       const u=clamp((Math.abs(x)-fw)/f.sw,0,1),sm=u*u*(3-2*u);
       const lump=1+.16*Math.sin(z*.23+x*.31+f.ph)+.09*Math.sin(z*.61-x*.17);
-      h+=f.h*(x<0?f.aL:f.aR)*sm*lump*ee;}
+      h+=f.h*(x<0?f.aL:f.aR)*sm*lump*ee;
+      if(f.stream)h-=streamCarve(f,x,z)*ee;}                                 // the stream's bed (see STREAM)
     else{const px=x-f.cx,pz=z-f.cz,along=px*f.dx+pz*f.dz;let across=px*(-f.dz)+pz*f.dx;
       if(f.t==='stream')across+=along*along*.012;                          // the bed bends
       const e=clamp((f.len/2-Math.abs(along))/5,0,1),g=Math.exp(-(across*across)/(2*f.w*f.w));
@@ -4087,7 +4118,7 @@ function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyo
      +terrainAt(x,z));                                   // and the seed's own shapes on top
 }
 // what anything standing at (x,z) stands ON: the plinth, the stair, or the soil
-function wading(x,z){return DEF.on&&heightAt(x,z)<WATER_Y-.14;}   // in the Mire: standing in the water
+function wading(x,z){return DEF.on?heightAt(x,z)<WATER_Y-.14:PATH.on&&!!streamAt(x,z);}   // in the Mire: standing in the water; on the path: in a ravine's stream
 function heightAt(x,z){
   if(PATH.on)return pathHeightAt(x,z+BUILD.offZ);   // (a tile under construction asks in the origin's frame: answered in the world's)
   if(DEF.on)return mireGround(x,z);                  // (no plinth, no stair: the house stands on the soil)
@@ -4333,7 +4364,8 @@ const roadMeshes=[];   // the flagstone ribbons, so the snow can bury them
    height, a ribbon across any slope buried its low side (the ravine's
    floor curls up at its verges). `wig` bends the ribbon's line by the
    world's own z, so a trail can wander without a seam at a tile's join. */
-function layRoad(ax,az,bx,bz,w,tex,wig){
+function layRoad(ax,az,bx,bz,w,tex,wig,lift){   // (`lift`: a hair higher than .05, where two ribbons overlap at a join and would fight)
+  lift=lift||.05;
   roads.push({ax,az,bx,bz});
   const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);
   const ux=dx/len,uz=dz/len,nx=-uz,nz=ux;
@@ -4342,7 +4374,7 @@ function layRoad(ax,az,bx,bz,w,tex,wig){
   for(let i=0;i<=N;i++){
     const t=i/N,px0=ax+dx*t,pz0=az+dz*t,o=wig?wig(pz0):0,px=px0+nx*o,pz=pz0+nz*o;
     const lx=px+nx*w,lz=pz+nz*w,rx=px-nx*w,rz=pz-nz*w;
-    pos.push(lx,heightAt(lx,lz)+.05,lz, rx,heightAt(rx,rz)+.05,rz);
+    pos.push(lx,heightAt(lx,lz)+lift,lz, rx,heightAt(rx,rz)+lift,rz);
     uv.push(0,t*len/4, 1,t*len/4);
     if(i>0){const a=(i-1)*2;idx.push(a,a+2,a+1, a+1,a+2,a+3);}
   }
@@ -4802,6 +4834,11 @@ function breakPew(b){
   const oi=obstacles.indexOf(b.obs);if(oi>=0)obstacles.splice(oi,1);
   if(b.g.isMesh)unbake(b.g);unbakeGroup(b.g);   // (a folded grave: its run in the fold goes with it)
   b.parent.remove(b.g);
+  if(b.kind==='bush'){                                                  // torn out: leaves (or last year's, out of summer) and twigs
+    const gy=heightAt(b.x,b.z),lc=RUN.weather==='summer'?0x5f8c3a:0x7a5a30;
+    boneBurst(b.x,gy+.5,b.z,lc,16,2.6);boneBurst(b.x,gy+.3,b.z,0x3a2a1a,6,1.8);
+    for(let i=0;i<3;i++)planetPiece(new THREE.CylinderGeometry(.015,.03,rr3(.4,.8),3),b.twig,b.x+rr3(-.3,.3),gy+.4,b.z+rr3(-.3,.3),.03,2.2);
+    AudioSys.bush();G.vibr(12);return;}
   if(b.kind==='grave'){
     // a gravestone comes apart into chunks of weathered stone
     const gy=heightAt(b.x,b.z);
@@ -4874,6 +4911,7 @@ function loosePiece(piece,rest,vx,vz,vy,fade,snd,spin){   // (snd: the sound it 
   }});
 }
 // a blow from (x,z) facing (fx,fz): does it reach a pew? break it a little
+function bushHit(b){if(b.hp<=0)breakPew(b);}   // (its own onHit: the generic splinters are thrown at the PEWS' height)
 function strikeBreakables(x,z,fx,fz,reach,arc,oneShot){
   let hitAny=false;
   for(const b of breakables.slice()){
@@ -4928,10 +4966,10 @@ let groundMat=null;
    colours or a missing attribute, and any group of one, which would save
    nothing. No original geometry is disposed — some of it is shared with
    gravestones elsewhere in the field, and freeing it here would empty them. */
-function bakeStatic(root){
+function bakeStatic(root,rec){   // (`rec`: remember every folded mesh in BAKED, and let a BUSH be folded — the ravine's, so one can be unbaked when it breaks)
   const held=new WeakSet();
   const claim=o=>{if(!o)return;if(o.traverse)o.traverse(c=>held.add(c));else held.add(o);};
-  for(const b of breakables){claim(b.g);claim(b.obs);}
+  for(const b of breakables){if(rec&&b.kind==='bush'){claim(b.obs);continue;}claim(b.g);claim(b.obs);}
   for(const ob of obstacles)claim(ob&&ob.o);
   for(const m of MARKABLE)claim(m&&(m.o||m));
   for(const L of lanternLights)claim(L&&(L.o||L.post));
@@ -4953,11 +4991,12 @@ function bakeStatic(root){
   const M=new THREE.Matrix4();let folded=0,made=0;
   for(const [m,list] of groups){
     if(list.length<2)continue;
-    const pos=[],nrm=[],uvs=[];
+    const pos=[],nrm=[],uvs=[],recs=[];
     for(const o of list){
       const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();
       g.applyMatrix4(M.multiplyMatrices(toLocal,o.matrixWorld));   // (normals ride the normal matrix with it)
       const p=g.attributes.position.array,q=g.attributes.normal.array,u=g.attributes.uv.array;
+      if(rec)recs.push({o,parent:o.parent,start:pos.length/3,count:p.length/3});
       for(let i=0;i<p.length;i++)pos.push(p[i]);
       for(let i=0;i<q.length;i++)nrm.push(q[i]);
       for(let i=0;i<u.length;i++)uvs.push(u[i]);
@@ -4970,6 +5009,7 @@ function bakeStatic(root){
     merged.computeBoundingSphere();
     const one=new THREE.Mesh(merged,m);one.userData.baked=true;
     root.add(one);
+    for(const r of recs){r.mesh=one;BAKED.set(r.o,r);}
     for(const o of list)if(o.parent)o.parent.remove(o);
     folded+=list.length;made++;
   }
@@ -5204,19 +5244,89 @@ function buildWorld(){
       const lint=cbox(2.6,.7,1.2,cathM,side*1.1,8.0,end*(WZ+.3));lint.rotation.z=.5*side; // pointed arch
     }
     for(const end of(back?[1,-1]:[1]))cbox(DW*2+1.2,WH-7.4,WALLT,cathM,0,7.4+(WH-7.4)/2,end*WZ);   // over the door
-    // ---- the roof: tie beams across the nave under a ridge, and a pitched
-    //      roof of stone slates on either slope — with slates missing, so the
-    //      moon gets in — and two fallen beams lying on the floor below
+    /* ---- THE ROOF, AS A CATHEDRAL'S. It was tie beams under a ridge 1.9m
+       over the walls — a shed's pitch, and it read as a shack. A great
+       church has two roofs: a stone VAULT you see from inside, and over it
+       a steep roof of slate on timber you see from outside, closed at each
+       end by a gable. So:
+       - THE VAULT: a pointed barrel over the whole nave, springing from the
+         walls at 7.9m to a crown at 15.1m, ribbed across at every bay and
+         crossed diagonally in each, a boss where the diagonals meet —
+         with its webbing fallen in here and there, and always over the
+         altar's end, where the moon comes down (`beam`).
+       - THE ROOF: slate courses on rafters, pitched near forty degrees to a
+         ridge at 20.5m, with slates gone so the rafters show against the sky.
+       - THE GABLES: stepped masonry filling each end up to the ridge, a
+         small rose in the portal's; a pinnacle on every buttress; a gable
+         over the portal itself; and a spire, leaning a little, standing on
+         the ridge — the thing you see from across the field.
+       All of it is folded by `bakeStatic` with the rest of the stone, so it
+       costs triangles and not draws. */
     srand(444);
-    for(let z=-HL+2;z<HL;z+=5)cbox(HW*2+1,.5,.5,cathM,0,WH-.3,z);           // tie beams
-    const RIDGE=WH+1.9;
-    cbox(.5,.6,HL*2+WALLT*2,cathM,0,RIDGE,0);                               // the ridge beam
-    const slope=Math.atan2(RIDGE-WH,HW+WALLT),slen=Math.hypot(RIDGE-WH,HW+WALLT)+.4;
-    for(const side of[1,-1])for(let z=-HL-WALLT+1.25;z<HL+WALLT;z+=2.5){
-      if(rnd()<.28)continue;                                                // a slate gone
-      const sl=cbox(slen,.22,2.4,cathM,side*(HW+WALLT)/2,(WH+RIDGE)/2+.1,z);
-      sl.rotation.z=-side*slope;
+    const RIDGE=WH+11,EAVE=HW+WALLT+.4,Q=new THREE.Quaternion(),ZF=new THREE.Vector3(0,0,1),V3=new THREE.Vector3();
+    const leadM=mat('iron');
+    const beamTo=(ax,ay,az,bx,by,bz,w,h,m)=>{   // a straight stone (or timber) from one point to another, in the hall's frame
+      const dx=bx-ax,dy=by-ay,dz=bz-az,l=Math.hypot(dx,dy,dz),o=new THREE.Mesh(new THREE.BoxGeometry(w,h,l+.04),m);
+      o.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);o.quaternion.copy(Q.setFromUnitVectors(ZF,V3.set(dx/l,dy/l,dz/l)));cath.add(o);return o;};
+    // the vault's profile: a pointed arch across the nave, as two arcs struck from either side of the middle
+    const VY0=WH-1.6,VRISE=7.2,VR=(HW*HW+VRISE*VRISE)/(2*HW),VC=HW-VR,VA=Math.acos(-VC/VR),NV=9;
+    const vaultY=ax=>VY0+Math.sqrt(Math.max(0,VR*VR-(Math.abs(ax)-VC)*(Math.abs(ax)-VC)));
+    const prof=[];for(let i=0;i<=NV;i++){const a=VA*i/NV;prof.push([VC+VR*Math.cos(a),VY0+VR*Math.sin(a)]);}   // right half, springing to crown
+    const bays=[];for(let z=-HL;z<HL-.01;z+=5)bays.push([z,z+5]);
+    const beamBay=bays.findIndex(b=>b[0]<=-15&&b[1]>-15);                  // the bay the moon comes down through
+    for(let bi=0;bi<bays.length;bi++){const [za,zb]=bays[bi],zm=(za+zb)/2;
+      for(const sd of[1,-1])for(let i=0;i<NV;i++){                           // the webbing: a panel of the barrel between two ribs
+        const top=i>=NV-3;if((bi===beamBay&&top)||(top&&rnd()<.22)||rnd()<.05)continue;   // fallen in: always over the altar's end, and here and there
+        const [x0,y0]=prof[i],[x1,y1]=prof[i+1],am=VA*(i+.5)/NV;              // (set back .28 along the arc's own normal, so the ribs stand proud of it)
+        const w=new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(x1-x0,y1-y0)+.06,.2,5.05),cathM);
+        w.position.set(sd*((x0+x1)/2+Math.cos(am)*.28),(y0+y1)/2+Math.sin(am)*.28,zm);w.rotation.z=sd*Math.atan2(y1-y0,x1-x0);cath.add(w);}
+      // the diagonal ribs, following the barrel corner to corner, and the boss where they cross
+      for(const [a,b] of[[za,zb],[zb,za]]){let px=HW,py=VY0,pz=a;
+        for(let i=1;i<=12;i++){const u=i/12,x=HW*(1-2*u),z=a+(b-a)*u,y=vaultY(x)-.12;beamTo(px,py,pz,x,y,z,.34,.4,cathM);px=x;py=y;pz=z;}}
+      const boss=new THREE.Mesh(ICO,cathM);boss.position.set(0,VY0+VRISE-.35,zm);boss.scale.set(.42,.32,.42);cath.add(boss);
     }
+    for(let z=-HL+5;z<HL-.01;z+=5)for(const sd of[1,-1])for(let i=0;i<NV;i++){  // the transverse ribs, at every bay line
+      const [x0,y0]=prof[i],[x1,y1]=prof[i+1];beamTo(sd*x0,y0-.05,z,sd*x1,y1-.05,z,.62,.52,cathM);}
+    for(const sd of[1,-1])cbox(.9,.6,HL*2,cathM,sd*(HW-.35),VY0-.1,0);      // the string course the vault springs from
+    // the roof over it: rafters from eave to ridge, and courses of slate on them with slates gone
+    const RL=Math.hypot(EAVE,RIDGE-WH),RT=Math.atan2(RIDGE-WH,EAVE);
+    for(const sd of[1,-1]){
+      for(let z=-HL-WALLT+.3;z<=HL+WALLT-.3;z+=1.25)beamTo(sd*EAVE,WH-.1,z,0,RIDGE-.15,z,.16,.2,woodM);
+      for(let c=0;c<7;c++){const s0=c*RL/7,s1=(c+1)*RL/7,xm=sd*(EAVE-Math.cos(RT)*(s0+s1)/2),ym=WH+Math.sin(RT)*(s0+s1)/2;
+        for(let bi=0;bi<bays.length+1;bi++){const za=-HL-WALLT+bi*5,zb=Math.min(HL+WALLT,za+5);if(zb-za<.5)continue;
+          if((c>=4&&bays[bi]&&bi===beamBay)||rnd()<.13)continue;                // a slate gone: the moon's way in over the altar, and here and there
+          const sl=new THREE.Mesh(new THREE.BoxGeometry(RL/7+.08,.26,zb-za+.02),cathM);
+          sl.position.set(xm+sd*Math.sin(RT)*.22,ym+Math.cos(RT)*.22,(za+zb)/2);sl.rotation.z=-sd*RT;cath.add(sl);}}
+    }
+    cbox(.5,.5,HL*2+WALLT*2+.6,cathM,0,RIDGE+.1,0);                        // the ridge
+    // the gables: stepped masonry up to the ridge at both ends, a coping stone down each edge
+    for(const end of[1,-1]){const gz=end*(HL+WALLT/2);
+      for(let y=WH;y<RIDGE-.3;y+=.9){const w=2*EAVE*(1-(y+.45-WH)/(RIDGE-WH));if(w<.6)break;cbox(w,.92,WALLT,cathM,0,y+.45,gz);}
+      for(const sd of[1,-1])beamTo(sd*(EAVE+.2),WH,gz,0,RIDGE+.2,gz,.5,.4,cathM);
+      cbox(.24,1.4,.24,leadM,0,RIDGE+.9,gz);cbox(.8,.2,.2,leadM,0,RIDGE+1.15,gz);       // a cross on the apex
+      if(end===1||back){                                                     // the portal's gable carries a small rose
+        const ro=new THREE.Mesh(new THREE.CircleGeometry(1.5,12),new THREE.MeshBasicMaterial({map:texCache.rose}));
+        ro.material.polygonOffset=true;ro.material.polygonOffsetFactor=-2;ro.material.polygonOffsetUnits=-2;
+        ro.position.set(0,WH+3.4,end*(HL+WALLT+.02));if(end<0)ro.rotation.y=Math.PI;cath.add(ro);
+        addHaze(0,PH+WH+3.4,end*(HL+WALLT+.8),0x9cb2d8,4.5,.18);}
+    }
+    // pinnacles on every buttress
+    for(const side of[1,-1])for(let z=-HL;z<=HL;z+=5){const px=side*(HW+WALLT+.2);
+      cbox(1.8,.3,1.6,cathM,px,WH+1.15,z);
+      const pn=new THREE.Mesh(new THREE.CylinderGeometry(0,.66,3.0,4),cathM);pn.position.set(px,WH+2.8,z);pn.rotation.y=Math.PI/4;cath.add(pn);}
+    // a gable over each portal, and a pinnacle on each jamb
+    for(const end of(back?[1,-1]:[1])){const pz=end*(HL+WALLT+.75);
+      for(let k=0;k<4;k++){const w=5.4*(1-k/4.2);cbox(w,.62,.7,cathM,0,8.5+k*.62,pz);}
+      for(const sd of[1,-1]){const pn=new THREE.Mesh(new THREE.CylinderGeometry(0,.42,2.2,4),cathM);pn.position.set(sd*(1.9+.3),7.4+1.1,end*(HL+WALLT/2+.3));pn.rotation.y=Math.PI/4;cath.add(pn);}}
+    // the spire on the ridge: a square foot, an eight-sided drum, and a lead spire leaning a little
+    {const sp=new THREE.Group();sp.position.set(0,RIDGE,-2.5);sp.rotation.z=.035;cath.add(sp);
+      const add=(o,y)=>{o.position.y=y;sp.add(o);return o;};
+      add(new THREE.Mesh(new THREE.BoxGeometry(3,1.6,3),cathM),.2);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.25,3.8,8),cathM),2.9);
+      for(let i=0;i<8;i++){const a=i/8*TAU,o=new THREE.Mesh(new THREE.BoxGeometry(.28,2.2,.28),cathM);o.position.set(Math.cos(a)*1.18,3.1,Math.sin(a)*1.18);sp.add(o);}   // the drum's colonnettes
+      add(new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,.3,8),cathM),4.9);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(0,1.2,12,8),leadM),11.05);
+      add(new THREE.Mesh(new THREE.BoxGeometry(.14,1.2,.14),leadM),17.5);add(new THREE.Mesh(new THREE.BoxGeometry(.6,.14,.14),leadM),17.7);}
     // ---- colonnades: two rows of columns, some broken, down the nave
     for(const side of[1,-1])for(let z=-15;z<=15;z+=5){
       const ch=8.6;
@@ -5385,8 +5495,9 @@ function buildWorld(){
       const R=w.rav,V=RAVINE[R.v],f=R.f,zc=-37,half=15,RM=ravMats(),G=new THREE.Group();world.add(G);
       const leafM=RM.leaf[R.v],barkM=V.bark==='birch'?RM.birch:M.bark;
       const add=(geo,m,x,y,z,sx,sy,sz)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);if(sx)o.scale.set(sx,sy,sz);G.add(o);return o;};
-      const under=R.via?viaduct(G,zc,RM,R.cross):null;                               // the underpass first: the wood keeps clear of it
-      const free=(x,z,pad)=>Math.abs(x)>=2.6&&clearSpot(x,z,pad);            // (off the trail: its road is laid after the chunk)
+      const wet=(x,z,pad)=>streamNear(f,x,z+BUILD.offZ,pad);                  // (the stream's bed: nothing stands in it — see STREAM)
+      const under=R.via?viaduct(G,zc,RM,R.cross,(x,z)=>wet(x,z,.6)):null;           // the underpass first: the wood keeps clear of it
+      const free=(x,z,pad)=>Math.abs(x)>=2.6&&clearSpot(x,z,pad)&&!wet(x,z,pad);   // (off the trail: its road is laid after the chunk)
       /* a TALL tree of the ravine: a straight trunk leaning a little toward
          the light over the trail, a few branches, and its crown as a
          handful of flat-shaded leaf clumps from half its height up */
@@ -5410,10 +5521,18 @@ function buildWorld(){
         let n=0;for(let i=0;i<90&&n<V.trees;i++){const px=sd*rr(f.fw+1,21),pz=zc+rr(-half,half);if(free(px,pz,1.6)&&treeAt(px,pz,false))n++;}
         n=0;for(let i=0;i<50&&n<V.saplings;i++){const px=sd*rr(2.8,f.fw+2.5),pz=zc+rr(-half,half);if(free(px,pz,.9)&&treeAt(px,pz,true))n++;}
       }
+      /* EVERY BUSH BREAKS (`kind:'bush'`). Each is its own group and its
+         own breakable, and still folded with the rest of the tile: the
+         ravine's bake RECORDS what it folds (`bakeStatic(G,true)`), so a
+         blow, a round or a blast unbakes the one bush it meets and tears
+         it out (breakPew). A bush has no collider — you walk through scrub
+         — so it is only ever a thing to cut. */
+      const bushAt=(px,pz,r)=>{const bg=new THREE.Group();G.add(bg);
+        addBreakable({g:bg,x:px,z:pz,hw:r*.85,hd:r*.85,hp:1,parent:G,kind:'bush',onHit:bushHit,twig:barkM,r});return (geo,m,x,y,z,sx,sy,sz)=>{const o=add(geo,m,x,y,z,sx,sy,sz);G.remove(o);bg.add(o);return o;};};
       // undergrowth along the foot of the walls: a clump of bare switches, and its leaves in summer
       for(let i=0;i<V.bushes;i++){const px=(rnd()<.5?1:-1)*rr(2.9,f.fw+3.5),pz=zc+rr(-half,half);if(!free(px,pz,.3))continue;
-        const r=rr(.5,1.1),gy=heightAt(px,pz);add(ICO,leafM,px,gy+r*.3,pz,r*rr(1,1.4),r*.6,r*rr(1,1.4)).rotation.y=rnd()*TAU;
-        for(let k=0,n=4+((rnd()*3)|0);k<n;k++){const len=r*rr(1.1,1.7),a=rnd()*TAU,t=rr(.35,.75),sw=add(new THREE.CylinderGeometry(.012,.03,len,3,1),barkM,px,gy,pz);
+        const r=rr(.5,1.1),gy=heightAt(px,pz),ad=bushAt(px,pz,r);ad(ICO,leafM,px,gy+r*.3,pz,r*rr(1,1.4),r*.6,r*rr(1,1.4)).rotation.y=rnd()*TAU;
+        for(let k=0,n=4+((rnd()*3)|0);k<n;k++){const len=r*rr(1.1,1.7),a=rnd()*TAU,t=rr(.35,.75),sw=ad(new THREE.CylinderGeometry(.012,.03,len,3,1),barkM,px,gy,pz);
           sw.rotation.set(Math.cos(a)*t,0,Math.sin(a)*t);sw.translateY(len/2);}}
       /* THE VERGES: a row of scrub down both sides of the trail, close enough
          to brush — denser than the undergrowth at the walls' foot, and each
@@ -5422,13 +5541,13 @@ function buildWorld(){
          The switches fork and some are thick: at this resolution a single
          thin one is not there at all. */
       for(const sd of[1,-1])for(let i=0,n=0;i<V.verge*3&&n<V.verge;i++){const px=sd*rr(2.75,5.4),pz=zc+rr(-half,half);if(!free(px,pz,.35))continue;n++;
-        const r=rr(.4,.85),gy=heightAt(px,pz);
-        add(ICO,leafM,px,gy+r*.35,pz,r*rr(1,1.35),r*.7,r*rr(1,1.35)).rotation.y=rnd()*TAU;
-        add(ICO,RM.litter,px,gy+.04,pz,r*rr(.9,1.3),r*.28,r*rr(.9,1.3)).rotation.y=rnd()*TAU;
+        const r=rr(.4,.85),gy=heightAt(px,pz),ad=bushAt(px,pz,r);
+        ad(ICO,leafM,px,gy+r*.35,pz,r*rr(1,1.35),r*.7,r*rr(1,1.35)).rotation.y=rnd()*TAU;
+        ad(ICO,RM.litter,px,gy+.04,pz,r*rr(.9,1.3),r*.28,r*rr(.9,1.3)).rotation.y=rnd()*TAU;
         for(let k=0,m=6+((rnd()*4)|0);k<m;k++){const len=r*rr(1.2,2.1),a=rnd()*TAU,t=rr(.2,.7),th=rnd()<.35?.045:.025,
-            sw=add(new THREE.CylinderGeometry(th*.4,th,len,3,1),barkM,px,gy,pz);
+            sw=ad(new THREE.CylinderGeometry(th*.4,th,len,3,1),barkM,px,gy,pz);
           sw.rotation.set(Math.cos(a)*t,0,Math.sin(a)*t);sw.translateY(len/2);
-          if(rnd()<.5){const f2=add(new THREE.CylinderGeometry(th*.25,th*.6,len*.55,3,1),barkM,px,gy,pz);   // a fork off it
+          if(rnd()<.5){const f2=ad(new THREE.CylinderGeometry(th*.25,th*.6,len*.55,3,1),barkM,px,gy,pz);   // a fork off it
             f2.rotation.set(Math.cos(a+.6)*(t+.35),0,Math.sin(a+.6)*(t+.35));f2.translateY(len*.55);}}}
       // fallen trunks down the slopes
       for(let i=0;i<V.logs;i++){const px=(rnd()<.5?1:-1)*rr(3.4,f.fw+f.sw),pz=zc+rr(-half+2,half-2);if(!free(px,pz,.5))continue;
@@ -5446,13 +5565,58 @@ function buildWorld(){
       // MAPLE: an old snow fence down one side of the trail, leaning, slats gone here and there
       if(V.fence&&!R.via){const sd=rnd()<.5?1:-1,fx=sd*3.3;let run=null;
         const close=()=>{if(run&&run.b)addWall(run.a[0],run.a[1],run.b[0],run.b[1],.15,false,run.y+1.1);run=null;};   // one wall a post-to-post span, not one a slat
-        for(let z=zc-half+.6;z<=zc+half-.6;z+=.34){const x=fx+Math.sin(z*.3)*.12;if(!clearSpot(x,z,.2)){close();continue;}
+        for(let z=zc-half+.6;z<=zc+half-.6;z+=.34){const x=fx+Math.sin(z*.3)*.12;if(!clearSpot(x,z,.2)||wet(x,z,.3)){close();continue;}
           const gy=heightAt(x,z),post=Math.abs((z-zc)%2.4)<.2,hh=post?1.25:rr(.95,1.1);
           if(!post&&rnd()<.12)continue;                                        // a slat gone (the wire still holds the gap)
           add(new THREE.BoxGeometry(post?.09:.055,hh,post?.09:.025),M.bark,x,gy+hh/2-.05,z).rotation.set(0,rr(-.08,.08),sd*rr(-.02,.14));
           if(!run)run={a:[x,z],y:gy};else{run.b=[x,z];run.y=Math.max(run.y,gy);if(post){close();run={a:[x,z],y:gy};}}}
         close();}
-      bakeStatic(G);
+      bakeStatic(G,true);
+    },
+    /* THE FORK (see SPECIAL): a spine of rock down the middle of a long hex,
+       the trail splitting round it; a signpost at the split, one arm to
+       each side; the QUIET side a few trees and a shrine with something
+       left on it (`t.cache`, spent in updatePath when you come near); the
+       HOST's side bones and broken stone. Its roads and its host are laid
+       in the next step (forkRoads, forkHost). */
+    fork(w){
+      const t=w.t,q=rnd()<.5?1:-1,zc=-37,M2=M;t.forkQ=q;
+      // the spine: a wall of rock the length of the split, lower at its two ends, and a wall no one walks through
+      for(let z=zc+16;z>=zc-16;z-=1.5){const end=Math.min(1,(16-Math.abs(z-zc))/4),h=(2.2+rnd()*3.2)*(.45+.55*end),gy=heightAt(0,z);
+        const o=new THREE.Mesh(ICO,M2.wall);o.position.set(rr(-.4,.4),gy+h*.38,z);o.scale.set(rr(1.1,1.6),h*.5,rr(1,1.4));o.rotation.set(rr(-.2,.2),rnd()*TAU,rr(-.2,.2));world.add(o);
+        if(rnd()<.5){const s2=new THREE.Mesh(ICO,M2.wall);s2.position.set(rr(-.9,.9),gy+.35,z+rr(-.6,.6));s2.scale.set(rr(.5,.9),rr(.3,.6),rr(.5,.8));world.add(s2);}}
+      addWall(0,zc+16.5,0,zc-16.5,1.25,true,heightAt(0,zc)+4);
+      // the signpost at the split
+      {const sz=zc+18.5,gy=heightAt(0,sz);world.add(cyl(.08,.1,2.7,5,M2.bark,0,gy+1.35,sz));
+        for(const [side,key,y] of[[q,'armQuiet',2.3],[-q,'armHost',1.7]]){
+          const arm=new THREE.Mesh(new THREE.BoxGeometry(1.7,.5,.07),lam({map:texCache[key]}));t.disp.push(arm.material);arm.position.set(side*.92,gy+y,sz);arm.rotation.z=side*rr(-.05,.05);world.add(arm);
+          const tip=new THREE.Mesh(new THREE.BoxGeometry(.36,.36,.07),arm.material);tip.position.set(side*1.77,gy+y,sz);tip.rotation.z=Math.PI/4;world.add(tip);}   // the arm's point
+        addObstacle(0,sz,.25,false,gy+2.7);}
+      // the quiet side: a few trees, and the shrine at the end of its trail
+      for(let i=0,n=0;i<30&&n<5;i++){const px=q*rr(12.5,19),pz=zc+rr(-15,15);if(!clearSpot(px,pz,2)){continue;}n++;tree(px,pz,rnd()<.5);}
+      {const sx=q*9,sz=zc-11.5,gy=heightAt(sx,sz);
+        world.add(box(1.5,.9,.9,M2.wall,sx,gy+.45,sz));world.add(box(1.8,.14,1.1,M2.wall,sx,gy+.97,sz));   // the altar stone and its slab
+        world.add(box(.5,1.9,.5,M2.wall,sx-.9,gy+.95,sz-.35));world.add(box(.5,1.6,.5,M2.wall,sx+.9,gy+.8,sz-.35));   // two posts behind it, one fallen short
+        for(const cx of[-.5,0,.5]){world.add(cyl(.04,.05,.26,5,M2.bone,sx+cx,gy+1.17,sz-.2));addWisp(sx+cx,gy+1.36,sz-.2,0xf0a648,.26);}
+        addObstacle(sx,sz,.95,true,gy+1.04);
+        t.cache={x:sx,z:sz+1.6+BUILD.offZ,done:false};}
+      // the host's side: bones, and broken stone
+      for(let i=0,n=0;i<40&&n<5;i++){const px=-q*rr(5,18),pz=zc+rr(-15,15);if(!clearSpot(px,pz,.6))continue;n++;bonePile(px,pz);}
+      for(let i=0;i<3;i++){const px=-q*rr(6,17),pz=zc+rr(-13,13),gy=heightAt(px,pz),h=rr(1.2,3.2);if(!clearSpot(px,pz,1))continue;
+        world.add(cyl(.42,.5,h,6,M2.wall,px,gy+h/2,pz));addObstacle(px,pz,.6,true,gy+h);}
+    },
+    /* THE NARROWS (see SPECIAL and pathEdge): the ground is the causeway,
+       and the chunk only dresses its edges — a broken parapet of blocks
+       along the lip where it is narrow, some fallen onto the flags, and two
+       standing stones where it widens at the ends. The parapet has NO
+       collider: it must not stop a body going over. */
+    narrows(w){
+      const t=w.t,zc=-37,half=t.len/2;
+      for(const sd of[1,-1])for(let z=zc+half-2;z>=zc-half+2;z-=rr(1.6,2.8)){const e=pathEdge(t,z-zc);if(e>9)continue;
+        if(rnd()<.35){if(rnd()<.4){const gy=heightAt(sd*(e-2),z);const b=box(rr(.5,.9),rr(.25,.4),rr(.5,.9),M.wall,sd*(e-rr(1.5,3)),gy+.12,z);b.rotation.y=rnd()*TAU;world.add(b);}continue;}   // a gap, and sometimes its block lying on the flags
+        const x=sd*(e-.55),gy=heightAt(x,z),h=rr(.35,.9);const b=box(.5,h,rr(1,1.8),M.wall,x,gy+h/2-.05,z);b.rotation.set(rr(-.08,.08),rr(-.1,.1),sd*rr(0,.14));world.add(b);}
+      for(const e of[1,-1]){const z=zc+e*(half-4),x=(rnd()<.5?1:-1)*rr(6,12),gy=heightAt(x,z),h=rr(2.2,3.4);
+        const st=box(.9,h,.6,M.wall,x,gy+h/2,z);st.rotation.set(rr(-.06,.06),rnd()*TAU,rr(-.08,.08));world.add(st);addObstacle(x,z,.6,true,gy+h);}
     },
   };
   /* ---- THE RAVINE'S CHUNK (see ravineStart) ----
@@ -5483,7 +5647,7 @@ function buildWorld(){
      under it once and see the sky either side. Same bents, same deck; the
      axis is simply the x axis at one z, and the columns step down the
      walls to the floor either side of the trail. */
-  function viaduct(G,zc,RM,cross){
+  function viaduct(G,zc,RM,cross,wet){
     const sgn=rnd()<.5?1:-1,L0=rr(6,10),REACH=28,EDGE=19;
     const ax=dz=>{const a=Math.abs(dz)-L0;return a>0?sgn*Math.sign(dz)*EDGE*Math.pow(a/(REACH-L0),2):0;};   // straight over the trail, then off to either rim
     const Y=heightAt(0,zc)+rr(12.5,14.5),cw=3.4,DW=2*cw+1.8,capY=Y-.75-1.1;
@@ -5500,7 +5664,7 @@ function buildWorld(){
       if(i===0||i===st.length-1){                                            // an abutment into the rim at each end
         const gy=heightAt(p.x,p.z);B(DW,Y-gy+.8,2.6,RM.conc,p.x,(Y+gy)/2-.4,p.z,ry);addObstacle(p.x,p.z,2.2,true,Y);return;}
       const C=[[p.x+nx*cw,p.z+nz*cw],[p.x-nx*cw,p.z-nz*cw]];
-      if(C.some(c=>Math.abs(c[0])<2.6||Math.abs(c[0])>21))return;           // never on the trail, never off the world
+      if(C.some(c=>Math.abs(c[0])<2.6||Math.abs(c[0])>21||(wet&&wet(c[0],c[1]))))return;   // never on the trail, never off the world, never in the stream
       const gb=C.map(c=>heightAt(c[0],c[1])-.3);
       C.forEach((c,j)=>{
         const hc=capY+.5-gb[j],low=Math.min(3.2,hc),tagged=rnd()<(gb[j]<floorY+2.2?.42:.12);   // (the feet you can walk up to are the ones painted)
@@ -5744,7 +5908,7 @@ function buildWorld(){
     if(PATH.on)for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),-(PL-.9));   // and at the back door
   }
   setupWeather();
-  if(PATH.on){PATH.M=M;PATH.chunks=CHUNKS;PATH.buildCath=buildCathedral;PATH.helpers={bonePile,tree,inWedge,shared:[graveGeo,crossV,crossH,slabGeo]};initPath();}
+  if(PATH.on){PATH.M=M;PATH.chunks=CHUNKS;PATH.buildCath=buildCathedral;PATH.helpers={bonePile,tree,inWedge,ico:ICO,shared:[graveGeo,crossV,crossH,slabGeo,ICO]};initPath();}
   else bakeWorld();
 }
 
@@ -5769,6 +5933,7 @@ function tileTerrain(zc){   // one shape per tile, in the world's frame
    ravine tile that meets more of the same ravine (or, on the ravine-only
    path, the next one) holds the full width. */
 function pathEdge(t,zl){
+  if(t.kind==='narrows'){const u=1-Math.min(1,Math.abs(zl)/(t.len/2));return 21-16.5*sstep(Math.min(1,u/.3));}   // THE NARROWS: in from the joins to a causeway nine metres wide
   const R=t.rav;
   if(R&&(zl>0?(R.i>0||(PATH.only&&t.k>1)):(R.i<R.n-1||PATH.only)))return 26;
   return 21+5*(1-Math.min(1,Math.abs(zl)/(t.len/2)));
@@ -5808,9 +5973,10 @@ function tileBudget(k){return k%PATH.cathEvery===0?Math.min(420,220+16*k):Math.m
    afresh, so what a hex holds is still the seed's alone. */
 function tileSeed(k,step){srand((RUN.seed^Math.imul(k+1,0x9e3779b1)^(step?Math.imul(step,0x85ebca6b):0))>>>0);for(let i=0;i<4;i++)rnd();}
 function startTile(k){
-  const prev=PATH.tiles[k-1],cath=k%PATH.cathEvery===0,len=cath?2*(PL+STAIR_L)+8:PATH.TILE;
+  const prev=PATH.tiles[k-1],cath=k%PATH.cathEvery===0,special=cath||PATH.rav?null:specialAt(k,prev);
+  const len=cath?2*(PL+STAIR_L)+8:special?SPECIAL[special].len:PATH.TILE;
   const z0=prev.z1,z1=z0-len,zc=(z0+z1)/2;
-  const t={k,cath,z0,z1,zc,czc:zc,len,kind:cath?'cathedral':null,objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false,step:0};
+  const t={k,cath,special,z0,z1,zc,czc:zc,len,kind:cath?'cathedral':special,disp:[],objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false,step:0};
   PATH.tiles[k]=t;PATH.far=k;
   tileSeed(k,0);
   if(!cath){
@@ -5823,6 +5989,8 @@ function startTile(k){
        seeded by xoring in the tile's number gave every ravine the same
        spot in the six-tile block (always the two before a cathedral). */
     const roll=rnd();
+    if(special){}                                                        // (flat: no bowl under a spine, no ridge under a causeway)
+    else{
     if(!PATH.rav)srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x9e3779b1)^0x2b79)));
     const cx=PATH.codex?CODEX_TILES[k]:undefined;                             // (the codex lays every kind down once, in order: see CODEX_TILES)
     const R=PATH.rav||(PATH.codex?(cx&&cx.v?ravineStart(k,z0,cx):null):ravineStart(k,z0));
@@ -5832,6 +6000,7 @@ function startTile(k){
       R.i++;
       if(R.i>=R.n){if(PATH.only)PATH.ravCarry=R.f;else t.terrain.push(R.f);PATH.rav=null;}   // the run's walls go when its LAST tile goes
     }else{t.kind=typeof cx==='string'?cx:['graves','wood','ruins','hollow','causeway','chapel'][(roll*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);}
+    }
   }
   PATH.job=t;return t;
 }
@@ -5851,11 +6020,61 @@ const RAVINE={
   maple:{h:5.2,fw:5.5,sw:7,  leaf:0x5f8c3a,bark:'bark', trees:11,saplings:6,blobs:[3,5],bare:.05,fence:true, bushes:14,verge:8,logs:2,rocks:0, litter:0},
   shale:{h:8.2,fw:4.4,sw:5.2,leaf:0x78994a,bark:'bark', trees:8, saplings:8,blobs:[2,4],bare:.15,fence:false,bushes:6, verge:6,logs:5,rocks:9, litter:0},
   birch:{h:6.4,fw:6,  sw:6.5,leaf:0x9ab85a,bark:'birch',trees:10,saplings:5,blobs:[2,4],bare:.35,fence:false,bushes:5, verge:7,logs:3,rocks:0, litter:10}};
-const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45;
+const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6;
 /* the codex's path: tile 0 is the cathedral as always, then one of every
    chunk, then the three ravines — the maple long enough to carry the
    underpass in its middle tile. Nobody is sown on any of it. */
-const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r'];   // (about a fifth of the path in ravines; the underpass in most runs long enough to hold one)
+const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows'];
+/* THE RAVINE'S TRAIL wanders by the world's own z (layRoad's `wig`), so
+   the stream's footbridge — which has to sit ON it — asks the same. */
+function TRAIL_WIG(z){return .55*Math.sin(z*.083+.7)+.28*Math.sin(z*.29);}
+/* THE STREAM (`f.stream` on a maple or birch run: {sd,ph}). It keeps to
+   the foot of one wall and, every hundred metres or so, swings across the
+   floor to the other: a tanh of a slow sine, so it lies FLAT against a
+   wall for most of its length and crosses in an S. Where it crosses the
+   trail there is a footbridge and the bed is left UNCUT under it (the
+   pilgrim walks on `heightAt`, which knows nothing of planks — so the
+   strip under the planks is simply dry ground, with the water to either
+   side of it); where it runs by the wall there is now and then a row of
+   stepping stones, and the bed is left shallow under each one. Anything
+   standing in the rest of it wades (`wading`). Everything here is a
+   function of WORLD z, so it runs on across the tiles of a run. */
+const STREAM={w:1.9,d:.85,k:.028,amp:4.6,gap:47};
+function streamX(s,z){return s.sd*STREAM.amp*Math.tanh(3*Math.sin(z*STREAM.k+s.ph));}
+function streamCross(s,z){return (Math.round((z*STREAM.k+s.ph)/Math.PI)*Math.PI-s.ph)/STREAM.k;}   // the nearest crossing
+function streamStones(s,z){return (Math.round(z/STREAM.gap-s.ph)+s.ph)*STREAM.gap;}                  // the nearest row of stones
+function ravEase(f,z){const e=Math.min(1,(f.z0-z)/f.tp0,(z-f.z1)/f.tp1);return e<=0?0:e*e*(3-2*e);}
+function streamCarve(f,x,z){
+  const s=f.stream,xs=streamX(s,z),u=Math.abs(x-xs)/STREAM.w;if(u>=1)return 0;
+  let c=STREAM.d*(1-u*u)*(1-u*u);
+  const zc=streamCross(s,z);
+  if(Math.abs(z-zc)<5.5){const dx=Math.abs(x-TRAIL_WIG(z));if(dx<1.9)c*=sstep(clamp((dx-1.3)/.6,0,1));}   // the dry strip under the footbridge
+  const zs=streamStones(s,z);
+  if(Math.abs(z-zs)<.5){const xr=streamX(s,zs);if(Math.abs(xr)>3.6)for(let j=-2;j<=2;j++)if(Math.hypot(x-(xr+j*.72),z-zs)<.34){c*=.22;break;}}   // a stepping stone
+  return c;
+}
+function streamNear(f,x,z,pad){return !!(f&&f.stream)&&Math.abs(x-streamX(f.stream,z))<STREAM.w+(pad||0);}
+// what water, if any, is under a point on the path (the ravine it is in, and how deep)
+function streamAt(x,z){
+  for(const f of PATH.terrain){if(f.t!=='ravine'||!f.stream||z>f.z0||z<f.z1)continue;
+    const c=streamCarve(f,x,z)*ravEase(f,z);if(c>.3)return {f,c};}
+  return null;
+}
+/* THE SPECIAL HEXES: now and then a hex that is not a chunk at all.
+   THE FORK — the trail splits round a spine of rock and you choose a
+   side: one QUIET, with something left at a shrine at the end of it, and
+   one where THE HOST waits, thick and red-boned. THE NARROWS — the land
+   falls away on both sides to a causeway nine metres wide, where a blow
+   that knocks a horror sideways is a kill. Rolled on a hashed stream of
+   their own (the ravine's lesson), never two running, never inside a
+   ravine, and never on the ravine-only path. */
+const SPECIAL={fork:{len:54,p:.09},narrows:{len:42,p:.07}};
+function specialAt(k,prev){
+  if(PATH.codex){const c=CODEX_TILES[k];return c==='fork'||c==='narrows'?c:null;}
+  if(PATH.only||k<3||(prev&&prev.special))return null;
+  srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x85ebca6b)^0x5f0b)));const r=rnd();
+  return r<SPECIAL.fork.p?'fork':r<SPECIAL.fork.p+SPECIAL.narrows.p?'narrows':null;
+}   // (about a fifth of the path in ravines; the underpass in most runs long enough to hold one)
 function hash32(a){a^=a>>>16;a=Math.imul(a,0x7feb352d);a^=a>>>15;a=Math.imul(a,0x846ca68b);a^=a>>>16;return a>>>0;}
 function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named outright)
   if(!force&&(PATH.only?k<1:(k<2||rnd()>=RAV_CHANCE)))return null;
@@ -5877,6 +6096,8 @@ function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named 
   const via=force?force.via:n>=3&&rnd()<RAV_VIA?1+((rnd()*(n-2))|0):-1;                     // never the first tile nor the last
   if(via>=0)f.h=Math.max(f.h,6.4);                                           // a bridge wants a gorge to cross
   const cross=via>=0&&(force?!!force.cross:rnd()<RAV_CROSS);                 // straight across from rim to rim, rather than down the trail and round
+  if(v!=='shale'&&(force?!!force.stream:rnd()<RAV_STREAM))f.stream={sd:rnd()<.5?1:-1,ph:rnd()*TAU};   // (the gully's floor is too narrow to carry one)
+  if(force&&force.stream)f.stream.ph=-(z0-1.5*PATH.TILE)*STREAM.k;          // (the codex's crosses the trail in the middle of its second tile, where it looks)
   PATH.terrain.push(f);
   return PATH.rav={v,n,i:0,via,f,cross};
 }
@@ -5895,26 +6116,31 @@ function tileCommit(t,c,offZ){
 }
 function stepTile(){
   const t=PATH.job;if(!t)return;
-  const k=t.k,cath=t.cath,w={i:k,a:-Math.PI/2,cx:0,cz:-37,d:37,seed:k,kind:t.kind,rav:t.rav},offZ=cath?t.zc:t.zc+37;
+  const k=t.k,cath=t.cath,w={i:k,a:-Math.PI/2,cx:0,cz:-37,d:37,seed:k,kind:t.kind,rav:t.rav,len:t.len,t},offZ=cath?t.zc:t.zc+37;
   tileSeed(k,t.step+1);BUILD.tile=k;
   if(t.step===0){
     // the chunk — or the cathedral — built in the origin's frame, as the field's north wedge, then shifted into place
     BUILD.offZ=offZ;const c=tileCapture();
     if(cath)PATH.buildCath(true);
     else{PATH.chunks[t.kind](w);
-      let piles=0;for(let i=0;i<30&&piles<3;i++){const a=w.a+rr(-.4,.4),d=24+rnd()*26,px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;PATH.helpers.bonePile(px,pz);}
-      if(rnd()<.5&&!t.rav){const p=PATH.helpers.inWedge(w,26,48,.4,2.4);if(p)PATH.helpers.tree(p[0],p[1],true);}}   // (a ravine has its own wood)
+      if(!t.special){let piles=0;for(let i=0;i<30&&piles<3;i++){const a=w.a+rr(-.4,.4),d=24+rnd()*26,px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;PATH.helpers.bonePile(px,pz);}
+      if(rnd()<.5&&!t.rav){const p=PATH.helpers.inWedge(w,26,48,.4,2.4);if(p)PATH.helpers.tree(p[0],p[1],true);}}}   // (a ravine has its own wood; a fork and the narrows build their own ground)
     BUILD.offZ=0;tileCommit(t,c,offZ);
   }else{
     // the host, sown into the queue (still in the origin's frame)...
-    BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex)pathHost(w,tileBudget(k),cath);BUILD.offZ=0;tileCommit(t,c,offZ);}
+    BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex){if(t.kind==='fork')forkHost(w,t,tileBudget(k));else pathHost(w,tileBudget(k),cath);}BUILD.offZ=0;tileCommit(t,c,offZ);}
     // ...and in the world's own frame: the ground, the road through, a lantern or two
     const c=tileCapture(),{z0,z1,zc,len}=t;
     tileGround(t);
     if(cath){layRoad(0,z0+.5,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1-.5,1.5);
       for(const end of[1,-1])for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),zc+end*(PL-.9));}
-    else{if(t.rav)layRoad(0,z0+.5,0,z1-.5,1.25,'trail',z=>.55*Math.sin(z*.083+.7)+.28*Math.sin(z*.29));   // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
-      else layRoad(0,z0+.5,0,z1-.5,1.5);const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++)makeLantern((rnd()<.5?1:-1)*2.3,z0-rr(5,len-5));}
+    else{const f=t.rav&&t.rav.f;
+      if(t.rav)layRoad(0,z0+.5,0,z1-.5,1.25,'trail',TRAIL_WIG);            // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
+      else if(t.kind==='fork')forkRoads(t);
+      else layRoad(0,z0+.5,0,z1-.5,1.5);
+      const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4))makeLantern(lx,lz);}   // (never in the water)
+      if(f&&f.stream)buildStream(t,f);
+      milepost(t);}
     tileCommit(t,c,0);
     PATH.job=null;
   }
@@ -5925,13 +6151,82 @@ function stepTile(){
 function drainSpawns(n){
   while(n-->0&&PATH.spawnQ.length){
     const q=PATH.spawnQ.shift(),t=PATH.tiles[q.tile];if(!t||t.dead)continue;
+    {const lim=pathEdge(t,q.z-t.zc)-1.4;q.x=clamp(q.x,-lim,lim);}             // (never raised over the drop: the host sows by the wedge, the narrows are nine metres wide)
     let e;
     if(q.kind==='crow'){e=new Crow(q.x,q.z);e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
     else{e=new Enemy(q.kind,q.x,q.z,q.o);if(q.roam)e.patrol();}   // (else it lies in the tile's ground and climbs out)
     enemies.push(e);t.foes.push(e);
   }
 }
-function buildTile(k){startTile(k);while(PATH.job)stepTile();drainSpawns(1e9);return PATH.tiles[k];}   // (all at once: before the first frame, or for a probe)
+function buildTile(k){startTile(k);while(PATH.job)stepTile();drainSpawns(1e9);return PATH.tiles[k];}
+/* THE STREAM'S WATER, and its footbridge and stones — laid in the world's
+   frame after the ground, one ribbon a tile following the bed (see STREAM).
+   The water's level is half the bed's depth under the UNCUT bank, so its
+   edges are buried in the banks and it runs under the footbridge's strip
+   without showing through. Wound to face the sky (the roads' lesson). */
+let STREAM_MAT=null;
+function buildStream(t,f){
+  const s=f.stream,M=PATH.M,N=Math.ceil(t.len/1.2),pos=[],uv=[],idx=[],ok=[];
+  const levelAt=(x,z)=>{const e=ravEase(f,z);return heightAt(x,z)+streamCarve(f,x,z)*e-.5*STREAM.d*e;};
+  for(let i=0;i<=N;i++){const z=t.z0-t.len*i/N,xs=streamX(s,z),y=levelAt(xs,z);ok.push(ravEase(f,z)>.45);
+    pos.push(xs-.92*STREAM.w,y,z, xs+.92*STREAM.w,y,z);uv.push(0,i*t.len/N/2.5, 1,i*t.len/N/2.5);
+    if(i>0&&ok[i]&&ok[i-1]){const a=(i-1)*2;idx.push(a,a+1,a+2, a+1,a+3,a+2);}}
+  if(idx.length){
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    g.setIndex(idx);g.computeVertexNormals();
+    STREAM_MAT=STREAM_MAT||matNS('stream',{transparent:true,opacity:.84,depthWrite:false,color:new THREE.Color(0xa8c0c0).convertSRGBToLinear()});
+    const wm=new THREE.Mesh(g,STREAM_MAT);wm.renderOrder=1;world.add(wm);}
+  // the footbridge, where the stream crosses the trail: planks laid across the trail, posts and a rail either side
+  const zc=streamCross(s,t.zc);
+  if(Math.abs(zc-t.zc)<t.len/2-5&&ravEase(f,zc)>.6){
+    for(let z=zc-5;z<=zc+5;z+=.36){const x=TRAIL_WIG(z),pl=box(2.3,.08,.3,M.bark,x,heightAt(x,z)+.14,z,rr(-.04,.04));pl.rotation.z=rr(-.03,.03);world.add(pl);}
+    for(const sd of[1,-1]){let prev=null;
+      for(let z=zc-5;z<=zc+5.01;z+=2.5){const x=TRAIL_WIG(z)+sd*1.2,y=heightAt(TRAIL_WIG(z),z)+.14;world.add(cyl(.05,.06,1.05,5,M.bark,x,y+.5,z));
+        if(prev){const dx=x-prev[0],dz=z-prev[2],rl=box(.07,.07,Math.hypot(dx,dz)+.1,M.bark,(x+prev[0])/2,(y+prev[1])/2+.95,(z+prev[2])/2,Math.atan2(dx,dz));world.add(rl);}
+        prev=[x,y,z];}}}
+  // a row of stepping stones across the stream where it runs by the wall
+  const zs=streamStones(s,t.zc),xr=streamX(s,zs);
+  if(Math.abs(zs-t.zc)<t.len/2-1&&Math.abs(xr)>3.6&&ravEase(f,zs)>.6){const y=levelAt(xr,zs)+.04;
+    for(let j=-2;j<=2;j++){const st=new THREE.Mesh(PATH.helpers.ico,M.wall);st.position.set(xr+j*.72,y,zs+rr(-.06,.06));st.scale.set(.32,.15,.28);st.rotation.y=rnd()*TAU;world.add(st);}}
+}
+/* THE MILEPOSTS: a worn stone at the right-hand verge at the start of
+   every hex, the hex's number cut into the face you walk up to — so a run
+   can be told as a place ("I went at thirty-four"). Each face is its own
+   64px canvas, disposed with its tile. */
+function milepost(t){
+  const f=t.rav&&t.rav.f,z=t.z0-1.3;let x=2.95;
+  if(streamNear(f,x,z,.4))x=-2.95;if(streamNear(f,x,z,.4))return;
+  const cv=document.createElement('canvas');cv.width=cv.height=64;const c=cv.getContext('2d');
+  c.fillStyle='#77746a';c.fillRect(0,0,64,64);
+  for(let i=0;i<220;i++){const v=(90+Math.random()*50)|0;c.fillStyle=`rgba(${v},${v-4},${v-12},.5)`;c.fillRect((Math.random()*64)|0,(Math.random()*64)|0,2,2);}
+  for(let i=0;i<5;i++){c.fillStyle='rgba(70,88,52,.55)';c.beginPath();c.ellipse(Math.random()*64,50+Math.random()*14,4+Math.random()*6,2+Math.random()*3,0,0,TAU);c.fill();}   // moss at the foot
+  const n=String(t.k);c.textAlign='center';c.textBaseline='middle';c.font='bold '+(n.length>2?26:34)+'px Georgia,serif';
+  c.fillStyle='rgba(220,214,196,.55)';c.fillText(n,33,31);c.fillStyle='#24211d';c.fillText(n,32,30);   // cut in: the lip catches the light, the cut is dark
+  const tex=new THREE.CanvasTexture(cv);tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.encoding=THREE.sRGBEncoding;
+  const face=lam({map:tex}),stone=PATH.M.grave;t.disp.push(tex,face);
+  const gy=heightAt(x,z),m=new THREE.Mesh(new THREE.BoxGeometry(.46,1.0,.3),[stone,stone,stone,stone,face,stone]);
+  m.position.set(x,gy+.42,z);m.rotation.set(rr(-.04,.02),rr(-.12,.12),rr(-.05,.05));world.add(m);t.post={x,z};
+  addObstacle(x,z,.3,true,gy+.92);
+}
+/* THE FORK'S ROADS: in along the middle, split round the spine to two
+   trails nine metres out either side, and back together at the far end
+   (the spine is the chunk's; see CHUNKS.fork). The diagonals ride a hair
+   higher so they do not fight the straight pieces where they overlap. */
+function forkRoads(t){
+  const {z0,z1,zc}=t;
+  layRoad(0,z0+.5,0,zc+22,1.5);layRoad(0,zc-22,0,z1-.5,1.5);
+  for(const sd of[1,-1]){layRoad(0,zc+22,sd*9,zc+15,1.3,null,null,.065);layRoad(sd*9,zc+15,sd*9,zc-15,1.3);layRoad(sd*9,zc-15,0,zc-22,1.3,null,null,.065);}
+}
+/* THE FORK'S HOST: the host's side takes half again the hex's purse, all
+   of it on its own ground and a third of it red-boned; the quiet side
+   gets one thing lying in wait by the shrine. */
+function forkHost(w,t,budget){
+  const K=hostKit('graves'),q=t.forkQ||1,H=-q;
+  let b=budget*1.5,n=0;
+  while(b>=60&&n<14){const r=rnd(),kind=r<.22?'big':r<.45?'caster':'hollow',cost=kind==='big'?140:kind==='caster'?80:60;
+    K.sow(kind,H*rr(5,18),-37+rr(-15,15),{red:rnd()<.33||undefined});b-=cost;n++;}
+  K.sow('hollow',q*rr(6,12),-37+rr(-12,4),{ambush:true});
+}   // (all at once: before the first frame, or for a probe)
 function teardownTile(t){
   const shared=new Set(PATH.helpers.shared);
   for(const o of t.objsW){world.remove(o);o.traverse(c=>{if(c.isMesh&&c.geometry&&!shared.has(c.geometry))c.geometry.dispose();});}
@@ -5943,12 +6238,14 @@ function teardownTile(t){
     if(e.hp>0&&Math.hypot(e.x-player.x,e.z-player.z)<40)continue;                // (one still on your heels comes along)
     if(e.rig&&e.rig.root)scene.remove(e.rig.root);enemies.splice(i,1);}
   if(t.ground){world.remove(t.ground);t.ground.geometry.dispose();t.ground=null;}
+  for(const d of t.disp||[])d.dispose();                                          // (a milepost's carved face)
+  {const gone=new Set(t.objsW);for(const [o,r] of BAKED){let p=r.mesh;while(p&&p.parent&&p.parent!==world)p=p.parent;if(gone.has(p))BAKED.delete(o);}}   // (a ravine's folded bushes)
   for(let i=MARKABLE.length-1;i>=0;i--){let o=MARKABLE[i];while(o.parent)o=o.parent;if(o!==scene){if(MARKABLE[i].markTex)MARKABLE[i].markTex.dispose();MARKABLE.splice(i,1);}}
   t.dead=true;
 }
 function initPath(){
   const z1=-(PL+STAIR_L+4);
-  PATH.tiles=[{k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false}];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;
+  PATH.tiles=[{k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false}];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;
   tileGround(PATH.tiles[0]);
   buildTile(1);buildTile(2);
   if(PATH.codex)for(let k=3;k<CODEX_TILES.length;k++)buildTile(k);   // (the codex's whole path stands from the start, and none of it is ever torn down)
@@ -5960,7 +6257,33 @@ function updatePath(dt){
   drainSpawns(2);
   for(const t of PATH.tiles)if(t&&!t.dead&&t.k>0&&t.z1>pz+50&&t!==PATH.job)teardownTile(t);   // what is fifty metres behind is gone
   if(Math.abs(pz-GP.oz)>48)movePaint(Math.round(pz/30)*30);                     // the paint sheet keeps up
+  if(STREAM_MAT)STREAM_MAT.map.offset.y-=dt*.32;                                   // the streams run
+  if(player.moveAmt>.2&&Math.random()<dt*7&&wading(player.x,player.z))boneBurst(player.x+rr3(-.3,.3),heightAt(player.x,player.z)+.42,player.z+rr3(-.3,.3),0x9fbcbc,2,1.3);   // and splash
+  // THE FORK'S SHRINE gives what was left on it when you come to it (kept till then: the ground holds only four drops)
+  for(const t of PATH.tiles)if(t&&t.cache&&!t.cache.done&&!t.dead&&Math.hypot(player.x-t.cache.x,player.z-t.cache.z)<14){
+    t.cache.done=true;spawnElemDrop(t.cache.x-.6,t.cache.z,Math.random()<.35?'skull':['fire','lightning','ice'][(Math.random()*3)|0]);
+    spawnElemDrop(t.cache.x+.6,t.cache.z+.3,'health');toast('something was left at the shrine');}
+  /* THE DAY TURNS AS YOU GO. At the middle of every cathedral's nave (and
+     at the start of each run on the ravine-only path, which has no nave)
+     the hour moves on one — sunrise, noon, dusk, night and round — and
+     four times in ten the weather turns with it. Under a dip to dark, so
+     the sky does not pop; the difficulty of the dark comes with the
+     distance. */
+  if(!PATH.codex){const here=pathTileAt(pz);
+    if(here&&here.k>0&&!here.turned&&here.k-(PATH.turnK||0)>=6&&(here.cath?Math.abs(pz-here.zc)<6:(PATH.only&&here.rav&&here.rav.i===0&&pz<here.z0-4))){here.turned=true;PATH.turnK=here.k;turnDay();}}   // (never sooner than six hexes: the runs of the ravine-only path come every three to five)
   if(G.mode==='play'&&player.marrow>=PATH.goal)endGame(true);
+}
+const HOUR_NEXT={sunrise:'noon',noon:'dusk',dusk:'night',night:'sunrise'};
+const HOUR_WORD={sunrise:'the sun comes up',noon:'the day stands high',dusk:'the light goes down',night:'the dark comes on'};
+const WX_WORD={clear:'the sky clears',summer:'the air turns warm, and the trees are in leaf',rain:'rain comes in',storm:'a storm breaks',snow:'it begins to snow',blizzard:'the snow comes down hard'};
+function turnDay(){
+  const f=$('fade');f.style.transition='opacity .45s';f.style.opacity=.92;
+  setTimeout(()=>{
+    const nh=HOUR_NEXT[RUN.time]||'dusk';let msg=HOUR_WORD[nh];RUN.time=nh;
+    if(Math.random()<.4){const pool=WX_NAMES.filter(x=>x!==RUN.weather),nw=pool[(Math.random()*pool.length)|0];setWeather(nw);msg+=' · '+WX_WORD[nw];}   // (setWeather applies the hour as well)
+    else applyTime(nh);
+    toast(msg);f.style.opacity=0;setTimeout(()=>{f.style.transition='';},520);
+  },470);
 }
 function wrapAngle(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
 
@@ -19271,6 +19594,14 @@ const CODEX_CATS=[
       t:'pale birches, a third of them bare before the rest, the fall lying in drifts beside the trail.'},
     {k:'ravine · via',name:'the underpass',ep:'the highway overhead',where:'a ravine three tiles long or more',tile:8,look:'via',
       t:'a concrete viaduct on tall bents that comes in off one rim, swings round over the trail and out over the other: a receding row of the same frame, the deck twelve to fourteen metres up. A column that would stand on the trail is left out. The feet you can walk up to are painted — a flower with a face, a red disc, a grinning portrait, tags.'},
+    {k:'ravine · stream',name:'the stream',ep:'a maple or birch ravine, six times in ten',where:'the path · the ravine',tile:8,look:'stream',
+      t:'water down the ravine floor: it keeps to the foot of one wall and every hundred metres or so swings across to the other, and where it crosses the trail there is a plank footbridge with a rail each side. By the wall there is now and then a row of stepping stones. Anything standing in it WADES — the pilgrim at six tenths of his pace, a horror at eight.'},
+    {k:'fork',name:'the fork',ep:'a special hex',where:'the path, now and then',tile:15,look:'wide',
+      t:'the trail splits round a spine of rock and a signpost says which way is which. One side is QUIET: a few trees, one thing lying in wait, and a shrine at the far end with something left on it — an element for the blade (sometimes the reaper\'s mark) and a heart. The other side is THE HOST: half again the hex\'s horrors, a third of them red-boned, among bones and broken stone. The trails rejoin past the spine.'},
+    {k:'narrows',name:'the narrows',ep:'a special hex',where:'the path, now and then',tile:16,look:'wide',
+      t:'the land falls away on both sides to a causeway nine metres wide, the edge lined with a broken parapet that stops nothing. Walk off it and you fall; knock a horror off it and it falls. The horrors of this hex are all on the causeway with you.'},
+    {k:'milepost',name:'the mileposts',ep:'every hex',where:'the path · the ravine',tile:9,look:'post',
+      t:'a worn stone at the right-hand verge at the start of every hex, its number cut into the face you walk up to — so a run can be told as a place.'},
     {k:'ravine · via · cross',name:'the crossing',ep:'the highway overhead, square',where:'a ravine three tiles long or more (a little under half the highways)',tile:11,look:'via',
       t:'the other highway: straight over the gorge from one rim to the other, square to the trail. The same bents step down the walls either side, the deck passes over once, and there is sky on both sides of it.'}]},
   {id:'arms',name:'arms',items:[]},
@@ -19308,6 +19639,9 @@ function codexShow(ci,i){
     if(k===0){C.place=new THREE.Vector3(0,heightAt(0,10)+3,4);C.base=40;C.pitch=.42;C.yaw=.7;}
     else{const zc=t.zc,gy=heightAt(0,zc);
       if(it.look==='via'){C.place=new THREE.Vector3(0,gy+5.5,zc);C.base=24;C.pitch=.1;C.yaw=.12;}
+      else if(it.look==='stream'){const f=t.rav&&t.rav.f,sz=f&&f.stream?streamCross(f.stream,zc):zc,sy=heightAt(TRAIL_WIG(sz),sz);C.place=new THREE.Vector3(TRAIL_WIG(sz),sy+.8,sz);C.base=11;C.pitch=.42;C.yaw=.9;}
+      else if(it.look==='post'){const q=t.post||{x:2.95,z:t.z0-1.3};C.place=new THREE.Vector3(q.x,heightAt(q.x,q.z)+.55,q.z);C.base=3.2;C.pitch=.08;C.yaw=-Math.sign(q.x)*.25;}   // (face on: the number is cut in the face you walk up to)
+      else if(it.look==='wide'){C.place=new THREE.Vector3(0,gy+1.5,zc);C.base=34;C.pitch=.62;C.yaw=Math.PI+.35;}
       else if(it.look==='ravine'){C.place=new THREE.Vector3(0,gy+2.5,zc);C.base=24;C.pitch=.3;C.yaw=.2;}
       else{C.place=new THREE.Vector3(0,gy+1.5,zc);C.base=23;C.pitch=.44;C.yaw=Math.PI+.55;}}   // (from the north: from the south the lens backs into the cathedral's stair)
     P.x=C.place.x;P.z=C.place.z;C.px=P.x;C.pz=P.z;
@@ -19952,7 +20286,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,pathEdge,pathSurfaceY,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
