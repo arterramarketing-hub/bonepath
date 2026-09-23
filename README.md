@@ -1588,7 +1588,8 @@ ravine and at either end of one, so the walls never open onto the sky
 where a ravine meets the meadow — and the same two rules read it: walk past the last of the ground
 the tile is drawing and you step off and fall, and a horror flung past the
 lip goes over and dies on the way down. In a ravine that means climbing a
-wall to the rim and walking off the far side of it. The path's BACK is a
+wall to the rim — where the wall is gentle enough to climb (see *the slope
+limit*, below) — and walking off the far side of it. The path's BACK is a
 cliff too: the edge where the torn-down hexes used to be. Everything else is held
 a stride short of the edge, as on the field.
 
@@ -1741,6 +1742,21 @@ and then a row of stepping stones. Standing in it is WADING — the
 pilgrim at six tenths of his pace, a horror at eight tenths — and it
 splashes. The water flows.
 
+**Where the road meets the trail.** At either end of every ravine the
+flagstones give out over eight metres: the setts break up and scatter,
+fewer and fewer, a last few lying loose in the dirt, until it is all the
+trail's packed earth and ruts — the road's width easing down to the
+trail's and the trail's wander easing in, so there is no line where one
+stops and the other starts.
+
+**The slope limit.** The pilgrim does not walk up ground steeper than
+about 38 degrees. He slides along a face he cannot climb and can go down
+anything. A stair, the plinth and a bridge are never slopes, and the bank
+of a river, the pond or a stream is always a way out of the water. What
+it does is make a ravine a gorge: the steep walls of the shale gully and
+most of the others hold you in, and only a gentle stretch lets you climb
+out to the rim. The field has nowhere steep enough for it to bite.
+
 **Every bush breaks.** The scrub along the verges and at the foot of the
 walls is torn out by a blade, a round or a blast: leaves (last year's,
 out of summer) and twigs fly, and it is gone. A bush never stops you —
@@ -1782,9 +1798,14 @@ and never on the ravine-only path.
 **The day turns as you go.** In the middle of every cathedral's nave (and,
 on the ravine-only path, at the start of a run at least six hexes on from
 the last) the hour moves on one — sunrise, noon, dusk, night, and round —
-and four times in ten the weather turns with it, under a short dip to dark
-and a line saying what came ("the dark comes on · a storm breaks"). How far
-you have walked is on the sky, and the night brings its own difficulty.
+and four times in ten the weather turns with it, with a line saying what
+is coming ("the dark comes on · a storm breaks"). **It comes on gradually,
+over forty seconds**, not under a dip to dark: the light and the colour
+of the air slide from one hour to the next, the new sky fades in over the
+old, the sun sets or the moon rises, the rain thins out and stops or
+thickens from nothing, snow comes over the ground a little at a time, and
+summer's leaves come into the trees or fall out of them. How far you have
+walked is on the sky, and the night brings its own difficulty.
 
 Under the hood every tile is built with the same chunk code the field
 uses, in the origin's frame as the field's north wedge, and then

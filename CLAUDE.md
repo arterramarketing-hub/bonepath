@@ -2462,6 +2462,32 @@ Known state of play:
     `source-atop`.** The final pass forces every alpha over 100 to 255, so
     a crack's random walk that strayed off a sett onto bare canvas became
     an opaque black squiggle lying on the grass beside the road.
+- **THE SLOPE LIMIT** (`SLOPE_MAX` tan 38°, `SLOPE_RUN` 3m, `slopeY`,
+  `slopeHold`, called beside the pilgrim's `constrain`; his start-of-frame
+  position is `player._px/_pz`, taken on the first line of `update`). The
+  uphill part of the frame's step along the fall line is removed, so he
+  slides along a face and goes down anything. Judged on the ground MESH's
+  surface (`pathSurfaceY` / `groundSurfaceY`, `heightAt` in the Mire), so
+  a height override — a stair, the plinth, a deck — is never a slope.
+  **Two exemptions, both measured:** a face must ALSO rise at the limit
+  over `SLOPE_RUN` up its own fall line (a bank is not a wall), and any
+  point in a river's, the pond's or a stream's footprint is exempt — with
+  only the first, four walks in five out of the river stuck at the bank.
+  Measured: stopped at |x|≈6 in shale, maple and birch alike, one gentle
+  stretch of maple climbed to the rim; every walk out of the river gets
+  out; 0 of 4,709 field spots blocked on three seeds. Enemies are not
+  limited. The codex and the Warden's nave are exempt.
+- **THE SEAM** (`laySeam`, texture `seam`, `layPath`'s `opt`). Where a
+  road meets a ravine trail, either way round, eight metres of block are
+  laid centred on the join at `.058`, the width easing from the road's to
+  the trail's (`opt.wAt`) and the trail's wander easing in, `v` 0..1 over
+  the length (`opt.v01`). It is laid in `stepTile`'s step 1 AFTER the
+  tile's own `tileCommit`, in its own capture window committed to the
+  EARLIER tile, which is torn down first, while the later tile's own road
+  or trail still lies under the half it covered.
+  **The option is `opt`, not `o`, because `o` is the wander offset inside
+  the loop** — named `o`, it was shadowed, and every seam came out a
+  constant-width strip with the texture repeating up it.
 - **THE PATH'S SHORN SIDES ARE A CLIFF** (`pathEdge`, `pathVertY`,
   `pathTileAt`, `pathSurfaceY`, beside `tileGround`). One rule, drawn by
   `tileGround` and read by the fall, so what you see is what holds you.
@@ -2630,8 +2656,33 @@ Known state of play:
   the middle of each cathedral's nave, or on the ravine-only path at a
   run's start, never within six hexes of the last: the hour moves on one
   and 40% of the time the weather too (`setWeather` applies the hour, so
-  `RUN.time` is set first). The change is made under a 0.47s dip of
-  `#fade`, whose own 1s transition is swapped out and put back.
+  `RUN.time` is set first). **It is gradual now** (`XF`, `xfStart`,
+  `xfTick`, `xfEnd`, `XF_DUR` 40s, beside `HOURS`): the old 0.47s dip of
+  `#fade` is gone.
+  - `xfStart` snapshots everything `applyTime` writes (`xfSnap`), applies
+    the target with `XF.busy` set, snapshots again, and puts the first
+    back; `xfSet(A,B,u)` writes the blend. **Anything new that
+    `applyTime` writes must be added to `xfSnap`/`xfSet`**, or a turn
+    snaps it at the start.
+  - Four things are not numbers: the SKY is a second dome (`XF.dome2`,
+    transparent, `renderOrder` −1.5, riding the camera in `renderFrame`
+    like the first); the SUN and MOON fade by opacity; what FALLS thins
+    over the first half and the new weather's thickens over the second
+    (`xfSwap` at the middle changes `RUN.weather` and the roads'
+    surface); the GROUND's cover is a second map in the ground shader
+    (`uGB`, `uGBMap`, `uGBK` — the ratio of the two maps' repeats), with
+    `applyGroundSurface` doing the real swap at the end; the LEAVES
+    dissolve (`LEAF.u`, a hashed-pixel discard wrapped round `psx`'s
+    `onBeforeCompile` in `leafMat` — opaque the whole way, nothing to
+    sort).
+  - `xfTick` runs in `updateAmbient` AFTER `updateWeather`, because a
+    blizzard writes its own fog every frame and the blend must have the
+    last word. An instant change (`applyTime`/`setWeather` from the menu or
+    the codex) lands any blend first; so does a new turn.
+  - Measured on a short blend: hemi 1.22 → 0.48, the ground's snow share
+    and the second sky 0 → .51 → 1 at a quarter, half and the end, the
+    leaves .84 → 0, 0 errors across clear→snow, blizzard→clear and
+    storm→summer.
 - **THE RAVINE-ONLY PATH (`?mode=ravine`, `PATH.only`, `PATH.ravCarry`,
   `PATH.ravLast`).** `cathEvery` is `Infinity`, so tile 0 is the only
   cathedral; `ravineStart` answers from tile 1 on, runs are 3–5 and never

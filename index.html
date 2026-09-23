@@ -1353,6 +1353,31 @@ function buildTextures(){
       ctx.fillStyle=`rgba(${(46+rnd()*14)|0},${(58+rnd()*16)|0},${(34+rnd()*10)|0},${.75+rnd()*.25})`;ctx.fillRect(sd?S-d:0,y,d,2);
       if(rnd()<.18){ctx.fillStyle='rgba(70,86,48,.9)';ctx.fillRect(sd?S-d-rr(2,7):d,y,rr(2,6),1);}}
   });
+  /* -- the SEAM: where the flagstone road gives out into the ravine's dirt
+     trail, eight metres of both (`laySeam`). The road and the trail are
+     each drawn in at their own scale (four metres a copy, so the setts and
+     the ruts are the size they are either side), and the setts go in
+     CELLS: each cell of stone survives on a chance that falls from all of
+     them at the brick end to none at the dirt end, with a few kept loose
+     out in the dirt. The canvas's BOTTOM is the brick end (v=0 after the
+     flip, and v=0 is the first point `laySeam` lays). Where the road's
+     own verge is worn away the soil under the ribbon shows, the same as
+     the road; the dirt end is the trail's opaque ground and grass. -- */
+  makeTex('seam',256,(ctx,S)=>{
+    srand(193);
+    const two=(img)=>{const c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');x.drawImage(img,0,0,S,S/2);x.drawImage(img,0,S/2,S,S/2);return x.getImageData(0,0,S,S).data;};
+    const dR=two(texCache.road.image),dT=two(texCache.trail.image);
+    const out=ctx.createImageData(S,S),d=out.data;
+    const share=y=>{const u=clamp(((1-y/S)-.1)/.72,0,1);return 1-u*u*(3-2*u);};   // how much of it is still stone, by row
+    const CW=22,CH=16,keep=[];
+    for(let r=0;r*CH<S;r++){keep.push([]);for(let c=0;c*CW<S+CW;c++){const cy=(r+.5)*CH;keep[r].push(rnd()<share(cy)+(rnd()<.07?.5:0)-.04);}}
+    for(let y=0;y<S;y++){const r=(y/CH)|0,off=(r&1)*11,sh=share(y);
+      for(let x=0;x<S;x++){const i=(y*S+x)*4,c=((x+off)/CW)|0,k=keep[r][c];
+        if(k&&dR[i+3]>100){const dirt=(1-sh)*.35;d[i]=dR[i]+(dT[i]-dR[i])*dirt;d[i+1]=dR[i+1]+(dT[i+1]-dR[i+1])*dirt;d[i+2]=dR[i+2]+(dT[i+2]-dR[i+2])*dirt;d[i+3]=255;}
+        else if(dR[i+3]<=100&&(x<52||x>S-52)&&rnd()<sh*.95){d[i+3]=0;}                      // the road's own worn verge: soil shows
+        else{d[i]=dT[i];d[i+1]=dT[i+1];d[i+2]=dT[i+2];d[i+3]=255;}}}
+    ctx.putImageData(out,0,0);
+  });
   /* -- the ravine's stream: clear dark water over stones, with pale
      ripple streaks drawn ALONG its length (v), which is the way the
      material's offset runs them, so it flows -- */
@@ -2101,6 +2126,7 @@ function renderFrame(){
   // cut away — leaving a hard-edged disc of sky hanging over the horizon
   // with the fog colour around it. Moved with the eye, it never clips.
   if(worldLights.dome)worldLights.dome.position.copy(camera.position);
+  if(XF.dome2&&XF.dome2.visible)XF.dome2.position.copy(camera.position);   // (the blend's second sky rides with it)
   renderer.setRenderTarget(rt);
   renderer.render(scene,camera);
   if(HERO_HI){
@@ -4012,9 +4038,16 @@ const WATER_Y=0;                       // the bog stands at this height; the cau
    material that is not visible is never drawn. Out of summer the wood is
    bare, which is what the Bone Path always was. */
 const WX_NAMES=['clear','summer','rain','storm','snow','blizzard'];
-const LEAF={mats:[]};
-function leafMat(col){const m=lam({map:texCache.leaves,color:new THREE.Color(col).convertSRGBToLinear()});m.visible=RUN.weather==='summer';LEAF.mats.push(m);return m;}
-function syncLeaves(){const on=RUN.weather==='summer';for(const m of LEAF.mats)m.visible=on;}
+const LEAF={mats:[],u:{value:1}};
+/* the leaves come in and go by DISSOLVING, a pixel at a time on a hashed
+   screen pattern (`uLeaf` is how much of the crown is still there), so a
+   gradual turn of the weather (XF) can take summer in or out without the
+   crowns popping. Opaque the whole way: nothing to sort. */
+function leafMat(col){const m=lam({map:texCache.leaves,color:new THREE.Color(col).convertSRGBToLinear()});m.visible=RUN.weather==='summer';if(!XF.on)LEAF.u.value=m.visible?1:0;
+  const pre=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{pre(sh,r);sh.uniforms.uLeaf=LEAF.u;
+    sh.fragmentShader='uniform float uLeaf;\n'+sh.fragmentShader.replace('void main() {','void main() {\n if(uLeaf<.999){float lh=fract(sin(dot(floor(gl_FragCoord.xy),vec2(12.9898,78.233)))*43758.5453);if(lh>uLeaf)discard;}');};
+  LEAF.mats.push(m);return m;}
+function syncLeaves(){if(XF.on)return;const on=RUN.weather==='summer';LEAF.u.value=on?1:0;for(const m of LEAF.mats)m.visible=on;}
 // a crown's shape from where the tree stands, NOT from the seed's stream: drawing on `rnd` here would move every later thing the seed places
 const posHash=(x,z,i)=>{const v=Math.sin(x*12.9898+z*78.233+i*37.719)*43758.5453;return v-Math.floor(v);};
 const WEDGE_N=6;
@@ -4280,6 +4313,28 @@ function groundSurfaceY(x,z){                    // bilinear across the mesh's o
   const a=hexVertY(gx,gz),b=hexVertY(gx+GCELL,gz),c=hexVertY(gx,gz+GCELL),d=hexVertY(gx+GCELL,gz+GCELL);
   return (a*(1-fx)+b*fx)*(1-fz)+(c*(1-fx)+d*fx)*fz;
 }
+/* THE SLOPE LIMIT. The pilgrim does not walk up ground steeper than
+   `SLOPE_MAX` (tan 38°): the part of a step that goes UP the fall line is
+   taken off it, so he slides along a face he cannot climb and goes down
+   anything. It is judged on the ground MESH's own surface (`slopeY`), not
+   on `heightAt`, so a stair, the plinth and a bridge's deck — which are
+   height overrides standing on the soil — are never slopes at all.
+   A face must be steep HERE and stay steep for `SLOPE_RUN` (3m) up its
+   own fall line: a wall is, a bank is not. The river's bank peaks at a
+   grade of .95 over its middle metre but rises only .74 over three, and a
+   limit that ignored that left him standing in the water for good. */
+const SLOPE_MAX=Math.tan(38*Math.PI/180),SLOPE_RUN=3;
+function slopeY(x,z){return PATH.on?pathSurfaceY(x,z):DEF.on?heightAt(x,z):groundSurfaceY(x,z);}
+function slopeHold(p,ox,oz){
+  if(CODEX.on||G.bossActive)return;
+  const dx=p.x-ox,dz=p.z-oz;if(dx*dx+dz*dz<1e-8)return;
+  if(PATH.on&&(pathWaterAt(p.x,p.z)!==null||streamAt(p.x,p.z)>0))return;   // (a river's, a pond's or a stream's bank is always a way out of the water: measured, the river's held four walks in five)
+  const e=.5,gx=(slopeY(p.x+e,p.z)-slopeY(p.x-e,p.z))/(2*e),gz=(slopeY(p.x,p.z+e)-slopeY(p.x,p.z-e))/(2*e),m=Math.hypot(gx,gz);
+  if(!(m>SLOPE_MAX)||m>40)return;                       // (past 40 it is the edge of the world, which is the fall's business)
+  const ux=gx/m,uz=gz/m,up=dx*ux+dz*uz;if(up<=0)return;  // going down or across: always
+  const y0=slopeY(p.x,p.z);if((slopeY(p.x+ux*SLOPE_RUN,p.z+uz*SLOPE_RUN)-y0)/SLOPE_RUN<SLOPE_MAX*.92)return;   // a short bank, not a wall
+  p.x-=ux*up;p.z-=uz*up;
+}
 /* How far the ground has fallen away beneath a point. Zero while it is
    solid — and INSIDE the rim it is always zero, whatever the numbers say.
    The plinth and the stair are their own geometry standing on the soil, so
@@ -4474,7 +4529,7 @@ function layRoad(ax,az,bx,bz,w,tex,wig,lift){return layPath([[ax,az],[bx,bz]],w,
    straight road takes its `v` from the world's own axis, so two laid end
    to end on one line — every hex of the path — carry the pattern across
    the join. */
-function layPath(pts,w,tex,wig,lift,closed){
+function layPath(pts,w,tex,wig,lift,closed,opt){   // (`opt.wAt(tt)`: the half-width at that share of the length; `opt.v01`: the texture once, end to end)
   lift=lift||.05;tex=tex||'road';
   if(tex==='road')w*=1.14;                  // (the worn texture eats its own verges: what is left is the width the road always had)
   const P=closed?pts.concat([pts[0]]):pts,seg=[];
@@ -4495,9 +4550,10 @@ function layPath(pts,w,tex,wig,lift,closed){
       if(i===N&&(k<seg.length-1||closed))[nx,nz,sc]=mitre(q,seg[(k+1)%seg.length]);
       else if(i===0&&closed)[nx,nz,sc]=mitre(seg[seg.length-1],q);
       const o=wig?wig(pz0):0,px=px0+nx*o,pz=pz0+nz*o;
-      const lx=px+nx*w*sc,lz=pz+nz*w*sc,rx=px-nx*w*sc,rz=pz-nz*w*sc;
+      const tt=(acc+t*q.len)/total,hw=(opt&&opt.wAt?opt.wAt(tt):w)*sc;
+      const lx=px+nx*hw,lz=pz+nz*hw,rx=px-nx*hw,rz=pz-nz*hw;
       pos.push(lx,heightAt(lx,lz)+lift,lz, rx,heightAt(rx,rz)+lift,rz);
-      const v=(v0+acc+t*q.len)*vk;uv.push(0,v, 1,v);
+      const v=opt&&opt.v01?tt:(v0+acc+t*q.len)*vk;uv.push(0,v, 1,v);
       if(row>0){const a=(row-1)*2;idx.push(a,a+2,a+1, a+1,a+2,a+3);}
       row++;
     }
@@ -4507,12 +4563,22 @@ function layPath(pts,w,tex,wig,lift,closed){
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
   g.setIndex(idx);g.computeVertexNormals();
-  const rm=new THREE.Mesh(g,matNS(tex,tex==='road'?{alphaTest:.5}:null));rm.userData.tex=tex;world.add(rm);roadMeshes.push(rm);   // (`tex`: the ravine's gravel)
+  const rm=new THREE.Mesh(g,matNS(tex,(tex==='road'||tex==='seam')?{alphaTest:.5}:null));rm.userData.tex=tex;world.add(rm);roadMeshes.push(rm);   // (`tex`: the ravine's gravel)
   return rm;
 }
 /* where several roads start from one point (the Mire's yard), their square
    ends stick out past one another in a star: a round of the same stone
    laid over the hub, a hair above them all, is the junction they meet in */
+/* THE SEAM between the flagstone road and a ravine's dirt trail: eight
+   metres centred on the join, from the brick end to the dirt end, its
+   width easing from the road's to the trail's and the trail's wander
+   easing in with it, laid a hair over both. */
+function laySeam(zJ,trailAhead){
+  const zb=trailAhead?zJ+4:zJ-4,zd=trailAhead?zJ-4:zJ+4,RW=1.5*1.14,TW=1.25;
+  const ease=u=>u*u*(3-2*u);
+  return layPath([[0,zb],[0,zd]],RW,'seam',z=>TRAIL_WIG(z)*ease(Math.min(1,Math.abs(z-zb)/8)),.058,false,
+    {v01:true,wAt:u=>RW+(TW-RW)*ease(u)});
+}
 function layHub(x,z,r,lift){
   const n=14,pos=[],uv=[],idx=[];
   pos.push(x,heightAt(x,z)+lift,z);uv.push(.5,z/4);
@@ -5293,8 +5359,9 @@ function buildWorld(){
     GP.tex=new THREE.CanvasTexture(GP.cv);GP.tex.magFilter=THREE.NearestFilter;GP.tex.minFilter=THREE.LinearFilter;GP.tex.generateMipmaps=false;GP.tex.encoding=THREE.sRGBEncoding;GP.tex.flipY=false;
     gm.onBeforeCompile=s=>{s.uniforms.uPaint={value:GP.tex};s.uniforms.uPaintZ={value:GP.oz};gm.userData.shader=s;
       s.vertexShader='varying vec3 vWP;\n'+s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.)).xyz;');
-      s.fragmentShader='uniform sampler2D uPaint;uniform float uPaintZ;varying vec3 vWP;\n'+s.fragmentShader.replace('#include <map_fragment>',
-        '#include <map_fragment>\n{vec4 pc=texture2D(uPaint,(vWP.xz-vec2(0.,uPaintZ))/'+GP.EXT.toFixed(1)+'+0.5);pc=sRGBToLinear(pc);diffuseColor.rgb=mix(diffuseColor.rgb,pc.rgb,pc.a);}');};
+      s.uniforms.uGB=XF.gb;s.uniforms.uGBMap=XF.gbMap;s.uniforms.uGBK=XF.gbK;   // (the snow coming over the ground in a gradual turn: see XF)
+      s.fragmentShader='uniform sampler2D uPaint;uniform float uPaintZ;varying vec3 vWP;uniform float uGB,uGBK;uniform sampler2D uGBMap;\n'+s.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\nif(uGB>0.){vec4 g2=mapTexelToLinear(texture2D(uGBMap,vUv*uGBK));diffuseColor.rgb=mix(diffuseColor.rgb,diffuse*g2.rgb,uGB);}\n{vec4 pc=texture2D(uPaint,(vWP.xz-vec2(0.,uPaintZ))/'+GP.EXT.toFixed(1)+'+0.5);pc=sRGBToLinear(pc);diffuseColor.rgb=mix(diffuseColor.rgb,pc.rgb,pc.a);}');};
     groundMat=gm;
     if(!PATH.on)world.add(new THREE.Mesh(geo,gm));
   }
@@ -6436,6 +6503,11 @@ function stepTile(){
       if(f&&f.stream)buildStream(t,f);
       milepost(t);}
     tileCommit(t,c,0);
+    /* where the road meets a ravine's trail (either way round) the seam is
+       laid now that both sides' ground is known, and it belongs to the
+       EARLIER tile: that is the one torn down first, and the later tile's
+       own road or trail is still lying under the half it covered */
+    {const pv=PATH.tiles[k-1];if(pv&&!pv.dead&&!!pv.rav!==!!t.rav){const c2=tileCapture();laySeam(t.z0,!!t.rav);tileCommit(pv,c2,0);}}
     PATH.job=null;
   }
   BUILD.tile=-1;t.step++;
@@ -6581,14 +6653,15 @@ function updatePath(dt){
 const HOUR_NEXT={sunrise:'noon',noon:'dusk',dusk:'night',night:'sunrise'};
 const HOUR_WORD={sunrise:'the sun comes up',noon:'the day stands high',dusk:'the light goes down',night:'the dark comes on'};
 const WX_WORD={clear:'the sky clears',summer:'the air turns warm, and the trees are in leaf',rain:'rain comes in',storm:'a storm breaks',snow:'it begins to snow',blizzard:'the snow comes down hard'};
+/* THE DAY TURNS GRADUALLY. It used to happen under a half-second dip to
+   black. Now it is a blend (XF, below) over `XF_DUR` seconds: the light,
+   the sky, the fog, the lanterns, the rain or the snow, the ground's
+   cover and the leaves all go from where they are to where they are going
+   together, and the line saying what is coming is shown as it starts. */
 function turnDay(){
-  const f=$('fade');f.style.transition='opacity .45s';f.style.opacity=.92;
-  setTimeout(()=>{
-    const nh=HOUR_NEXT[RUN.time]||'dusk';let msg=HOUR_WORD[nh];RUN.time=nh;
-    if(Math.random()<.4){const pool=WX_NAMES.filter(x=>x!==RUN.weather),nw=pool[(Math.random()*pool.length)|0];setWeather(nw);msg+=' · '+WX_WORD[nw];}   // (setWeather applies the hour as well)
-    else applyTime(nh);
-    toast(msg);f.style.opacity=0;setTimeout(()=>{f.style.transition='';},520);
-  },470);
+  const nh=HOUR_NEXT[RUN.time]||'dusk';let msg=HOUR_WORD[nh],nw=null;
+  if(Math.random()<.4){const pool=WX_NAMES.filter(x=>x!==RUN.weather);nw=pool[(Math.random()*pool.length)|0];msg+=' · '+WX_WORD[nw];}
+  xfStart(nh,nw,XF_DUR);toast(msg);
 }
 function wrapAngle(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
 
@@ -6597,11 +6670,112 @@ function wrapAngle(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
    through it; a storm's bolts light the whole sky and the field for a
    few frames, the thunder arriving after, by how far the bolt was. */
 const HOURS={};   // filled by buildWorld: night, dusk, sunrise, noon
+/* ======= XF: THE GRADUAL TURN =======
+   `xfStart(hour,weather,dur)` takes down everything `applyTime` writes
+   (A), applies the target and takes it down again (B), puts A back, and
+   then `xfTick` walks the world from A to B on a smoothstep. The pieces
+   that are not numbers are handled each in their own way:
+   - the SKY is two domes: the old texture on the dome, the new one on
+     `XF.dome2` over it, faded in;
+   - the SUN and the MOON fade (and the sun slides across if both hours
+     have one);
+   - what FALLS thins out over the first half and the new weather's
+     thickens over the second; `RUN.weather` changes at the middle, and so
+     do the roads' surfaces;
+   - the GROUND's cover is a second map in its own shader (`uGB`), so
+     snow comes over the field gradually rather than in one frame;
+   - the LEAVES dissolve in or out (`LEAF.u`).
+   An instant change (`applyTime`/`setWeather` from the menu or the codex)
+   lands the blend first. `XF.busy` is set while the target is being
+   measured, so that measuring it does not end the blend it is for. */
+const XF_DUR=40;
+const XF={on:false,busy:false,t:0,dur:XF_DUR,A:null,B:null,from:null,to:null,mid:true,dome2:null,
+  gb:{value:0},gbMap:{value:null},gbK:{value:1},leafA:1,leafB:1,op0:1,lv0:0};
+function xfSnap(){const W=worldLights,su=W.sunSprite,mo=W.moonSprite;return{
+  hemiC:W.hemi.color.clone(),hemiG:W.hemi.groundColor.clone(),hemiBase:W.hemiBase,
+  moonC:W.moon.color.clone(),moonBase:W.moonBase,moonPos:W.moon.position.clone(),
+  expo:W.expo,fog:RUN.fog.clone(),near:scene.fog?scene.fog.near:FOG_NEAR,far:scene.fog?scene.fog.far:FOG_FAR,
+  domeTint:W.domeTint||1,domeMap:W.dome.material.map,dust:W.dust?W.dust.opacity:0,lamp:RUN.lamp,
+  moonVis:!!(mo&&mo.visible),sunVis:!!(su&&su.visible),
+  sunCol:su?su.material.color.clone():new THREE.Color(),sunScale:su?su.scale.x:1,sunPos:su?su.position.clone():new THREE.Vector3(),
+  heroCol:new THREE.Color(W.heroCol||0xd9b072),heroDim:W.heroDim||1,ground:groundMat?groundMat.color.clone():null};}
+function xfSet(A,B,u){
+  const W=worldLights,l=(a,b)=>a+(b-a)*u;
+  W.hemi.color.copy(A.hemiC).lerp(B.hemiC,u);W.hemi.groundColor.copy(A.hemiG).lerp(B.hemiG,u);W.hemiBase=l(A.hemiBase,B.hemiBase);
+  W.moon.color.copy(A.moonC).lerp(B.moonC,u);W.moonBase=l(A.moonBase,B.moonBase);W.moon.position.copy(A.moonPos).lerp(B.moonPos,u);
+  W.expo=l(A.expo,B.expo);RUN.fog.copy(A.fog).lerp(B.fog,u);scene.background.copy(RUN.fog);
+  if(scene.fog){scene.fog.near=l(A.near,B.near);scene.fog.far=l(A.far,B.far);}
+  if(A.domeMap===B.domeMap)W.domeTint=l(A.domeTint,B.domeTint);else W.domeTint=A.domeTint;
+  if(W.dust)W.dust.opacity=l(A.dust,B.dust);
+  RUN.lamp=l(A.lamp,B.lamp);for(const L of lanternLights)if(L.lamp0)L.base=L.lamp0*RUN.lamp;
+  const mo=W.moonSprite,su=W.sunSprite;
+  if(mo){const v=l(A.moonVis?1:0,B.moonVis?1:0);mo.visible=v>.001;mo.material.opacity=.95*v;}
+  if(su){const v=l(A.sunVis?1:0,B.sunVis?1:0);su.visible=v>.001;su.material.opacity=.9*v;
+    const both=A.sunVis&&B.sunVis,S=both?null:(B.sunVis?B:A);
+    if(both){su.material.color.copy(A.sunCol).lerp(B.sunCol,u);const k=l(A.sunScale,B.sunScale);su.scale.set(k,k,1);su.position.copy(A.sunPos).lerp(B.sunPos,u);}
+    else{su.material.color.copy(S.sunCol);su.scale.set(S.sunScale,S.sunScale,1);su.position.copy(S.sunPos);}}
+  W.heroCol=A.heroCol.clone().lerp(B.heroCol,u).getHex();W.heroDim=l(A.heroDim,B.heroDim);
+  if(groundMat&&A.ground)groundMat.color.copy(A.ground).lerp(B.ground,u);
+}
+const groundMapFor=w=>w==='blizzard'?texCache.snowDeep:w==='snow'?texCache.snow:texCache.dirt;
+function xfStart(hour,wx,dur){
+  if(XF.on)xfEnd();
+  if(!worldLights.hemi||!HOURS[hour])return;
+  const from=RUN.weather,to=(wx&&WX_NAMES.includes(wx))?wx:from;
+  const A=xfSnap(),domeA=worldLights.dome.material.map;
+  XF.busy=true;RUN.weather=to;applyTime(hour);const B=xfSnap();RUN.weather=from;XF.busy=false;
+  if(groundMat){const base=groundMat.userData.base||groundMat.color;B.ground=base.clone();if(to==='summer')B.ground.multiply(new THREE.Color(0xa8c882));}
+  worldLights.dome.material.map=domeA;worldLights.dome.material.needsUpdate=true;
+  XF.A=A;XF.B=B;XF.from=from;XF.to=to;XF.t=0;XF.dur=dur||XF_DUR;XF.mid=from===to;XF.on=true;
+  // the second dome, for a sky that changes its picture
+  if(A.domeMap!==B.domeMap){
+    if(!XF.dome2){const d=worldLights.dome;XF.dome2=new THREE.Mesh(d.geometry,new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,depthWrite:false,transparent:true,opacity:0}));
+      XF.dome2.renderOrder=-1.5;scene.add(XF.dome2);}
+    XF.dome2.material.map=B.domeMap;XF.dome2.material.needsUpdate=true;XF.dome2.visible=true;XF.dome2.material.opacity=0;}
+  // the ground's cover, if it changes
+  const gA=groundMat&&groundMat.map,gB=groundMapFor(to);
+  if(groundMat&&gA&&gB&&gA!==gB){XF.gbMap.value=gB;XF.gbK.value=(to==='blizzard'?13:30)/(gA.repeat.x||30);}else XF.gbMap.value=null;
+  XF.gb.value=0;
+  XF.leafA=from==='summer'?LEAF.u.value:0;XF.leafB=to==='summer'?1:0;if(XF.leafA!==XF.leafB)for(const m of LEAF.mats)m.visible=true;
+  XF.op0=WX.rain?WX.rain.material.opacity:0;XF.lv0=WX.level||0;
+  xfSet(A,B,0);
+}
+function xfSwap(){   // the middle: what fell before is gone, the new weather begins, thin
+  wxDrop();RUN.weather=XF.to;setupWeatherFx();applyRoadSurface();
+  XF.op0=WX.rain?WX.rain.material.opacity:0;XF.lv0=WX.level||0;
+  if(WX.rain)WX.rain.material.opacity=0;AudioSys.setRain(0);XF.mid=true;
+}
+function xfTick(dt){
+  if(!XF.on)return;
+  XF.t+=dt;const u=Math.min(1,XF.t/XF.dur),s=u*u*(3-2*u);
+  xfSet(XF.A,XF.B,s);
+  if(XF.dome2&&XF.dome2.visible){XF.dome2.material.opacity=s;XF.dome2.material.color.setScalar(XF.B.domeTint);XF.dome2.rotation.copy(worldLights.dome.rotation);}
+  if(XF.from!==XF.to){
+    if(!XF.mid){const k=Math.max(0,1-2*u);if(WX.rain)WX.rain.material.opacity=XF.op0*k;AudioSys.setRain(XF.lv0*k);if(u>=.5)xfSwap();}
+    else{const k=Math.max(0,Math.min(1,2*u-1));if(WX.rain)WX.rain.material.opacity=XF.op0*k;AudioSys.setRain(XF.lv0*k*(1+.9*(WX.squall||0)));}
+  }
+  if(XF.gbMap.value)XF.gb.value=s;
+  LEAF.u.value=XF.leafA+(XF.leafB-XF.leafA)*s;
+  if(u>=1)xfEnd();
+}
+function xfEnd(){
+  if(!XF.on)return;
+  if(!XF.mid)xfSwap();
+  xfSet(XF.A,XF.B,1);
+  const W=worldLights;W.dome.material.map=XF.B.domeMap;W.dome.material.needsUpdate=true;W.domeTint=XF.B.domeTint;
+  if(XF.dome2)XF.dome2.visible=false;
+  if(WX.rain)WX.rain.material.opacity=XF.op0;AudioSys.setRain(WX.level||0);
+  XF.on=false;
+  if(XF.gbMap.value){applyGroundSurface();XF.gbMap.value=null;}
+  XF.gb.value=0;
+  syncLeaves();
+}
 /* set the field to an hour — at build, or later from the testing menu: the
    sky's two lights, the dome, the moon or the sun, the fog, the exposure,
    the dust, and how much every lantern shows */
 function applyTime(name){
   const T=HOURS[name];if(!T||!worldLights.hemi)return;
+  if(XF.on&&!XF.busy)xfEnd();   // (an instant change — the menu, the codex — lands any blend first)
   RUN.time=name;RUN.lamp=T.lamp;RUN.fog=new THREE.Color(T.fog);
   worldLights.hemi.color.setHex(T.hemi[0]);worldLights.hemi.groundColor.setHex(T.hemi[1]);worldLights.hemiBase=T.hemi[2];
   worldLights.moon.color.setHex(T.sun[0]);worldLights.moonBase=T.sun[1];worldLights.moon.position.set(T.sun[2][0],T.sun[2][1],T.sun[2][2]);
@@ -6686,24 +6860,32 @@ function applyGroundSurface(){
      whole field away. They carry their own uv (across the width, and up
      the length in fours), so the snow gets its own copy of the texture
      with a repeat that matches the ground's tile size on both. */
-  if(snowy&&!texCache.snowRoad){const rt=t.clone();rt.needsUpdate=true;rt.repeat.set(.25,.35);texCache.snowRoad=rt;}
-  for(const rm of roadMeshes){rm.material.map=snowy?texCache.snowRoad:texCache[rm.userData.tex||'road'];rm.material.needsUpdate=true;}
+  applyRoadSurface();
   if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
   trodClear();trailClear();
 }
+function applyRoadSurface(){
+  const w=RUN.weather,snowy=w==='snow'||w==='blizzard';
+  if(snowy&&!texCache.snowRoad){const rt=(w==='blizzard'?texCache.snowDeep:texCache.snow).clone();rt.needsUpdate=true;rt.repeat.set(.25,.35);texCache.snowRoad=rt;}
+  for(const rm of roadMeshes){const m=snowy?texCache.snowRoad:texCache[rm.userData.tex||'road'];if(rm.material.map!==m){rm.material.map=m;rm.material.needsUpdate=true;}}
+}
 /* set the weather — clear, light rain, a storm, or snow — dropping whatever fell before */
+function wxDrop(){
+  if(WX.rain){scene.remove(WX.rain);WX.rain.geometry.dispose();WX.rain.material.dispose();WX.rain=null;WX.pts=null;WX.speeds=null;}
+  WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;WX.squall=0;WX.squallT=9;WX.nextSquall=rr3(4,9);
+  AudioSys.setRain(0);
+}
 function setWeather(name){
   if(!WX_NAMES.includes(name))return;
-  if(WX.rain){scene.remove(WX.rain);WX.rain.geometry.dispose();WX.rain.material.dispose();WX.rain=null;WX.pts=null;WX.speeds=null;}
-  WX.level=0;WX.flash=0;WX.pop=0;WX.nextBolt=0;WX.squall=0;WX.squallT=9;WX.nextSquall=rr3(4,9);RUN.weather=name;
-  AudioSys.setRain(0);
+  if(XF.on)xfEnd();
+  wxDrop();RUN.weather=name;
   setupWeather();
   applyTime(RUN.time);   // the sky, the fog and the light follow the weather
   syncLeaves();          // ...and the trees come into leaf, or out of it
 }
 const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0,squall:0,nextSquall:0};
-function setupWeather(){
-  applyGroundSurface();
+function setupWeather(){applyGroundSurface();setupWeatherFx();}
+function setupWeatherFx(){   // (what falls, and its voice — without the ground: XF blends that on its own)
   if(RUN.weather==='clear'||RUN.weather==='summer')return;
   /* SNOW: not rain in another colour. It does not fall so much as it is
      let go of — slow, in every direction at once, and thick enough that
@@ -7544,6 +7726,7 @@ function updateAmbient(t,dt){
   // faster when the wind is up enough to be driving snow or rain sideways
   if(worldLights.dome)worldLights.dome.rotation.y+=dt*(RUN.weather==='blizzard'?.028:RUN.weather==='storm'?.016:.0045);
   updateWeather(dt);
+  xfTick(dt);                                  // (after the weather: a blizzard writes its own fog, and a blend has the last word)
   if(snowDeep()){trailInit();if(!PLOUGHS())trodEnemies();}
   updateTrail(dt);updateTrod(dt);
   flushPaint();
@@ -12178,6 +12361,7 @@ const player={
   },
   update(dt){
     const r=this.rig;
+    this._px=this.x;this._pz=this.z;              // (where he stood as the frame began: the slope limit judges the step, see slopeHold)
     // only a LIVE horror steers aim — the eye may still be resting on one
     // that has just fallen, but the blade won't be
     const foe=G.lockTarget&&!G.lockTarget.objective&&G.lockTarget.hp>0?G.lockTarget:null;
@@ -13213,6 +13397,7 @@ const player={
     if(this.state!=='dead'&&this.state!=='falling'&&groundGone(this)>FALL_STEP)this.stepOff();
     // spatial constraints
     if(this.state!=='dead'&&this.state!=='falling'){
+      slopeHold(this,this._px,this._pz);
       constrain(this,G.bossActive,true);   // (the rim does not hold HIM back: it is a cliff, not a wall)
       pushOut(this,.35);
       if(this.state!=='iai')for(const e of enemies){ // soft body-block against living enemies
@@ -20614,7 +20799,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
