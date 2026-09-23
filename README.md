@@ -1567,10 +1567,15 @@ was; one that is flung, floored, or still carrying the speed of a blow goes
 straight over the edge and dies on the way down. A greatsword by the rim is
 a different weapon, and the ultra greatsword by the rim is an execution.
 
-The Warden's nave and the path are **not** cliffs: the arena is the arena,
-and the path's sides are shorn at a width that changes down every tile —
-an instant death on a boundary you cannot read while running is a different
-game.
+The Warden's nave is **not** a cliff: the arena is the arena. **The path
+is**, now. Its sides are shorn at a width that changes down every hex —
+twenty-six metres out from the trail across the middle of a hex, narrowing
+to twenty-one at each join, and the full twenty-six the whole length of a
+ravine — and the same two rules read it: walk past the last of the ground
+the tile is drawing and you step off and fall, and a horror flung past the
+lip goes over and dies on the way down. In a ravine that means climbing a
+wall to the rim and walking off the far side of it. Everything else is held
+a stride short of the edge, as on the field.
 
 **And you can see it coming, which you could not at first.** The camera
 sits *behind* the pilgrim, so walking toward the rim put it outside the
@@ -1618,7 +1623,7 @@ The title screen offers four ways — the field, the path, the ravine
 every way, see *First person*.) **The path** is survival: instead of the one hexagon, a chain of hex
 tiles laid end to end northward, without end — each an authored chunk
 (the grave rows, the wood, the ruins, a hollow, a causeway, a chapel)
-on its own seeded ground shape, with a road through, a lantern or two,
+on its own seeded ground shape, with a flagstone road through, a lantern or two,
 and a host sown to a budget that grows with every hex. Two or three
 tiles always stand ahead of you, built as you come; what is fifty
 metres behind is torn down. Every sixth hex is the cathedral, with a
@@ -1656,7 +1661,14 @@ the trail into walls five to twelve metres high, tall trees up both
 slopes and along the rims — straight trunks eleven to sixteen metres
 tall leaning a little toward the light over the trail, their crowns
 overhead, thin saplings crowding the path's edges — and the flagstones
-give way to a trail of crushed pale gravel. The walls run on unbroken
+give way to a **dirt trail**: packed brown earth wandering a little from
+side to side down the floor, two lines worn in it where the feet go, a
+paler crown between them, stones trodden in, prints, and the grass coming
+in ragged at both verges. Its wander is set by the world's own distance
+along the path, so it runs on across every join without a kink. Both
+verges are lined with scrub close enough to brush — six to eight a side a
+tile, forked switches with a skirt of last year's dead growth at the foot,
+so a bush is still a bush out of summer. The walls run on unbroken
 from one tile to the next and ease in and out only at the ravine's two
 ends. It comes in three kinds:
 - **the maple cut** — gentle walls, undergrowth along the
@@ -1691,7 +1703,10 @@ cap, the deck twelve to fourteen metres up. A column that would stand
 on the trail is left out and the deck spans the gap. The feet of the
 columns you can walk up to are painted: a flower with a face in it, a
 red disc, somebody's grinning portrait, tags. The trees below keep
-under the deck. Columns are stone to the blade and cover to a round.
+under the deck. **A little under half the highways cross instead**
+(**the crossing**): straight over the gorge from one rim to the other,
+square to the trail, the same bents stepping down the walls either side
+and the deck passing over once, with sky on both sides of it. Columns are stone to the blade and cover to a round.
 All of a ravine tile's wood and concrete is folded by material when it
 is built, so a tile with fifty trees and a highway on it costs about
 twenty draws.
@@ -1816,7 +1831,8 @@ sections across the top:
   slamming. **again** calls it up fresh. No boss's introduction plays.
 - **places** — the cathedral, the six chunks (the grave rows, the hollow
   wood, the ruins, the sunken hollow, the causeway, the roofless chapel),
-  the three ravines and the underpass, each seen from above and turning.
+  the three ravines, the underpass and the crossing, each seen from above
+  and turning.
   The world behind the codex is the path laid out once with every kind
   of hex on it and nobody sown, always the same seed.
 - **arms** — every weapon on the pilgrim, swinging or firing at the air
@@ -2544,7 +2560,9 @@ becomes a way of surviving something lethal.
 The Bonefield is one giant hexagon of rolling, haunted ground under
 true night — over 130 meters across — with the ruined cathedral sealed at
 its center under a pillar of moonlight you can steer by from anywhere.
-A flagstone ring road circles the nave with straight roads running out
+A flagstone ring road (drawn at last — every road in the game was wound
+face-down and never reached the screen until the ravine's trail was
+found missing) circles the nave with straight roads running out
 to the quarters: the pilgrim's approach in the south, the ordered
 grave rows in the east, the hollow wood's groves in the west, the
 ruins and fallen tower in the north — iron lanterns burning warm at

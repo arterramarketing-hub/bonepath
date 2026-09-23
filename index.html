@@ -160,7 +160,7 @@
     font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap;}
   #defHud b{font-weight:normal;color:var(--ember-hi);}
   #defHud .h{color:var(--bone-dim);}
-  #shopBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(108px + env(safe-area-inset-right));
+  #shopBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(166px + env(safe-area-inset-right));   /* (left of the LOCK switch) */
     z-index:9;height:38px;padding:0 12px;border:1px solid var(--ember);border-radius:4px;
     background:rgba(6,7,8,.55);color:var(--ember-hi);font:11px/36px Georgia,serif;text-align:center;letter-spacing:.22em;text-transform:uppercase;
     display:none;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 0 14px rgba(208,118,43,.25);}
@@ -1259,6 +1259,27 @@ function buildTextures(){
     for(const sd of[0,1]){const gr=ctx.createLinearGradient(sd?S:0,0,sd?S*.72:S*.28,0);gr.addColorStop(0,'rgba(40,42,32,.75)');gr.addColorStop(1,'rgba(40,42,32,0)');
       ctx.fillStyle=gr;ctx.fillRect(sd?S*.72:0,0,S*.28,S);}
     for(let i=0;i<12;i++){ctx.fillStyle=`rgba(${(70+rnd()*30)|0},${(60+rnd()*20)|0},30,.7)`;ctx.save();ctx.translate(rnd()*S,rnd()*S);ctx.rotate(rnd()*TAU);ctx.fillRect(-3,-1.5,6,3);ctx.restore();}   // a leaf or two blown on
+  });
+  /* -- the ravine's trail: a DIRT path, beaten into the floor by feet.
+     Across is x, along is y (the ribbon's v runs down its length). Packed
+     brown earth, two worn lines where the feet go, a pale crown between
+     them, stones trodden in, prints, and the grass coming in ragged at
+     both verges so the edge reads as ground giving way, not a strip laid
+     on it. -- */
+  makeTex('trail',256,(ctx,S)=>{
+    srand(191);
+    ctx.fillStyle='#5f4b35';ctx.fillRect(0,0,S,S);
+    grime(ctx,S,fbm,14,[88,70,50],.55);
+    for(const cx of[.33,.67]){const gr=ctx.createLinearGradient(S*(cx-.12),0,S*(cx+.12),0);   // the two lines the feet wear
+      gr.addColorStop(0,'rgba(52,40,28,0)');gr.addColorStop(.5,'rgba(52,40,28,.55)');gr.addColorStop(1,'rgba(52,40,28,0)');ctx.fillStyle=gr;ctx.fillRect(S*(cx-.12),0,S*.24,S);}
+    {const gr=ctx.createLinearGradient(S*.42,0,S*.58,0);gr.addColorStop(0,'rgba(150,128,96,0)');gr.addColorStop(.5,'rgba(150,128,96,.3)');gr.addColorStop(1,'rgba(150,128,96,0)');ctx.fillStyle=gr;ctx.fillRect(S*.42,0,S*.16,S);}
+    speckle(ctx,S,900,['#8d7b62','#43352a','#a39277','#6e5c45'],1,2);
+    for(let i=0;i<60;i++){const x=S*(rnd()<.5?rr(.22,.42):rr(.58,.78)),y=rnd()*S;ctx.fillStyle=`rgba(${(120+rnd()*50)|0},${(110+rnd()*40)|0},${(90+rnd()*30)|0},.8)`;ctx.fillRect(x|0,y|0,2+((rnd()*3)|0),2);}   // stones trodden in
+    for(let i=0;i<14;i++){ctx.fillStyle='rgba(40,30,20,.35)';ctx.save();ctx.translate(S*(rnd()<.5?.33:.67)+rr(-8,8),rnd()*S);ctx.rotate(rr(-.3,.3));
+      ctx.beginPath();ctx.ellipse(0,0,4,7,0,0,TAU);ctx.fill();ctx.restore();}                                   // prints, old and new
+    for(const sd of[0,1])for(let y=0;y<S;y+=2){const d=S*(.13+.07*Math.sin(y*.09+sd*2)+.05*Math.sin(y*.31+sd)+rnd()*.05);   // the grass, coming in ragged
+      ctx.fillStyle=`rgba(${(46+rnd()*14)|0},${(58+rnd()*16)|0},${(34+rnd()*10)|0},${.75+rnd()*.25})`;ctx.fillRect(sd?S-d:0,y,d,2);
+      if(rnd()<.18){ctx.fillStyle='rgba(70,86,48,.9)';ctx.fillRect(sd?S-d-rr(2,7):d,y,rr(2,6),1);}}
   });
   /* -- GRAFFITI on the foot of a column. The lower block it is painted on
      is .85 wide and 3.2 tall, and a box face maps the whole canvas onto
@@ -4091,15 +4112,18 @@ function heightAt(x,z){
    everything back to HEX_AP-.9, so a thing that has crossed the lip is
    pinned right at the edge, which is exactly where you want it standing
    at the moment the ground stops being under it.
-   The path is NOT a cliff: its sides are shorn at a width that varies
-   down every tile, and an instant death on a boundary you cannot read
-   while running is a different game. */
+   The path is a cliff too, now that it was asked for: its sides are
+   shorn at a width that varies down every tile (`pathEdge`), and the
+   same two rules read it — `groundGone` for the pilgrim's feet against
+   the tile's own drawn ground, `overBrink` for a horror flung past the
+   lip. Anything else is held a stride short of it, as on the field. */
 const BRINK=1.15;
 // the six faces' outward normals, made once: this is asked of the pilgrim
 // and of every live horror on every frame
 const HEXN=[];for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;HEXN.push({x:Math.cos(a),z:Math.sin(a)});}
 function overBrink(p){
-  if(PATH.on||G.bossActive)return -9;
+  if(G.bossActive)return -9;
+  if(PATH.on){const t=pathTileAt(p.z);return t?Math.abs(p.x)-(pathEdge(t,p.z-t.zc)-BRINK):-9;}   // (the path's sides: see pathEdge)
   let e=-1e9;
   for(let i=0;i<6;i++){
     const d=p.x*HEXN[i].x+p.z*HEXN[i].z-(HEX_AP-BRINK);
@@ -4140,7 +4164,11 @@ function groundSurfaceY(x,z){                    // bilinear across the mesh's o
    pilgrim off the world for climbing it. Only out past the rim does the
    ground actually stop. */
 function groundGone(p){
-  if(PATH.on||G.bossActive)return 0;
+  if(G.bossActive)return 0;
+  if(PATH.on){                                    // THE PATH'S SIDES ARE A CLIFF NOW, the field's own rule on the path's own ground
+    const t=pathTileAt(p.z);if(!t)return 0;
+    const zl=p.z-t.zc;if(Math.abs(p.x)<pathEdge(t,zl)-.3&&!(t.k===0&&zl>t.len/2-1.3))return 0;
+    return heightAt(p.x,p.z)-pathSurfaceY(p.x,p.z);}
   let ex=0;
   for(let i=0;i<6;i++){const n=HEXN[i];const d=p.x*n.x+p.z*n.z-HEX_LIP;if(d>ex)ex=d;}
   if(ex<=0)return 0;
@@ -4149,6 +4177,7 @@ function groundGone(p){
 const FALL_STEP=.45;      // deeper than a step down: below this he is still standing on something
 // which way is OUT from here: the normal of the nearest hex face
 function brinkOut(p){
+  if(PATH.on)return {x:p.x<0?-1:1,z:0};           // (a corridor: out is sideways)
   let best=HEXN[0],bd=-1e9;
   for(let i=0;i<6;i++){
     const d=p.x*HEXN[i].x+p.z*HEXN[i].z;
@@ -4170,7 +4199,8 @@ function ragFree(rag){
 function constrain(p,arenaOnly,offEdge){
   if(arenaOnly){keepInside(p,HW,HL,.5);return;}          // the boss fight holds you in the nave
   if(PATH.on){
-    p.x=clamp(p.x,-25,25);if(p.z>57)p.z=57;             // the path's shorn sides, and its beginning
+    const t=pathTileAt(p.z),lim=offEdge?33:t?pathEdge(t,p.z-t.zc)-.9:20;   // the shorn sides: held a stride short of the drop, as the field's rim holds — all but the pilgrim, who can walk off it
+    p.x=clamp(p.x,-lim,lim);if(p.z>57)p.z=57;             // ...and its beginning
     const cz=cathZ(p.z);if(cz>1e8)return;
     p.z-=cz;constrainCath(p);p.z+=cz;return;              // the cathedral's rim and walls, in that cathedral's own frame
   }
@@ -4291,18 +4321,30 @@ function clearSpot(x,z,pad){
 }
 // a flat flagstone ribbon laid over the terrain between two points
 const roadMeshes=[];   // the flagstone ribbons, so the snow can bury them
-function layRoad(ax,az,bx,bz,w,tex){
+/* EVERY ROAD IN THE GAME WAS FACE-DOWN, and so was never drawn at all.
+   The ribbon's two triangles were wound (a, a+1, a+2): with a+1 on the
+   LEFT edge and a+2 the next row along, that winding points the face at
+   the ground whichever way the road runs (the normal is −(n×u) = −up),
+   and a back face is culled. Nothing looked wrong in the numbers — the
+   snow's clearance was tuned against these ribbons, the snow swapped
+   their maps — while not a pixel of flagstone or gravel reached the
+   screen. Wound (a, a+2, a+1) it faces the sky.
+   And each EDGE now sits on its own ground: laid flat at the centre's
+   height, a ribbon across any slope buried its low side (the ravine's
+   floor curls up at its verges). `wig` bends the ribbon's line by the
+   world's own z, so a trail can wander without a seam at a tile's join. */
+function layRoad(ax,az,bx,bz,w,tex,wig){
   roads.push({ax,az,bx,bz});
   const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);
   const ux=dx/len,uz=dz/len,nx=-uz,nz=ux;
   const N=Math.max(2,Math.ceil(len/1.5));    // the ground mesh's own cell: any coarser and the ribbon floats over every rise
   const pos=[],uv=[],idx=[];
   for(let i=0;i<=N;i++){
-    const t=i/N,px=ax+dx*t,pz=az+dz*t;
-    const y=heightAt(px,pz)+.05;
-    pos.push(px+nx*w,y,pz+nz*w, px-nx*w,y,pz-nz*w);
+    const t=i/N,px0=ax+dx*t,pz0=az+dz*t,o=wig?wig(pz0):0,px=px0+nx*o,pz=pz0+nz*o;
+    const lx=px+nx*w,lz=pz+nz*w,rx=px-nx*w,rz=pz-nz*w;
+    pos.push(lx,heightAt(lx,lz)+.05,lz, rx,heightAt(rx,rz)+.05,rz);
     uv.push(0,t*len/4, 1,t*len/4);
-    if(i>0){const a=(i-1)*2;idx.push(a,a+1,a+2, a+1,a+3,a+2);}
+    if(i>0){const a=(i-1)*2;idx.push(a,a+2,a+1, a+1,a+2,a+3);}
   }
   const g=new THREE.BufferGeometry();
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
@@ -5343,7 +5385,7 @@ function buildWorld(){
       const R=w.rav,V=RAVINE[R.v],f=R.f,zc=-37,half=15,RM=ravMats(),G=new THREE.Group();world.add(G);
       const leafM=RM.leaf[R.v],barkM=V.bark==='birch'?RM.birch:M.bark;
       const add=(geo,m,x,y,z,sx,sy,sz)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);if(sx)o.scale.set(sx,sy,sz);G.add(o);return o;};
-      const under=R.via?viaduct(G,zc,RM):null;                               // the underpass first: the wood keeps clear of it
+      const under=R.via?viaduct(G,zc,RM,R.cross):null;                               // the underpass first: the wood keeps clear of it
       const free=(x,z,pad)=>Math.abs(x)>=2.6&&clearSpot(x,z,pad);            // (off the trail: its road is laid after the chunk)
       /* a TALL tree of the ravine: a straight trunk leaning a little toward
          the light over the trail, a few branches, and its crown as a
@@ -5373,6 +5415,21 @@ function buildWorld(){
         const r=rr(.5,1.1),gy=heightAt(px,pz);add(ICO,leafM,px,gy+r*.3,pz,r*rr(1,1.4),r*.6,r*rr(1,1.4)).rotation.y=rnd()*TAU;
         for(let k=0,n=4+((rnd()*3)|0);k<n;k++){const len=r*rr(1.1,1.7),a=rnd()*TAU,t=rr(.35,.75),sw=add(new THREE.CylinderGeometry(.012,.03,len,3,1),barkM,px,gy,pz);
           sw.rotation.set(Math.cos(a)*t,0,Math.sin(a)*t);sw.translateY(len/2);}}
+      /* THE VERGES: a row of scrub down both sides of the trail, close enough
+         to brush — denser than the undergrowth at the walls' foot, and each
+         with a skirt of last year's dead growth at its base (the litter's
+         brown), so out of summer a bush is still a bush and not three sticks.
+         The switches fork and some are thick: at this resolution a single
+         thin one is not there at all. */
+      for(const sd of[1,-1])for(let i=0,n=0;i<V.verge*3&&n<V.verge;i++){const px=sd*rr(2.75,5.4),pz=zc+rr(-half,half);if(!free(px,pz,.35))continue;n++;
+        const r=rr(.4,.85),gy=heightAt(px,pz);
+        add(ICO,leafM,px,gy+r*.35,pz,r*rr(1,1.35),r*.7,r*rr(1,1.35)).rotation.y=rnd()*TAU;
+        add(ICO,RM.litter,px,gy+.04,pz,r*rr(.9,1.3),r*.28,r*rr(.9,1.3)).rotation.y=rnd()*TAU;
+        for(let k=0,m=6+((rnd()*4)|0);k<m;k++){const len=r*rr(1.2,2.1),a=rnd()*TAU,t=rr(.2,.7),th=rnd()<.35?.045:.025,
+            sw=add(new THREE.CylinderGeometry(th*.4,th,len,3,1),barkM,px,gy,pz);
+          sw.rotation.set(Math.cos(a)*t,0,Math.sin(a)*t);sw.translateY(len/2);
+          if(rnd()<.5){const f2=add(new THREE.CylinderGeometry(th*.25,th*.6,len*.55,3,1),barkM,px,gy,pz);   // a fork off it
+            f2.rotation.set(Math.cos(a+.6)*(t+.35),0,Math.sin(a+.6)*(t+.35));f2.translateY(len*.55);}}}
       // fallen trunks down the slopes
       for(let i=0;i<V.logs;i++){const px=(rnd()<.5?1:-1)*rr(3.4,f.fw+f.sw),pz=zc+rr(-half+2,half-2);if(!free(px,pz,.5))continue;
         const len=rr(3,6),r=rr(.14,.26),lg=add(new THREE.CylinderGeometry(r,r*1.1,len,5,1),barkM,px,heightAt(px,pz)+r*.8,pz);
@@ -5421,14 +5478,20 @@ function buildWorld(){
      real ones do over a road. Graffiti at the feet of the columns you can
      reach. Returns `under(x,z,m)`: the ceiling over a point within `m` of
      the deck, or null — the trees below keep under it. */
-  function viaduct(G,zc,RM){
+  /* THE CROSSING (`cross`): the other kind of highway — straight over the
+     gorge from one rim to the other, square to the trail, so you walk
+     under it once and see the sky either side. Same bents, same deck; the
+     axis is simply the x axis at one z, and the columns step down the
+     walls to the floor either side of the trail. */
+  function viaduct(G,zc,RM,cross){
     const sgn=rnd()<.5?1:-1,L0=rr(6,10),REACH=28,EDGE=19;
     const ax=dz=>{const a=Math.abs(dz)-L0;return a>0?sgn*Math.sign(dz)*EDGE*Math.pow(a/(REACH-L0),2):0;};   // straight over the trail, then off to either rim
     const Y=heightAt(0,zc)+rr(12.5,14.5),cw=3.4,DW=2*cw+1.8,capY=Y-.75-1.1;
     const B=(w,h,d,m,x,y,z,ry,rz)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.set(0,ry||0,rz||0,'YXZ');G.add(o);return o;};
     // the axis, sampled a metre at a time by arc length
     const S=[];let prev=null,arc=0;
-    for(let dz=-REACH;dz<=REACH+1e-6;dz+=.25){const x=ax(dz),z=zc+dz;if(prev)arc+=Math.hypot(x-prev[0],z-prev[1]);
+    if(cross){const zx=zc+rr(-5,5);for(let x=-24;x<=24+1e-6;x+=1)S.push({x,z:zx,tx:1,tz:0});}
+    else for(let dz=-REACH;dz<=REACH+1e-6;dz+=.25){const x=ax(dz),z=zc+dz;if(prev)arc+=Math.hypot(x-prev[0],z-prev[1]);
       if(!prev||arc>=S.length){const e=.02,tx=(ax(dz+e)-ax(dz-e))/(2*e),l=Math.hypot(tx,1);S.push({x,z,tx:tx/l,tz:1/l});}prev=[x,z];}
     const st=[];for(let i=0;i<S.length;i+=5)st.push(S[i]);if(st[st.length-1]!==S[S.length-1])st.push(S[S.length-1]);   // a bent every five metres
     const floorY=heightAt(0,zc);
@@ -5697,15 +5760,40 @@ function tileTerrain(zc){   // one shape per tile, in the world's frame
 /* a tile's ground: a plate the tile long, its sides the hex's slanted
    edges — widest mid-tile, narrowest at the joins, and shorn away past
    them into the dark, as the field's rim is */
+/* THE PATH'S SHORN SIDES, as ONE rule that the ground mesh draws and the
+   fall reads. A hex is widest across its middle (26) and narrows to 21 at
+   each join — which is the hexagon's own outline, and right between two
+   ordinary hexes. INSIDE A RAVINE it is wrong: the walls stand to their
+   rim past 21 the whole length of the run, so every join cut a V-shaped
+   notch out of the rim and you saw the fog through it. An end of a
+   ravine tile that meets more of the same ravine (or, on the ravine-only
+   path, the next one) holds the full width. */
+function pathEdge(t,zl){
+  const R=t.rav;
+  if(R&&(zl>0?(R.i>0||(PATH.only&&t.k>1)):(R.i<R.n-1||PATH.only)))return 26;
+  return 21+5*(1-Math.min(1,Math.abs(zl)/(t.len/2)));
+}
+function pathVertY(t,x,zl){
+  const half=t.len/2;
+  let ex=Math.abs(x)-pathEdge(t,zl);if(t.k===0&&zl>half-1)ex=Math.max(ex,zl-(half-1));
+  const h=pathHeightAt(x,zl+t.zc);
+  return ex>0?Math.min(h,0)-(ex*1.1+ex*ex*.5):h;
+}
+function pathTileAt(z){for(const t of PATH.tiles)if(t&&!t.dead&&t.ground&&z<=t.z0+.6&&z>=t.z1-.6)return t;return null;}
+// the tile's ground as its card DRAWS it: bilinear over the mesh's own cells (2m across, about 1.6 along)
+function pathSurfaceY(x,z){
+  const t=pathTileAt(z);if(!t)return -1e9;
+  const L=t.len+1.2,sz=Math.max(4,Math.ceil(L/1.6)),dzc=L/sz,zl=clamp(z-t.zc,-L/2,L/2);
+  const i=clamp(Math.floor((x+32)/2),0,31),j=clamp(Math.floor((zl+L/2)/dzc),0,sz-1);
+  const x0=-32+i*2,z0=-L/2+j*dzc,fx=(x-x0)/2,fz=(zl-z0)/dzc;
+  const a=pathVertY(t,x0,z0),b=pathVertY(t,x0+2,z0),c=pathVertY(t,x0,z0+dzc),d=pathVertY(t,x0+2,z0+dzc);
+  return (a*(1-fx)+b*fx)*(1-fz)+(c*(1-fx)+d*fx)*fz;
+}
 function tileGround(t){
   const W=64,L=t.len+1.2,sx=32,sz=Math.max(4,Math.ceil(L/1.6));
   const geo=new THREE.PlaneGeometry(W,L,sx,sz);geo.rotateX(-Math.PI/2);
-  const pos=geo.attributes.position,half=t.len/2;
-  for(let i=0;i<pos.count;i++){const x=pos.getX(i),zl=pos.getZ(i),z=zl+t.zc;
-    const edge=21+5*(1-Math.min(1,Math.abs(zl)/half));
-    let ex=Math.abs(x)-edge;if(t.k===0&&zl>half-1)ex=Math.max(ex,zl-(half-1));
-    const h=pathHeightAt(x,z);
-    pos.setY(i,ex>0?Math.min(h,0)-(ex*1.1+ex*ex*.5):h);}
+  const pos=geo.attributes.position;
+  for(let i=0;i<pos.count;i++)pos.setY(i,pathVertY(t,pos.getX(i),pos.getZ(i)));
   geo.computeVertexNormals();
   const m=new THREE.Mesh(geo,groundMat);m.position.z=t.zc;world.add(m);t.ground=m;
 }
@@ -5739,7 +5827,7 @@ function startTile(k){
     const cx=PATH.codex?CODEX_TILES[k]:undefined;                             // (the codex lays every kind down once, in order: see CODEX_TILES)
     const R=PATH.rav||(PATH.codex?(cx&&cx.v?ravineStart(k,z0,cx):null):ravineStart(k,z0));
     if(R){   // a tile of a ravine run (see ravineStart)
-      t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f};
+      t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f,cross:R.cross};
       if(R.i===0&&PATH.ravCarry){t.terrain.push(PATH.ravCarry);PATH.ravCarry=null;}   // (the run before reaches twelve metres into this tile: it goes with it)
       R.i++;
       if(R.i>=R.n){if(PATH.only)PATH.ravCarry=R.f;else t.terrain.push(R.f);PATH.rav=null;}   // the run's walls go when its LAST tile goes
@@ -5760,14 +5848,14 @@ function startTile(k){
    metres either way of its tile and needs the run's walls under all of
    it. Never through a cathedral: the run stops short of the next one. */
 const RAVINE={
-  maple:{h:5.2,fw:5.5,sw:7,  leaf:0x5f8c3a,bark:'bark', trees:11,saplings:6,blobs:[3,5],bare:.05,fence:true, bushes:14,logs:2,rocks:0, litter:0},
-  shale:{h:8.2,fw:4.4,sw:5.2,leaf:0x78994a,bark:'bark', trees:8, saplings:8,blobs:[2,4],bare:.15,fence:false,bushes:6, logs:5,rocks:9, litter:0},
-  birch:{h:6.4,fw:6,  sw:6.5,leaf:0x9ab85a,bark:'birch',trees:10,saplings:5,blobs:[2,4],bare:.35,fence:false,bushes:5, logs:3,rocks:0, litter:10}};
-const RAV_CHANCE=.075,RAV_VIA=.6;
+  maple:{h:5.2,fw:5.5,sw:7,  leaf:0x5f8c3a,bark:'bark', trees:11,saplings:6,blobs:[3,5],bare:.05,fence:true, bushes:14,verge:8,logs:2,rocks:0, litter:0},
+  shale:{h:8.2,fw:4.4,sw:5.2,leaf:0x78994a,bark:'bark', trees:8, saplings:8,blobs:[2,4],bare:.15,fence:false,bushes:6, verge:6,logs:5,rocks:9, litter:0},
+  birch:{h:6.4,fw:6,  sw:6.5,leaf:0x9ab85a,bark:'birch',trees:10,saplings:5,blobs:[2,4],bare:.35,fence:false,bushes:5, verge:7,logs:3,rocks:0, litter:10}};
+const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45;
 /* the codex's path: tile 0 is the cathedral as always, then one of every
    chunk, then the three ravines — the maple long enough to carry the
    underpass in its middle tile. Nobody is sown on any of it. */
-const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1},'r','r',{v:'shale',n:2,via:-1},'r',{v:'birch',n:2,via:-1},'r'];   // (about a fifth of the path in ravines; the underpass in most runs long enough to hold one)
+const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r'];   // (about a fifth of the path in ravines; the underpass in most runs long enough to hold one)
 function hash32(a){a^=a>>>16;a=Math.imul(a,0x7feb352d);a^=a>>>15;a=Math.imul(a,0x846ca68b);a^=a>>>16;return a>>>0;}
 function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named outright)
   if(!force&&(PATH.only?k<1:(k<2||rnd()>=RAV_CHANCE)))return null;
@@ -5788,8 +5876,9 @@ function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named 
   const f={t:'ravine',z0:z0+(chainIn?12:0),z1:z0-len-(chainOut?12:0),tp0:chainIn?24:12,tp1:chainOut?24:12,fw:V.fw,sw:V.sw,h:V.h,aL:rr(.8,1.15),aR:rr(.8,1.15),ph:rnd()*TAU};
   const via=force?force.via:n>=3&&rnd()<RAV_VIA?1+((rnd()*(n-2))|0):-1;                     // never the first tile nor the last
   if(via>=0)f.h=Math.max(f.h,6.4);                                           // a bridge wants a gorge to cross
+  const cross=via>=0&&(force?!!force.cross:rnd()<RAV_CROSS);                 // straight across from rim to rim, rather than down the trail and round
   PATH.terrain.push(f);
-  return PATH.rav={v,n,i:0,via,f};
+  return PATH.rav={v,n,i:0,via,f,cross};
 }
 // what a step adds — to the world, the scene, the haze, the lists — is
 // caught in a window, and the window is shifted north into the tile's place
@@ -5824,7 +5913,8 @@ function stepTile(){
     tileGround(t);
     if(cath){layRoad(0,z0+.5,0,zc+PL+STAIR_L+.6,1.5);layRoad(0,zc-PL-STAIR_L-.6,0,z1-.5,1.5);
       for(const end of[1,-1])for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),zc+end*(PL-.9));}
-    else{layRoad(0,z0+.5,0,z1-.5,1.5,t.rav?'gravel':null);const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++)makeLantern((rnd()<.5?1:-1)*2.3,z0-rr(5,len-5));}
+    else{if(t.rav)layRoad(0,z0+.5,0,z1-.5,1.25,'trail',z=>.55*Math.sin(z*.083+.7)+.28*Math.sin(z*.29));   // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
+      else layRoad(0,z0+.5,0,z1-.5,1.5);const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++)makeLantern((rnd()<.5?1:-1)*2.3,z0-rr(5,len-5));}
     tileCommit(t,c,0);
     PATH.job=null;
   }
@@ -19174,13 +19264,15 @@ const CODEX_CATS=[
     {k:'chapel',name:'the roofless chapel',ep:'a chunk',where:'the field · the path',tile:6,
       t:'three walls on a terrace, a lancet still lit from within, a candle stand burning and four graves before its door.'},
     {k:'ravine · maple',name:'the maple cut',ep:'a ravine',where:'the path (now and then) · the ravine',tile:7,look:'ravine',
-      t:'two to five tiles where the land rises on both sides into wooded walls and the flagstones give way to crushed gravel. The gentle one: undergrowth at the foot of the walls, a couple of fallen trunks, and an old snow fence leaning down one side of the trail.'},
+      t:'two to five tiles where the land rises on both sides into wooded walls and the flagstones give way to a dirt trail worn down the middle. The gentle one: undergrowth at the foot of the walls, a couple of fallen trunks, and an old snow fence leaning down one side of the trail.'},
     {k:'ravine · shale',name:'the shale gully',ep:'a ravine',where:'the path (now and then) · the ravine',tile:10,look:'ravine',
       t:'narrow and deep, the walls steep and broken by flat ledges of grey rock, logs down the slopes, thinner trees and more of them close to the trail.'},
-    {k:'ravine · birch',name:'the birch fall',ep:'a ravine',where:'the path (now and then) · the ravine',tile:12,look:'ravine',
-      t:'pale birches, a third of them bare before the rest, the fall lying in drifts on the gravel.'},
+    {k:'ravine · birch',name:'the birch fall',ep:'a ravine',where:'the path (now and then) · the ravine',tile:13,look:'ravine',
+      t:'pale birches, a third of them bare before the rest, the fall lying in drifts beside the trail.'},
     {k:'ravine · via',name:'the underpass',ep:'the highway overhead',where:'a ravine three tiles long or more',tile:8,look:'via',
-      t:'a concrete viaduct on tall bents that comes in off one rim, swings round over the trail and out over the other: a receding row of the same frame, the deck twelve to fourteen metres up. A column that would stand on the trail is left out. The feet you can walk up to are painted — a flower with a face, a red disc, a grinning portrait, tags.'}]},
+      t:'a concrete viaduct on tall bents that comes in off one rim, swings round over the trail and out over the other: a receding row of the same frame, the deck twelve to fourteen metres up. A column that would stand on the trail is left out. The feet you can walk up to are painted — a flower with a face, a red disc, a grinning portrait, tags.'},
+    {k:'ravine · via · cross',name:'the crossing',ep:'the highway overhead, square',where:'a ravine three tiles long or more (a little under half the highways)',tile:11,look:'via',
+      t:'the other highway: straight over the gorge from one rim to the other, square to the trail. The same bents step down the walls either side, the deck passes over once, and there is sky on both sides of it.'}]},
   {id:'arms',name:'arms',items:[]},
   {id:'armour',name:'armour',items:[]},
   {id:'sky',name:'weather',items:[]}];
@@ -19860,7 +19952,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,pathEdge,pathSurfaceY,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

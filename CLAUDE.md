@@ -439,8 +439,10 @@ Known state of play:
   inside the `HEX_AP-.9` clamp): being pinned at the rim while flying
   outward IS the event. Do not "unify" these without giving the ragdoll a
   way past the clamp first.
-  `overBrink` returns -9 for the path and the boss arena; `groundGone`
-  returns 0. Neither is a cliff. `ragFree(rag)` is what actually lets a
+  `overBrink` returns -9 for the boss arena and `groundGone` 0; the arena
+  is not a cliff. **THE PATH IS ONE NOW** (asked for by name): see
+  *THE PATH'S SHORN SIDES* below — both functions answer there from
+  `pathEdge`, and `brinkOut` answers sideways. `ragFree(rag)` is what actually lets a
   body off the world (all particles in `noFloor`, `noWall` so `rag.sub`
   skips `constrain`, and `rig.noFloorCloth` so the cloth has no floor
   either).
@@ -2372,6 +2374,57 @@ Known state of play:
     snow swap restores, so a ravine's trail comes back as gravel.
   Measured: 0 errors walking 4km / 118 tiles of seed 2, and no ravine
   feature left in `PATH.terrain` behind the pilgrim.
+- **EVERY ROAD WAS FACE-DOWN, FROM THE DAY `layRoad` WAS WRITTEN
+  (2026-09-03) UNTIL THE RAVINE'S TRAIL WAS FOUND MISSING.** It wound its
+  triangles `(a, a+1, a+2)`, which with `a+1` on the left edge points the
+  normal at the soil whichever way the road runs (it is `−(n×u)`, and
+  `n×u` is always up), so every flagstone road on the field, the path and
+  the Mire, and every ravine trail, was back-face culled. Found the way
+  the notes say to find a missing thing: recolour it red (no red
+  anywhere), then a downward `Raycaster` (the ground, never the ribbon —
+  the raycaster honours `side` too). Wound `(a, a+2, a+1)` it faces the
+  sky. **The snow's clearances (`TROD_UP`, the ribbon at `heightAt+.05`)
+  were tuned against ribbons nobody could see** — they are unchanged and
+  looked right, but if a print ever shows through a road, that is why.
+  Each edge now takes its OWN `heightAt` (it was the centre's, which on the
+  ravine's curled-up floor buried a verge), and `layRoad`'s seventh
+  argument `wig(z)` bends the line by WORLD z, which is how the ravine's
+  dirt trail (`'trail'` texture, half-width 1.25) wanders with no kink at a
+  join. It stays inside |x|<2.1, inside the chunk's own `free()` margin.
+- **THE PATH'S SHORN SIDES ARE A CLIFF** (`pathEdge`, `pathVertY`,
+  `pathTileAt`, `pathSurfaceY`, beside `tileGround`). One rule, drawn by
+  `tileGround` and read by the fall, so what you see is what holds you.
+  - **`pathEdge(t,zl)` is 26 across a hex's middle and 21 at each join —
+    except an end of a RAVINE tile that meets more ravine**, which holds 26.
+    The taper cut a V out of the rim at every join inside a run, and from
+    the trench you saw the fog through the notch (a player's screenshot,
+    twice). An end is open when `R.i>0` / `R.i<R.n-1`, or on the
+    ravine-only path whenever the neighbour is another run.
+  - `groundGone` on the path is `heightAt − pathSurfaceY` past
+    `pathEdge−.3`, 0 inside it (the field's rule: inside the lip it is
+    always 0, whatever a plinth says); `overBrink` is `|x| −
+    (pathEdge − BRINK)`; `brinkOut` is `(sign x, 0)`; `constrain` holds
+    everything but the hero at `pathEdge−.9` and the hero at 33. **That
+    clamp used to be a flat ±25 for everything**, which at a join left a
+    horror standing four metres out over the void.
+  - Measured: the pilgrim steps off at x 26.1–26.3 across a hex's middle
+    and 21.1 at a join (edge 21.3), and at 26.1 off a ravine rim eight
+    metres up; a hollow held at the lip and knocked goes over
+    (`fellOff`). Death on the path ends the run, so a fall is the end.
+  - **Harness trap:** walking a straight line to the edge in a ravine meets
+    the maple's snow fence on one side and a trunk on the other; start the
+    walk a few metres short of the rim.
+- **THE CROSSING** (`RAV_CROSS` .45, `R.cross`, `viaduct(G,zc,RM,cross)`).
+  A highway that goes straight over the gorge, square to the trail: the
+  axis is `S` sampled along x at one z (`zc±5`) instead of the curve, and
+  everything after the axis — bents, the skip over the trail, the deck, the
+  abutments, the `under` ceiling — is unchanged and just follows it. The
+  choice is the LAST draw on the run's hashed stream, so no curved layout
+  moved. The codex's shale run carries one (`CODEX_TILES`, `cross:true`).
+- **THE VERGES** (`V.verge`): scrub down both sides of the trail at
+  |x| 2.75–5.4, each a `leafMat` blob (summer's), a `RM.litter` skirt
+  (every season — out of summer a bush of bare switches alone was three
+  sticks at 383x216) and six to nine forked switches, some thick.
 - **THE RAVINE-ONLY PATH (`?mode=ravine`, `PATH.only`, `PATH.ravCarry`,
   `PATH.ravLast`).** `cathEvery` is `Infinity`, so tile 0 is the only
   cathedral; `ravineStart` answers from tile 1 on, runs are 3–5 and never
@@ -2414,14 +2467,15 @@ Known state of play:
   a keyboard, remembered as `bp_lock`). Off, `updateLock` takes its early
   return — the same one a gun behind the eyes takes — so there is no mark,
   no lock-facing and no camera on a foe. Nothing else reads it; do not
-  gate individual lock consumers on it, gate the lock.
+  gate individual lock consumers on it, gate the lock. The Mire's SPEND button
+  used to sit exactly where LOCK now does (`right:108px`); it is at 166, left of it.
 
 - **THE CODEX (`?mode=codex`, `PATH.codex`, `CODEX`, `CODEX_TILES`,
   `CODEX_CATS`, `codexShow`, `codexTick`, `codexCam`, the section headed
   THE CODEX just above `begin`).** A browser of everything in the game.
   It is the PATH with `CODEX_TILES` forcing each tile's kind (one of every
-  chunk, then maple ×3 with the underpass in the middle, shale ×2, birch
-  ×2), all built at boot by `initPath`, `pathHost` skipped, `updatePath`
+  chunk, then maple ×3 with the underpass in the middle, shale ×3 with
+  the crossing in the middle, birch ×2), all built at boot by `initPath`, `pathHost` skipped, `updatePath`
   never run, and only the viewed tile ±1 drawn (`cxTiles`). Always seed 7,
   noon, clear, unless the URL says otherwise. How it works, and what each
   piece is guarding against:
