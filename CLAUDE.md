@@ -2271,6 +2271,55 @@ Known state of play:
   `Input.poll`, so the charge releases on the first frame as a TAP. Set
   `player.state='charge'` and `chargeT` to what you want and let the next
   frame release it.
+  **THE BAT'S CARRY IS ITS OWN (`BCARRY`, `poseBatCarry`).** It wore the
+  greatsword's `CARRY`: the arm straight out, the hand 0.61m in front of
+  the chest and the bat laid nearly flat back through the neck — a yoke.
+  A greatsword is long enough to reach the shoulder from there; a bat is
+  not. `BCARRY` was SEARCHED against three targets in the rig's frame
+  (facing +z, right is −x): the hand at (−.14, 1.36, .26), the ELBOW at
+  (−.36, 1.26, .03) and the barrel up and back (−.20, .79, −.58). Without
+  the elbow target the search tucked the elbow inside the ribs (−.11,
+  1.32, −.08). Getting the elbow out AND the hand in needs a shoulder
+  TWIST, `aRy` .69, and `resetPose` writes no twist — so `poseBatCarry`
+  applies it in the `free` state only (and the pause portrait). The
+  swings start from the rest of `BCARRY` and the springs carry the twist
+  off; verified by rendering a combo, and the home run is unchanged
+  (41–51m). Both hands stay on the handle through the grip IK.
+  **THE FINISHER SHATTERS (`batShatter`, `flyBone`, `SHATTER_KEYS`).**
+  The execution's bat branch calls `die()` with `noRag` FIRST, then
+  takes the rig apart, then hides the root and sets `crumbled` — the
+  split branch's ending. Three things about it are load-bearing:
+  - **Every detached joint group is replaced by an empty STUB**,
+    severLimb's pattern. The dead body's pose code keeps writing
+    `r.armR` and friends every frame; without the stub it writes into
+    the bone in flight and the piece stops tumbling.
+  - **Deepest first** (`SHATTER_KEYS`: weapon, forearms, head, upper
+    arms, shins, thighs, torso, body), so a forearm leaves before the
+    arm it hangs from and the arm takes only its own meshes.
+  - **`flyBone` re-pivots each piece about its bounding box's middle.**
+    A joint group's origin is the JOINT, at one end of the bone:
+    `loosePiece` snaps its rotation to a quarter turn, so a forearm
+    pivoted at the elbow and snapped upright stood half in the soil.
+    `flyBone` settles every piece FLAT (x to ±π/2, z to 0) at a rest
+    height of half its own thickness. Measured: 11 pieces off a hollow,
+    every one lying within −0.04..+0.01m of the soil, the tallest 0.38m
+    (a ribcage on its back), the skull 18.8m out.
+  The eyes and anything additive are put out, not flown. Materials are
+  cloned with the flash cleared. Pieces fade at 20s and are gone at 23.
+  `AudioSys.shatter()` is the blow; `boneLand(v)` is each landing,
+  throttled at 55ms, because eleven pieces land inside a second.
+  **A CROW MET BY THE BAT IS BATTED (`Crow.batted`, state `batted`).**
+  `meleeHit` sends any bat blow on a crow there, right after the home run
+  check, so the charged swing takes crows too (`homeRunOK` refuses them).
+  `batted` calls `die()` first (marrow, the drop, the kill) and then
+  overrides the state: the crow flies ballistic at 15–18.5m/s, tumbling
+  (`rx`/`rz` into the root's rotation, wings splayed at 1.45) with
+  `homeRunStreak` on its root. It lands as `dead` at `t=.9`, so the dead
+  branch bursts it on the next frame. **`constrain` is skipped while
+  `batted`** — pinned at the rim it would stop dead in the air — and
+  `groundGone` decides whether there is soil to land on. Measured: 23.1m
+  out, 3.6m up at the top. A sword on the same crow still only wounds
+  it.
 - **THERE IS NO BLADE VIEWMODEL** — see *THE FIRST-PERSON SWING IS THE
   THIRD-PERSON SWING*, far below. `VM_BLADE`, `ensureBladeVm`,
   `bladePose`, `VM_SEAM` and `SW_FLIP` are gone. The one thing worth

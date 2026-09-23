@@ -171,8 +171,12 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     at the sweet spot and a flat end cap. The shape is the whole read — a
     thin grip into a fat end is a bat from across the field and nothing
     else is. It is shorter than any blade and quicker round than the
-    greatsword (0.6s a swing), it rides the shoulder the way a bat is
-    carried, and it is **blunt**: it never takes an arm off, though a
+    greatsword (0.6s a swing), and it **rests on the right shoulder** the
+    way anyone carries a bat to the plate: both hands on the handle in
+    close at the chest, the elbow hanging at the side, the barrel lying
+    back on the pauldron with its end out behind the head. (It used to
+    wear the greatsword's carry, arm out straight and the bat laid flat
+    across the back of the neck like a yoke.) It is **blunt**: it never takes an arm off, though a
     telling blow still bursts a small skeleton. It has its own voice — a
     hollow whoosh with a falling tube-note in it, and on a body a bright
     inharmonic **ping** over the crunch of the bone, the one weapon in
@@ -192,6 +196,21 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     that is an event — the Warden, the mini-bosses, a crow — takes the
     blow and staggers. Thor's lightning is its other charge, as it is
     every weapon's.
+    **Its finisher blows the skeleton to pieces.** A blade's finishing cut
+    halves the body; the bat has no edge, so it comes up from the ground
+    and takes the thing apart at every joint at once — skull, ribcage,
+    pelvis, both upper arms, both forearms, both thighs, both shins —
+    every bone flying out from the chest and away down the blow, the
+    skull hardest of all on the home run's streak, eighteen or twenty
+    metres out. The bones tumble, bounce once and lie flat where they
+    come down, a dry rattle as each one lands, and stay there a while. A
+    Drowned in the Mire comes apart the same way, wetter.
+    **And it hits a crow out of the field.** Any blow of the bat on a
+    crow low enough to reach kills it and sends it off on the home run's
+    arc — the ping, the whistle and the streak — tumbling end over end
+    with its wings flung open, twenty-odd metres, to come apart in
+    feathers where it lands, or to keep falling if the arc carries it
+    over the rim.
   - **the wand** — the one weapon on the pilgrim that does not strike
     anything. A short crooked rod of black wood, its head split into
     three claws with a bubble of light standing in them, and a tap
@@ -468,7 +487,9 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
     clean in two — truly in two, each half flung its own way and flopping
     down limp with the cut face showing — to a wet, splintering,
     spattering mess of a sound,
-    the screen jolting with the weight of it. You are untouchable for the
+    the screen jolting with the weight of it. With the **metal bat** it is
+    not a cut: the skeleton is blown to pieces at every joint (see the
+    bat). You are untouchable for the
     whole of the cut. Brutes included; the Warden and the two that are
     not hollows are beyond it
 - **the backstab** — get behind a small or medium horror that hasn't

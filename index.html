@@ -2834,6 +2834,24 @@ const AudioSys=(()=>{
       noise(t,{peak:.09*v,att:.002,dec:.08,f0:700,f1:180,type:'bandpass',Q:1.2});
       tone(t,{f:170,f2:95,type:'sine',peak:.07*v,att:.002,dec:.12});
       noise(t+.09,{peak:.03*v,att:.004,dec:.05,f0:1200,f1:400,type:'bandpass',Q:1.5});},
+    /* THE SKELETON COMING APART under the bat's finisher: the ping's
+       crack with no attack, a heavy low thump for the blow going through
+       the whole frame, and then a dry spray of bone snapping — a dozen
+       small cracks scattered over a fifth of a second, bright and
+       short, the joints letting go one after another. */
+    shatter(){if(!ac)return;const t=now();
+      noise(t,{peak:.4,att:.0004,dec:.05,f0:5200,f1:1200,type:'bandpass',Q:.9,white:true});   // the crack
+      tone(t,{f:110,f2:42,type:'sine',peak:.3,att:.002,dec:.32});                              // through the whole frame
+      noise(t+.003,{peak:.22,att:.002,dec:.16,f0:1400,f1:260});                                 // the air knocked out of it
+      for(let i=0;i<12;i++){const d=.012+Math.pow(Math.random(),1.6)*.2;
+        noise(t+d,{peak:rr2(.05,.12),att:.0005,dec:rr2(.012,.03),f0:rr2(1800,4200),f1:rr2(700,1400),type:'bandpass',Q:rr2(2,4),white:true});}},
+    /* a piece of that skeleton coming down: small and dry, a knock and a
+       rattle. Twelve pieces land inside a second, so it is throttled or
+       it is gravel. */
+    boneLand(v){if(!ac)return;const t=now();if(t-(this._blAt||0)<.055)return;this._blAt=t;v=v==null?1:Math.min(1,v);
+      noise(t,{peak:.07*v,att:.001,dec:.035,f0:rr2(1300,2200),f1:500,type:'bandpass',Q:2,white:true});
+      tone(t,{f:rr2(210,260),f2:120,type:'sine',peak:.035*v,att:.001,dec:.06});
+      noise(t+rr2(.03,.06),{peak:.025*v,att:.001,dec:.02,f0:2600,f1:1200,type:'bandpass',Q:3,white:true});},
     // steel into old bone: low body, mid crunch, dry crack
     // the sound of a blow landing on THIS horror: dry bone for the small
     // skeletons, a deeper crunch for the big, a wet thud for the Unburied,
@@ -7053,9 +7071,9 @@ function buildHumanoid(o){
          blade's own steel (`bladeM`), so an element still runs up it; a
          dark band where the taper meets the barrel and the black tape at
          the hands break it into the three parts a real one has. It is
-         shorter than any blade — a bat is swung close — and it is carried
-         on the shoulder the way the greatsword is, which is how a bat is
-         carried. */
+         shorter than any blade — a bat is swung close — and it rests back
+         on the right shoulder in both hands (`BCARRY`), not across the
+         shoulders the way the greatsword lies. */
       const tapeM=o.clothMat?lam({color:0x1c1c20}):gripM;
       w.add(M(GCyl(.036*s,.03*s,.035*s,8),gripM,0,.085*s,0));             // the knob
       w.add(M(GCyl(.021*s,.021*s,.36*s,8),tapeM,0,-.1*s,0));             // the taped handle
@@ -7064,7 +7082,7 @@ function buildHumanoid(o){
       w.add(M(GCyl(.0432*s,.0432*s,.05*s,10),tapeM,0,-.62*s,0));          // the dark band at the sweet spot's edge
       const bl=M(GCyl(.044*s,.044*s,.42*s,10),bladeM,0,-.855*s,0);w.add(bl);   // THE BARREL
       w.add(M(GCyl(.04*s,.04*s,.02*s,10),tapeM,0,-1.072*s,0));            // the end cap
-      rig.reach=2.2*s;rig.bladeMesh=bl;rig.gripLo=-.24;rig.gripHi=.05;rig.bat=true;
+      rig.reach=2.2*s;rig.bladeMesh=bl;rig.gripLo=-.24;rig.gripHi=.05;rig.bat=true;rig.carry=BCARRY;
     }else if(o.weapon==='claymore'){
       /* the hero blade — an ultra greatsword in the reference's style:
          a LONG two-hand haft under a wheel pommel, guard far down the
@@ -7828,6 +7846,29 @@ const KCARRY={aRx:-.42,aRz:.18,fRx:-1.05,wx:-.25,wy:0,wz:.05,
    orb is always in shot and always in front of him. */
 const WCARRY={aRx:-.30,aRz:-.10,fRx:-.80,wx:-1.05,wy:0,wz:.06,
   aLx:0,aLz:.12,fLx:-.34};
+/* THE BAT AT REST: on the right shoulder, the way anyone carries one to
+   the plate. It inherited the greatsword's carry and wore it like a yoke —
+   the arm out straight at arm's length (the hand 0.61m in front of the
+   chest) and the bat laid nearly flat back through the neck. A greatsword
+   is long enough to rest on the shoulder from there; a bat is not.
+   SOLVED, not guessed, by a search over the arm and the wrist against
+   three targets: the hand in close at the right of the chest (−.14, 1.36,
+   .26 in the rig's frame, facing +z), the ELBOW hanging down and out at
+   the side (−.36, 1.26, .03 — without that target the search tucked it
+   inside the ribs), and the barrel up and back over the shoulder
+   (−.20, .79, −.58), which lays it on the pauldron and carries its end
+   out behind the head. The shoulder needs a TWIST (`aRy`) to get the
+   elbow out and the hand in at once, and `resetPose` writes no twist —
+   so it is `poseBatCarry` that applies it, in the free state only; the
+   swings start from the rest of these numbers and the springs carry the
+   twist off. Both hands stay on the handle (the left by the grip IK). */
+const BCARRY={aRx:.07,aRy:.69,aRz:-.24,fRx:-1.95,wx:-1.86,wy:-.13,wz:.07,
+  aLx:-.5,aLz:.3,fLx:-1.2};
+function poseBatCarry(r,t){
+  const C=BCARRY,br=Math.sin(t*1.6)*.02;
+  r.armR.rotation.set(C.aRx+br,C.aRy,C.aRz);r.foreR.rotation.x=C.fRx-br;
+  r.weapon.rotation.set(C.wx,C.wy,C.wz);
+}
 /* swap the greatsword between the back scabbard and the hands */
 function attachWeapon(r,toHand){
   const w=r.weapon,s=r.s;
@@ -10962,6 +11003,8 @@ const player={
       if(opts.homerun!==undefined&&!parry&&homeRunOK(e)&&(opts.homerun||e.hp<=opts.homerunDmg)){
         homeRun(e,this.facing);hitAny=true;continue;
       }
+      // a CROW met by the bat is hit out of the field (see Crow.batted)
+      if(e.crow&&this.weapon()==='bat'&&e.batted){e.batted(this.facing);hitAny=true;continue;}
       if(this.reaperT>0&&!parry){
         if(e.boss)dmg=Math.round(dmg*2.6);      // the Warden only staggers under it
         else{reaperFinish(e,hv,this.facing);hitAny=true;continue;}
@@ -11474,6 +11517,12 @@ const player={
             gore(e,hp.x,hp.y+.22,hp.z,18,1.4);goreDecal(e,e.x,e.z,.7);
             e.lastHit={dx:fx,dz:fz,kb:1.6,up:1.6};
             e.die();
+          }else if(this.weapon()==='bat'&&e.rig&&e.rig.humanoid&&!e.boss){
+            // the bat has no edge to cut with: it takes the thing apart (see batShatter)
+            e.lastHit={dx:Math.sin(this.facing),dz:Math.cos(this.facing),kb:2,up:2};
+            e.noRag=true;e.die();
+            batShatter(e,this.facing);
+            e.crumbled=true;e.rig.root.visible=false;
           }else{
           AudioSys.gore();
           splitEnemy(e,this.facing,'rising');            // from the ground up: the halves go skyward
@@ -12102,6 +12151,7 @@ const player={
       else poseIdle(r,t);
       if(bow)poseBowCarry(r);
       else if(wnd)poseWandCarry(r,t);
+      else if(r.bat)poseBatCarry(r,t);
       else if(r.gun)poseGunCarry(r,t,this);
     }
     else if(this.state==='charge'){if(this.katThrown)poseSkyPoint(r,Math.min(1,this.chargeT/.3),t,1);   // (the blade away: the hand held out for it)
@@ -13010,6 +13060,27 @@ class Crow{
     this.vx=dx/l*kb*6;this.vz=dz/l*kb*6;
     this.y+=.5;                                          // battered upward
   }
+  /* THE BAT MEETS A CROW, and the crow goes out of the field. Any blow of
+     the bat kills it (a crow is twenty life; the bat's lightest is more)
+     and, instead of dropping where it was struck, it leaves on the home
+     run's arc — the ping, the whistle, the streak — tumbling end over end
+     with its wings flung open, lands twenty-odd metres away in a burst of
+     feathers, or goes on falling if the arc carries it over the rim. It
+     is NOT the home run's head: a crow has no head to take, and it is
+     struck in the air, so it goes flatter and further. */
+  batted(facing){
+    const fx=Math.sin(facing),fz=Math.cos(facing),lx=fz,lz=-fx;
+    let dx=fx*.95+lx*.25+rr3(-.1,.1),dz=fz*.95+lz*.25+rr3(-.1,.1);{const l=Math.hypot(dx,dz);dx/=l;dz/=l;}
+    if(this.hp>0)this.die();
+    const v=rr3(15,18.5);
+    this.state='batted';this.t=0;this.crumbled=false;
+    this.vx=dx*v;this.vz=dz*v;this.vy=rr3(6,7.5);
+    this.spinX=rr3(13,19)*(Math.random()<.5?1:-1);this.spinZ=rr3(-6,6);this.rx=0;this.rz=0;
+    AudioSys.homeRun();AudioSys.smack(this);
+    G.hitstop=Math.max(G.hitstop,.14);G.camShake=Math.max(G.camShake,.45);G.vibr([40,20,80]);
+    boneBurst(this.x,this.y,this.z,0x23232c,14,3.2);                    // a cloud of black feathers at the bat
+    homeRunStreak(this.rig.root);
+  }
   scatter(){ // a telling blow swats it into the dirt
     this.state='downed';this.t=0;
     this.vx*=.3;this.vz*=.3;
@@ -13083,6 +13154,16 @@ class Crow{
         this.vx*=Math.pow(.05,dt);this.vz*=Math.pow(.05,dt);
         if(this.t>1.5){this.state='fly';this.t=0;this._oa=undefined;}
         break;
+      case 'batted':{ // out of the field, end over end
+        this.vy-=11*dt;
+        this.x+=this.vx*dt;this.y+=this.vy*dt;this.z+=this.vz*dt;
+        this.rx+=this.spinX*dt;this.rz+=this.spinZ*dt;
+        const gone=groundGone(this)>FALL_STEP;                // (over the rim: nothing to land on)
+        if(!gone&&this.y<=gh+.14&&this.vy<0){
+          this.y=gh+.14;AudioSys.skullLand(.7);
+          this.state='dead';this.t=.9;                    // and it comes apart where it lands
+        }else if(this.t>4){this.state='dead';this.t=.9;}
+        break;}
       case 'dead':
         this.y+=((gh+.14)-this.y)*Math.min(1,5*dt);      // drops from the air
         if(!this.crumbled&&this.t>.9){
@@ -13091,7 +13172,7 @@ class Crow{
         }
         break;
     }
-    if(this.state!=='dead'){
+    if(this.state!=='dead'&&this.state!=='batted'){   // (a batted crow is allowed to leave: that is the point)
       constrain(this,false);
       if(cathDist(this.x,this.z)<1)pushOutOfCath(this,1);   // never over the nave
     }
@@ -13099,10 +13180,11 @@ class Crow{
     const r=this.rig;
     r.root.position.set(this.x,this.y,this.z);
     r.root.rotation.y=this.facing;
-    r.root.rotation.x=this.state==='dive'?.55:this.state==='dead'?.9:0;
-    r.root.rotation.z=this.state==='fly'?-.22*this.orbitDir:0;
+    const bat=this.state==='batted';
+    r.root.rotation.x=bat?this.rx:this.state==='dive'?.55:this.state==='dead'?.9:0;
+    r.root.rotation.z=bat?this.rz:this.state==='fly'?-.22*this.orbitDir:0;
     const grounded=this.state==='downed'||this.state==='dead'||this.state==='roost';
-    const f=grounded?1.15:.15+.8*Math.sin(this.flap);
+    const f=bat?1.45:grounded?1.15:.15+.8*Math.sin(this.flap);   // (batted: the wings flung open and limp)
     r.wingL.rotation.z=f;r.wingR.rotation.z=-f;
     if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)m.emissive.setHex(0x6e1410);}
     if(G.time>=this.flashUntil)for(const m of this.mats)
@@ -14717,6 +14799,106 @@ function homeRunStreak(head){
         if(l>.45){scene.remove(s);s.material.dispose();return false;}return true;}});}
     last.copy(head.position);
     return t<3&&(moved>.001||t<.2);}});
+}
+/* THE BAT'S FINISHER BLOWS THE SKELETON TO PIECES (`batShatter`, from the
+   execution). A blade's finisher cuts the body in two; a bat has no edge,
+   and what it does to a thing held up for it is take it apart at every
+   joint at once. Each JOINT GROUP of the rig flies as its own piece —
+   skull, ribcage, pelvis, both upper arms, both forearms, both thighs,
+   both shins and whatever it was holding — so what comes down is
+   recognisably a skeleton in a dozen bones, not a spray of anonymous
+   sticks. Detached deepest first (a forearm before the arm it hangs from)
+   and each replaced by an empty STUB, severLimb's pattern: the dead
+   rig's own pose code goes on writing `r.armR` and friends every frame,
+   and without the stub it would be writing into the bone in flight.
+   Each piece is re-pivoted about its own middle (`flyBone`) so it
+   tumbles about its centre and lies FLAT on the soil — a joint group's
+   origin is the joint, so a forearm pivoted at the elbow and snapped
+   upright stood half in the ground. The skull goes furthest, with the
+   home run's streak. Materials are cloned and the blow's red flash
+   cleared, as severLimb does; the eyes and other additive glows are
+   simply put out. */
+const SHATTER_KEYS=['weapon','foreR','foreL','head','armR','armL','kneeR','kneeL','legR','legL','torso','body'];
+function batShatter(e,facing){
+  const r=e.rig;if(!r||!r.body)return false;
+  const fx=Math.sin(facing),fz=Math.cos(facing),gy=heightAt(e.x,e.z);
+  r.root.visible=true;r.body.visible=true;r.root.updateMatrixWorld(true);
+  const c=(r.torso||r.body).getWorldPosition(new THREE.Vector3());
+  AudioSys.shatter();AudioSys.smack(e);
+  G.hitstop=Math.max(G.hitstop,.22);G.camShake=Math.max(G.camShake,1.1);G.vibr([90,40,140]);G.glowFlash=1;
+  impactBurst(c.x,c.y,c.z,24,true);
+  boneBurst(c.x,c.y,c.z,e.red?0xd23c3c:e.zombie?0x6a3a2e:0xd8cfb4,22,4.2);   // splinters and dust
+  if(e.zombie){gore(e,c.x,c.y,c.z,26,1.8);goreDecal(e,e.x,e.z,.8);}      // (a Drowned is not dry bone)
+  const P=new THREE.Vector3(),Q=new THREE.Quaternion(),S=new THREE.Vector3();
+  let n=0;
+  for(const k of SHATTER_KEYS){
+    const g=r[k];if(!g||!g.parent)continue;
+    let has=false;g.traverse(o=>{if(o.isMesh&&o.visible)has=true;});
+    if(!has)continue;
+    g.updateMatrixWorld(true);g.matrixWorld.decompose(P,Q,S);
+    const parent=g.parent,stub=new THREE.Group();stub.position.copy(g.position);stub.quaternion.copy(g.quaternion);parent.add(stub);
+    parent.remove(g);r[k]=stub;
+    g.traverse(o=>{if(!o.isMesh)return;
+      const m=o.material;
+      if(!m||m.blending===THREE.AdditiveBlending||m.isMeshBasicMaterial&&m.transparent){o.visible=false;return;}   // an eye's glow goes out with the life behind it
+      o.material=m.clone();if(o.material.emissive)o.material.emissive.setHex(0x000000);});
+    g.position.copy(P);g.quaternion.copy(Q);g.scale.copy(S);g.visible=true;
+    // out from the chest and away down the blow, the skull hardest of all
+    const head=k==='head',pelvis=k==='body';
+    let rx=P.x-c.x,ry=P.y-c.y,rz=P.z-c.z;{const l=Math.hypot(rx,ry,rz)||1;rx/=l;ry/=l;rz/=l;}
+    const fwd=head?rr3(8.5,10.5):pelvis?rr3(1.2,2.2):rr3(3,6.5),out=pelvis?1:rr3(2.5,4.5);
+    const vx=fx*fwd+rx*out+rr3(-.8,.8),vz=fz*fwd+rz*out+rr3(-.8,.8),vy=(head?rr3(6.5,8):pelvis?rr3(2,3):rr3(3.5,6.5))+ry*2;
+    const piv=flyBone(g,vx,vy,vz,head?'skullLand':'boneLand',head?20:rr3(10,18));
+    if(head)homeRunStreak(piv);
+    n++;
+  }
+  e.severedHead=true;
+  return n>0;
+}
+function flyBone(g,vx,vy,vz,snd,spin){
+  // re-pivot about the piece's own middle, so it tumbles about its centre
+  // and can be laid flat: the joint it hung from is at one END of it
+  const box=new THREE.Box3().setFromObject(g),mid=box.getCenter(new THREE.Vector3());
+  const piv=new THREE.Group();piv.position.copy(mid);piv.quaternion.copy(g.quaternion);scene.add(piv);
+  piv.updateMatrixWorld(true);piv.attach(g);
+  // how thick it lies: its extent along its own z once laid on its back
+  const inv=new THREE.Matrix4().copy(piv.matrixWorld).invert(),lb=new THREE.Box3(),v=new THREE.Vector3();
+  g.updateMatrixWorld(true);
+  g.traverse(o=>{if(!o.isMesh||!o.visible)return;if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();const bb=o.geometry.boundingBox;
+    for(let i=0;i<8;i++){v.set(i&1?bb.max.x:bb.min.x,i&2?bb.max.y:bb.min.y,i&4?bb.max.z:bb.min.z).applyMatrix4(o.matrixWorld).applyMatrix4(inv);lb.expandByPoint(v);}});
+  const rest=Math.max(.03,Math.min(.25,(lb.max.z-lb.min.z)/2));
+  const mats=[];g.traverse(o=>{if(o.isMesh){o.material.transparent=true;mats.push(o.material);}});
+  piv.rotation.order='YXZ';
+  let life=0,landed=0,wx=(Math.random()-.5)*spin,wz=(Math.random()-.5)*spin;
+  const lay=Math.random()<.5?Math.PI/2:-Math.PI/2;
+  effects.push({update(dt){
+    life+=dt;
+    const gone=groundGone(piv.position)>FALL_STEP,gy=gone?-1e9:heightAt(piv.position.x,piv.position.z)+rest;   // over the rim there is nothing to land on
+    if(landed<2){
+      vy-=11*dt;
+      piv.position.x+=vx*dt;piv.position.y+=vy*dt;piv.position.z+=vz*dt;
+      piv.rotation.x+=wx*dt;piv.rotation.z+=wz*dt;
+      if(piv.position.y-gy<2.5)pushOut(piv.position,.1);
+      if(piv.position.y<=gy&&vy<0){
+        piv.position.y=gy;landed++;
+        if(snd&&AudioSys[snd]&&-vy>1.2)AudioSys[snd](Math.min(1,-vy/7));
+        vy=-vy*.28;vx*=.45;vz*=.45;wx*=.35;wz*=.35;
+        if(landed>=2||vy<.6){landed=2;vx=vz=0;
+          piv.rotation.x=wrapA(piv.rotation.x);piv.rotation.z=wrapA(piv.rotation.z);}
+      }
+      if(gone&&life>4)life=99;
+    }else{
+      // it settles FLAT: on its back or its front, never stood on end
+      const k=Math.min(1,8*dt);
+      piv.rotation.x+=(lay-piv.rotation.x)*k;
+      piv.rotation.z+=(0-piv.rotation.z)*k;
+      piv.position.y+=(gy-piv.position.y)*k;
+    }
+    if(life>20)for(const m of mats)m.opacity=Math.max(0,1-(life-20)/3);
+    if(life>23){scene.remove(piv);for(const m of mats)m.dispose();return false;}
+    return true;
+  }});
+  return piv;
 }
 function severLimb(e,trail,hv,want,launch){
   const r=e.rig;
@@ -18747,6 +18929,7 @@ function renderHero(){
   resetPose(heroRig);poseIdle(heroRig,0);
   if(LOADOUT.weapon==='bow')poseBowCarry(heroRig);
   else if(LOADOUT.weapon==='wand')poseWandCarry(heroRig,0);
+  else if(LOADOUT.weapon==='bat')poseBatCarry(heroRig,0);
   else if(heroRig.gun)poseGunCarry(heroRig,0,null);
   heroRig.root.rotation.y=.6;heroScene.add(heroRig.root);
   updateRigExtras(heroRig,.016);
@@ -19060,7 +19243,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
