@@ -1792,8 +1792,24 @@ twenty draws.
   dark rock, with a waterfall coming down the crag's face into it and
   mist standing where it lands. Trees on the crag and on the far bank,
   reeds round the edge, and you can wade in.
+- **the stairs** — a long hex where the path climbs a hillside in flights
+  of two worn steps, a flagged landing between each, five to seven metres
+  from the bottom to the top (or down, when the land is already high). A
+  low parapet runs either side and has come down in places, its blocks
+  lying on the slope below; posts stand in pairs at every third landing,
+  some with an urn, one now and then knocked flat. Step through a gap and
+  you are out on the hillside.
 Never two special hexes running, never inside a ravine or next to one,
 and never on the ravine-only path.
+
+**The land rises and falls, and keeps what it has climbed.** Every ordinary
+hex climbs or drops a little along its length — up to a couple of metres
+and a half, easing in and out so there is never a crease at a join — and
+the next hex starts where it ended, so the height carries forward: after
+a flight of stairs the path goes on up on the hill it reached. The more
+the land has wandered from level, the more it tends back. The cathedrals,
+the ravines, the river, the pond, the fork and the narrows lie level
+where they are, and a cathedral on high ground stands on it whole.
 
 **The day turns as you go.** In the middle of every cathedral's nave (and,
 on the ravine-only path, at the start of a run at least six hexes on from

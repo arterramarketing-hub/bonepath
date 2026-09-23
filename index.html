@@ -4176,16 +4176,43 @@ function camStone(x,zl){
    without the field's rim, flat against any cathedral's plinth, with the
    tiles' own shapes on top */
 function pathGround(x,z){
-  const sw=(Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6+Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1;
+  let sw=(Math.sin(x*.11+1.7)*Math.cos(z*.09+.4)*.6+Math.sin(x*.045-z*.06+2.1)*.42+.5)*1.1;
+  if(PATH.stairs&&PATH.stairs.length)sw*=stairFlat(x,z);                      // (the hillside under a stair is a clean slope: see THE STAIRS)
   const c=pathCath(z);let inFade=1;
   if(c){const pd=Math.max(0,rectSD(x,z-c.czc,PW,PL));inFade=Math.min(1,pd/6);}
-  return inFade*(sw+terrainAt(x,z));
+  return inFade*(sw+terrainAt(x,z))+pathBase(z);
+}
+/* THE HEIGHT CARRIED FORWARD. Every tile has a base height at each end
+   (`t.b0` at its z0, `t.b1` at its z1), the next begins where the last
+   ended, and `pathBase(z)` is that ramp — a smoothstep across an ordinary
+   tile, so the slope is nothing at each join and the land never creases;
+   linear between `t.bs` and `t.be` on the stairs, which are the path's
+   big climbs. It is added inside `pathGround`, so EVERYTHING placed from
+   `heightAt` — the chunks, the host, the roads, the lanterns, the water's
+   level, a bridge's deck — rides it for nothing. A cathedral, a ravine
+   run, a river, a pond, the fork and the narrows are LEVEL (b0 = b1): the
+   cathedral is built at fixed heights and lifted whole at commit
+   (`tileCommit`'s `offY`), and the others span tiles or carry levels of
+   their own. The lookup walks from the last tile it answered, so it is a
+   step or two a call. Ahead of the last tile begun and behind the first,
+   it holds the end's value. */
+let _pbK=0;
+function pathBase(z){
+  const T=PATH.tiles;if(!T||!T.length)return 0;
+  let k=Math.min(_pbK,T.length-1);if(!T[k])k=0;
+  for(let n=0;n<600;n++){const t=T[k];if(!t)return 0;
+    if(z>t.z0){if(k===0)return t.b0||0;k--;continue;}
+    if(z<t.z1){if(!T[k+1])return t.b1||0;k++;continue;}
+    _pbK=k;const b0=t.b0||0,b1=t.b1||0;if(b0===b1)return b0;
+    if(t.bs!=null){const u=clamp((t.z0-z-t.bs)/(t.be-t.bs),0,1);return b0+(b1-b0)*u;}
+    const u=(t.z0-z)/t.len;return b0+(b1-b0)*u*u*(3-2*u);}
+  return 0;
 }
 function pathHeightAt(x,z){
   const c=pathCath(z);
-  if(c){const zl=z-c.czc,az=Math.abs(zl);
-    if(Math.abs(x)<STAIR_W&&az>=PL&&az<PL+STAIR_L+.5){const t=clamp((az-PL)/STAIR_L,0,1);return PH*(1-t)+pathGround(x,z)*t;}
-    if(rectSD(x,zl,PW,PL)<=0)return PH;}
+  if(c){const zl=z-c.czc,az=Math.abs(zl),B=c.b0||0;
+    if(Math.abs(x)<STAIR_W&&az>=PL&&az<PL+STAIR_L+.5){const t=clamp((az-PL)/STAIR_L,0,1);return (PH+B)*(1-t)+pathGround(x,z)*t;}
+    if(rectSD(x,zl,PW,PL)<=0)return PH+B;}
   return pathGround(x,z);
 }
 // a point on the building's outline, `off` beyond the walls, in direction a
@@ -4246,6 +4273,7 @@ function wading(x,z){if(DEF.on)return heightAt(x,z)<WATER_Y-.14;if(!PATH.on)retu
 function heightAt(x,z){
   if(PATH.on){const zz=z+BUILD.offZ;                  // (a tile under construction asks in the origin's frame: answered in the world's)
     if(PATH.decks&&PATH.decks.length){const d=deckAt(x,zz);if(d!==null)return d;}   // (a bridge's deck is walked on; the ground under it is the river's bed — see RIVERS)
+    if(PATH.stairs&&PATH.stairs.length){const h=stairAt(x,zz);if(h!==null)return h;}   // (the stairs' flights: see THE STAIRS)
     return pathHeightAt(x,zz);}
   if(DEF.on)return mireGround(x,z);                  // (no plinth, no stair: the house stands on the soil)
   if(inStairs(x,z)&&z>=PL){
@@ -5889,6 +5917,50 @@ function buildWorld(){
       for(let i=0,n=0;i<30&&n<4;i++){const x=sd*rr(f.cragX+3,23),z=cz+rr(-8,8);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,rnd()<.5);}
       for(let i=0,n=0;i<30&&n<3;i++){const x=-sd*rr(6,19),z=cz+rr(-15,15);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,rnd()<.5);}
     },
+    /* THE STAIRS (see stairAt, pathBase): flights of two worn steps up a
+       hillside, a flagged landing between each, a low parapet either side
+       with gaps where it has come down and blocks lying where they fell,
+       a pair of posts at every third landing (some with an urn, one here
+       and there knocked flat), all folded into one group. Every block
+       runs down past the hillside's ramp, so nothing shows daylight under
+       it; the parapet's colliders are laid run by run and stop at its
+       gaps, so the hillside is there to be stepped out onto. */
+    stairs(w){
+      const t=w.t,S=t.stairsF,off=BUILD.offZ,G=new THREE.Group();world.add(G);
+      const zo=sw=>S.z0-sw-off;                                              // a distance up the tile -> the origin frame's z
+      const base=sw=>S.h0+S.rise*S.n*clamp((sw-S.sA)/(S.n*S.P),0,1);        // the hillside's ramp at that distance
+      const blk=(s0,s1,top,m,x,w2,ry)=>{const lo=Math.min(base(s0),base(s1))-.6,h=top-lo;
+        const b=new THREE.Mesh(new THREE.BoxGeometry(w2,h,s1-s0),m);b.position.set(x,lo+h/2,zo((s0+s1)/2));if(ry)b.rotation.y=ry;G.add(b);return b;};
+      const parts=[];
+      for(let i=0;i<S.n;i++){const si=S.sA+i*S.P,L=S.h0+S.rise*i;
+        parts.push([si,si+.4,L+S.rise*.5,'tread'],[si+.4,si+.8,L+S.rise,'tread'],[si+.8,si+S.P,L+S.rise,'land']);}
+      for(const[a,b2,top,k]of parts){
+        if(k==='tread')blk(a,b2,top,M.wall,rr(-.04,.04),S.hw*2+rr(-.1,.05),rr(-.025,.025));
+        else{blk(a,b2,top,M.flag,0,S.hw*2,0);
+          if(rnd()<.3){const o=new THREE.Mesh(ICO,M.wall);o.position.set(rr(-1.6,1.6),top+.03,zo(rr(a+.3,b2-.3)));o.scale.set(rr(.12,.22),.06,rr(.12,.2));G.add(o);}}}   // (a loose chip of the step above, lying on the flags)
+      // the parapets: a coping block per part, following the steps, with gaps and fallen blocks
+      for(const sd of[1,-1]){let run=null;const px=sd*(S.hw+.22);
+        const closeRun=(sEnd)=>{if(run){const t0=Math.max(run.top0,run.top1);addWall(px,zo(run.s0),px,zo(sEnd),.25,true,t0+.05);run=null;}};
+        for(const[a,b2,top]of parts){
+          if(rnd()<.14){closeRun(a);                                           // a gap where it has come down...
+            if(rnd()<.6){const o=new THREE.Mesh(new THREE.BoxGeometry(.4,.4,rr(.6,1.2)),M.wall);o.position.set(px+sd*rr(.5,1.4),base((a+b2)/2)+.18,zo((a+b2)/2));o.rotation.set(rr(-.3,.3),rr(-.9,.9),rr(-.4,.4));G.add(o);}   // ...and the block lying below it
+            continue;}
+          const low=rnd()<.12?.35:0;blk(a,b2,top+.72-low,M.wall,px,.4,0);
+          if(!run)run={s0:a,top0:top+.72-low,top1:top+.72-low};run.top1=top+.72-low;run.top0=Math.max(run.top0,run.top1);
+        }
+        closeRun(parts[parts.length-1][1]);}
+      // a pair of posts at every third landing: a shaft, a cap, sometimes an urn — and one knocked down now and then
+      for(let i=2;i<S.n;i+=3){const sl=S.sA+i*S.P+2.1,top=S.h0+S.rise*(i+1);
+        for(const sd of[1,-1]){const px=sd*(S.hw+.25),pz=zo(sl);
+          if(rnd()<.15){const f=cyl(.18,.2,1.3,6,M.wall,px+sd*1.1,base(sl)+.2,pz);f.rotation.z=Math.PI/2;f.rotation.y=rr(-.6,.6);G.add(f);continue;}
+          G.add(cyl(.18,.2,1.3,6,M.wall,px,top+.72+.65,pz));G.add(box(.5,.14,.5,M.wall,px,top+.72+1.37,pz));
+          if(rnd()<.55){G.add(cyl(.12,.2,.34,7,M.wall,px,top+.72+1.62,pz));G.add(cyl(.2,.08,.12,7,M.wall,px,top+.72+1.84,pz));}
+          addObstacle(px,pz,.28,true,top+2.1);}}
+      bakeStatic(G);
+      // the hillside: a few trees and stones either side, well off the flights
+      for(let i=0,n=0;i<40&&n<6;i++){const x=(rnd()<.5?1:-1)*rr(7,20),z=zo(rr(8,t.len-8));if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,rnd()<.5);}
+      for(let i=0,n=0;i<30&&n<5;i++){const x=(rnd()<.5?1:-1)*rr(4.5,16),z=zo(rr(6,t.len-6));if(!clearSpot(x,z,.9))continue;n++;stone(x,z,rnd());}
+    },
     /* THE NARROWS (see SPECIAL and pathEdge): the ground is the causeway,
        and the chunk only dresses its edges — a broken parapet of blocks
        along the lip where it is narrow, some fallen onto the flags, and two
@@ -6237,7 +6309,7 @@ function pathVertY(t,x,zl){
   const half=t.len/2;
   let ex=Math.abs(x)-pathEdge(t,zl);if((t.k===0||t.backCut)&&zl>half-1)ex=Math.max(ex,zl-(half-1));   // (the start of the path, and wherever the ground behind has been taken away)
   const h=pathHeightAt(x,zl+t.zc);
-  return ex>0?Math.min(h,0)-(ex*1.1+ex*ex*.5):h;
+  return ex>0?Math.min(h,pathBase(zl+t.zc))-(ex*1.1+ex*ex*.5):h;   // (the cliff falls from the land's own height, not from sea level)
 }
 function pathTileAt(z){for(const t of PATH.tiles)if(t&&!t.dead&&t.ground&&z<=t.z0+.6&&z>=t.z1-.6)return t;return null;}
 // the tile's ground as its card DRAWS it: bilinear over the mesh's own cells (2m across, about 1.6 along)
@@ -6271,7 +6343,7 @@ function startTile(k){
   const prev=PATH.tiles[k-1],cath=k%PATH.cathEvery===0,special=cath||PATH.rav?null:specialAt(k,prev);
   const len=cath?2*(PL+STAIR_L)+8:special?SPECIAL[special].len:PATH.TILE;
   const z0=prev.z1,z1=z0-len,zc=(z0+z1)/2;
-  const t={k,cath,special,z0,z1,zc,czc:zc,len,kind:cath?'cathedral':special,disp:[],objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false,step:0};
+  const t={k,cath,special,z0,z1,zc,czc:zc,len,b0:prev.b1||0,b1:prev.b1||0,kind:cath?'cathedral':special,disp:[],objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false,step:0};
   PATH.tiles[k]=t;PATH.far=k;
   tileSeed(k,0);
   if(!cath){
@@ -6295,7 +6367,11 @@ function startTile(k){
       if(R.i===0&&prev&&!prev.rav)regroundTile(prev);                          // (it widens to meet the run: see pathEdge)
       R.i++;
       if(R.i>=R.n){if(PATH.only)PATH.ravCarry=R.f;else t.terrain.push(R.f);PATH.rav=null;}   // the run's walls go when its LAST tile goes
-    }else{t.kind=typeof cx==='string'?cx:['graves','wood','ruins','hollow','causeway','chapel'][(roll*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);}
+    }else{t.kind=typeof cx==='string'?cx:['graves','wood','ruins','hollow','causeway','chapel'][(roll*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);
+      /* an ordinary hex climbs or falls a little (see pathBase), on a hashed
+         stream of its own so no other roll moves; pulled back toward level
+         the further the land has wandered from it. The codex stays level. */
+      if(!PATH.codex){srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x27d4eb2d)^0x1b87)));t.b1=t.b0+rr(-2.6,2.6)-clamp(t.b0/12,-1,1)*1.3;}}
     }
   }
   PATH.job=t;return t;
@@ -6320,7 +6396,7 @@ const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6;
 /* the codex's path: tile 0 is the cathedral as always, then one of every
    chunk, then the three ravines — the maple long enough to carry the
    underpass in its middle tile. Nobody is sown on any of it. */
-const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond'];
+const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond','stairs'];
 /* THE RAVINE'S TRAIL wanders by the world's own z (layRoad's `wig`), so
    the stream's footbridge — which has to sit ON it — asks the same. */
 function TRAIL_WIG(z){return .55*Math.sin(z*.083+.7)+.28*Math.sin(z*.29);}
@@ -6411,7 +6487,36 @@ function specialTerrain(t){   // (world frame; called from startTile, on the til
   else if(t.special==='pond'){const sd=rnd()<.5?1:-1;f={t:'pond',sd,cx:sd*10.5,cz:zc+rr(-3,3),r:6.8,d:1.5,cragX:16,H:8.5};PATH.terrain.push(f);
     let lo=1e9;for(let i=0;i<16;i++){const a=i/16*TAU;lo=Math.min(lo,pathHeightAt(f.cx+Math.cos(a)*f.r*1.02,f.cz+Math.sin(a)*f.r*1.02));}
     f.level=lo-.55;}
+  if(t.special==='stairs'){
+    /* THE STAIRS: flights of two steps, a landing between each, climbing
+       (or, when the land is already high, going down) five to seven metres
+       up the tile's middle. `t.bs`/`t.be` make its base a straight ramp
+       over the flights, and the walkway's own height is `stairAt`. */
+    const up=(t.b0||0)<9?1:-1,P=3.4,sA=6,n=Math.floor((t.len-12)/P),rise=up*rr(.36,.46);
+    t.bs=sA;t.be=sA+n*P;t.b1=(t.b0||0)+n*rise;
+    const S={hw:2.2,z0:t.z0,za:t.z0-sA,zb:t.z0-(sA+n*P),sA,P,n,rise,h0:t.b0||0};
+    PATH.stairs.push(S);t.stairsF=S;
+  }
   if(f)t.terrain=[f];
+}
+/* THE STAIRS' WALKWAY. Inside the parapets the ground is stepped: each
+   flight is two risers of half a flight's rise, .4m apart, then the
+   landing; a riser eases over 12cm so a body steps up rather than
+   jolting. Outside the flights (and off the walkway) the ground is the
+   hillside, which is the tile's straight ramp with its swells flattened
+   (`stairFlat`), so the flights stand a hand or two proud of it. */
+function stairAt(x,z){
+  for(const S of PATH.stairs){
+    if(Math.abs(x)>S.hw)continue;const sp=(S.z0-z)-S.sA;if(sp<0||sp>=S.n*S.P)continue;
+    const i=Math.floor(sp/S.P),r=sp-i*S.P,sm=u=>u<=0?0:u>=1?1:u*u*(3-2*u);
+    return S.h0+S.rise*(i+.5*sm(r/.12)+.5*sm((r-.4)/.12));}
+  return null;
+}
+function stairFlat(x,z){
+  let f=1;
+  for(const S of PATH.stairs){const kz=clamp(Math.min(S.z0-1-z,z-(S.zb-5))/6,0,1);if(kz<=0)continue;
+    const kx=clamp((Math.abs(x)-(S.hw+2.5))/10,0,1);f=Math.min(f,1-kz*(1-kx));}
+  return f;
 }
 let RIVER_MAT=null,FALL_MAT=null,POND_MAT=null;
 function waterMats(){if(RIVER_MAT)return;
@@ -6426,7 +6531,7 @@ function waterMats(){if(RIVER_MAT)return;
    that knocks a horror sideways is a kill. Rolled on a hashed stream of
    their own (the ravine's lesson), never two running, never inside a
    ravine, and never on the ravine-only path. */
-const SPECIAL={fork:{len:54,p:.08},narrows:{len:42,p:.06},river:{len:60,p:.05},pond:{len:48,p:.05}};
+const SPECIAL={fork:{len:54,p:.08},narrows:{len:42,p:.06},river:{len:60,p:.05},pond:{len:48,p:.05},stairs:{len:66,p:.07}};
 function specialAt(k,prev){
   if(PATH.codex){const c=CODEX_TILES[k];return typeof c==='string'&&SPECIAL[c]?c:null;}
   if(PATH.only||k<3||(prev&&(prev.special||prev.rav)))return null;          // (never beside a ravine: a narrows or a river against its walls opens them onto the sky)
@@ -6465,13 +6570,14 @@ function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named 
 // caught in a window, and the window is shifted north into the tile's place
 const hazeSep=()=>hazeScene!==scene;
 function tileCapture(){return {W:world.children.length,S:scene.children.length,H:hazeSep()?hazeScene.children.length:0,O:obstacles.length,B:breakables.length,L:lanternLights.length,WS:wispSystems.length};}
-function tileCommit(t,c,offZ){
-  for(let i=c.W;i<world.children.length;i++){const o=world.children[i];o.position.z+=offZ;t.objsW.push(o);}
-  for(let i=c.S;i<scene.children.length;i++){const o=scene.children[i];o.position.z+=offZ;t.objsS.push(o);}
-  if(hazeSep())for(let i=c.H;i<hazeScene.children.length;i++){const o=hazeScene.children[i];o.position.z+=offZ;t.hazes.push(o);}
-  for(let i=c.O;i<obstacles.length;i++){const o=obstacles[i];if(o.seg){o.az+=offZ;o.bz+=offZ;}else o.z+=offZ;t.obs.push(o);}
+function tileCommit(t,c,offZ,offY){   // (`offY`: a cathedral is built at fixed heights and lifted whole onto its tile's base: see pathBase)
+  offY=offY||0;
+  for(let i=c.W;i<world.children.length;i++){const o=world.children[i];o.position.z+=offZ;o.position.y+=offY;t.objsW.push(o);}
+  for(let i=c.S;i<scene.children.length;i++){const o=scene.children[i];o.position.z+=offZ;o.position.y+=offY;t.objsS.push(o);}
+  if(hazeSep())for(let i=c.H;i<hazeScene.children.length;i++){const o=hazeScene.children[i];o.position.z+=offZ;o.position.y+=offY;t.hazes.push(o);}
+  for(let i=c.O;i<obstacles.length;i++){const o=obstacles[i];if(o.seg){o.az+=offZ;o.bz+=offZ;}else o.z+=offZ;if(o.top!=null)o.top+=offY;t.obs.push(o);}
   for(let i=c.B;i<breakables.length;i++){const b=breakables[i];b.z+=offZ;t.brk.push(b);}
-  for(let i=c.L;i<lanternLights.length;i++){const L=lanternLights[i];if(!L.l.parent)L.l.position.z+=offZ;t.lamps.push(L);}   // (a pooled light is no scene child: shifted by hand)
+  for(let i=c.L;i<lanternLights.length;i++){const L=lanternLights[i];if(!L.l.parent){L.l.position.z+=offZ;L.l.position.y+=offY;}t.lamps.push(L);}   // (a pooled light is no scene child: shifted by hand)
   for(let i=c.WS;i<wispSystems.length;i++)t.wisps.push(wispSystems[i]);
 }
 function stepTile(){
@@ -6485,7 +6591,7 @@ function stepTile(){
     else{PATH.chunks[t.kind](w);
       if(!t.special){let piles=0;for(let i=0;i<30&&piles<3;i++){const a=w.a+rr(-.4,.4),d=24+rnd()*26,px=Math.cos(a)*d,pz=Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;PATH.helpers.bonePile(px,pz);}
       if(rnd()<.5&&!t.rav){const p=PATH.helpers.inWedge(w,26,48,.4,2.4);if(p)PATH.helpers.tree(p[0],p[1],true);}}}   // (a ravine has its own wood; a fork and the narrows build their own ground)
-    BUILD.offZ=0;tileCommit(t,c,offZ);
+    BUILD.offZ=0;tileCommit(t,c,offZ,cath?(t.b0||0):0);
   }else{
     // the host, sown into the queue (still in the origin's frame)...
     BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex){if(t.kind==='fork')forkHost(w,t,tileBudget(k));else pathHost(w,tileBudget(k),cath);}BUILD.offZ=0;tileCommit(t,c,offZ);}
@@ -6498,8 +6604,9 @@ function stepTile(){
       if(t.rav)layRoad(0,z0,0,z1,1.25,'trail',TRAIL_WIG);            // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
       else if(t.kind==='fork')forkRoads(t);
       else if(t.kind==='river'){const d=t.terrain[0].deck;layRoad(0,z0,0,d.za-.2,1.5);layRoad(0,d.zb+.2,0,z1,1.5);}   // (the deck is the road over the water)
+      else if(t.kind==='stairs'){const S=t.stairsF;layRoad(0,z0,0,S.za+.1,1.5);layRoad(0,S.zb-.1,0,z1,1.5);}           // (the flights are the road up the hill)
       else layRoad(0,z0,0,z1,1.5);
-      const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4)&&pathWaterAt(lx,lz)===null&&!(PATH.decks.length&&deckAt(0,lz)!==null))makeLantern(lx,lz);}   // (never in the water, nor on a bridge)
+      const n=t.kind==='stairs'?0:1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4)&&pathWaterAt(lx,lz)===null&&!(PATH.decks.length&&deckAt(0,lz)!==null))makeLantern(lx,lz);}   // (never in the water, nor on a bridge)
       if(f&&f.stream)buildStream(t,f);
       milepost(t);}
     tileCommit(t,c,0);
@@ -6606,6 +6713,7 @@ function teardownTile(t){
   if(t.ground){world.remove(t.ground);t.ground.geometry.dispose();t.ground=null;}
   for(const d of t.disp||[])d.dispose();                                          // (a milepost's carved face)
   if(t.decks)PATH.decks=PATH.decks.filter(d=>!t.decks.includes(d));
+  if(t.stairsF)PATH.stairs=PATH.stairs.filter(S=>S!==t.stairsF);
   {const gone=new Set(t.objsW);for(const [o,r] of BAKED){let p=r.mesh;while(p&&p.parent&&p.parent!==world)p=p.parent;if(gone.has(p))BAKED.delete(o);}}   // (a ravine's folded bushes)
   for(let i=MARKABLE.length-1;i>=0;i--){let o=MARKABLE[i];while(o.parent)o=o.parent;if(o!==scene){if(MARKABLE[i].markTex)MARKABLE[i].markTex.dispose();MARKABLE.splice(i,1);}}
   t.dead=true;
@@ -6621,7 +6729,7 @@ function teardownTile(t){
 }
 function initPath(){
   const z1=-(PL+STAIR_L+4);
-  PATH.tiles=[Object.assign({k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false,foes:[],terrain:[],disp:[]},PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]})];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;PATH.backZ=null;PATH.decks=[];
+  PATH.tiles=[Object.assign({k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false,foes:[],terrain:[],disp:[]},PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]})];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;PATH.backZ=null;PATH.decks=[];PATH.stairs=[];_pbK=0;
   tileGround(PATH.tiles[0]);
   buildTile(1);buildTile(2);
   if(PATH.codex)for(let k=3;k<CODEX_TILES.length;k++)buildTile(k);   // (the codex's whole path stands from the start, and none of it is ever torn down)
@@ -20108,6 +20216,8 @@ const CODEX_CATS=[
       t:'a river straight across the hex, pouring off the world at both ends of it, and the trail over it on a long timber bridge: a deck on an arch, a rail each side, trestles standing in the water. The middle of the channel is too deep to wade — the bridge is the way over, and a horror on the far bank has to come by it too.'},
     {k:'pond',name:'the pond',ep:'a special hex',where:'the path, now and then',tile:18,look:'wide',
       t:'still water beside the trail under a crag, and a fall coming over the crag into it with a mist at its foot. It is shallow: you can wade it, slowly.'},
+    {k:'stairs',name:'the stairs',ep:'a special hex',where:'the path, now and then',tile:19,look:'wide',
+      t:'a long hex where the path climbs a hillside in flights of two worn steps, a flagged landing between each, five to seven metres from bottom to top — or goes down it, when the land is already high. A low parapet either side has come down in places, and posts stand in pairs at every third landing. The land carries its height on into the hexes after it.'},
     {k:'milepost',name:'the mileposts',ep:'every hex',where:'the path · the ravine',tile:9,look:'post',
       t:'a worn stone at the right-hand verge at the start of every hex, its number cut into the face you walk up to — so a run can be told as a place.'},
     {k:'ravine · via · cross',name:'the crossing',ep:'the highway overhead, square',where:'a ravine three tiles long or more (a little under half the highways)',tile:11,look:'via',

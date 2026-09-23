@@ -2488,6 +2488,44 @@ Known state of play:
   **The option is `opt`, not `o`, because `o` is the wander offset inside
   the loop** — named `o`, it was shadowed, and every seam came out a
   constant-width strip with the texture repeating up it.
+- **THE HEIGHT CARRIED FORWARD** (`pathBase`, `t.b0`/`t.b1`, `t.bs`/`t.be`,
+  `tileCommit`'s `offY`). Every tile carries a base height at each end,
+  starting from the last tile's `b1`; `pathBase(z)` is a smoothstep between
+  them (zero slope at the joins), or linear over `bs..be` on the stairs.
+  It is added at the end of `pathGround`, so everything placed from
+  `heightAt` rides it — and that is almost everything: the chunks, the
+  host, the roads, the seams, lanterns, mileposts, water levels, decks and
+  the viaduct all measure from it. `pathVertY` drops the cliff from
+  `min(h, pathBase)`, not from 0. An ordinary tile's `b1` is rolled on its
+  own hashed stream at the end of `startTile` (±2.6, pulled back toward
+  level by `b0/12`); the codex stays level.
+  **LEVEL, ON PURPOSE:** cathedral, ravine run, river, pond, fork, narrows.
+  The cathedral is the reason for `offY`: `buildCathedral` places
+  everything at fixed heights (`PH`, never `heightAt`), so its step-0
+  objects are lifted whole by `b0` in `tileCommit` — positions, hazes,
+  pooled lights and every obstacle's `top` — and `pathHeightAt` answers
+  `PH+b0` on the plinth and on its stair. A ravine run's walls are one
+  feature over several tiles, and a river or pond has its own water level,
+  so none of them may ramp. **Anything new built at fixed heights on the
+  path must be lifted the same way, or it floats or sinks by the base.**
+  Measured: a cathedral at base 5.5 stands with the pilgrim's feet at 6.73
+  on the floor (PH 1.2 + 5.5); 70 hexes walked, 0 errors.
+  The lookup walks from the last tile it answered (`_pbK`, reset in
+  `initPath`), a step or two a call.
+- **THE STAIRS** (`SPECIAL.stairs` 66m, `stairAt`, `stairFlat`,
+  `PATH.stairs`, `t.stairsF`, CHUNKS.`stairs`). Flights of two steps
+  `S.P` (3.4m) apart from `sA` (6m) for `n` flights, each rising `rise`
+  (.36–.46; negative going down, chosen when `b0` is already over 9).
+  `stairAt` is a height override in `heightAt` (like a deck) inside
+  `|x|<S.hw` over the flights, each riser eased over 12cm because the
+  pilgrim's root is set straight from `heightAt` with no smoothing. The
+  ground under and around is the tile's straight ramp with its swells
+  flattened near the flights (`stairFlat`, easing out over 10m across and
+  6m along), so every block, run down past the ramp, sits true. The
+  parapet's colliders are `addWall` runs that stop at its gaps. Folded
+  with `bakeStatic`; no random lanterns on it; the road runs to its foot
+  and on from its head; `teardownTile` drops `t.stairsF` from
+  `PATH.stairs`. Codex tile 19.
 - **THE PATH'S SHORN SIDES ARE A CLIFF** (`pathEdge`, `pathVertY`,
   `pathTileAt`, `pathSurfaceY`, beside `tileGround`). One rule, drawn by
   `tileGround` and read by the fall, so what you see is what holds you.
