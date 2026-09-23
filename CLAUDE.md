@@ -2400,6 +2400,16 @@ Known state of play:
     the trench you saw the fog through the notch (a player's screenshot,
     twice). An end is open when `R.i>0` / `R.i<R.n-1`, or on the
     ravine-only path whenever the neighbour is another run.
+    **AND NOW EVERY END THAT TOUCHES A RAVINE AT ALL** — a ravine tile is
+    26 its whole length, and so is the end of an ordinary tile whose
+    neighbour is a ravine. The 21m taper at a run's first and last join
+    cut the full-height walls short, and from the trench the sky showed
+    through in orange wedges either side of the trail (a player's
+    screenshot, a third time). The tile BEFORE a run is built before the
+    run is rolled, so `startTile` calls `regroundTile(prev)` when a run
+    begins: its ground is rebuilt against the new neighbour.
+    `specialAt` also refuses next to a ravine (its narrows opened the same
+    wall to the sky), and `ravineStart` refuses after a special.
   - `groundGone` on the path is `heightAt − pathSurfaceY` past
     `pathEdge−.3`, 0 inside it (the field's rule: inside the lip it is
     always 0, whatever a plinth says); `overBrink` is `|x| −
@@ -2425,6 +2435,52 @@ Known state of play:
   |x| 2.75–5.4, each a `leafMat` blob (summer's), a `RM.litter` skirt
   (every season — out of summer a bush of bare switches alone was three
   sticks at 383x216) and six to nine forked switches, some thick.
+- **THE WAY BACK IS A CLIFF** (`PATH.backZ`, `t.backCut`, `regroundTile`,
+  the end of `teardownTile`). A torn-down hex used to leave its colliders
+  gone and the pilgrim free to walk back onto soil `heightAt` still
+  invented — into a void. Now `teardownTile` marks the next tile
+  `backCut`, rebuilds its ground (`pathVertY` drops its south edge the
+  way tile 0's always was) and sets `PATH.backZ` to its `z0`.
+  `groundGone` answers 9 south of `backZ` with no tile under it,
+  `overBrink` and `brinkOut` read the back edge as a rim, and `constrain`
+  holds everything but the hero short of it. Measured: the pilgrim goes
+  over 0.7m past `backZ` and dies `'fall'`, on both paths.
+  **TILE 0 IS TORN DOWN TOO**, which means the start cathedral, the ring
+  road and the start lanterns had to become its OBJECTS: three
+  `tileCapture`/`tileCommit` windows in `buildWorld` fill `PATH.tile0`,
+  which `initPath` hands to `PATH.tiles[0]`. Without them the back view
+  showed a cathedral, then the ring road, then the lanterns floating
+  beyond the drop, in that order. On the path the quarter roads are
+  `[π/2]` only — the north one lay over tile 1's own road.
+  **Anything new built at tile 0 on the path must be inside one of those
+  windows**, or it outlives the ground it stands on.
+- **RIVERS AND THE POND** (`SPECIAL.river`/`.pond`, `specialTerrain`,
+  `CHUNKS.river`/`.pond`, `deckAt`, `PATH.decks`, `pathWaterAt`,
+  `riverHold`, `waterMats`). Both are special hexes and carry their own
+  terrain feature (`t:'river'`, a trench across z; `t:'pond'`, a bowl
+  plus the crag `H` on one side), built in `specialTerrain` from
+  `startTile` in WORLD frame, with a `level` for the water.
+  - **THE BRIDGE IS A DECK IN `heightAt`, NOT IN THE GROUND.** `heightAt`
+    asks `deckAt` before `pathHeightAt`; the ground mesh calls
+    `pathHeightAt` directly, so the riverbed is drawn under the planks and
+    the pilgrim still walks the arch. The deck is registered in
+    `PATH.decks` and in `t.decks`, which `teardownTile` filters out.
+  - **`riverHold` is in `constrain` and keeps bodies out of the deep
+    channel** (within `.8*w` of the centre line) unless they are on the
+    deck. Wading from the bank stops at 8.8m, waist-deep. The pond has no
+    hold: it is 1.5m at the middle and meant to be waded.
+  - **The water materials are their own** (`RIVER_MAT`, `FALL_MAT`,
+    `POND_MAT`, each on a CLONED texture) so `updatePath` can scroll the
+    river and the falls without dragging every other water in the game.
+  - `wading()` on the path is the stream OR the pilgrim more than .14
+    under `pathWaterAt`.
+- **THE FENCE BREAKS** (`kind:'fence'`, `fenceHit`, the `fence` branch of
+  `breakPew`). The maple's snow fence is one breakable per span, and
+  unlike a bush a span HAS a collider — so `bakeStatic`'s claim rule is
+  `rec&&b.fold`: a `fold` breakable lets its group be folded and claims
+  only `b.obs`. Bushes carry `fold:true` too now. Measured: 17 spans on
+  the standing tiles, 10 bake records for the one struck, broken in two
+  blows, obstacle and records gone, 0 errors.
 - **EVERY BUSH BREAKS, AND IT IS STILL FOLDED** (`kind:'bush'`, `bushHit`,
   the `bush` branch of `breakPew`, `bakeStatic(root,rec)`). Held out of the
   bake, a tile's twenty bushes would be two hundred draws. So the ravine's
@@ -2563,7 +2619,7 @@ Known state of play:
   THE CODEX just above `begin`).** A browser of everything in the game.
   It is the PATH with `CODEX_TILES` forcing each tile's kind (one of every
   chunk, then maple ×3 with the underpass and the stream, shale ×3 with
-  the crossing in the middle, birch ×2, a fork and the narrows), all built at boot by `initPath`, `pathHost` skipped, `updatePath`
+  the crossing in the middle, birch ×2, a fork, the narrows, the river and the pond), all built at boot by `initPath`, `pathHost` skipped, `updatePath`
   never run, and only the viewed tile ±1 drawn (`cxTiles`). Always seed 7,
   noon, clear, unless the URL says otherwise. How it works, and what each
   piece is guarding against:

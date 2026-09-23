@@ -1571,10 +1571,12 @@ The Warden's nave is **not** a cliff: the arena is the arena. **The path
 is**, now. Its sides are shorn at a width that changes down every hex —
 twenty-six metres out from the trail across the middle of a hex, narrowing
 to twenty-one at each join, and the full twenty-six the whole length of a
-ravine — and the same two rules read it: walk past the last of the ground
+ravine and at either end of one, so the walls never open onto the sky
+where a ravine meets the meadow — and the same two rules read it: walk past the last of the ground
 the tile is drawing and you step off and fall, and a horror flung past the
 lip goes over and dies on the way down. In a ravine that means climbing a
-wall to the rim and walking off the far side of it. Everything else is held
+wall to the rim and walking off the far side of it. The path's BACK is a
+cliff too: the edge where the torn-down hexes used to be. Everything else is held
 a stride short of the edge, as on the field.
 
 **And you can see it coming, which you could not at first.** The camera
@@ -1626,7 +1628,12 @@ tiles laid end to end northward, without end — each an authored chunk
 on its own seeded ground shape, with a flagstone road through, a lantern or two,
 and a host sown to a budget that grows with every hex. Two or three
 tiles always stand ahead of you, built as you come; what is fifty
-metres behind is torn down. **Every hex has a milepost**: a worn stone at
+metres behind is torn down — **and the ground goes with it.** The hex
+behind the one you left is gone, and where it stood the land now ends in
+the same shorn cliff the path has down both sides: the way back is a drop
+into nothing, and walking off it is a fall like any other. The cathedral
+you start at goes the same way once you are fifty metres past it, road,
+lanterns and all. Nothing is ever drawn that you could not walk back to. **Every hex has a milepost**: a worn stone at
 the right-hand verge where it begins, its number cut into the face you
 walk up to, so a run can be told as a place ("I went at thirty-four").
 Every sixth hex is the cathedral, with a
@@ -1676,7 +1683,9 @@ from one tile to the next and ease in and out only at the ravine's two
 ends. It comes in three kinds:
 - **the maple cut** — gentle walls, undergrowth along the
   foot of them, a couple of fallen trunks, and an old snow fence down
-  one side of the trail, leaning, a slat gone here and there;
+  one side of the trail, leaning, a slat gone here and there — and it
+  breaks: two blows (one from the ultra) and a span comes down in loose
+  slats and splinters, and the way through it is open;
 - **the shale gully** — narrow and deep, the walls steep and broken by
   ledges of grey rock bedded flat, fallen logs down the slopes, thinner
   trees and more of them close to the trail;
@@ -1742,8 +1751,18 @@ twenty draws.
   edge is a cliff (see *The brink*), so here walking off is death and a
   blow that knocks a horror sideways is a kill; every horror of the hex
   stands on the causeway with you.
-Never two special hexes running, never inside a ravine, and never on the
-ravine-only path.
+- **the river** — a long hex crossed by a broad river, twenty-six metres of
+  planked bridge arched over it on trestles, a rail each side. The water
+  runs off both edges of the world in a fall, reeds stand in the shallows
+  and rocks break the current. The bridge is the way over: step off it
+  and the water takes you to the waist and holds you short of the deep
+  channel, so there is no swimming round it.
+- **the pond** — a still pool off one side of the trail under a crag of
+  dark rock, with a waterfall coming down the crag's face into it and
+  mist standing where it lands. Trees on the crag and on the far bank,
+  reeds round the edge, and you can wade in.
+Never two special hexes running, never inside a ravine or next to one,
+and never on the ravine-only path.
 
 **The day turns as you go.** In the middle of every cathedral's nave (and,
 on the ravine-only path, at the start of a run at least six hexes on from
@@ -1873,7 +1892,7 @@ sections across the top:
 - **places** — the cathedral, the six chunks (the grave rows, the hollow
   wood, the ruins, the sunken hollow, the causeway, the roofless chapel),
   the three ravines, the stream, the underpass and the crossing, the fork,
-  the narrows and the mileposts, each seen from above
+  the narrows, the river, the pond and the mileposts, each seen from above
   and turning.
   The world behind the codex is the path laid out once with every kind
   of hex on it and nobody sown, always the same seed.

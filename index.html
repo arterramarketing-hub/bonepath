@@ -3998,6 +3998,9 @@ function terrainAt(x,z){
       const lump=1+.16*Math.sin(z*.23+x*.31+f.ph)+.09*Math.sin(z*.61-x*.17);
       h+=f.h*(x<0?f.aL:f.aR)*sm*lump*ee;
       if(f.stream)h-=streamCarve(f,x,z)*ee;}                                 // the stream's bed (see STREAM)
+    else if(f.t==='river'){const u=Math.abs(z-f.zr)/f.w;if(u<1)h-=f.d*sstep(clamp((1-u)/.4,0,1));}   // THE RIVER: a channel straight across the hex (see RIVERS)
+    else if(f.t==='pond'){const d=Math.hypot(x-f.cx,z-f.cz)/f.r;if(d<1)h-=f.d*sstep(clamp((1-d)/.45,0,1));   // THE POND, and the crag its fall comes over
+      h+=f.H*sstep(clamp((f.sd*x-f.cragX)/3,0,1))*sstep(clamp((12-Math.abs(z-f.cz))/5,0,1));}
     else{const px=x-f.cx,pz=z-f.cz,along=px*f.dx+pz*f.dz;let across=px*(-f.dz)+pz*f.dx;
       if(f.t==='stream')across+=along*along*.012;                          // the bed bends
       const e=clamp((f.len/2-Math.abs(along))/5,0,1),g=Math.exp(-(across*across)/(2*f.w*f.w));
@@ -4118,9 +4121,11 @@ function groundAt(x,z){ // the soil alone: flat against the plinth, rolling beyo
      +terrainAt(x,z));                                   // and the seed's own shapes on top
 }
 // what anything standing at (x,z) stands ON: the plinth, the stair, or the soil
-function wading(x,z){return DEF.on?heightAt(x,z)<WATER_Y-.14:PATH.on&&!!streamAt(x,z);}   // in the Mire: standing in the water; on the path: in a ravine's stream
+function wading(x,z){if(DEF.on)return heightAt(x,z)<WATER_Y-.14;if(!PATH.on)return false;if(streamAt(x,z))return true;const L=pathWaterAt(x,z);return L!==null&&heightAt(x,z)<L-.14;}   // in the Mire: standing in the water; on the path: in a ravine's stream
 function heightAt(x,z){
-  if(PATH.on)return pathHeightAt(x,z+BUILD.offZ);   // (a tile under construction asks in the origin's frame: answered in the world's)
+  if(PATH.on){const zz=z+BUILD.offZ;                  // (a tile under construction asks in the origin's frame: answered in the world's)
+    if(PATH.decks&&PATH.decks.length){const d=deckAt(x,zz);if(d!==null)return d;}   // (a bridge's deck is walked on; the ground under it is the river's bed — see RIVERS)
+    return pathHeightAt(x,zz);}
   if(DEF.on)return mireGround(x,z);                  // (no plinth, no stair: the house stands on the soil)
   if(inStairs(x,z)&&z>=PL){
     const t=clamp((z-PL)/STAIR_L,0,1);
@@ -4154,7 +4159,8 @@ const BRINK=1.15;
 const HEXN=[];for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;HEXN.push({x:Math.cos(a),z:Math.sin(a)});}
 function overBrink(p){
   if(G.bossActive)return -9;
-  if(PATH.on){const t=pathTileAt(p.z);return t?Math.abs(p.x)-(pathEdge(t,p.z-t.zc)-BRINK):-9;}   // (the path's sides: see pathEdge)
+  if(PATH.on){const t=pathTileAt(p.z);if(!t)return -9;   // (the path's sides: see pathEdge — and the drop behind, once the ground there is gone)
+    return Math.max(Math.abs(p.x)-(pathEdge(t,p.z-t.zc)-BRINK),PATH.backZ!=null?p.z-(PATH.backZ-1-BRINK):-9);}
   let e=-1e9;
   for(let i=0;i<6;i++){
     const d=p.x*HEXN[i].x+p.z*HEXN[i].z-(HEX_AP-BRINK);
@@ -4197,8 +4203,8 @@ function groundSurfaceY(x,z){                    // bilinear across the mesh's o
 function groundGone(p){
   if(G.bossActive)return 0;
   if(PATH.on){                                    // THE PATH'S SIDES ARE A CLIFF NOW, the field's own rule on the path's own ground
-    const t=pathTileAt(p.z);if(!t)return 0;
-    const zl=p.z-t.zc;if(Math.abs(p.x)<pathEdge(t,zl)-.3&&!(t.k===0&&zl>t.len/2-1.3))return 0;
+    const t=pathTileAt(p.z);if(!t)return PATH.backZ!=null&&p.z>PATH.backZ?9:0;   // (behind the drop there is nothing at all)
+    const zl=p.z-t.zc;if(Math.abs(p.x)<pathEdge(t,zl)-.3&&!((t.k===0||t.backCut)&&zl>t.len/2-1.3))return 0;
     return heightAt(p.x,p.z)-pathSurfaceY(p.x,p.z);}
   let ex=0;
   for(let i=0;i<6;i++){const n=HEXN[i];const d=p.x*n.x+p.z*n.z-HEX_LIP;if(d>ex)ex=d;}
@@ -4208,7 +4214,8 @@ function groundGone(p){
 const FALL_STEP=.45;      // deeper than a step down: below this he is still standing on something
 // which way is OUT from here: the normal of the nearest hex face
 function brinkOut(p){
-  if(PATH.on)return {x:p.x<0?-1:1,z:0};           // (a corridor: out is sideways)
+  if(PATH.on){if(PATH.backZ!=null&&p.z>PATH.backZ-3.5&&PATH.backZ-p.z<26-Math.abs(p.x))return {x:0,z:1};   // (the drop behind)
+    return {x:p.x<0?-1:1,z:0};}                    // (a corridor: out is sideways)
   let best=HEXN[0],bd=-1e9;
   for(let i=0;i<6;i++){
     const d=p.x*HEXN[i].x+p.z*HEXN[i].z;
@@ -4232,6 +4239,8 @@ function constrain(p,arenaOnly,offEdge){
   if(PATH.on){
     const t=pathTileAt(p.z),lim=offEdge?33:t?pathEdge(t,p.z-t.zc)-.9:20;   // the shorn sides: held a stride short of the drop, as the field's rim holds — all but the pilgrim, who can walk off it
     p.x=clamp(p.x,-lim,lim);if(p.z>57)p.z=57;             // ...and its beginning
+    if(PATH.backZ!=null){const bz=PATH.backZ-(offEdge?-8:1.9);if(p.z>bz)p.z=bz;}   // ...and the drop where the path behind has gone (see teardownTile)
+    riverHold(p);
     const cz=cathZ(p.z);if(cz>1e8)return;
     p.z-=cz;constrainCath(p);p.z+=cz;return;              // the cathedral's rim and walls, in that cathedral's own frame
   }
@@ -4839,6 +4848,10 @@ function breakPew(b){
     boneBurst(b.x,gy+.5,b.z,lc,16,2.6);boneBurst(b.x,gy+.3,b.z,0x3a2a1a,6,1.8);
     for(let i=0;i<3;i++)planetPiece(new THREE.CylinderGeometry(.015,.03,rr3(.4,.8),3),b.twig,b.x+rr3(-.3,.3),gy+.4,b.z+rr3(-.3,.3),.03,2.2);
     AudioSys.bush();G.vibr(12);return;}
+  if(b.kind==='fence'){                                                 // a span of the snow fence knocked flat: slats flying, splinters
+    const gy=heightAt(b.x,b.z);boneBurst(b.x,gy+.6,b.z,0x5a4326,12,2.6);boneBurst(b.x,gy+.4,b.z,0x2e2216,6,1.8);
+    for(let i=0;i<4;i++)planetPiece(new THREE.BoxGeometry(.055,rr3(.7,1.1),.025),b.wood,b.x+rr3(-.1,.1),gy+.6,b.z+rr3(-b.hd,b.hd),.03,2.4,'woodFall');
+    AudioSys.hit();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.1);G.vibr(18);return;}
   if(b.kind==='grave'){
     // a gravestone comes apart into chunks of weathered stone
     const gy=heightAt(b.x,b.z);
@@ -4911,7 +4924,8 @@ function loosePiece(piece,rest,vx,vz,vy,fade,snd,spin){   // (snd: the sound it 
   }});
 }
 // a blow from (x,z) facing (fx,fz): does it reach a pew? break it a little
-function bushHit(b){if(b.hp<=0)breakPew(b);}   // (its own onHit: the generic splinters are thrown at the PEWS' height)
+function bushHit(b){if(b.hp<=0)breakPew(b);}
+function fenceHit(b,cx,cz){boneBurst(cx,heightAt(cx,cz)+.6,cz,0x5a4326,5,1.8);if(b.hp<=0)breakPew(b);else AudioSys.woodKnock();}   // (its own onHit: the generic splinters are thrown at the PEWS' height)
 function strikeBreakables(x,z,fx,fz,reach,arc,oneShot){
   let hitAny=false;
   for(const b of breakables.slice()){
@@ -4969,7 +4983,7 @@ let groundMat=null;
 function bakeStatic(root,rec){   // (`rec`: remember every folded mesh in BAKED, and let a BUSH be folded — the ravine's, so one can be unbaked when it breaks)
   const held=new WeakSet();
   const claim=o=>{if(!o)return;if(o.traverse)o.traverse(c=>held.add(c));else held.add(o);};
-  for(const b of breakables){if(rec&&b.kind==='bush'){claim(b.obs);continue;}claim(b.g);claim(b.obs);}
+  for(const b of breakables){if(rec&&b.fold){claim(b.obs);continue;}claim(b.g);claim(b.obs);}   // (a bush or a fence span is folded too, and unbaked when it breaks)
   for(const ob of obstacles)claim(ob&&ob.o);
   for(const m of MARKABLE)claim(m&&(m.o||m));
   for(const L of lanternLights)claim(L&&(L.o||L.post));
@@ -5153,16 +5167,18 @@ function buildWorld(){
      to each quarter. Angle convention: (cos a, sin a) -> (x, z), so
      south = PI/2, east = 0, west = PI, north = -PI/2. */
   if(!DEF.on){
+    const cR=PATH.on?tileCapture():null;                   // (on the path these are tile 0's, torn down with it: see teardownTile)
     const SEG=28;
     for(let i=0;i<SEG;i++){                              // the ring road follows the building's outline
       const p0=ringPoint((i/SEG)*TAU,RING_OFF),p1=ringPoint(((i+1)/SEG)*TAU,RING_OFF);
       layRoad(p0[0],p0[1],p1[0],p1[1],1.3);
     }
-    const QUARTERS=PATH.on?[Math.PI/2,-Math.PI/2]:[Math.PI/2,0,Math.PI,-Math.PI/2]; // S, E, W, N (the path: only in and out)
+    const QUARTERS=PATH.on?[Math.PI/2]:[Math.PI/2,0,Math.PI,-Math.PI/2]; // S, E, W, N (the path: only the way in — the first hex lays its own road out, and a second one doubled it)
     for(const a of QUARTERS){
       const p0=ringPoint(a,RING_OFF);
       layRoad(p0[0],p0[1],Math.cos(a)*(HEX_AP-6),Math.sin(a)*(HEX_AP-6),1.5);
     }
+    if(cR){PATH.tile0={objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]};tileCommit(PATH.tile0,cR,0);}
   }
 
   // (no rampart — the land's own shorn edge is the boundary)
@@ -5380,7 +5396,8 @@ function buildWorld(){
     // fold the parts that are only ever looked at
     cath.userData.bake=bakeStatic(cath);
   };
-  if(!DEF.on)buildCathedral(PATH.on);
+  if(!DEF.on){const c0=PATH.on?tileCapture():null;buildCathedral(PATH.on);   // (on the path this is tile 0's, and caught like any tile's so it can be torn down behind you)
+    if(c0){PATH.tile0=PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]};tileCommit(PATH.tile0,c0,0);}}
 
   /* THE WEDGES — six of them round the cathedral, each an authored chunk
      the seed chose: the grave rows, the hollow wood, the ruins, a sunken
@@ -5528,7 +5545,7 @@ function buildWorld(){
          it out (breakPew). A bush has no collider — you walk through scrub
          — so it is only ever a thing to cut. */
       const bushAt=(px,pz,r)=>{const bg=new THREE.Group();G.add(bg);
-        addBreakable({g:bg,x:px,z:pz,hw:r*.85,hd:r*.85,hp:1,parent:G,kind:'bush',onHit:bushHit,twig:barkM,r});return (geo,m,x,y,z,sx,sy,sz)=>{const o=add(geo,m,x,y,z,sx,sy,sz);G.remove(o);bg.add(o);return o;};};
+        addBreakable({g:bg,x:px,z:pz,hw:r*.85,hd:r*.85,hp:1,parent:G,kind:'bush',onHit:bushHit,twig:barkM,r,fold:true});return (geo,m,x,y,z,sx,sy,sz)=>{const o=add(geo,m,x,y,z,sx,sy,sz);G.remove(o);bg.add(o);return o;};};
       // undergrowth along the foot of the walls: a clump of bare switches, and its leaves in summer
       for(let i=0;i<V.bushes;i++){const px=(rnd()<.5?1:-1)*rr(2.9,f.fw+3.5),pz=zc+rr(-half,half);if(!free(px,pz,.3))continue;
         const r=rr(.5,1.1),gy=heightAt(px,pz),ad=bushAt(px,pz,r);ad(ICO,leafM,px,gy+r*.3,pz,r*rr(1,1.4),r*.6,r*rr(1,1.4)).rotation.y=rnd()*TAU;
@@ -5563,13 +5580,22 @@ function buildWorld(){
       for(let i=0;i<V.litter;i++){const px=(rnd()<.5?1:-1)*rr(2.8,f.fw+4),pz=zc+rr(-half,half);if(!free(px,pz,.2))continue;
         const r=rr(.6,1.3);add(ICO,RM.litter,px,heightAt(px,pz)+.02,pz,r*rr(1,1.6),r*.18,r*rr(1,1.6)).rotation.y=rnd()*TAU;}
       // MAPLE: an old snow fence down one side of the trail, leaning, slats gone here and there
+      /* THE FENCE BREAKS, a span at a time (`kind:'fence'`): each post-to-post
+         span is its own group and its own breakable, with the span's wall as
+         its obstacle — folded with the rest until a blow unbakes it (the
+         bushes' scheme). Two blows, or one heavy one. */
       if(V.fence&&!R.via){const sd=rnd()<.5?1:-1,fx=sd*3.3;let run=null;
-        const close=()=>{if(run&&run.b)addWall(run.a[0],run.a[1],run.b[0],run.b[1],.15,false,run.y+1.1);run=null;};   // one wall a post-to-post span, not one a slat
+        const close=()=>{if(run&&run.g.children.length){let obs=null;
+            if(run.b){addWall(run.a[0],run.a[1],run.b[0],run.b[1],.15,false,run.y+1.1);obs=obstacles[obstacles.length-1];}   // one wall a post-to-post span, not one a slat
+            const zb2=run.b?run.b[1]:run.a[1];addBreakable({g:run.g,x:(run.a[0]+(run.b?run.b[0]:run.a[0]))/2,z:(run.a[1]+zb2)/2,hw:.3,hd:Math.max(.3,Math.abs(zb2-run.a[1])/2),hp:2,obs,parent:G,kind:'fence',onHit:fenceHit,fold:true,wood:M.bark});}
+          run=null;};
+        const slat=(geo,x,y,z)=>{const o=new THREE.Mesh(geo,M.bark);o.position.set(x,y,z);run.g.add(o);return o;};
         for(let z=zc-half+.6;z<=zc+half-.6;z+=.34){const x=fx+Math.sin(z*.3)*.12;if(!clearSpot(x,z,.2)||wet(x,z,.3)){close();continue;}
           const gy=heightAt(x,z),post=Math.abs((z-zc)%2.4)<.2,hh=post?1.25:rr(.95,1.1);
           if(!post&&rnd()<.12)continue;                                        // a slat gone (the wire still holds the gap)
-          add(new THREE.BoxGeometry(post?.09:.055,hh,post?.09:.025),M.bark,x,gy+hh/2-.05,z).rotation.set(0,rr(-.08,.08),sd*rr(-.02,.14));
-          if(!run)run={a:[x,z],y:gy};else{run.b=[x,z];run.y=Math.max(run.y,gy);if(post){close();run={a:[x,z],y:gy};}}}
+          if(!run){run={a:[x,z],y:gy,g:new THREE.Group()};G.add(run.g);}
+          slat(new THREE.BoxGeometry(post?.09:.055,hh,post?.09:.025),x,gy+hh/2-.05,z).rotation.set(0,rr(-.08,.08),sd*rr(-.02,.14));
+          run.b=[x,z];run.y=Math.max(run.y,gy);if(post&&run.g.children.length>1){close();run={a:[x,z],y:gy,g:new THREE.Group()};G.add(run.g);}}
         close();}
       bakeStatic(G,true);
     },
@@ -5604,6 +5630,63 @@ function buildWorld(){
       for(let i=0,n=0;i<40&&n<5;i++){const px=-q*rr(5,18),pz=zc+rr(-15,15);if(!clearSpot(px,pz,.6))continue;n++;bonePile(px,pz);}
       for(let i=0;i<3;i++){const px=-q*rr(6,17),pz=zc+rr(-13,13),gy=heightAt(px,pz),h=rr(1.2,3.2);if(!clearSpot(px,pz,1))continue;
         world.add(cyl(.42,.5,h,6,M2.wall,px,gy+h/2,pz));addObstacle(px,pz,.6,true,gy+h);}
+    },
+    /* THE RIVER (see RIVERS): the water across the hex, a fall off the
+       world at each end of it, and the long bridge — deck planks on an arch,
+       a rail each side, and trestles standing in the water down to the bed.
+       All of it one group, folded (the water is transparent and stays out
+       of the fold). The rails are walls: nothing steps off the deck. */
+    river(w){
+      const t=w.t,f=t.terrain[0],D=f.deck,off=BUILD.offZ,zr=f.zr-off,za=D.za-off,zb=D.zb-off,G=new THREE.Group();world.add(G);waterMats();
+      const bed=(x,z)=>pathHeightAt(x,z+off),dk=z=>deckAt(0,z+off),woodM=M.bark;
+      const Q=new THREE.Quaternion(),ZF=new THREE.Vector3(0,0,1),V=new THREE.Vector3();
+      const beam=(ax,ay,az,bx,by,bz,bw,bh)=>{const dx=bx-ax,dy=by-ay,dz=bz-az,l=Math.hypot(dx,dy,dz),o=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,l+.03),woodM);
+        o.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);o.quaternion.copy(Q.setFromUnitVectors(ZF,V.set(dx/l,dy/l,dz/l)));G.add(o);return o;};
+      const E=pathEdge(t,f.zr-t.zc);
+      // the water, flowing across, and where it goes over the rim
+      {const g=new THREE.PlaneGeometry(2*E+1,2*f.w*.97);g.rotateX(-Math.PI/2);const m=new THREE.Mesh(g,RIVER_MAT);m.position.set(0,f.level,zr);m.renderOrder=1;world.add(m);
+        for(const sd of[1,-1]){const fg=new THREE.PlaneGeometry(2*f.w*.9,16);fg.rotateY(Math.PI/2);const fm=new THREE.Mesh(fg,FALL_MAT);fm.position.set(sd*(E+.4),f.level-8,zr);fm.renderOrder=1;world.add(fm);}}
+      // the deck: planks across, riding the arch
+      for(let z=za;z>=zb-.01;z-=.52){const y=dk(z);const n=dk(z-.3),pl=new THREE.Mesh(new THREE.BoxGeometry(3.5,.1,.48),woodM);
+        pl.position.set(rr(-.04,.04),y-.05,z);pl.rotation.x=Math.atan2(n-y,.3);pl.rotation.y=rr(-.02,.02);G.add(pl);}
+      // the rails, and their walls
+      for(const sd of[1,-1]){let prev=null;
+        for(let z=za;z>=zb-.01;z-=2.2){const y=dk(z),x=sd*1.72;beam(x,y-.05,z,x,y+1.08,z,.12,.12);if(prev)beam(prev[0],prev[1]+1.02,prev[2],x,y+1.02,z,.08,.1);prev=[x,y,z];}
+        addWall(sd*1.72,za,sd*1.72,zb,.14,false,dk((za+zb)/2)+1.1);}
+      // the trestles: two posts to the bed, a cap under the deck and a brace, wherever there is water under it
+      for(let z=za-2.4;z>zb+2;z-=3.3){if(Math.abs(z-zr)>f.w)continue;const y=dk(z);
+        for(const sd of[1,-1]){const x=sd*1.4,by=bed(x,z)-.3;beam(x,by,z,x,y-.1,z,.2,.2);}
+        beam(-1.7,y-.26,z,1.7,y-.26,z,.22,.18);
+        const by=Math.max(bed(-1.4,z),bed(1.4,z));if(y-by>2)beam(-1.4,by+.4,z,1.4,y-.5,z,.1,.1);}
+      // the banks: stones at the water's edge and reeds standing in the shallows
+      const reedM=lam({color:new THREE.Color(0x6a6a3a).convertSRGBToLinear()});t.disp.push(reedM);
+      for(let i=0;i<22;i++){const sd=rnd()<.5?1:-1,x=rr(-E+2,E-2),z=zr+sd*f.w*rr(.72,.98);if(Math.abs(x)<2.6)continue;
+        if(rnd()<.5){const o=new THREE.Mesh(ICO,M.wall);o.position.set(x,bed(x,z)+.1,z);o.scale.set(rr(.3,.7),rr(.2,.4),rr(.3,.6));o.rotation.y=rnd()*TAU;G.add(o);}
+        else for(let k=0;k<5;k++){const h=rr(.8,1.5),r2=new THREE.Mesh(new THREE.CylinderGeometry(.01,.025,h,3,1),reedM);r2.position.set(x+rr(-.3,.3),bed(x,z)+h/2,z+rr(-.3,.3));r2.rotation.set(rr(-.15,.15),0,rr(-.15,.15));G.add(r2);}}
+      bakeStatic(G);
+    },
+    /* THE POND (see RIVERS): still water beside the trail under a crag, a
+       fall coming over the crag into it with a mist at its foot, stones
+       round the rim, reeds, and a few trees up on the crag. */
+    pond(w){
+      const t=w.t,f=t.terrain[0],off=BUILD.offZ,cz=f.cz-off,sd=f.sd,G=new THREE.Group();world.add(G);waterMats();
+      const gnd=(x,z)=>pathHeightAt(x,z+off);
+      {const g=new THREE.CircleGeometry(f.r*.99,20);g.rotateX(-Math.PI/2);const m=new THREE.Mesh(g,POND_MAT);m.position.set(f.cx,f.level,cz);m.renderOrder=1;world.add(m);}
+      // the fall: over the crag's lip and down its face into the far side of the pond
+      const fx=sd*(f.cragX+.7),top=gnd(sd*(f.cragX+3.4),cz)+.25,h=top-f.level;
+      {const g=new THREE.PlaneGeometry(3.6,h);g.rotateY(Math.PI/2);const m=new THREE.Mesh(g,FALL_MAT);m.position.set(fx,f.level+h/2,cz);m.renderOrder=1;world.add(m);
+        const lip=new THREE.Mesh(new THREE.BoxGeometry(1.4,.3,3.2),M.wall);lip.position.set(sd*(f.cragX+1.2),top-.2,cz);G.add(lip);
+        addHaze(fx-sd*.9,f.level+.8,cz,0xdfe8e8,5.5,.28);addHaze(fx-sd*1.8,f.level+.4,cz,0xdfe8e8,3.5,.18);}   // the mist at its foot
+      // stones round the rim, and the crag's own boulders
+      for(let i=0;i<14;i++){const a=rnd()*TAU,x=f.cx+Math.cos(a)*f.r*rr(.95,1.15),z=cz+Math.sin(a)*f.r*rr(.95,1.15);if(Math.abs(x)<2.6)continue;
+        const o=new THREE.Mesh(ICO,M.wall);o.position.set(x,gnd(x,z)+.1,z);o.scale.set(rr(.35,.8),rr(.25,.5),rr(.35,.7));o.rotation.y=rnd()*TAU;G.add(o);}
+      for(let i=0;i<6;i++){const x=sd*rr(f.cragX+.4,f.cragX+2.4),z=cz+rr(-9,9);if(Math.abs(z-cz)<2)continue;const o=new THREE.Mesh(ICO,M.wall);o.position.set(x,gnd(x,z)+.3,z);o.scale.set(rr(.8,1.6),rr(.8,1.8),rr(.8,1.5));o.rotation.y=rnd()*TAU;G.add(o);}
+      const reedM=lam({color:new THREE.Color(0x6a6a3a).convertSRGBToLinear()});t.disp.push(reedM);
+      for(let i=0;i<9;i++){const a=rnd()*TAU,x=f.cx+Math.cos(a)*f.r*rr(.75,.95),z=cz+Math.sin(a)*f.r*rr(.75,.95);if(Math.abs(x)<2.6||sd*x>f.cragX-1)continue;
+        for(let k=0;k<5;k++){const hh=rr(.8,1.5),r2=new THREE.Mesh(new THREE.CylinderGeometry(.01,.025,hh,3,1),reedM);r2.position.set(x+rr(-.3,.3),gnd(x,z)+hh/2,z+rr(-.3,.3));r2.rotation.set(rr(-.15,.15),0,rr(-.15,.15));G.add(r2);}}
+      bakeStatic(G);
+      for(let i=0,n=0;i<30&&n<4;i++){const x=sd*rr(f.cragX+3,23),z=cz+rr(-8,8);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,rnd()<.5);}
+      for(let i=0,n=0;i<30&&n<3;i++){const x=-sd*rr(6,19),z=cz+rr(-15,15);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,rnd()<.5);}
     },
     /* THE NARROWS (see SPECIAL and pathEdge): the ground is the causeway,
        and the chunk only dresses its edges — a broken parapet of blocks
@@ -5903,9 +5986,11 @@ function buildWorld(){
     for(const s of RUN.landmarkSpots)spots.push([s[0]+rr(-1,1)+2.2,s[1]+rr(-1,1)]);
     if(RUN.chapelLantern)spots.push(RUN.chapelLantern);
     if(!PATH.on)for(let k=0;k<2;k++){const w=RUN.wedges[(rnd()*WEDGE_N)|0],p=inWedge(w,26,50,.4,1.2);if(p)spots.push(p);}
+    const cL=PATH.on&&PATH.tile0?tileCapture():null;     // (on the path the first cathedral's lanterns are tile 0's, and go with it)
     for(const s of spots)makeLantern(s[0],s[1]);
     for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),PL-.9);
     if(PATH.on)for(const side of[1,-1])makeLantern(side*(STAIR_W+1.4),-(PL-.9));   // and at the back door
+    if(cL)tileCommit(PATH.tile0,cL,0);
   }
   setupWeather();
   if(PATH.on){PATH.M=M;PATH.chunks=CHUNKS;PATH.buildCath=buildCathedral;PATH.helpers={bonePile,tree,inWedge,ico:ICO,shared:[graveGeo,crossV,crossH,slabGeo,ICO]};initPath();}
@@ -5934,13 +6019,22 @@ function tileTerrain(zc){   // one shape per tile, in the world's frame
    path, the next one) holds the full width. */
 function pathEdge(t,zl){
   if(t.kind==='narrows'){const u=1-Math.min(1,Math.abs(zl)/(t.len/2));return 21-16.5*sstep(Math.min(1,u/.3));}   // THE NARROWS: in from the joins to a causeway nine metres wide
-  const R=t.rav;
-  if(R&&(zl>0?(R.i>0||(PATH.only&&t.k>1)):(R.i<R.n-1||PATH.only)))return 26;
+  /* A RAVINE HOLDS ITS FULL WIDTH AT BOTH ENDS, AND WHATEVER MEETS IT
+     WIDENS TO MEET IT. The hex's taper (26 across the middle, 21 at a join)
+     is right between two ordinary hexes, but a ravine's walls stand to the
+     rim right out to its ends — so the taper cut a V out of the wall at
+     every join and at both ends of every run, and from the trench you saw
+     the sky through it. The neighbour's ground is rebuilt when a run begins
+     after it (see regroundTile), so the two always agree. */
+  if(t.rav)return 26;
+  const nb=PATH.tiles[zl>0?t.k-1:t.k+1];if(t.k>=0&&nb&&nb.rav&&!nb.dead)return 26;
   return 21+5*(1-Math.min(1,Math.abs(zl)/(t.len/2)));
 }
+// a tile's ground rebuilt in place: its edge changed (a ravine began beside it) or the tile behind it is gone (see backCut)
+function regroundTile(t){if(!t||!t.ground)return;world.remove(t.ground);t.ground.geometry.dispose();t.ground=null;tileGround(t);}
 function pathVertY(t,x,zl){
   const half=t.len/2;
-  let ex=Math.abs(x)-pathEdge(t,zl);if(t.k===0&&zl>half-1)ex=Math.max(ex,zl-(half-1));
+  let ex=Math.abs(x)-pathEdge(t,zl);if((t.k===0||t.backCut)&&zl>half-1)ex=Math.max(ex,zl-(half-1));   // (the start of the path, and wherever the ground behind has been taken away)
   const h=pathHeightAt(x,zl+t.zc);
   return ex>0?Math.min(h,0)-(ex*1.1+ex*ex*.5):h;
 }
@@ -5989,7 +6083,7 @@ function startTile(k){
        seeded by xoring in the tile's number gave every ravine the same
        spot in the six-tile block (always the two before a cathedral). */
     const roll=rnd();
-    if(special){}                                                        // (flat: no bowl under a spine, no ridge under a causeway)
+    if(special)specialTerrain(t);                                        // (a fork and the narrows are flat: no bowl under a spine; a river and a pond carve their own)
     else{
     if(!PATH.rav)srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x9e3779b1)^0x2b79)));
     const cx=PATH.codex?CODEX_TILES[k]:undefined;                             // (the codex lays every kind down once, in order: see CODEX_TILES)
@@ -5997,6 +6091,7 @@ function startTile(k){
     if(R){   // a tile of a ravine run (see ravineStart)
       t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f,cross:R.cross};
       if(R.i===0&&PATH.ravCarry){t.terrain.push(PATH.ravCarry);PATH.ravCarry=null;}   // (the run before reaches twelve metres into this tile: it goes with it)
+      if(R.i===0&&prev&&!prev.rav)regroundTile(prev);                          // (it widens to meet the run: see pathEdge)
       R.i++;
       if(R.i>=R.n){if(PATH.only)PATH.ravCarry=R.f;else t.terrain.push(R.f);PATH.rav=null;}   // the run's walls go when its LAST tile goes
     }else{t.kind=typeof cx==='string'?cx:['graves','wood','ruins','hollow','causeway','chapel'][(roll*6)|0];t.terrain=tileTerrain(zc);for(const f of t.terrain)PATH.terrain.push(f);}
@@ -6024,7 +6119,7 @@ const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6;
 /* the codex's path: tile 0 is the cathedral as always, then one of every
    chunk, then the three ravines — the maple long enough to carry the
    underpass in its middle tile. Nobody is sown on any of it. */
-const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows'];
+const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond'];
 /* THE RAVINE'S TRAIL wanders by the world's own z (layRoad's `wig`), so
    the stream's footbridge — which has to sit ON it — asks the same. */
 function TRAIL_WIG(z){return .55*Math.sin(z*.083+.7)+.28*Math.sin(z*.29);}
@@ -6060,6 +6155,44 @@ function streamAt(x,z){
     const c=streamCarve(f,x,z)*ravEase(f,z);if(c>.3)return {f,c};}
   return null;
 }
+/* RIVERS: the RIVER hex and the POND hex (see SPECIAL). The river runs
+   straight across the hex from rim to rim and pours off both ends of the
+   world; the trail crosses it on a long timber bridge. The DECK is what is
+   walked on: `heightAt` answers with it (`deckAt`) over its strip, while
+   the ground mesh — which reads `pathHeightAt`, never the deck — is the
+   river's bed under it, so there is air and water under the bridge and no
+   causeway of earth. Rails either side are walls, so nothing steps off the
+   deck into the channel; and the deep middle of the channel holds bodies
+   back at its banks (`riverHold`), so the river is crossed by the bridge.
+   The pond lies to one side of the trail under a crag, and a fall comes
+   over the crag into it; it is shallow, and wading. Each feature carries
+   its own `level`, computed when the hex is begun. */
+function deckAt(x,z){for(const d of PATH.decks){if(Math.abs(x)<d.hw&&z<=d.za&&z>=d.zb){const u=(d.za-z)/(d.za-d.zb);return d.ya+(d.yb-d.ya)*u+d.arch*Math.sin(Math.PI*u)+.12;}}return null;}
+function pathWaterAt(x,z){if(!PATH.terrain)return null;
+  for(const f of PATH.terrain){if(f.level==null)continue;
+    if(f.t==='river'&&Math.abs(z-f.zr)<f.w)return f.level;
+    if(f.t==='pond'&&Math.hypot(x-f.cx,z-f.cz)<f.r)return f.level;}
+  return null;}
+function riverHold(p){if(!PATH.terrain)return;
+  for(const f of PATH.terrain){if(f.t!=='river')continue;const dz=p.z-f.zr,lim=f.w*.8;
+    if(Math.abs(dz)<lim&&!(PATH.decks.length&&deckAt(p.x,p.z)!==null))p.z=f.zr+(dz<0?-lim:lim);}}
+function specialTerrain(t){   // (world frame; called from startTile, on the tile's own stream)
+  const zc=t.zc;let f=null;
+  if(t.special==='river'){f={t:'river',zr:zc+rr(-4,4),w:11,d:2.8};PATH.terrain.push(f);
+    let lo=1e9;for(let x=-24;x<=24;x+=3)for(const s2 of[1,-1])lo=Math.min(lo,pathHeightAt(x,f.zr+s2*(f.w+.3)));
+    f.level=lo-.9;
+    const za=f.zr+f.w+2.2,zb=f.zr-f.w-2.2,ya=pathHeightAt(0,za),yb=pathHeightAt(0,zb);
+    f.deck={hw:1.75,za,zb,ya,yb,arch:Math.max(1.1,f.level+2.1-(ya+yb)/2)};PATH.decks.push(f.deck);t.decks=[f.deck];}
+  else if(t.special==='pond'){const sd=rnd()<.5?1:-1;f={t:'pond',sd,cx:sd*10.5,cz:zc+rr(-3,3),r:6.8,d:1.5,cragX:16,H:8.5};PATH.terrain.push(f);
+    let lo=1e9;for(let i=0;i<16;i++){const a=i/16*TAU;lo=Math.min(lo,pathHeightAt(f.cx+Math.cos(a)*f.r*1.02,f.cz+Math.sin(a)*f.r*1.02));}
+    f.level=lo-.55;}
+  if(f)t.terrain=[f];
+}
+let RIVER_MAT=null,FALL_MAT=null,POND_MAT=null;
+function waterMats(){if(RIVER_MAT)return;
+  const mk=(rot,rep,op,side)=>{const tx=texCache.stream.clone();tx.needsUpdate=true;tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.center.set(.5,.5);tx.rotation=rot;tx.repeat.set(rep[0],rep[1]);
+    return new THREE.MeshLambertMaterial({map:tx,transparent:true,opacity:op,depthWrite:false,side:side||THREE.FrontSide,color:new THREE.Color(0xa8c0c0).convertSRGBToLinear()});};
+  RIVER_MAT=mk(Math.PI/2,[3,10],.86);FALL_MAT=mk(0,[1,3],.8,THREE.DoubleSide);POND_MAT=mk(0,[2,2],.86);}
 /* THE SPECIAL HEXES: now and then a hex that is not a chunk at all.
    THE FORK — the trail splits round a spine of rock and you choose a
    side: one QUIET, with something left at a shrine at the end of it, and
@@ -6068,16 +6201,18 @@ function streamAt(x,z){
    that knocks a horror sideways is a kill. Rolled on a hashed stream of
    their own (the ravine's lesson), never two running, never inside a
    ravine, and never on the ravine-only path. */
-const SPECIAL={fork:{len:54,p:.09},narrows:{len:42,p:.07}};
+const SPECIAL={fork:{len:54,p:.08},narrows:{len:42,p:.06},river:{len:60,p:.05},pond:{len:48,p:.05}};
 function specialAt(k,prev){
-  if(PATH.codex){const c=CODEX_TILES[k];return c==='fork'||c==='narrows'?c:null;}
-  if(PATH.only||k<3||(prev&&prev.special))return null;
-  srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x85ebca6b)^0x5f0b)));const r=rnd();
-  return r<SPECIAL.fork.p?'fork':r<SPECIAL.fork.p+SPECIAL.narrows.p?'narrows':null;
+  if(PATH.codex){const c=CODEX_TILES[k];return typeof c==='string'&&SPECIAL[c]?c:null;}
+  if(PATH.only||k<3||(prev&&(prev.special||prev.rav)))return null;          // (never beside a ravine: a narrows or a river against its walls opens them onto the sky)
+  srand(hash32(RUN.seed^hash32(Math.imul(k+1,0x85ebca6b)^0x5f0b)));let r=rnd();
+  for(const key in SPECIAL){r-=SPECIAL[key].p;if(r<0)return key;}
+  return null;
 }   // (about a fifth of the path in ravines; the underpass in most runs long enough to hold one)
 function hash32(a){a^=a>>>16;a=Math.imul(a,0x7feb352d);a^=a>>>15;a=Math.imul(a,0x846ca68b);a^=a>>>16;return a>>>0;}
 function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named outright)
   if(!force&&(PATH.only?k<1:(k<2||rnd()>=RAV_CHANCE)))return null;
+  if(!force&&PATH.tiles[k-1]&&PATH.tiles[k-1].special)return null;          // (nor straight after a special hex: see specialAt)
   let n=force?force.n:PATH.only?3+((rnd()*3)|0):2+((rnd()*4)|0),room=0;
   for(let j=k;j<k+n&&j%PATH.cathEvery!==0;j++)room++;                       // (stop short of the next cathedral)
   n=Math.min(n,room);if(n<2)return null;
@@ -6137,8 +6272,9 @@ function stepTile(){
     else{const f=t.rav&&t.rav.f;
       if(t.rav)layRoad(0,z0+.5,0,z1-.5,1.25,'trail',TRAIL_WIG);            // (a dirt path through a ravine, wandering by the world's own z: no seam at a join)
       else if(t.kind==='fork')forkRoads(t);
+      else if(t.kind==='river'){const d=t.terrain[0].deck;layRoad(0,z0+.5,0,d.za-.2,1.5);layRoad(0,d.zb+.2,0,z1-.5,1.5);}   // (the deck is the road over the water)
       else layRoad(0,z0+.5,0,z1-.5,1.5);
-      const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4))makeLantern(lx,lz);}   // (never in the water)
+      const n=1+(rnd()<.5?1:0);for(let i=0;i<n;i++){const lx=(rnd()<.5?1:-1)*2.3,lz=z0-rr(5,len-5);if(!streamNear(f,lx,lz,.4)&&pathWaterAt(lx,lz)===null&&!(PATH.decks.length&&deckAt(0,lz)!==null))makeLantern(lx,lz);}   // (never in the water, nor on a bridge)
       if(f&&f.stream)buildStream(t,f);
       milepost(t);}
     tileCommit(t,c,0);
@@ -6239,13 +6375,23 @@ function teardownTile(t){
     if(e.rig&&e.rig.root)scene.remove(e.rig.root);enemies.splice(i,1);}
   if(t.ground){world.remove(t.ground);t.ground.geometry.dispose();t.ground=null;}
   for(const d of t.disp||[])d.dispose();                                          // (a milepost's carved face)
+  if(t.decks)PATH.decks=PATH.decks.filter(d=>!t.decks.includes(d));
   {const gone=new Set(t.objsW);for(const [o,r] of BAKED){let p=r.mesh;while(p&&p.parent&&p.parent!==world)p=p.parent;if(gone.has(p))BAKED.delete(o);}}   // (a ravine's folded bushes)
   for(let i=MARKABLE.length-1;i>=0;i--){let o=MARKABLE[i];while(o.parent)o=o.parent;if(o!==scene){if(MARKABLE[i].markTex)MARKABLE[i].markTex.dispose();MARKABLE.splice(i,1);}}
   t.dead=true;
+  /* THE PATH BEHIND IS GONE, AND IT IS A DROP. The tile was only ever
+     torn out of the scene; its ground stayed in the RULES, so the pilgrim
+     could walk back fifty metres onto nothing and stand on air. Now the
+     next tile's ground is rebuilt with its back edge fallen away, as the
+     start of the path's is, and the same rules that hold its sides read it:
+     `PATH.backZ` is the lip — the pilgrim can walk off it and fall, a horror
+     is held a stride short of it and goes over if it is knocked there. */
+  const nx=PATH.tiles[t.k+1];
+  if(nx&&!nx.dead){nx.backCut=true;PATH.backZ=nx.z0;regroundTile(nx);}
 }
 function initPath(){
   const z1=-(PL+STAIR_L+4);
-  PATH.tiles=[{k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false}];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;
+  PATH.tiles=[Object.assign({k:0,cath:true,z0:62,z1,zc:(62+z1)/2,czc:0,len:62-z1,kind:'cathedral',dead:false,foes:[],terrain:[],disp:[]},PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]})];PATH.far=0;PATH.rav=null;PATH.ravCarry=null;PATH.ravLast=null;PATH.turnK=0;PATH.backZ=null;PATH.decks=[];
   tileGround(PATH.tiles[0]);
   buildTile(1);buildTile(2);
   if(PATH.codex)for(let k=3;k<CODEX_TILES.length;k++)buildTile(k);   // (the codex's whole path stands from the start, and none of it is ever torn down)
@@ -6255,9 +6401,10 @@ function updatePath(dt){
   if(PATH.job)stepTile();                                                       // a tile under way: one step of it a frame
   else if(PATH.tiles[PATH.far].z1>pz-75)startTile(PATH.far+1);                   // two or three tiles always stand ahead
   drainSpawns(2);
-  for(const t of PATH.tiles)if(t&&!t.dead&&t.k>0&&t.z1>pz+50&&t!==PATH.job)teardownTile(t);   // what is fifty metres behind is gone
+  for(const t of PATH.tiles)if(t&&!t.dead&&t.z1>pz+50&&t!==PATH.job)teardownTile(t);   // what is fifty metres behind is gone — the first cathedral too, and the ground falls away where it stood
   if(Math.abs(pz-GP.oz)>48)movePaint(Math.round(pz/30)*30);                     // the paint sheet keeps up
   if(STREAM_MAT)STREAM_MAT.map.offset.y-=dt*.32;                                   // the streams run
+  if(RIVER_MAT){RIVER_MAT.map.offset.x+=dt*.1;FALL_MAT.map.offset.y+=dt*1.4;}       // the river runs, and the falls fall
   if(player.moveAmt>.2&&Math.random()<dt*7&&wading(player.x,player.z))boneBurst(player.x+rr3(-.3,.3),heightAt(player.x,player.z)+.42,player.z+rr3(-.3,.3),0x9fbcbc,2,1.3);   // and splash
   // THE FORK'S SHRINE gives what was left on it when you come to it (kept till then: the ground holds only four drops)
   for(const t of PATH.tiles)if(t&&t.cache&&!t.cache.done&&!t.dead&&Math.hypot(player.x-t.cache.x,player.z-t.cache.z)<14){
@@ -19600,6 +19747,10 @@ const CODEX_CATS=[
       t:'the trail splits round a spine of rock and a signpost says which way is which. One side is QUIET: a few trees, one thing lying in wait, and a shrine at the far end with something left on it — an element for the blade (sometimes the reaper\'s mark) and a heart. The other side is THE HOST: half again the hex\'s horrors, a third of them red-boned, among bones and broken stone. The trails rejoin past the spine.'},
     {k:'narrows',name:'the narrows',ep:'a special hex',where:'the path, now and then',tile:16,look:'wide',
       t:'the land falls away on both sides to a causeway nine metres wide, the edge lined with a broken parapet that stops nothing. Walk off it and you fall; knock a horror off it and it falls. The horrors of this hex are all on the causeway with you.'},
+    {k:'river',name:'the river',ep:'a special hex',where:'the path, now and then',tile:17,look:'wide',
+      t:'a river straight across the hex, pouring off the world at both ends of it, and the trail over it on a long timber bridge: a deck on an arch, a rail each side, trestles standing in the water. The middle of the channel is too deep to wade — the bridge is the way over, and a horror on the far bank has to come by it too.'},
+    {k:'pond',name:'the pond',ep:'a special hex',where:'the path, now and then',tile:18,look:'wide',
+      t:'still water beside the trail under a crag, and a fall coming over the crag into it with a mist at its foot. It is shallow: you can wade it, slowly.'},
     {k:'milepost',name:'the mileposts',ep:'every hex',where:'the path · the ravine',tile:9,look:'post',
       t:'a worn stone at the right-hand verge at the start of every hex, its number cut into the face you walk up to — so a run can be told as a place.'},
     {k:'ravine · via · cross',name:'the crossing',ep:'the highway overhead, square',where:'a ravine three tiles long or more (a little under half the highways)',tile:11,look:'via',
