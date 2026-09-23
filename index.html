@@ -2125,6 +2125,15 @@ function renderFrame(){
   // the origin the far side of the dome fell past the far plane and was
   // cut away — leaving a hard-edged disc of sky hanging over the horizon
   // with the fog colour around it. Moved with the eye, it never clips.
+  /* THICK AIR: the far plane comes in to just past the fog's far edge, so
+     what the fog has already swallowed is not drawn at all (the frustum
+     culls it), and the sky's dome shrinks to stay inside the far plane.
+     `G.fogK` (0 in clear air, 1 at 26m of visibility) also muffles the
+     sound, brightens a lantern's halo and sends distant bodies to boxes
+     sooner. Blizzards get it too, for the same reason. */
+  {const ff=scene.fog?scene.fog.far:FOG_FAR,want=ff<80?Math.max(28,ff+16):220;G.fogK=clamp((60-ff)/34,0,1);
+    if(Math.abs(camera.far-want)>.5){camera.far=want;camera.updateProjectionMatrix();}
+    const ds=Math.min(1,(camera.far-6)/210);if(worldLights.dome)worldLights.dome.scale.setScalar(ds);if(XF.dome2)XF.dome2.scale.setScalar(ds);}
   if(worldLights.dome)worldLights.dome.position.copy(camera.position);
   if(XF.dome2&&XF.dome2.visible)XF.dome2.position.copy(camera.position);   // (the blend's second sky rides with it)
   renderer.setRenderTarget(rt);
@@ -2174,7 +2183,7 @@ addEventListener('resize',resize);
    a few strides wide. The dome sits at 210 and the camera stops at 220,
    so the world is gone well before either shows. */
 const FOG_NEAR=30,FOG_FAR=132;
-const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68],blizzard:[6,27]};
+const FOG_BY_WX={clear:[30,132],rain:[24,110],storm:[20,96],snow:[13,68],blizzard:[6,27],fog:[1.5,24]};
 function fogRange(){return DEF.on?DEF_FOG:(FOG_BY_WX[RUN.weather]||FOG_BY_WX.clear);}
 
 /* AFFINE TEXTURE MAPPING — the console's most famous wrong.
@@ -2266,7 +2275,7 @@ const AudioSys=(()=>{
      were the loudest things in the field by a distance, are pulled down
      harder still on top of that. */
   const BG_GAIN=.62;
-  let sfxBus=null,musicMaster=null,sfxOn=true,musicWanted=true,whiteBuf=null;
+  let sfxBus=null,musicMaster=null,sfxOn=true,musicWanted=true,whiteBuf=null,dullF=null,muffle=0;
   try{sfxOn=localStorage.getItem('bp_sfx')!=='0';musicWanted=localStorage.getItem('bp_music')!=='0';}catch(e){}                                     // the rain bed's gain, and the level asked for before the graph exists
   let verbSend=null,verbWet=null,space=0;
   /* the whole mix goes through a grimy chain — tape saturation, a dull
@@ -2294,7 +2303,7 @@ const AudioSys=(()=>{
     sfxBus=ac.createGain();sfxBus.gain.value=sfxOn?1:0;sfxBus.connect(master);
     musicMaster=ac.createGain();musicMaster.gain.value=musicWanted?BG_GAIN:0;musicMaster.connect(master);
     const crush=ac.createWaveShaper();crush.curve=crushCurve();crush.oversample='none';
-    const dull=ac.createBiquadFilter();dull.type='lowpass';dull.frequency.value=6800;dull.Q.value=.6;
+    const dull=ac.createBiquadFilter();dull.type='lowpass';dull.frequency.value=6800;dull.Q.value=.6;dullF=dull;
     const rumble=ac.createBiquadFilter();rumble.type='highpass';rumble.frequency.value=32;
     const comp=ac.createDynamicsCompressor();
     comp.threshold.value=-18;comp.knee.value=14;comp.ratio.value=5;
@@ -2612,6 +2621,12 @@ const AudioSys=(()=>{
     musicBus.gain.linearRampToValueAtTime(MUS_LVL*level,ac.currentTime+(level>0?3:1.2));
   }
   // how much stone is around the pilgrim: 0 = open field, 1 = inside the nave
+  /* thick air (fog, a blizzard) closes the top of everything down: the
+     master's own lowpass comes from 6.8kHz to about 1.9 at full fog */
+  function setMuffle(x){
+    if(!ac||!dullF||Math.abs(x-muffle)<.01)return;muffle=x;
+    dullF.frequency.setTargetAtTime(6800*Math.pow(1900/6800,x),ac.currentTime,.4);
+  }
   function setSpace(x){
     if(!ac||Math.abs(x-space)<.01)return;space=x;
     verbSend.gain.setTargetAtTime(.16+.42*x,ac.currentTime,.3);
@@ -3086,7 +3101,7 @@ const AudioSys=(()=>{
       noise(t,{peak:.1,att:.9,dec:4.2,f0:120,f1:34,bus});
       noise(t+1.1,{peak:.07,att:.8,dec:3.4,f0:90,f1:30,bus});
       tone(t,{f:38,f2:22,type:'sine',peak:.1,att:.5,dec:3.6,bus});},
-    start,setSpace,
+    start,setSpace,setMuffle,
     /* WHICH BLADE IS IN THE HAND. A greatsword and a katana do not make
        the same noise going through air and never did: the slab DISPLACES
        air — a low push you feel before you hear — and the katana CUTS it,
@@ -4037,7 +4052,7 @@ const WATER_Y=0;                       // the bog stands at this height; the cau
    all come into leaf and out of it together, with nothing rebuilt: a
    material that is not visible is never drawn. Out of summer the wood is
    bare, which is what the Bone Path always was. */
-const WX_NAMES=['clear','summer','rain','storm','snow','blizzard'];
+const WX_NAMES=['clear','summer','rain','storm','snow','blizzard','fog'];
 const LEAF={mats:[],u:{value:1}};
 /* the leaves come in and go by DISSOLVING, a pixel at a time on a hashed
    screen pattern (`uLeaf` is how much of the crown is still there), so a
@@ -6760,7 +6775,7 @@ function updatePath(dt){
 }
 const HOUR_NEXT={sunrise:'noon',noon:'dusk',dusk:'night',night:'sunrise'};
 const HOUR_WORD={sunrise:'the sun comes up',noon:'the day stands high',dusk:'the light goes down',night:'the dark comes on'};
-const WX_WORD={clear:'the sky clears',summer:'the air turns warm, and the trees are in leaf',rain:'rain comes in',storm:'a storm breaks',snow:'it begins to snow',blizzard:'the snow comes down hard'};
+const WX_WORD={clear:'the sky clears',summer:'the air turns warm, and the trees are in leaf',rain:'rain comes in',storm:'a storm breaks',snow:'it begins to snow',blizzard:'the snow comes down hard',fog:'the fog comes down'};
 /* THE DAY TURNS GRADUALLY. It used to happen under a half-second dip to
    black. Now it is a blend (XF, below) over `XF_DUR` seconds: the light,
    the sky, the fog, the lanterns, the rain or the snow, the ground's
@@ -6803,7 +6818,7 @@ function xfSnap(){const W=worldLights,su=W.sunSprite,mo=W.moonSprite;return{
   hemiC:W.hemi.color.clone(),hemiG:W.hemi.groundColor.clone(),hemiBase:W.hemiBase,
   moonC:W.moon.color.clone(),moonBase:W.moonBase,moonPos:W.moon.position.clone(),
   expo:W.expo,fog:RUN.fog.clone(),near:scene.fog?scene.fog.near:FOG_NEAR,far:scene.fog?scene.fog.far:FOG_FAR,
-  domeTint:W.domeTint||1,domeMap:W.dome.material.map,dust:W.dust?W.dust.opacity:0,lamp:RUN.lamp,
+  domeTint:W.domeTint||1,domeMap:W.dome.material.map,domeCol:W.domeCol?W.domeCol.clone():null,dust:W.dust?W.dust.opacity:0,lamp:RUN.lamp,
   moonVis:!!(mo&&mo.visible),sunVis:!!(su&&su.visible),
   sunCol:su?su.material.color.clone():new THREE.Color(),sunScale:su?su.scale.x:1,sunPos:su?su.position.clone():new THREE.Vector3(),
   heroCol:new THREE.Color(W.heroCol||0xd9b072),heroDim:W.heroDim||1,ground:groundMat?groundMat.color.clone():null};}
@@ -6813,7 +6828,8 @@ function xfSet(A,B,u){
   W.moon.color.copy(A.moonC).lerp(B.moonC,u);W.moonBase=l(A.moonBase,B.moonBase);W.moon.position.copy(A.moonPos).lerp(B.moonPos,u);
   W.expo=l(A.expo,B.expo);RUN.fog.copy(A.fog).lerp(B.fog,u);scene.background.copy(RUN.fog);
   if(scene.fog){scene.fog.near=l(A.near,B.near);scene.fog.far=l(A.far,B.far);}
-  if(A.domeMap===B.domeMap)W.domeTint=l(A.domeTint,B.domeTint);else W.domeTint=A.domeTint;
+  if(A.domeMap===B.domeMap){W.domeTint=l(A.domeTint,B.domeTint);W.domeCol=A.domeCol&&B.domeCol?A.domeCol.clone().lerp(B.domeCol,u):(B.domeCol||A.domeCol);}
+  else{W.domeTint=A.domeTint;W.domeCol=A.domeCol;}
   if(W.dust)W.dust.opacity=l(A.dust,B.dust);
   RUN.lamp=l(A.lamp,B.lamp);for(const L of lanternLights)if(L.lamp0)L.base=L.lamp0*RUN.lamp;
   const mo=W.moonSprite,su=W.sunSprite;
@@ -6857,7 +6873,7 @@ function xfTick(dt){
   if(!XF.on)return;
   XF.t+=dt;const u=Math.min(1,XF.t/XF.dur),s=u*u*(3-2*u);
   xfSet(XF.A,XF.B,s);
-  if(XF.dome2&&XF.dome2.visible){XF.dome2.material.opacity=s;XF.dome2.material.color.setScalar(XF.B.domeTint);XF.dome2.rotation.copy(worldLights.dome.rotation);}
+  if(XF.dome2&&XF.dome2.visible){XF.dome2.material.opacity=s;if(XF.B.domeCol)XF.dome2.material.color.copy(XF.B.domeCol);else XF.dome2.material.color.setScalar(XF.B.domeTint);XF.dome2.rotation.copy(worldLights.dome.rotation);}
   if(XF.from!==XF.to){
     if(!XF.mid){const k=Math.max(0,1-2*u);if(WX.rain)WX.rain.material.opacity=XF.op0*k;AudioSys.setRain(XF.lv0*k);if(u>=.5)xfSwap();}
     else{const k=Math.max(0,Math.min(1,2*u-1));if(WX.rain)WX.rain.material.opacity=XF.op0*k;AudioSys.setRain(XF.lv0*k*(1+.9*(WX.squall||0)));}
@@ -6870,7 +6886,7 @@ function xfEnd(){
   if(!XF.on)return;
   if(!XF.mid)xfSwap();
   xfSet(XF.A,XF.B,1);
-  const W=worldLights;W.dome.material.map=XF.B.domeMap;W.dome.material.needsUpdate=true;W.domeTint=XF.B.domeTint;
+  const W=worldLights;W.dome.material.map=XF.B.domeMap;W.dome.material.needsUpdate=true;W.domeTint=XF.B.domeTint;W.domeCol=XF.B.domeCol;
   if(XF.dome2)XF.dome2.visible=false;
   if(WX.rain)WX.rain.material.opacity=XF.op0;AudioSys.setRain(WX.level||0);
   XF.on=false;
@@ -6892,9 +6908,11 @@ function applyTime(name){
   // hides the sun; a storm is a dark, lumpen cloud-roof, the fog greyer,
   // the light down — so the bolts have something to light
   const bliz=RUN.weather==='blizzard';
-  const storm=RUN.weather==='storm',rain=RUN.weather==='rain',snow=RUN.weather==='snow'||bliz,overcast=storm||rain||snow;
+  const fogw=RUN.weather==='fog';
+  const storm=RUN.weather==='storm',rain=RUN.weather==='rain',snow=RUN.weather==='snow'||bliz,overcast=storm||rain||snow||fogw;
   if(overcast&&!texCache.skyStorm)makeCloudSkies();
-  worldLights.dome.material.map=texCache[storm?'skyStorm':overcast?'skyRain':T.sky];worldLights.dome.material.needsUpdate=true;
+  if(fogw&&!texCache.skyFog)makeTex('skyFog',8,(c,S)=>{c.fillStyle='#fff';c.fillRect(0,0,S,S);});   // (the fog's sky is no sky: white, coloured by the fog itself — see domeCol)
+  worldLights.dome.material.map=texCache[fogw?'skyFog':storm?'skyStorm':overcast?'skyRain':T.sky];worldLights.dome.material.needsUpdate=true;
   /* the overcast sheets are painted once and used at every hour, so at
      NIGHT a pale rain sky hung over the field like a lit ceiling. The dome
      is tinted by the hour instead — near black under a night's cloud,
@@ -6908,6 +6926,11 @@ function applyTime(name){
     if(T.sunSprite){s.material.color.setHex(T.sunSprite.col);s.scale.set(T.sunSprite.size,T.sunSprite.size,1);s.position.set(...T.sunSprite.pos);}}
   if(storm){RUN.fog.lerp(new THREE.Color(0x3c424a),name==='night'?.35:.6);worldLights.hemiBase*=.72;worldLights.moonBase*=.5;worldLights.hemi.color.lerp(new THREE.Color(0x7d848e),.5);}
   else if(rain){RUN.fog.lerp(new THREE.Color(0x6a7078),name==='night'?.2:.4);worldLights.hemiBase*=.88;worldLights.moonBase*=.7;}
+  // DENSE FOG: the air itself is the colour, pale by day and near black by
+  // night; the sun is a brightness with no direction, so the key light all
+  // but goes and the fill carries the scene
+  else if(fogw){RUN.fog.lerp(new THREE.Color({night:0x23272c,dusk:0x5a5558,sunrise:0x78827f,noon:0xb2b7b9}[name]||0x8a9092),.85);
+    worldLights.hemi.color.lerp(new THREE.Color(0xc6cace),.45);worldLights.hemiBase*=.9;worldLights.moonBase*=.28;worldLights.expo*=.97;}
   // SNOW: the sky is shut, but the ground throws the light back up — so the
   // fill RISES where a storm would drop it, the sun is a rumour behind cloud,
   // and everything is one cold colour, the fog included
@@ -6927,6 +6950,7 @@ function applyTime(name){
   // the fill comes up off green ground, and the fog goes golden
   if(RUN.weather==='summer'){RUN.fog.lerp(new THREE.Color(0xd6cc9e),name==='night'?.06:.2);
     worldLights.hemi.color.lerp(new THREE.Color(0xf2e8bc),.22);worldLights.hemi.groundColor.lerp(new THREE.Color(0x4f6e2e),name==='night'?.15:.4);worldLights.hemiBase*=1.05;}
+  worldLights.domeCol=fogw?RUN.fog.clone():null;   // (the fog's white sky takes the fog's own colour, so the world ends in one colour)
   worldLights.heroCol=snow?0xa9bccf:0xd9b072;worldLights.heroDim=snow?.5:1;   // (read by the frame: heroLight is not built yet at the first call)
   {const r=fogRange();if(scene.fog){scene.fog.near=r[0];scene.fog.far=r[1];}}
   if(worldLights.dust)worldLights.dust.opacity=T.dust;
@@ -6995,6 +7019,18 @@ const WX={rain:null,pts:null,speeds:null,level:0,flash:0,nextBolt:0,pop:0,squall
 function setupWeather(){applyGroundSurface();setupWeatherFx();}
 function setupWeatherFx(){   // (what falls, and its voice — without the ground: XF blends that on its own)
   if(RUN.weather==='clear'||RUN.weather==='summer')return;
+  /* DENSE FOG: nothing falls. What moves is MIST — seventy big soft puffs
+     lying along the ground round the eye, drifting, coloured each frame
+     from the fog itself (so it is pale by day and does not glow at night).
+     It is the same Points system as the rain, so a gradual turn thins and
+     thickens it the same way. */
+  if(RUN.weather==='fog'){WX.level=0;
+    const N=70,pts=new Float32Array(N*3),sp=new Float32Array(N),cx=camera.position.x,cz=camera.position.z;
+    for(let i=0;i<N;i++){const x=cx+rr(-18,18),z=cz+rr(-18,18);pts[i*3]=x;pts[i*3+1]=heightAt(x,z)+rr(.2,2.4);pts[i*3+2]=z;sp[i]=rr(.15,.55);}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+    const pm=new THREE.PointsMaterial({map:texCache.glow,color:0xd8dcde,size:8.5,transparent:true,opacity:.2,depthWrite:false});
+    WX.rain=new THREE.Points(geo,pm);WX.rain.frustumCulled=false;scene.add(WX.rain);WX.pts=pts;WX.speeds=sp;
+    AudioSys.setRain(0);return;}
   /* SNOW: not rain in another colour. It does not fall so much as it is
      let go of — slow, in every direction at once, and thick enough that
      the far side of the field is only a white idea. It is silent, too:
@@ -7670,7 +7706,8 @@ function trodEnemies(){
 function updateWeather(dt){
   if(!WX.rain){WX.flash*=Math.exp(-dt*11);if(WX.flash<.005)WX.flash=0;return;}
   const cx=camera.position.x,cz=camera.position.z,cy=camera.position.y,P=WX.pts,S=WX.speeds,n=S.length;
-  const wind=Math.sin(G.time*.4)*1.2,bliz=RUN.weather==='blizzard',snow=RUN.weather==='snow'||bliz;
+  const wind=Math.sin(G.time*.4)*1.2,bliz=RUN.weather==='blizzard',snow=RUN.weather==='snow'||bliz,fogw=RUN.weather==='fog';
+  if(fogw)WX.rain.material.color.copy(RUN.fog).multiplyScalar(1.28);
   // a blizzard does not fall, it is DRIVEN: one way, hard, the gusts
   // shoving the whole sheet of it sideways faster than it drops
   // a storm does not blow steadily: it LEANS, and every so often it throws
@@ -7678,6 +7715,9 @@ function updateWeather(dt){
   const sq=WX.squall||0;
   const gust=bliz?(13+Math.sin(G.time*.55)*5.5+Math.sin(G.time*1.9)*3.2+Math.sin(G.time*4.7)*1.4)*(1+sq*.85):0;
   for(let i=0;i<n;i++){const o=i*3;
+    if(fogw){P[o]+=(wind*.3+S[i]*.5)*dt;P[o+2]+=S[i]*.3*dt;
+      if(Math.abs(P[o]-cx)>18||Math.abs(P[o+2]-cz)>18){const x=cx+rr3(-18,18),z=cz+rr3(-18,18);P[o]=x;P[o+1]=heightAt(x,z)+rr3(.2,2.4);P[o+2]=z;}
+      continue;}
     P[o+1]-=S[i]*dt;
     // a flake is pushed about on its way down; a drop is not
     if(bliz){P[o]+=(gust+Math.sin(G.time*5+i)*2.1)*dt;P[o+2]+=(gust*.42+Math.cos(G.time*4+i*.7)*1.8)*dt;}
@@ -7843,7 +7883,7 @@ function updateAmbient(t,dt){
     const b=L.base||.72;
     if(L.steady){L.l.intensity=b;continue;}
     L.l.intensity=b+(Math.sin(t*9+L.ph)*.1+Math.sin(t*23+L.ph*2)*.06)*(b/.72);
-    L.hz.material.opacity=(.16+(L.l.intensity-b)*.5)*(RUN.lamp<1?RUN.lamp:1);   // the haze breathes with the flame
+    L.hz.material.opacity=(.16+(L.l.intensity-b)*.5)*(RUN.lamp<1?RUN.lamp:1)*(1+1.3*(G.fogK||0));   // the haze breathes with the flame (and in thick air it is most of the lantern)
   }
   syncLightPool();
   for(const w of wispSystems){
@@ -8795,7 +8835,7 @@ function lodSet(e,far){
    ragdolling or already hidden — the ragdoll writes the bones the boxes do
    not have. */
 function lodUpdate(){
-  const P=player,k=Math.tan(camera.fov*Math.PI/360)*Math.min(1,camera.aspect)/Math.tan(FOV_REF*Math.PI/360);   // (the SHORT side's field: upright, that is the width)
+  const P=player,k=Math.tan(camera.fov*Math.PI/360)*Math.min(1,camera.aspect)/Math.tan(FOV_REF*Math.PI/360)*(1+.8*(G.fogK||0));   // (the SHORT side's field: upright, that is the width; and in thick air a body goes to boxes sooner — it is half fog by then)
   for(const e of enemies){
     const r=e.rig;
     /* a body ON FIRE keeps every mesh it has: `setAblaze` hangs its flame
@@ -20136,7 +20176,8 @@ const CX_WX={clear:'no weather at all. Every tree and bush stands BARE — every
   rain:'a pale overcast drawn over the sky and the sun, and streaks of rain living round the eye. Bare trees.',
   storm:'a dark, lumpen cloud-roof, a greyer fog and the light down, so the bolts have something to light: the whole field flashes and the thunder comes after, late by how far off the bolt fell.',
   snow:'light snow. The ground and the bodies whiten; every foot leaves a print in it — never on stone — and a body stands a little sunk in the drift.',
-  blizzard:'heavy snow. What walks through it ploughs a furrow behind it rather than leaving prints, and snow settles on the pilgrim.'};
+  blizzard:'heavy snow. What walks through it ploughs a furrow behind it rather than leaving prints, and snow settles on the pilgrim.',
+  fog:'dense fog. You see about twenty metres and then nothing; the sky is gone into it, mist drifts along the ground, a lantern is a glow with no lamp in it, and every sound comes to you muffled. What is out there arrives out of the white.'};
 const CX_HOURS={sunrise:'the sun nine degrees up: long shadows thrown far off the feet, a cold pink sky, the lanterns still worth something.',
   noon:'the sun high, the key light at its brightest, the ground shade nearly under the feet; a lantern hardly shows.',
   dusk:'the sun going: a warm low light, a shade that leans a long way off every body, lanterns coming up.',
@@ -20868,10 +20909,11 @@ function frame(now){
   {const f=WX.flash||0;                                                       // (a storm's bolt lights everything for a few frames)
     worldLights.hemi.intensity=worldLights.hemiBase*(1-.45*G.naveDim)+f*2.4;
     worldLights.moon.intensity=worldLights.moonBase*(1-.55*G.naveDim)+f*1.2;
-    if(worldLights.dome)worldLights.dome.material.color.setScalar((worldLights.domeTint||1)*(1+f*3.5));
+    if(worldLights.dome)worldLights.dome.visible=!(worldLights.domeCol&&!XF.on);   // (in settled fog there is no sky: the clear colour IS the fog, and a dome — even one painted the fog's colour — came out a shade lighter, with the far plane's cut showing hard against it)
+    if(worldLights.dome){if(worldLights.domeCol)worldLights.dome.material.color.copy(worldLights.domeCol).multiplyScalar(1+f*3.5);else worldLights.dome.material.color.setScalar((worldLights.domeTint||1)*(1+f*3.5));}
     if(RUN.fog)scene.background.copy(RUN.fog).lerp(WX_WHITE,f*.8);}
   gradeMat.uniforms.uExpo.value=(worldLights.expo||1.04)*(1+.06*G.naveDim);
-  AudioSys.setSpace(G.naveDim);
+  AudioSys.setSpace(G.naveDim);AudioSys.setMuffle(G.fogK||0);
   // an introduction plays over SILENCE and the theme arrives with the name
   AudioSys.setMusic(CUT.on?0:G.bossActive||G.mode==='victory'?0:G.mode==='dead'?.35:1);
   { // the threat layer follows what is hunting you; the heart follows your life

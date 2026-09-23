@@ -2759,6 +2759,31 @@ Known state of play:
     a branch in `applyTime` (fog toward 0xd6cc9e, hemi warmer, ground-glow
     greener, key up 5%) and `applyGroundSurface` tinting `groundMat` off
     `userData.base`. Measured on the field: 304 draws clear, 312 summer.
+- **DENSE FOG** (`'fog'` in `WX_NAMES`, `FOG_BY_WX.fog` [1.5,24],
+  `G.fogK`, `worldLights.domeCol`, `AudioSys.setMuffle`).
+  - **`G.fogK`** is thickness from the fog's far distance, 0 at 60m and
+    over, 1 at 26 — so a blizzard gets it too — and it is computed in
+    `renderFrame` from `scene.fog.far`, which means a gradual turn eases
+    every consumer by itself. Consumers: **the far plane**
+    (`camera.far = fog.far+16`, floor 28, 220 in clear air — what the fog
+    has swallowed is culled by the frustum; measured 464 → 231 draws on
+    the field at seed 7), **the sky dome's scale** (it must stay inside the
+    far plane, or the far plane cuts it away), `setMuffle` (the master
+    lowpass, 6.8kHz → 1.9kHz), the lanterns' haze (×2.3) and `lodUpdate`
+    (×1.8 on the apparent range). The general "do not pull the far plane
+    in" note stands for clear air: this only moves it when the fog has
+    already hidden everything past it.
+  - **THERE IS NO SKY IN SETTLED FOG.** The fog's dome map is plain white
+    (`skyFog`) coloured by `worldLights.domeCol` (the fog's own colour),
+    which lets a gradual turn fade the sky INTO fog. But once settled, the
+    dome is HIDDEN (`!(domeCol&&!XF.on)` in the frame): drawn, even in the
+    fog's exact colour, it came out a shade lighter than fogged geometry,
+    and the far plane's cut showed hard against it. The clear colour is
+    the fog. `xfSnap`/`xfSet` carry `domeCol`.
+  - The mist is the rain's `Points` system (so XF thins and thickens it)
+    with 70 soft `glow` puffs at ground height, drifting, respawned round
+    the eye; its colour is taken from `RUN.fog` every frame (×1.28), or it
+    glows at night.
 - **THE AUTO-LOCK SWITCH** (`G.lockAuto`, `setAutoLock`, `#lockBtn`, T on
   a keyboard, remembered as `bp_lock`). Off, `updateLock` takes its early
   return — the same one a gun behind the eyes takes — so there is no mark,

@@ -1265,6 +1265,16 @@ them the seed decides:
   the print crunches, a dry squeak of crust breaking over the pack of
   weight going into it. Changing the weather clears the paint sheet:
   what was gouged in mud is not there under a foot of snow.
+- **dense fog** shuts the world to about twenty metres. Past that there is
+  nothing: no sky, no horizon, the air itself one colour — pale grey by day,
+  near black at night, dun at dusk. Mist lies along the ground in big soft
+  banks that drift past you. The sun is a brightness with no direction, so
+  there are no hard lights, only the fill. A lantern is a glow with no lamp
+  in it, and **every sound comes to you muffled**, the top of it closed
+  down. What is out there comes out of the white at the last moment. And
+  it is cheap: what the fog has already swallowed is not drawn at all —
+  measured, half the draw calls of a clear noon on the same spot. (A
+  blizzard muffles the sound and closes the draw distance the same way.)
 - **a blizzard** is snow past the point of weather. Three thousand four
   hundred flakes, and they do not fall — they are *driven*, one way and
   hard, the gusts shoving the whole sheet of it sideways nearly twice as
@@ -1952,7 +1962,7 @@ sections across the top:
   every couple of seconds; **strike**, **charge** (for a gun, **hold**
   the trigger), **reload**, and **auto** to go back to the demonstration.
 - **armour** — the five suits, worn.
-- **weather** — the six weathers and the four hours, put over the hollow
+- **weather** — the seven weathers and the four hours, put over the hollow
   wood so summer's leaves show. An hour keeps the weather and a weather
   keeps the hour.
 
