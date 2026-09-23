@@ -2211,6 +2211,55 @@ Known state of play:
   rear (~zc+.068). **If the aimed ACOG ever shows anything inside the
   circle but the world and the reticle, look for a part whose radius is
   under R.**
+- **THE ARM** (`ArmHorror`, `makeArmRig`, `ARM`, `cutArm`, the section
+  headed THE ARM above THE BELL-CALLED; `SPECIAL.barrow`, CHUNKS.`barrow`,
+  spawned in `stepTile` step 1 onto `t.foes`, the tile's host at .35 of
+  its purse). A two-bone arm in the vertical plane of its heading
+  (`facing+yaw`): `p1` at the shoulder, `el` at the elbow, `curl` on the
+  fingers, `sink` the whole of it into the ground (9.5m at 1). `palm()` is
+  forward kinematics from those; `reachP1(d,el)` bisects the shoulder
+  pitch that puts the palm at distance `d`. The hand is `makeBoneHandRig(-1)`
+  at `ARM.HS` (1.35) turned `-π/2` so the fingers run on up the forearm
+  (hand-local +y becomes wrist −z, which is why its root is offset +z by
+  the hand's own `.8*1.7*HS`).
+  States: `hidden` → `tell` (the ring painted under the pilgrim, 1.25s) →
+  `erupt` (floors anyone still on the ring; `cutArm` the first time) →
+  `idle` → `sweep` | `slam` | `grab` → `exposed` (×1.8 damage, the
+  `exposed` timer) or `hold` → `drag` → `burrow` → `under` → `tell`.
+  A third of its life lost is a `burrow` (`phase`). Out past 30m it
+  burrows HOME and waits in `hidden`.
+  **Where it can be hit**: `this.x/z` is the palm when the palm is under
+  3.2m, else the arm's root — that is the melee target — and `spheres()`
+  gives `gunSpheres` six down its length (`gunSpheres` asks `e.spheres`
+  first now, for any horror without humanoid parts).
+  **THE GRAB IS A PLAYER STATE** (`'grabbed'`, `grabbedBy`, `grabY`,
+  `grabEsc`). The Arm writes his x/z/grabY from the palm every frame;
+  `player.update` zeroes his velocity and counts `IN.swipe` (tap, flick,
+  dodge button — every scheme produces one) at .2 a press; the root adds
+  `grabY`; the pose is `poseFall`; `groundGone`/`stepOff` and `constrain`
+  are skipped while held. At `grabEsc>=1` the Arm `letGo(true)`s (he is
+  floored off the palm) and lies exposed 2.2s. Held 2.4s it `drag`s, and
+  at 1.3s of that: hp ≤ 50 dies `'buried'` (a new death kind: no ragdoll,
+  no blood, `buryHero` draws him straight down 2.6m), else he is floored
+  beside the hole for 50.
+  **`takeHit` returns early for a grabbed pilgrim**, after the damage and
+  the death check: it used to set `'hurt'`, and a crow's peck broke the
+  Arm's grip without anyone letting go. Anything new that changes the
+  player's state on a hit must ask about `'grabbed'`.
+  Measured, on the path (seed 5, the barrow at tile 7): tell → erupt →
+  cutscene → idle; held at grabY 5.5; escape → free, the Arm exposed;
+  100hp → floored at 50; 40hp → dead, `deathKind` 'buried'.
+  Colours in `makeArmRig` are converted from sRGB (`lin`) — unconverted,
+  the soil came up pale tan — and the bone is plain `mat('bone')`: a tint
+  on it read as brass.
+- **THE BAT** (`makeBatRig`, `Crow`'s `o.bat`, `batFor`, `AudioSys.squeak`).
+  A crow with a flag: 14 life, the orbit faster (1.55 against .85),
+  tighter and breathing, a jink, a dive wound in .32s at 17m/s (11 for a
+  crow), back to the circle at .75s. `batFor(x,z)` is `posHash`, not the
+  seed's stream: half at night, in fog or on a ravine tile, .15 otherwise.
+  Both spawn paths (`roost` and `drainSpawns`) ask it. The rig's colours
+  are near-neutral darks: a brown with the red leading came out SALMON
+  under a noon sun, which lifts even the crow's black to mid grey.
 - **THE BELL-CALLED'S THUMB IS SWUNG OUT, `rotation.y=-.95`.** It was
   `+1.1`, which swung it IN under the palm, and the measured tip sat
   inside the palm's own box — the hand had four fingers. Measured now in

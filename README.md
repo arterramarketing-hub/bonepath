@@ -1802,6 +1802,9 @@ twenty draws.
   dark rock, with a waterfall coming down the crag's face into it and
   mist standing where it lands. Trees on the crag and on the far bank,
   reeds round the edge, and you can wade in.
+- **the barrow** — an old burial ground across the path: long low mounds
+  grassed over, a broken ring of standing stones, slabs gone over, bones.
+  Few horrors walk it, because something else is under it (see *The Arm*).
 - **the stairs** — a long hex where the path climbs a hillside in flights
   of two worn steps, a flagged landing between each, five to seven metres
   from the bottom to the top (or down, when the land is already high). A
@@ -1943,8 +1946,9 @@ life, the weight of its blow in hearts, its pace and its marrow. Five
 sections across the top:
 
 - **horrors** — the hollow, the red-boned, the thrower, the brute, the
-  crow, the Drowned and its runner and hulk, the Carrion Mother, the
-  Gravewarden, the Fallen One, the Unburied and the Bell-Called. Each is
+  Arm, the bat, the crow, the Drowned and its runner and hulk, the Carrion
+  Mother, the Gravewarden, the Fallen One, the Unburied and the
+  Bell-Called. Each is
   the game's own, made the way the game makes it and fighting the way it
   fights: an invisible pilgrim stands four and a half metres in front of
   it so it has something to swing at, and nothing it does to him counts.
@@ -2662,6 +2666,47 @@ and again as the jaw gives, so it reads from the first blow rather than
 sitting full until the hands are dead. Die to it and every piece of it
 goes back to the hole it came out of and waits there — the bell called it
 to that spot, and it does not follow you to the bonfire.
+
+## The Arm
+
+What the barrow keeps. Walk onto that hex and the soil **cracks in a ring
+under your feet** and grumbles for a second and a quarter; then an arm the
+size of a tree comes up through it — a humerus, an elbow, the two bones of
+a forearm and a hand at the end, twice the size of the Bell-Called's —
+and throws you down if you are still on the ring. It is introduced the
+way every great horror is: the place, the rise, the roar, its name.
+
+It fights from its hole and it has four moves:
+- **the sweep** — it turns aside, lays its hand along the ground and
+  scythes its whole reach across, nearly ten metres. Roll through it.
+- **the slam** — it stands straight up, the hand eight metres over you, and
+  brings it down where you stand. Where it lands it **lies**, for a
+  moment, and every blow on it then does nearly double.
+- **the grab** — it opens the hand and lunges. If it closes on you, you
+  are **lifted in the fist**, five metres off the ground. Fight it — every
+  press, a tap, a flick or the dodge button, is a fifth of the way out —
+  and it lets you go and lies open, stunned. Fail, and it **drags you down
+  into the earth**: it spits you back up five hearts lighter, or, if you
+  have not got five hearts, you do not come back up at all — a death of
+  its own, the soil closing over you. Miss, and it lies open.
+- **the burrow** — every third of its life it goes back under, and the
+  ring opens under your feet again somewhere else.
+
+It has 460 life and is worth 320 marrow. Whatever part of it is low enough
+is what the blade reaches — the hand when it is down, the arm where it
+comes out of the soil when it is up — and a round finds it anywhere along
+its length.
+
+## The bat
+
+In the dark the crows are **bats**: half of them at night, in fog and in
+the ravines, about one in seven anywhere else. A bat is the crow's fight
+flown faster — a smaller, near-black body with big ears and wings of skin
+on finger bones, a circle round you that breathes in and out and jinks as
+it goes, a dive wound in a third of a second and flown at seventeen metres
+a second where a crow's is eleven — fourteen life to the crow's twenty,
+and a thin descending squeak where the crow has a caw. It is struck,
+batted and shot exactly as a crow is.
 
 ## Taken off your feet
 

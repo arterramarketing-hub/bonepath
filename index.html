@@ -3483,6 +3483,11 @@ const AudioSys=(()=>{
       tone(t+.09,{f:1320,f2:1980,type:'sine',peak:.05,dec:.4});
       noise(t,{peak:.05,att:.15,dec:.3,f0:2000,f1:4200,type:'bandpass',Q:2});},
     // dry joints cocking back — the warning
+    // THE BAT'S VOICE: two or three quick chirps sweeping DOWN from high up, thin and dry — a squeak, not a whistle
+    squeak(){const t=now(),n=2+((Math.random()*2)|0);
+      for(let i=0;i<n;i++){const t0=t+i*.055+Math.random()*.02,f=5200+Math.random()*1800;
+        tone(t0,{f,f2:f*.55,type:'triangle',peak:.035,att:.004,dec:.04});
+        noise(t0,{peak:.02,att:.002,dec:.025,f0:6000,f1:4000,type:'bandpass',Q:5,white:true});}},
     windup(){const t=now();
       noise(t,{peak:.1,att:.15,dec:.13,f0:260,f1:2100,type:'bandpass',Q:2.4});
       tone(t+.05,{f:180,f2:330,type:'triangle',peak:.03,att:.1,dec:.12});},
@@ -6030,6 +6035,23 @@ function buildWorld(){
       for(let i=0,n=0;i<30&&n<4;i++){const x=sd*rr(f.cragX+3,23),z=cz+rr(-8,8);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,rnd()<.5);}
       for(let i=0,n=0;i<30&&n<3;i++){const x=-sd*rr(6,19),z=cz+rr(-15,15);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,rnd()<.5);}
     },
+    /* THE BARROW (see THE ARM): a hex of old burial — long low mounds, a
+       ring of standing stones with gaps in it, slabs gone over, bones — and
+       under it, somewhere near the middle, the Arm. It is spawned when the
+       tile's ground is laid (`stepTile`), on this hex's own `t.foes`. */
+    barrow(w){
+      const t=w.t,off=BUILD.offZ,zc=t.zc-off,G=new THREE.Group();world.add(G);
+      const soil=lam({color:new THREE.Color(0x3a3024).convertSRGBToLinear()});t.disp.push(soil);   // (the barrow's mounds)
+      for(let i=0,n=0;i<40&&n<9;i++){const x=(rnd()<.5?1:-1)*rr(4.5,18),z=zc+rr(-22,22);if(!clearSpot(x,z,2.4))continue;n++;   // the mounds: long, low, grassed-over
+        const m=new THREE.Mesh(ICO,soil);m.position.set(x,heightAt(x,z)-.35,z);m.scale.set(rr(2.2,3.4),rr(.7,1.1),rr(3.8,5.6));m.rotation.y=rr(-.5,.5);G.add(m);}
+      for(let i=0;i<11;i++){if(rnd()<.3)continue;const a=i/11*TAU,x=Math.cos(a)*12.5,z=zc+Math.sin(a)*12.5;if(Math.abs(x)<2.8||!clearSpot(x,z,1))continue;   // the ring, broken
+        if(rnd()<.2){const b=box(2.2,.6,.6,M.wall,x,heightAt(x,z)+.3,z,a+Math.PI/2);G.add(b);addObstacle(x,z,.9,true,heightAt(x,z)+.65);}
+        else standingStone(x,z,rr(2.0,3.2));}
+      bakeStatic(G);
+      for(let i=0,n=0;i<30&&n<6;i++){const x=(rnd()<.5?1:-1)*rr(3.5,16),z=zc+rr(-20,20);if(!clearSpot(x,z,.9))continue;n++;stone(x,z,rnd());}
+      for(let i=0,n=0;i<20&&n<4;i++){const x=(rnd()<.5?1:-1)*rr(3,15),z=zc+rr(-18,18);if(!clearSpot(x,z,.4))continue;n++;bonePile(x,z);}
+      for(let i=0,n=0;i<20&&n<2;i++){const x=(rnd()<.5?1:-1)*rr(14,22),z=zc+rr(-18,18);if(!clearSpot(x,z,1.6))continue;n++;tree(x,z,true);}
+    },
     /* THE STAIRS (see stairAt, pathBase): flights of two worn steps up a
        hillside, a flagged landing between each, a low parapet either side
        with gaps where it has come down and blocks lying where they fell,
@@ -6509,7 +6531,7 @@ const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6;
 /* the codex's path: tile 0 is the cathedral as always, then one of every
    chunk, then the three ravines — the maple long enough to carry the
    underpass in its middle tile. Nobody is sown on any of it. */
-const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond','stairs'];
+const CODEX_TILES=[null,'graves','wood','ruins','hollow','causeway','chapel',{v:'maple',n:3,via:1,stream:true},'r','r',{v:'shale',n:3,via:1,cross:true},'r','r',{v:'birch',n:2,via:-1},'r','fork','narrows','river','pond','stairs','barrow'];
 /* THE RAVINE'S TRAIL wanders by the world's own z (layRoad's `wig`), so
    the stream's footbridge — which has to sit ON it — asks the same. */
 function TRAIL_WIG(z){return .55*Math.sin(z*.083+.7)+.28*Math.sin(z*.29);}
@@ -6644,7 +6666,7 @@ function waterMats(){if(RIVER_MAT)return;
    that knocks a horror sideways is a kill. Rolled on a hashed stream of
    their own (the ravine's lesson), never two running, never inside a
    ravine, and never on the ravine-only path. */
-const SPECIAL={fork:{len:54,p:.08},narrows:{len:42,p:.06},river:{len:60,p:.05},pond:{len:48,p:.05},stairs:{len:66,p:.07}};
+const SPECIAL={fork:{len:54,p:.08},narrows:{len:42,p:.06},river:{len:60,p:.05},pond:{len:48,p:.05},stairs:{len:66,p:.07},barrow:{len:54,p:.06}};
 function specialAt(k,prev){
   if(PATH.codex){const c=CODEX_TILES[k];return typeof c==='string'&&SPECIAL[c]?c:null;}
   if(PATH.only||k<3||(prev&&(prev.special||prev.rav)))return null;          // (never beside a ravine: a narrows or a river against its walls opens them onto the sky)
@@ -6707,7 +6729,7 @@ function stepTile(){
     BUILD.offZ=0;tileCommit(t,c,offZ,cath?(t.b0||0):0);
   }else{
     // the host, sown into the queue (still in the origin's frame)...
-    BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex){if(t.kind==='fork')forkHost(w,t,tileBudget(k));else pathHost(w,tileBudget(k),cath);}BUILD.offZ=0;tileCommit(t,c,offZ);}
+    BUILD.offZ=offZ;{const c=tileCapture();if(!PATH.codex){if(t.kind==='fork')forkHost(w,t,tileBudget(k));else pathHost(w,tileBudget(k)*(t.kind==='barrow'?.35:1),cath);}BUILD.offZ=0;tileCommit(t,c,offZ);}
     // ...and in the world's own frame: the ground, the road through, a lantern or two
     const c=tileCapture(),{z0,z1,zc,len}=t;
     tileGround(t);
@@ -6728,6 +6750,7 @@ function stepTile(){
        EARLIER tile: that is the one torn down first, and the later tile's
        own road or trail is still lying under the half it covered */
     {const pv=PATH.tiles[k-1];if(pv&&!pv.dead&&!!pv.rav!==!!t.rav){const c2=tileCapture();laySeam(t.z0,!!t.rav);tileCommit(pv,c2,0);}}
+    if(t.kind==='barrow'&&!PATH.codex){const A=new ArmHorror(rr(-3,3),t.zc+rr(-4,4));enemies.push(A);t.foes.push(A);}   // (what the barrow keeps: see THE ARM)
     PATH.job=null;
   }
   BUILD.tile=-1;t.step++;
@@ -6739,7 +6762,7 @@ function drainSpawns(n){
     const q=PATH.spawnQ.shift(),t=PATH.tiles[q.tile];if(!t||t.dead)continue;
     {const lim=pathEdge(t,q.z-t.zc)-1.4;q.x=clamp(q.x,-lim,lim);}             // (never raised over the drop: the host sows by the wedge, the narrows are nine metres wide)
     let e;
-    if(q.kind==='crow'){e=new Crow(q.x,q.z);e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
+    if(q.kind==='crow'){e=new Crow(q.x,q.z,{bat:batFor(q.x,q.z)});e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
     else{e=new Enemy(q.kind,q.x,q.z,q.o);if(q.roam)e.patrol();}   // (else it lies in the tile's ground and climbs out)
     enemies.push(e);t.foes.push(e);
   }
@@ -10769,6 +10792,33 @@ function makeCrowRig(){
   tail.rotation.x=.15;root.add(tail);
   return rig;
 }
+/* THE BAT: small, near black and brown, big ears, two red pinpoints, and
+   wings that are a MEMBRANE on long finger bones — a scalloped trailing
+   edge between the fingers — rather than a crow's feathered slabs. The
+   wings are `wingL`/`wingR` like the crow's, so the same flap drives them. */
+function makeBatRig(){
+  const rig={s:1};
+  const root=new THREE.Group();rig.root=root;
+  const fur=lam({color:0x131012}),bone=lam({color:0x1c1719}),mem=lam({color:0x0f0c0e,side:THREE.DoubleSide});   // (near neutral: a brown with the red leading came out SALMON under a noon sun, which lifts the crow's black to mid grey)
+  root.add(M(GBox(.16,.14,.3),fur,0,0,0));                  // body
+  root.add(M(GBox(.14,.12,.12),fur,0,.05,.2));              // head
+  root.add(M(GBox(.07,.05,.07),fur,0,.02,.28));             // snout
+  for(const side of[1,-1]){
+    const ear=M(GCone(.05,.16,3),fur,.05*side,.16,.19);ear.rotation.z=-side*.25;root.add(ear);
+    const e=new THREE.Mesh(GSph(.018,4,3),new THREE.MeshBasicMaterial({color:0xe03a24}));e.position.set(.04*side,.08,.27);root.add(e);
+    const wing=new THREE.Group();wing.position.set(.08*side,.04,.04);root.add(wing);
+    wing.add(M(GBox(.34,.025,.03),bone,.17*side,0,0));      // the arm
+    const tips=[[.62,.08],[.66,-.08],[.56,-.22],[.4,-.3]];  // the fingers, out from the wrist
+    for(const[fx,fz]of tips){const l=Math.hypot(fx-.34,fz),fb=M(GBox(l,.018,.018),bone,side*(.34+fx)/2,0,fz/2);fb.rotation.y=-side*Math.atan2(fz,fx-.34);wing.add(fb);}
+    const sh=new THREE.Shape();sh.moveTo(0,.02);sh.lineTo(.34,.02);   // the membrane, scalloped between the fingers
+    for(let i=0;i<tips.length;i++){const[fx,fz]=tips[i];sh.lineTo(fx,fz);const nx=tips[i+1];if(nx)sh.quadraticCurveTo((fx+nx[0])/2-.05,(fz+nx[1])/2+.06,nx[0],nx[1]);}
+    sh.quadraticCurveTo(.2,-.18,0,-.12);sh.lineTo(0,.02);
+    const mg=new THREE.ShapeGeometry(sh);mg.rotateX(Math.PI/2);if(side<0)mg.scale(-1,1,1);
+    wing.add(new THREE.Mesh(mg,mem));
+    if(side===1)rig.wingR=wing;else rig.wingL=wing;
+  }
+  return rig;
+}
 function makeWardenRig(){
   const boneM=mat('bone');
   const r=buildHumanoid({
@@ -12286,6 +12336,7 @@ const player={
        is about stagger, not about mass — most of the host sets it — so the
        kind is asked for outright by the things big enough to earn it. */
     if(this.hp<=0){this.die(dx/l,dz/l,heavy?1.7:1,kind||'blade');return 'dead';}
+    if(this.state==='grabbed')return 'hit';   // (a blow that lands while the Arm has him hurts him and leaves him in the fist — it used to set 'hurt', and the grip silently let go)
     this.state='hurt';this.t=0;this.hurtDur=.38;
     this.vx=dx/l*5;this.vz=dz/l*5;
     return 'hit';
@@ -12344,7 +12395,7 @@ const player={
     this.hp=0;this.state='dead';this.t=0;this.dropThrown();dropBubbles();
     if(this.rig)this.rig._spNow=0;   // the cape stops streaming: nothing is running any more
     G.mode='dead';G.deaths++;
-    this.crumbled=false;this.melt=false;
+    this.crumbled=false;this.melt=false;this.buried=false;
     kind=kind||'blade';this.deathKind=kind;
     const a=Math.random()*TAU;
     const dx=kx||Math.sin(a),dz=kz||Math.cos(a),dl=Math.hypot(dx,dz)||1;
@@ -12368,6 +12419,12 @@ const player={
       startRagdoll(this,ux,uz,7.4*(force||1),2.2+Math.random()*.8);   // taken off your feet
       G.camShake=Math.max(G.camShake,.45);
       boneBurst(this.x,1.3,this.z,0xcfc4a3,8,3);
+    }else if(kind==='buried'){
+      // TAKEN UNDER. The Arm's fist goes down into the barrow and he goes
+      // with it: no ragdoll, no blood — the soil closes over him (`buryHero`)
+      this.buried=true;
+      AudioSys.quake();G.camShake=Math.max(G.camShake,.8);G.vibr([90,40,160]);
+      boneBurst(this.x,heightAt(this.x,this.z)+.3,this.z,0x4a463a,26,3.4);
     }else if(kind==='fall'){
       // OVER THE BRINK. The same ragdoll, thrown out past the lip — and
       // then let off the world entirely: no ground under any part of it
@@ -12380,7 +12437,7 @@ const player={
     }
     AudioSys.deathGong();G.vibr([80,60,120]);
     // the path keeps what it takes
-    if(kind!=='poison'&&kind!=='fall'){
+    if(kind!=='poison'&&kind!=='fall'&&kind!=='buried'){
       bloodSpray(this.x,1.1,this.z,kind==='blade'?30:18,kind==='blade'?2.2:1.5);
       if(kind==='blade'){                                            // the sheet of it keeps coming for a moment
         let t=0;const px=this.x,pz=this.z;
@@ -13635,6 +13692,14 @@ const player={
        The rise is where the punishment is; nothing can be done during it
        and it cannot be cancelled, which is why one hand of the Bell-Called
        is survivable and two working together is not. */
+    /* HELD BY THE ARM. The Arm writes where he is (`x`, `z`, `grabY`) every
+       frame; all he can do is fight the grip — every press (a tap, a
+       flick, a trigger) is a fifth of the way out, and the Arm reads
+       `grabEsc` and lets go at one. See THE ARM. */
+    else if(this.state==='grabbed'){
+      this.vx=0;this.vz=0;this.sprinting=false;this.sprintT=0;
+      if(IN.swipe){this.grabEsc=(this.grabEsc||0)+.2;G.camShake=Math.max(G.camShake,.12);G.vibr(15);AudioSys.windup();}
+    }
     else if(this.state==='floored'){
       this.x+=this.vx*dt;this.z+=this.vz*dt;
       this.vx*=Math.pow(.09,dt);this.vz*=Math.pow(.09,dt);
@@ -13664,9 +13729,9 @@ const player={
        his boots than a step down, which only happens once he is past the
        last of it and standing on the slope into nothing. Then he goes
        over, and he is still on his feet while he does. */
-    if(this.state!=='dead'&&this.state!=='falling'&&groundGone(this)>FALL_STEP)this.stepOff();
+    if(this.state!=='dead'&&this.state!=='falling'&&this.state!=='grabbed'&&groundGone(this)>FALL_STEP)this.stepOff();
     // spatial constraints
-    if(this.state!=='dead'&&this.state!=='falling'){
+    if(this.state!=='dead'&&this.state!=='falling'&&this.state!=='grabbed'){   // (in the Arm's fist he is where the fist is)
       slopeHold(this,this._px,this._pz);
       constrain(this,G.bossActive,true);   // (the rim does not hold HIM back: it is a cliff, not a wall)
       pushOut(this,.35);
@@ -13786,6 +13851,7 @@ const player={
     else if(this.state==='rollatk')poseRollAtk(r,Math.min(1,this.t/(.44*this.swing())));
     else if(this.state==='hurt')poseStagger(r,this.t/(this.hurtDur||.38));
     else if(this.state==='floored')poseFloored(r,this.t);
+    else if(this.state==='grabbed')poseFall(r,this.t*2.2);          // (held up in a fist: arms thrown out, legs kicking)
     else if(this.state==='dead')poseDead(r,this.t);
 
     /* the snow he is wearing: a crust packed onto the boots for as long as
@@ -13800,7 +13866,8 @@ const player={
      snowCuffs(r,onStone(this.x,this.z)?0:this.snowBoot);}
     r.root.position.set(this.x,heightAt(this.x,this.z)-snowSink(this.x,this.z)
       +(this.state==='roll'?this.rollAir||0:0)
-      +(this.state==='falling'?this.fallY:0),this.z);
+      +(this.state==='falling'?this.fallY:0)
+      +(this.state==='grabbed'?(this.grabY||0):0),this.z);
     r.root.rotation.y=this.facing;
     // the root's PITCH belongs to whichever pose is using it — the fall
     // and the knockdown both lay him over — and to nothing else, so it is
@@ -14569,9 +14636,19 @@ class Enemy{
 }
 
 /* ---------------- the crows ---------------- */
+/* A BAT is a Crow with `bat` set (`new Crow(x,z,{bat:true})`): its own rig
+   (`makeBatRig`), fourteen life instead of twenty, and a faster, jerkier
+   flight — the orbit turns faster and tighter and flutters, it winds a
+   dive in half the time and comes in at seventeen metres a second, not
+   eleven — and it squeaks. Everything else (the lock, the eye, the bat's
+   own home run, the drops) treats it as the crow it is built on.
+   `batFor(x,z)` decides which crows are bats: half at night, in fog and
+   in a ravine, fifteen in a hundred elsewhere, by `posHash` so no roll of
+   the seed's stream is spent on it. */
+function batFor(x,z){const t=PATH.on?pathTileAt(z):null;const p=(RUN.time==='night'||RUN.weather==='fog'||(t&&t.rav))?.5:.15;return posHash(x,z,71)<p;}
 class Crow{
-  constructor(x,z){
-    this.kind='crow';this.crow=true;
+  constructor(x,z,o){
+    this.kind='crow';this.crow=true;this.bat=!!(o&&o.bat);
     this.big=false;this.boss=false;this.caster=false;this.heavyHitter=false;
     this.x=x;this.z=z;this.homeX=x;this.homeZ=z;
     this.radius=.4;this.maxHp=20;this.hp=20;
@@ -14581,7 +14658,8 @@ class Crow{
     this.vx=0;this.vz=0;this.flashUntil=0;this.flap=Math.random()*TAU;
     this.orbitDir=Math.random()<.5?1:-1;
     this.y=heightAt(x,z)+7;              // wings in from high above
-    this.rig=makeCrowRig();scene.add(this.rig.root);
+    this.rig=this.bat?makeBatRig():makeCrowRig();scene.add(this.rig.root);
+    if(this.bat){this.maxHp=this.hp=14;this.name='A BAT';}
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
   }
@@ -14645,11 +14723,12 @@ class Crow{
     const sp=this.chillT>0?0:1;   // (frost holds them fast)
     const gh=heightAt(this.x,this.z);
     const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
-    this.flap+=dt*(this.state==='dive'?26:14)*sp;
+    const B=this.bat;
+    this.flap+=dt*(this.state==='dive'?(B?40:26):(B?30:14))*sp;
     switch(this.state){
       case 'roost': // hunched on its perch, one red eye on the road
         this.y+=((gh+.25)-this.y)*Math.min(1,6*dt);
-        if(dist<11&&G.mode==='play'){this.state='fly';this.t=0;AudioSys.windup();}
+        if(dist<11&&G.mode==='play'){this.state='fly';this.t=0;if(B)AudioSys.squeak();else AudioSys.windup();}
         break;
       case 'fly':{ // wheel around the prey, waiting for the moment
         if(dist>24){ // prey out of reach: wing back to the perch
@@ -14661,23 +14740,25 @@ class Crow{
           break;
         }
         if(this._oa===undefined)this._oa=Math.atan2(this.x-P.x,this.z-P.z);
-        this._oa+=this.orbitDir*dt*.85*sp;
-        const tx=P.x+Math.sin(this._oa)*6,tz=P.z+Math.cos(this._oa)*6;
-        const k=Math.min(1,2.1*sp*dt);
+        this._oa+=this.orbitDir*dt*(B?1.55:.85)*sp;
+        const orad=B?4.6+Math.sin(this.t*2.3+this.flap*.1)*1.1:6;          // (a bat's circle breathes in and out)
+        const jx=B?Math.sin(this.t*5.3+this.homeX)*1.1:0,jz=B?Math.cos(this.t*4.1+this.homeZ)*1.1:0;   // ...and it jinks
+        const tx=P.x+Math.sin(this._oa)*orad+jx,tz=P.z+Math.cos(this._oa)*orad+jz;
+        const k=Math.min(1,(B?3.8:2.1)*sp*dt);
         this.x+=(tx-this.x)*k;this.z+=(tz-this.z)*k;
-        const wy=gh+2.4+Math.sin(this.t*1.7)*.25;
+        const wy=gh+2.4+Math.sin(this.t*1.7)*.25+(B?Math.sin(this.t*9.1)*.3:0);
         this.y+=(wy-this.y)*Math.min(1,3*dt);
         this.facing=Math.atan2(tx-this.x,tz-this.z);
-        if(!G.bossActive&&this.t>2.8&&Math.random()<dt*.8&&G.mode==='play'){
-          this.state='divewind';this.t=0;AudioSys.windup();
+        if(!G.bossActive&&this.t>(B?1.6:2.8)&&Math.random()<dt*(B?1.3:.8)&&G.mode==='play'){
+          this.state='divewind';this.t=0;if(B)AudioSys.squeak();else AudioSys.windup();
         }
         break;}
       case 'divewind': // hangs high for a beat, eyes burning, then stoops
         this.facing=Math.atan2(dx,dz);
         this.y+=((gh+3.1)-this.y)*Math.min(1,4*dt);
-        if(this.t>.55){
+        if(this.t>(B?.32:.55)){
           this.state='dive';this.t=0;this.hitDone=false;
-          const l=dist||1;this.vx=dx/l*11;this.vz=dz/l*11;
+          const l=dist||1,v=B?17:11;this.vx=dx/l*v;this.vz=dz/l*v;
           AudioSys.swing(null,'bone');
         }
         break;
@@ -14689,7 +14770,7 @@ class Crow{
         if(!this.hitDone&&Math.hypot(this.x-P.x,this.z-P.z)<.85){
           this.hitDone=true;P.takeHit(this.dmg,this.x,this.z,false);
         }
-        if(this.t>1.1){this.state='fly';this.t=0;this._oa=undefined;}
+        if(this.t>(B?.75:1.1)){this.state='fly';this.t=0;this._oa=undefined;}
         break;}
       case 'downed': // grounded and scrabbling
         this.y+=((gh+.22)-this.y)*Math.min(1,8*dt);
@@ -15168,6 +15249,223 @@ class GraveGhoul{
     if(G.time>=this.flashUntil)for(const m of this.mats)
       m.emissive.setHex(this.chillT>0?0x0d3542:(this.state==='rake'||this.state==='retch')&&!this.hitDone?0x2e0c06:0x000000);
   }
+}
+
+/* ======================= THE ARM =======================
+   What the barrow keeps: an arm the size of a tree, buried to the
+   shoulder, and a hand at the end of it that wants you. It lives under
+   its own hex (`SPECIAL.barrow`) and is fought on its ground:
+     THE TELL. The soil cracks in a ring UNDER YOUR FEET and grumbles for a
+       second and a quarter; then the arm comes up through it. Be on the
+       ring when it does and you are thrown down.
+     THE SWEEP. It turns aside, lays its hand along the ground and scythes
+       the whole of its reach across — nearly ten metres. Roll through it.
+     THE SLAM. It stands straight up, the hand eight metres over you, and
+       brings it down where you are. Where it lands it LIES, for a moment:
+       the arm is along the ground and every blow does nearly double.
+     THE GRAB. It opens the hand and lunges. If it closes on you, you are
+       lifted in the fist — fight it (tap, flick, the dodge button: every
+       press is a fifth of the way out) — and if you do not get out in time
+       it drags you down into the earth: five hearts, and if you have not
+       got five, you do not come back up (`buried`). Miss, and it lies open.
+     THE BURROW. Every third of its life it goes back into the ground and
+       the ring opens under you again somewhere else.
+   Its body for the blade is whatever part of it is low enough to cut —
+   the hand when it is down, the arm's root when it is up (`this.x/z`) —
+   and for a gun, spheres down its whole length (`spheres`). */
+const ARM={UA:4.6,FA:4.0,PALM:1.9,SH:2.2,HS:1.35};
+function makeArmRig(){
+  const rig={s:1,mats:[]};
+  const lin=h=>new THREE.Color(h).convertSRGBToLinear();   // (colours given as sRGB: unconverted, the soil came up pale tan and the bone glowed)
+  const bone=mat('bone'),dark=lam({color:lin(0x0b0a09)}),soil=lam({color:lin(0x2b241b)});
+  const root=new THREE.Group();rig.root=root;
+  const hole=new THREE.Mesh(new THREE.CircleGeometry(1.35,10),dark);hole.rotation.x=-Math.PI/2;hole.position.y=.04;root.add(hole);rig.hole=hole;   // the hole it comes out of
+  for(let i=0;i<9;i++){const a=i/9*TAU,l=new THREE.Mesh(GSph(1,5,3),soil);l.position.set(Math.cos(a)*1.55,.1,Math.sin(a)*1.55);l.scale.set(.5,.28,.45);l.rotation.y=a;root.add(l);}   // and the soil heaved up round it
+  const sh=new THREE.Group();root.add(sh);rig.shoulder=sh;
+  const hum=new THREE.Mesh(GCyl(.36,.46,ARM.UA,7),bone);hum.position.y=ARM.UA/2;sh.add(hum);        // the humerus
+  sh.add(M(GSph(.62,7,6),bone,0,0,0));                                                               // its head, in the socket under the soil
+  const el=new THREE.Group();el.position.y=ARM.UA;sh.add(el);rig.elbow=el;
+  el.add(M(GSph(.56,7,6),bone,0,0,0));                                                               // the elbow's knob
+  for(const[ox,r0,r1]of[[-.2,.2,.27],[.22,.25,.18]]){const b=new THREE.Mesh(GCyl(r0,r1,ARM.FA,6),bone);b.position.set(ox,ARM.FA/2,0);el.add(b);}   // radius and ulna, side by side
+  const wr=new THREE.Group();wr.position.y=ARM.FA;el.add(wr);rig.wrist=wr;
+  wr.add(M(GBox(.7,.3,.5),bone,0,0,0));                                                               // the carpals
+  const h=makeBoneHandRig(-1);                                                                      // a RIGHT hand, twice the Bell-Called's size, its fingers running on up the arm
+  h.root.scale.setScalar(ARM.HS);h.root.rotation.x=-Math.PI/2;h.root.position.set(0,1.05*ARM.HS,.8*1.7*ARM.HS);wr.add(h.root);
+  rig.hand=h;
+  for(const m of[bone,dark,...h.mats])if(m.emissive&&!rig.mats.includes(m))rig.mats.push(m);
+  return rig;
+}
+class ArmHorror{
+  constructor(x,z){
+    this.kind='arm';this.mini=true;this.name='THE ARM';
+    this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.bx=x;this.bz=z;this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;
+    this.radius=1.3;this.maxHp=460;this.hp=460;this.dmg=15;this.marrow=320;this.markUp=2.2;
+    this.poise=0;this.poiseMax=99;this.chillT=0;
+    this.rig=makeArmRig();scene.add(this.rig.root);this.mats=this.rig.mats;this.rig.root.visible=false;
+    this.state='hidden';this.t=0;this.cool=1.4;this.sink=1;this.engaged=false;this.untouchable=true;
+    this.yaw=0;this.p1=.3;this.el=.5;this.curl=.2;this.phase=0;this.hitDone=false;
+    this.flashUntil=0;this.crumbled=false;this.metOnce=false;this.exposed=0;this.pv=new THREE.Vector3();
+  }
+  // where the palm is, from the pose (the arm lies in the vertical plane of its heading)
+  palm(){const h=this.facing+this.yaw,sx=Math.sin(h),sz=Math.cos(h),gy=heightAt(this.bx,this.bz),y0=gy-ARM.SH-this.sink*9.5;
+    const a=ARM.UA,b=ARM.FA+ARM.PALM,u=a*Math.sin(this.p1)+b*Math.sin(this.p1+this.el);
+    return {x:this.bx+sx*u,z:this.bz+sz*u,y:y0+a*Math.cos(this.p1)+b*Math.cos(this.p1+this.el),h};}
+  // the shoulder pitch that puts the palm at distance d, the elbow held at `el`
+  reachP1(d,el){let lo=-.2,hi=1.9;for(let i=0;i<24;i++){const m=(lo+hi)/2,u=ARM.UA*Math.sin(m)+(ARM.FA+ARM.PALM)*Math.sin(m+el);if(u<d)lo=m;else hi=m;}return (lo+hi)/2;}
+  spheres(){const out=[],h=this.facing+this.yaw,sx=Math.sin(h),sz=Math.cos(h),gy=heightAt(this.bx,this.bz),y0=gy-ARM.SH-this.sink*9.5;
+    for(let i=1;i<=6;i++){const f=i/6;let u,y;
+      if(f<=.45){const k=f/.45*ARM.UA;u=k*Math.sin(this.p1);y=y0+k*Math.cos(this.p1);}
+      else{const k=(f-.45)/.55*(ARM.FA+ARM.PALM);u=ARM.UA*Math.sin(this.p1)+k*Math.sin(this.p1+this.el);y=y0+ARM.UA*Math.cos(this.p1)+k*Math.cos(this.p1+this.el);}
+      if(y>gy-.3)out.push({x:this.bx+sx*u,y,z:this.bz+sz*u,r:f>.9?1.1:.7,head:false});}
+    return out;}
+  reset(){if(player.state==='grabbed'&&player.grabbedBy===this){player.state='free';player.grabY=0;}
+    this.hp=this.maxHp;this.state='hidden';this.t=0;this.sink=1;this.bx=this.homeX;this.bz=this.homeZ;this.x=this.bx;this.z=this.bz;
+    this.engaged=false;this.untouchable=true;this.crumbled=false;this.exposed=0;this.phase=0;this.rig.root.visible=false;this.rig.root.rotation.set(0,0,0);}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0xffffff);}
+  scatter(){}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);
+    if(this.hp<=0||this.untouchable)return;
+    const mul=this.exposed>0?1.8:1;this.hp-=dmg*mul;this.flash();
+    boneBurst(this.x,heightAt(this.x,this.z)+.8,this.z,0xcfc4a3,this.exposed>0?10:6,2.2);
+    if(this.hp<=0){this.die();return;}
+    if(this.hp<=this.maxHp*(1-(this.phase+1)/3)&&this.state!=='hold'&&this.state!=='drag'&&this.state!=='burrow'){this.phase++;this.begin('burrow');}   // every third of its life: back under, and up somewhere else
+  }
+  die(){
+    if(player.state==='grabbed'&&player.grabbedBy===this)this.letGo(false);
+    this.hp=0;this.state='dead';this.t=0;this.engaged=false;this.untouchable=true;
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
+    AudioSys.quake();AudioSys.bodyfall();G.hitstop=.3;G.camShake=Math.max(G.camShake,.6);
+    setTimeout(()=>bannerShow('THE ARM LETS GO','the barrow is quiet'),700);
+    spawnElemDrop(this.x,this.z,'health');
+  }
+  begin(a){this.state=a;this.t=0;this.hitDone=false;if(a!=='idle'&&a!=='exposed'&&a!=='hold'&&a!=='drag')AudioSys.windup();}
+  tell(){   // the ring opens under the pilgrim, and it will come up there
+    const P=player;this.bx=P.x;this.bz=P.z;this.x=this.bx;this.z=this.bz;this.state='tell';this.t=0;this.hitDone=false;this.untouchable=true;
+    this.rig.root.visible=false;AudioSys.quake();G.camShake=Math.max(G.camShake,.35);G.vibr([30,30,60]);
+    for(let i=0;i<9;i++){const a=i/9*TAU+rr3(-.2,.2);paintScar(this.bx+Math.sin(a)*1.6,this.bz+Math.cos(a)*1.6,a,rr3(.3,.5),rr3(1.2,2.0),true);}
+    paintScar(this.bx,this.bz,0,1.1,1.1,false);}
+  letGo(thrown){const P=player;P.grabbedBy=null;P.grabY=0;
+    if(P.state!=='grabbed')return;P.state='free';P.t=0;
+    if(thrown){const q=this.palm();P.x=q.x;P.z=q.z;P.floored(this.bx,this.bz,0);}}
+  update(dt){
+    const P=player,r=this.rig;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);this.exposed=Math.max(0,this.exposed-dt);
+    const sp=this.chillT>0?.35:1;
+    const gy=heightAt(this.bx,this.bz);
+    const dx=P.x-this.bx,dz=P.z-this.bz,dist=Math.hypot(dx,dz),toP=Math.atan2(dx,dz);
+    const faceP=k=>{this.facing=angLerp(this.facing,toP,k*dt);};
+    let T={yaw:Math.sin(G.time*.5)*.15,p1:.3+Math.sin(G.time*.7)*.08,el:.55,curl:.2,sink:0},rate=4;
+    const live=G.mode==='play'&&!cutSubject(this);
+    switch(this.state){
+      case 'hidden':T.sink=1;
+        if(dist<12&&G.mode==='play'&&P.state!=='dead'){this.engaged=true;this.tell();}
+        break;
+      case 'tell':T.sink=1;
+        if(Math.random()<dt*20)boneBurst(this.bx+rr3(-1.4,1.4),gy+.1,this.bz+rr3(-1.4,1.4),0x4a463a,2,1.5);
+        if(this.t>=1.25){this.state='erupt';this.t=0;this.sink=.9;this.facing=toP;this.rig.root.visible=true;
+          AudioSys.quake();G.camShake=Math.max(G.camShake,.8);G.vibr([80,40,120]);shockRing(this.bx,this.bz,0x8a7a5a,4.4,.4);
+          boneBurst(this.bx,gy+.3,this.bz,0x4a463a,30,4);
+          if(Math.hypot(P.x-this.bx,P.z-this.bz)<1.9)P.floored(this.bx+.01,this.bz,15);
+          if(!this.metOnce){this.metOnce=true;cutArm(this);}}
+        break;
+      case 'erupt':T.sink=0;T.p1=-.05;T.el=.1;T.curl=.6;rate=5;
+        if(this.t>.3)this.untouchable=false;
+        if(this.t>=1.0){this.state='idle';this.cool=1.2;}
+        break;
+      case 'idle':faceP(2.2);
+        this.cool-=dt*sp;
+        if(dist>30){this.state='burrow';this.t=0;this.goHome=true;break;}
+        if(live&&this.cool<=0){const r2=Math.random();
+          if(dist<3)this.begin(r2<.5?'sweep':'grab');
+          else if(dist<9.5)this.begin(r2<.34?'sweep':r2<.67?'slam':'grab');
+          else this.begin('burrow');}
+        break;
+      case 'sweep':{const WD=.75,SD=.5;
+        if(this.t<WD){faceP(3);T.yaw=-1.3;T.p1=1.0;T.el=.35;T.curl=.1;rate=5;}
+        else{const q=Math.min(1,(this.t-WD)/SD),y0=-1.3+2.8*(q*q*(3-2*q));this.yaw=y0;T.yaw=y0;T.p1=1.0;T.el=.35;T.curl=.1;rate=30;
+          if(!this.hitDone&&q>.05){AudioSys.heavySwing(null,'bone');this.hitDone=true;this.sw0=-1.3;}
+          const rel=wrapA(toP-this.facing);
+          if(this.sw0!==undefined&&rel>this.sw0&&rel<=y0&&dist>1.8&&dist<10.5){this.sw0=undefined;P.floored(this.bx,this.bz,15);}
+          else if(this.sw0!==undefined)this.sw0=Math.max(this.sw0,Math.min(rel,y0)-.001);
+          if(Math.random()<dt*20){const q2=this.palm();boneBurst(q2.x,heightAt(q2.x,q2.z)+.1,q2.z,0x4a463a,2,1.5);}}
+        if(this.t>=WD+SD+.5){this.state='idle';this.cool=1.1+Math.random()*.6;this.sw0=undefined;}
+        break;}
+      case 'slam':{const WD=.85,SD=.28;
+        if(this.t<WD){faceP(4);T.p1=-.05;T.el=.15;T.curl=.35;rate=4;this.sd=Math.min(9.8,Math.max(2.2,dist));}
+        else{const q=Math.min(1,(this.t-WD)/SD);T.el=.25;T.p1=this.reachP1(this.sd,.25);T.curl=.55;rate=q<1?22:6;
+          if(!this.hitDone&&q>=1){this.hitDone=true;const q2=this.palm(),hy=heightAt(q2.x,q2.z);
+            AudioSys.quake();AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.9);G.hitstop=Math.max(G.hitstop,.08);G.vibr([70,30,110]);
+            shockRing(q2.x,q2.z,0x8a7a5a,4.2,.4);boneBurst(q2.x,hy+.2,q2.z,0x4a463a,24,3.4);paintScar(q2.x,q2.z,q2.h,1.6,1.6,false,QUAKE_PAL);
+            if(Math.hypot(P.x-q2.x,P.z-q2.z)<2.5)P.floored(q2.x,q2.z,20);
+            this.begin('exposed');this.exposed=1.6;this.hold1=T.p1;}}
+        break;}
+      case 'grab':{const WD=.6,LD=.32;
+        if(this.t<WD){faceP(4);T.p1=.15;T.el=.35;T.curl=-.3;rate=5;}
+        else{const q=Math.min(1,(this.t-WD)/LD);faceP(8);T.el=.5;T.p1=this.reachP1(Math.min(9.6,Math.max(1.6,dist)),.5);T.curl=-.3+q*.4;rate=18;
+          if(!this.hitDone&&q>=1){this.hitDone=true;const q2=this.palm();
+            if(Math.hypot(P.x-q2.x,P.z-q2.z)<1.8&&!P.iframes()&&P.state!=='dead'&&P.state!=='falling'&&P.state!=='grabbed'&&!CUT.on&&!CODEX.on){
+              P.state='grabbed';P.t=0;P.grabEsc=0;P.grabbedBy=this;P.grabY=0;P.dropThrown&&P.dropThrown();
+              AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.5);G.vibr([60,30,60]);this.begin('hold');}
+            else{this.begin('exposed');this.exposed=1.2;this.hold1=T.p1;}}}
+        break;}
+      case 'hold':case 'drag':{const hold=this.state==='hold';
+        T.curl=1;T.el=hold?.3:.9;T.p1=hold?.45:1.1;T.sink=hold?0:Math.min(.4,this.t/1.3*.4);rate=hold?3:2.5;
+        if(P.state!=='grabbed'||P.grabbedBy!==this){this.begin('exposed');this.exposed=1;break;}
+        const q2=this.palm();P.x=q2.x;P.z=q2.z;P.grabY=Math.max(-2.4,q2.y-heightAt(q2.x,q2.z)-1.1);P.facing=this.facing+this.yaw+Math.PI;
+        if(P.grabEsc>=1){this.letGo(true);AudioSys.heavySwing(null,'bone');this.begin('exposed');this.exposed=2.2;break;}   // fought free: it lies open
+        if(hold&&this.t>=2.4){this.state='drag';this.t=0;AudioSys.quake();}
+        else if(!hold){if(Math.random()<dt*16)boneBurst(q2.x+rr3(-.8,.8),heightAt(q2.x,q2.z)+.1,q2.z+rr3(-.8,.8),0x4a463a,2,1.4);
+          if(this.t>=1.3){P.grabbedBy=null;P.grabY=0;
+            if(P.hp<=50){P.state='free';P.hp=0;P.die(0,0,1,'buried');}
+            else{P.state='free';P.t=0;P.x=this.bx+Math.sin(this.facing)*2.4;P.z=this.bz+Math.cos(this.facing)*2.4;P.floored(this.bx,this.bz,50);}   // spat back up, five hearts lighter
+            this.state='burrow';this.t=0;}}
+        break;}
+      case 'exposed':T.p1=this.hold1!==undefined?this.hold1:1.2;T.el=.3;T.curl=.5;rate=3;
+        if(this.t>=(this.exposed>0?this.exposed+.05:1.2)){this.state='idle';this.cool=.8;this.hold1=undefined;}
+        break;
+      case 'burrow':T.sink=1;rate=1.6;
+        if(this.t>.4)this.untouchable=true;
+        if(this.t>=1.2){this.rig.root.visible=false;
+          if(this.goHome){this.goHome=false;this.state='hidden';this.bx=this.homeX;this.bz=this.homeZ;this.engaged=false;}
+          else{this.state='under';this.t=0;}}
+        break;
+      case 'under':T.sink=1;if(this.t>=1.1&&P.state!=='dead')this.tell();break;
+      case 'dead':T.p1=Math.min(1.65,this.t*1.4);T.el=.2;T.curl=.8;T.sink=Math.max(0,(this.t-1.6)/2.2);rate=3;
+        if(!this.crumbled&&this.t>1.4){this.crumbled=true;const q2=this.palm();boneBurst(q2.x,heightAt(q2.x,q2.z)+.4,q2.z,0xcfc4a3,26,3.6);scatterBones(q2.x,q2.z,0,0,2.4,false);}
+        if(this.t>3.8)r.root.visible=false;
+        break;
+    }
+    // the pose channels ease toward what the state asks for
+    const k=Math.min(1,rate*dt);
+    if(this.state!=='sweep'||this.t<.75)this.yaw+=(T.yaw-this.yaw)*k;
+    this.p1+=(T.p1-this.p1)*k;this.el+=(T.el-this.el)*k;this.curl+=(T.curl-this.curl)*Math.min(1,6*dt);
+    this.sink+=(T.sink-this.sink)*Math.min(1,(this.state==='erupt'?3.5:this.state==='tell'||this.state==='hidden'||this.state==='under'?20:2.2)*dt);
+    // what the blade can reach: the hand when it is down, else the arm where it comes out of the soil
+    {const q=this.palm();if(q.y<gy+3.2){this.x=q.x;this.z=q.z;}else{this.x=this.bx;this.z=this.bz;}}
+    // ---- the rig ----
+    r.root.position.set(this.bx,gy,this.bz);r.root.rotation.y=this.facing+this.yaw;
+    r.shoulder.position.y=-ARM.SH-this.sink*9.5;
+    r.shoulder.rotation.x=this.p1;r.elbow.rotation.x=this.el;
+    r.wrist.rotation.x=.15*Math.sin(G.time*1.3)+(this.state==='hold'?-.2:0);
+    const H=r.hand,c=this.curl;
+    for(let i=0;i<H.fingers.length;i++)for(let j=0;j<H.fingers[i].length;j++)H.fingers[i][j].rotation.x=-.12+c*[.95,1.25,1.1][j]+Math.sin(G.time*3+i+j)*.03*(1-Math.abs(c));
+    if(H.thumb){H.thumb[0].rotation.x=.2+c*.9;H.thumb[1].rotation.x=.3+c*1.1;}
+    r.hole.visible=this.state!=='dead'||this.t<3;
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0x6e1410);}
+    if(G.time>=this.flashUntil)for(const m of this.mats)if(m.emissive)
+      m.emissive.setHex(this.chillT>0?0x0d3542:this.exposed>0?0x120e02:((this.state==='sweep'||this.state==='slam'||this.state==='grab')&&!this.hitDone)?0x2e0c06:0x000000);
+  }
+}
+function cutArm(e){
+  cutPlay(e,[
+    {d:1.3,at:cutOrbit({a0:.5,a1:.36,r0:7.5,r1:6.5,y0:.5,y1:.8,l0:.2,l1:1.4,e:'out'})},
+    {d:2.0,at:cutOrbit({a0:.9,a1:.35,r0:8.5,r1:7.0,y0:.6,y1:4.2,l0:1.5,l1:6.0})},
+    {d:1.4,at:cutOrbit({a0:.3,a1:.12,r0:9.5,r1:5.0,y0:5.5,y1:6.2,l0:6.0,l1:6.4,e:'in'}),
+      fx:()=>{AudioSys.quake();AudioSys.skullShriek&&AudioSys.skullShriek();G.camShake=Math.max(G.camShake,.8);G.vibr([70,40,120]);}},
+    {d:2.6,epithet:1,title:1,at:cutOrbit({a0:.14,a1:-.08,r0:8.0,r1:9.0,y0:4.6,y1:4.4,l0:5.0,l1:4.6,e:'out'})},
+  ],'THE ARM','what the barrow keeps');
 }
 
 /* ======================= THE BELL-CALLED =======================
@@ -16806,7 +17104,7 @@ function hostKit(kindOf){
     const roam=!buried(o);const e=new Enemy(kind,x,z,o||{});enemies.push(e);
     if(roam)e.patrol();                                  // already up, pacing its ground
     return e;};
-  const roost=(x,z)=>{if(PATH.on&&BUILD.tile>=0)return queue('crow',x,z);const c=new Crow(x,z);c.state='roost';
+  const roost=(x,z)=>{if(PATH.on&&BUILD.tile>=0)return queue('crow',x,z);const c=new Crow(x,z,{bat:batFor(x,z)});c.state='roost';
     c.y=heightAt(x,z)+.25;enemies.push(c);return c;};
   /* THE HOST is sown from the run's seed: every wedge is given a marrow
      budget and spends it on encounter templates drawn to suit its chunk —
@@ -18885,6 +19183,7 @@ function shootable(e){
 }
 // where the thing IS: its skull, its trunk, its hips, and each of its limbs — a sphere each, off the rig's own bones
 function gunSpheres(e){
+  if(e.spheres)return e.spheres();   // (a thing with no humanoid parts says where it is: the Arm, down its length)
   const out=[],r=e.rig,s=(r&&r.s)||1;
   if(r&&r.head&&!e.severedHead){
     const p=r.head.getWorldPosition(_gv2);
@@ -20327,6 +20626,10 @@ const CODEX_CATS=[
       t:'a lighter skeleton that keeps about eleven metres off and lobs bone at you — half a heart a bone. It never stands still to do it: it works round you in a circle, turning its circle after every throw and whenever you close inside seven metres. On the ravine path they stand on the rims.'},
     {k:'big',name:'the brute',ep:'the big skeleton',where:'the field · the path',make:cxEnemy('big'),
       t:'slow, heavy and a hundred and forty life; its blows are two hearts and they break a raised guard. Every wedge of the field and every tile of the path tries to lead with one, so each has a big body in it.'},
+    {k:'arm',name:'the Arm',ep:'what the barrow keeps',where:'the path: the barrow',make:(x,z,px,pz)=>{const a=new ArmHorror(x,z);a.metOnce=true;a.state='idle';a.sink=0;a.untouchable=false;a.engaged=true;a.rig.root.visible=true;a.cool=1;return [cxFoe(a,px,pz)];},
+      t:'an arm the size of a tree, buried to the shoulder, with a hand at the end of it that wants you. The ground cracks in a ring under your feet and it comes up there. It SWEEPS the whole of its reach along the ground, it SLAMS down where you stand and lies there a moment (every blow nearly double), and it GRABS: caught, you are lifted in the fist, and every press you make is a fifth of the way out — fail, and it drags you into the earth for five hearts, or for good. Every third of its life it goes back under and comes up somewhere else. 460 life.'},
+    {k:'bat',name:'the bat',ep:'the crow of the dark',where:'the field · the path, most at night, in fog and in the ravines',make:(x,z,px,pz)=>{const c=new Crow(x,z,{bat:true});c.state='roost';c.y=heightAt(x,z)+.25;return [cxFoe(c,px,pz)];},
+      t:'the crow\'s place taken by a bat: a small dark body, big ears, wings of skin stretched on finger bones. It flies faster and never straight — its circle breathes in and out and it jinks as it goes — winds its dive in a third of a second and comes in at seventeen metres a second. Fourteen life, one heart a bite, and it squeaks. Half the crows are bats at night, in fog and in the ravines; about one in seven anywhere else.'},
     {k:'crow',name:'the crow',ep:'carrion bird',where:'the field · the path',make:(x,z,px,pz)=>{const c=new Crow(x,z);c.state='roost';c.y=heightAt(x,z)+.25;return [cxFoe(c,px,pz)];},
       t:'roosts on the soil until you come within eleven metres, then goes up and comes at you out of the air. A blade low enough reaches it; a metal bat bats it out of the field.'},
     {k:'zombie',name:'the Drowned',ep:'what the bog keeps',where:'the house (the Mire)',make:cxEnemy('zombie'),
@@ -20379,6 +20682,8 @@ const CODEX_CATS=[
       t:'a river straight across the hex, pouring off the world at both ends of it, and the trail over it on a long timber bridge: a deck on an arch, a rail each side, trestles standing in the water. The middle of the channel is too deep to wade — the bridge is the way over, and a horror on the far bank has to come by it too.'},
     {k:'pond',name:'the pond',ep:'a special hex',where:'the path, now and then',tile:18,look:'wide',
       t:'still water beside the trail under a crag, and a fall coming over the crag into it with a mist at its foot. It is shallow: you can wade it, slowly.'},
+    {k:'barrow',name:'the barrow',ep:'a special hex',where:'the path, now and then',tile:20,look:'wide',
+      t:'an old burial ground across the path: long low mounds grassed over, a ring of standing stones with gaps in it, slabs gone over, bones. Few horrors walk it, because something else is under it — see the Arm.'},
     {k:'stairs',name:'the stairs',ep:'a special hex',where:'the path, now and then',tile:19,look:'wide',
       t:'a long hex where the path climbs a hillside in flights of two worn steps, a flagged landing between each, five to seven metres from bottom to top — or goes down it, when the land is already high. A low parapet either side has come down in places, and posts stand in pairs at every third landing. The land carries its height on into the hexes after it.'},
     {k:'milepost',name:'the mileposts',ep:'every hex',where:'the path · the ravine',tile:9,look:'post',
@@ -20707,6 +21012,18 @@ scene.add(heroLight);
    sides, going green as it goes, spitting the stuff off him the whole way,
    until there is nothing above the snow but the pool he left. Three seconds
    end to end, which is the same three the screen waits. */
+/* the pilgrim taken under the barrow: the arms up and reaching, the body
+   drawn straight down into the soil over a second and a half, the dirt
+   heaving round the hole, and then nothing */
+function buryHero(dt){
+  const p=player,r=p.rig;if(!r)return;
+  const k=Math.min(1,p.t/1.6),e=k*k;
+  resetPose(r);poseFall(r,p.t*1.6);
+  const gy=heightAt(p.x,p.z);
+  r.root.position.set(p.x,gy-e*2.6,p.z);
+  if(Math.random()<dt*18)boneBurst(p.x+rr3(-.6,.6),gy+.1,p.z+rr3(-.6,.6),0x4a463a,2,1.4);
+  if(k>=1&&r.root.visible){r.root.visible=false;boneBurst(p.x,gy+.2,p.z,0x4a463a,14,2);}
+}
 function meltHero(dt){
   const p=player,r=p.rig;if(!r)return;
   const k=Math.min(1,p.t/2.7),e=k*k;
@@ -20988,6 +21305,7 @@ function frame(now){
          already put the root where the hips are; and the posed fall is the
          only one that still needs telling. */
       if(player.melt)meltHero(wdt);
+      else if(player.buried)buryHero(wdt);
       else if(player.rag){player.rag.step(wdt);player.rag.apply();
         player.x=player.rig.root.position.x;player.z=player.rig.root.position.z;
         for(const m of player.mats)m.emissive.setHex(0x000000);}
@@ -21073,7 +21391,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,GARG,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,GARG,ArmHorror,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
