@@ -1936,28 +1936,43 @@ Known state of play:
     gravel. `AudioSys.shellDrop` is deliberately tiny (peak .045) — it
     must sit under the report that threw it.
   - The rocket has no case: `ejectShell` returns on `g.rocket`.
-- **THE RELOAD IS A MECHANISM, AND THE SHAPE IS WHAT MAKES IT ONE.**
-  `clack(t,{peak,body,ring,dec,bright})` and `mscrape(t,{...})` are
-  declared beside `tone` inside the AudioSys closure, and every reload
-  sound is built out of them. A clack is three layers inside forty
-  milliseconds: the IMPACT (wideband, attack .0004 — no attack at all),
-  the BODY of what was struck (a short low knock, the alloy's mass), and
-  the RING left in the part (a high partial at a tenth the level, held
-  five times longer). `mscrape` is metal on metal: a filtered hiss with
-  a handful of tiny catches scattered through it, because a rail is not
-  smooth.
-  **Do not go back to a round tone.** Every stage used to be ONE square
-  blip with a rounded attack, and the roundness IS the plastic.
-  Each stage is now a small sequence — a catch releases, a part travels,
-  a part arrives and stops dead — and **the arrival is always the
-  loudest thing in the stage**, because that is what says the magazine
-  is home rather than near.
-  **A clack's three layers SUM**, so its true peak is about twice the
-  number you pass. The seat of `magIn` was written at .38 and was
-  therefore louder than the gun that needed reloading; the call peaks
-  are all around .1–.3 now and the loudest moment of a reload sits under
-  `AudioSys.gun`'s .58. If a reload ever shouts, look at the sum, not at
-  one layer.
+- **THE RELOAD IS A MECHANISM, IN STEEL — AND THE NOISE BUFFER WAS WHY
+  IT WAS PLASTIC.** `metal(t,{peak,f,q,dec,body,bodyAmt,click,nm})` and
+  `mscrape(t,{...})` are declared beside `tone` inside the AudioSys
+  closure; `rustle`, `slap` and `spring` beside them. Every reload, pump,
+  bolt, shell and dry-fire sound is built out of them. `clack` survives
+  as a thin wrapper onto `metal` (only `rocketIn` still calls it).
+  - **`noiseBuf` IS BROWN NOISE.** Every sample is the last plus a little,
+    so it has almost nothing above 2kHz, and every click that filtered it
+    at 4–9kHz rendered near silent — what the ear got was the triangle
+    tone under each one, and a soft pure tone IS the toy. `whiteBuf`
+    (one second of white, built in `ensure()`) is what foley is cut from:
+    `noise(...,{white:true})`. **Anything meant to be a click, a scrape or
+    a strike wants `white`; the wind, the drone and the rumble want the
+    brown.** If a mechanical sound ever goes dull, check which buffer it
+    is cut from before touching a filter.
+  - `metal` is modal: a white click (highpass 7.2k, 5ms), the strike
+    (bandpass round `f`), five resonant modes at `[1,1.52,2.31,3.08,3.92]`
+    — inharmonic, which is what a stamped steel part does and what stops
+    it being a NOTE — at Q `q` (26), each gain normalised by
+    `sqrt(q*24000/fm)` so a sharper mode is not a quieter one, and a
+    lowpassed thump plus a small sine for the mass behind it. No triangle
+    tone anywhere in a reload. **Do not add one back to "fill it out".**
+  - Each stage is a small sequence — a catch releases, a part travels, a
+    part arrives and stops dead — and **the arrival is always the loudest
+    thing in the stage**: `magIn`'s SEAT, `rack`'s bolt INTO BATTERY.
+  - **LEVELS ARE MEASURED IN 10ms RMS, NOT SAMPLE PEAK.** Rendered through
+    the whole master chain in an `OfflineAudioContext` (the AudioSys source
+    eval'd per sound, `started=true` so no ambient, one fresh context
+    each): a reload's loudest 10ms sits at 0.04–0.07 against the M4's
+    report at 0.09–0.14 — about half, which is where CoD puts it. The
+    sample PEAK of the same sound ran 0.09 to 0.40 across repeats, because
+    it is one random spike in the white click; it tells you nothing. The
+    reload voices were at the report's level before (`rack` 0.078 RMS,
+    peaks over the M4's) and every peak in `magOut`/`magIn`/`rack`/
+    `rocketIn`/`shellIn` was scaled by .68. `gunEmpty` was .12 and
+    rendered 0.017 — quieter than the hitmarker, for the one sound that
+    says you are out — and is .34.
 - **A HITMARKER THAT FIRES WHEN YOU HIT NOTHING IS WORSE THAN NONE.**
   `rocketBurst` ended with a bare `hitMark(true,false)`, so EVERY rocket
   flashed the red KILL cross and played the kill's falling pair — at a
@@ -2090,6 +2105,93 @@ Known state of play:
   Measured at the shot: 1911 0.18, deagle 0.28, ump 0.044, m4 0.096,
   spas 0.968, sniper 1.768, kar98k 0.768, rpg 0.36. The recoil itself
   (`rec`) is untouched — the shake is the picture, not the aim.
+  **THE SHAKE IS AN ANGLE, AND IT IS THE SAME IN BOTH VIEWS**
+  (`SHAKE_ANG`, .094 rad per unit of `camShake`, declared beside `VIEW`
+  because both cameras read it). Behind the eyes it used to be a shove of
+  the camera's POSITION by `.1*camShake` — a centimetre of travel read as
+  nothing, so the Barrett's 1.77 barely moved the picture. Over the
+  shoulder it was `.3*camShake` of position, which becomes an angle
+  through the camera's distance: the brace brought the camera in and
+  DOUBLED the shake (4.8 degrees aimed against 2.7 resting, at a held
+  shake of 1), and the position is lerped from last frame's so the jitter
+  smeared into drift. Now, with a gun in the hands, both cameras apply
+  `SHAKE_ANG*camShake` of pitch and yaw AFTER aiming (first person scales
+  it by `camera.fov/VIEW.fov`, so the sights narrow it on screen the way
+  they narrow everything). Measured at a held shake of 1: first person
+  1.8–2.0 degrees RMS, third 2.1 resting and 2.2 braced. A blade's camera
+  keeps its positional shove — nothing about it was asked to change.
+  **THE SHAKE IS THE PICTURE'S, NEVER THE ROUND'S.** `gunRay` read
+  `camera.getWorldDirection`, so once the first-person shake became a turn
+  of the look it bent real shots — about a third of a degree a round on an
+  aimed carbine. The first-person camera writes `FPS.fwd` (the look from
+  `FPS.pitch` and `G.camYaw`, no shake) and `gunRay` reads that behind the
+  eyes. Measured: identical to the camera's direction calm; under a held
+  shake the camera wanders 2.6 degrees and the ray does not move. Over the
+  shoulder the ray always has a `base` and never read the camera.
+  **To measure it**: hold `G.camShake` from a rAF tick and take the RMS
+  angle of `camera.getWorldDirection` against the mean of ten unshaken
+  frames. A single shot is useless in the harness: the two views run at
+  different frame times and the shake is gone in two or three frames.
+- **THE BOLT AND THE PUMP CYCLE AFTER THE SHOT, AND THEY USED TO DO IT IN
+  SILENCE.** `FPS.boltT` ran and the bolt part moved, and nothing played
+  a sound, and the case left with the report. Now `fireGun` sets
+  `FPS.cyc` and `updateGun` fires the beats as `boltT` crosses them:
+  `BOLT_UP` (.19) `boltUp`, `BOLT_EJECT` (.33) the case, `BOLT_DOWN` (.45)
+  `boltDown`; the pump's sound at .1 and its case at .2. `ejectShell` is
+  skipped in `fireGun` for a bolt or a pump. `boltCycle(V)` moves the
+  bolt on those same beats (lift, then .085 back) for the viewmodel AND
+  the rig's gun, and `boltCant()` (0..1 over .1–.8) cants the whole gun
+  toward the working hand — `.3` of roll in `updateViewmodel`, `-.35` on
+  the rig's weapon in `poseGunCarry` with the left arm and head going
+  with it. That cant is what makes a turn-bolt READ as one from behind
+  the eyes. Everything is gated off during a bolt-type reload, which runs
+  the bolt itself. `gunSwapped` clears `cyc`.
+- **A PISTOL'S SLIDE IS `slideA` INSIDE `slideG`**, the magazine's
+  pattern: `slideG` is the vmPart the ADS split may move, `slideA` is what
+  `slideMotion(V,g)` moves along +z by `g.slideTravel` (.046 on the Eagle,
+  .036 on the Colt). Back in .03s, home by .13s; **held open on an empty
+  magazine**; in a box reload held open until `act[0]` if the reload
+  began empty (`reloadPlan` returns `empty`) and then slammed home in
+  .05s, else racked as a hump over `act`. Anything that belongs to the
+  SLIDE — body, top edge, serrations, safeties, port — goes in `slideA`;
+  the barrel block, the rib and the frame do not, or they travel with it.
+- **THE EAGLE'S RIB IS ONE PIECE, FLUSH.** It was a thin stick with its
+  slots standing PROUD of it, which read as a loose part rather than as
+  the top of the gun. It is one `vmOct` the full length (`RIB0`–`RIB1`)
+  with a cream `goldHi` top strip broken at each slot, and the slots are
+  `goldD` sunk a hair below that strip. Cuts go INTO a surface (the
+  furniture rule above).
+- **BLOWBACK IS `g.flip`, ON THE KICK TO THE POWER 1.5.** `updateViewmodel`
+  adds `k*sqrt(k)*g.flip*(1-.45*ads)` to the pitch; it has to beat the
+  `-k*R.up*.12` that dips every gun as the eye climbs. On the square the
+  Eagle's barrel rose 15 degrees for ONE frame and was level in a tenth of
+  a second, gone before the eye found it. Now (projecting the barrel
+  through the camera, kick held): Eagle 25 / 8 / 1.5 degrees at k 1 / .6 /
+  .3, Colt 10 / 5 / 1. `g.kickMul` multiplies `FPS.kick` in
+  `poseGunCarry` so the pilgrim's arms take the same buck over the
+  shoulder (Eagle 1.9, Colt 1.3).
+- **THE ACOG IS FASTENED, AND NOTHING MAY CROSS THE BORE.** `sightAcog`
+  builds a base on the rail, pedestals from `railY+.010` up to EXACTLY
+  `ay-R` (the tube's underside, R .026), rings as tori OUTSIDE the tube
+  (`R+.0035`), turrets standing off the tube's OUTER wall (`ay+R+.007`
+  on top, `R+.0065` on the side). The first build pushed rings and
+  turrets into the tube's radius, and down the scope they drew a dark
+  shelf across the bottom and a block in the top of the picture — every
+  part looked right from the side. `sightZ.acog` is still the eyepiece's
+  rear (~zc+.068). **If the aimed ACOG ever shows anything inside the
+  circle but the world and the reticle, look for a part whose radius is
+  under R.**
+- **THE BELL-CALLED'S THUMB IS SWUNG OUT, `rotation.y=-.95`.** It was
+  `+1.1`, which swung it IN under the palm, and the measured tip sat
+  inside the palm's own box — the hand had four fingers. Measured now in
+  the palm's frame: root x −0.58, tip x −1.42 against a palm half-width
+  of 0.53, tip 0.53m above the soil.
+- **A CUTSCENE PUTS THE SIGHTS DOWN** (`cutPlay`, after its refusal
+  check): `FPS.adsOn=false, ads=0, zoom=0, applyFov()`. It used to keep
+  whatever lens the sights had — the Barrett's 8x is seven degrees — so
+  the Bell-Called's roar was a jaw filling the frame. And `updateGun`'s
+  own FOV write is gated `!CUT.on`, or it pulls the lens back the frame
+  after. Measured: 7 and 30 before the scene, 68 through all of it.
 - **THE BARRETT AND THE KAR98K ARE TWO GUNS, AND THE OLD SNIPER IS THE
   BARRETT.** Key `sniper` is the **Barrett .50** — the name and the model
   changed, the key did not, so every saved loadout and attachment choice

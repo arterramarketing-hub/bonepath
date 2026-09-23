@@ -1692,6 +1692,7 @@ const camera=new THREE.PerspectiveCamera(68,16/9,0.1,220);
    rate on the screen the same while the sights are up. */
 const FOV_REF=68;
 const VIEW={fov:FOV_REF,sens:1};
+const SHAKE_ANG=.094;   // radians of look per unit of camShake with a gun in the hands, in EITHER view — declared up here because both cameras read it
 const _vclamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 try{const v=JSON.parse(localStorage.getItem('bp_view')||'{}');
   if(isFinite(v.fov))VIEW.fov=_vclamp(+v.fov,60,100);
@@ -1952,7 +1953,7 @@ const AudioSys=(()=>{
      were the loudest things in the field by a distance, are pulled down
      harder still on top of that. */
   const BG_GAIN=.62;
-  let sfxBus=null,musicMaster=null,sfxOn=true,musicWanted=true;
+  let sfxBus=null,musicMaster=null,sfxOn=true,musicWanted=true,whiteBuf=null;
   try{sfxOn=localStorage.getItem('bp_sfx')!=='0';musicWanted=localStorage.getItem('bp_music')!=='0';}catch(e){}                                     // the rain bed's gain, and the level asked for before the graph exists
   let verbSend=null,verbWet=null,space=0;
   /* the whole mix goes through a grimy chain — tape saturation, a dull
@@ -1992,6 +1993,14 @@ const AudioSys=(()=>{
     master.connect(crush);crush.connect(dull);dull.connect(rumble);rumble.connect(comp);
     master.connect(verbSend);verbSend.connect(verb);verb.connect(verbWet);verbWet.connect(comp);
     comp.connect(ac.destination);
+    /* WHITE NOISE, for the mechanism. `noiseBuf` below is BROWN — every
+       sample is the last one plus a little — so it has almost nothing
+       above a couple of kilohertz, and every reload click and strike that
+       filtered it at 4-9kHz came out near silent. What was left audible
+       was the triangle tone under each one, and a soft pure tone is
+       exactly what a plastic toy sounds like. Foley is broadband. */
+    whiteBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);
+    {const w=whiteBuf.getChannelData(0);for(let k=0;k<w.length;k++)w[k]=Math.random()*2-1;}
     const len=ac.sampleRate*2;
     noiseBuf=ac.createBuffer(1,len,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);
@@ -2054,9 +2063,9 @@ const AudioSys=(()=>{
     g.gain.linearRampToValueAtTime(peak,t0+a);
     g.gain.exponentialRampToValueAtTime(.0001,t0+a+dec);
   }
-  function noise(t0,{peak=.3,att=.005,dec=.15,f0=1200,f1=300,type='lowpass',Q=1,bus=null}={}){
+  function noise(t0,{peak=.3,att=.005,dec=.15,f0=1200,f1=300,type='lowpass',Q=1,bus=null,white=false}={}){
     if(!ac)return;
-    const s=ac.createBufferSource();s.buffer=noiseBuf;
+    const s=ac.createBufferSource();s.buffer=white?whiteBuf:noiseBuf;
     s.playbackRate.value=rr2(.9,1.1);
     const fl=ac.createBiquadFilter();fl.type=type;fl.Q.value=Q;
     fl.frequency.setValueAtTime(f0,t0);
@@ -2085,17 +2094,52 @@ const AudioSys=(()=>{
      `mscrape` is metal sliding on metal: a filtered hiss with a handful of
      tiny catches scattered through it, because a rail is not smooth.
      Do not go back to a round tone. The roundness IS the plastic. */
+  /* METAL, STRUCK. A steel part hit is four things and none of them is a
+     tone: the CLICK of contact (broadband, two-tenths of a millisecond of
+     attack, gone in five), the STRIKE (a wide band round the part's own
+     pitch for twenty milliseconds), the part RINGING — narrow bands of
+     white noise at five frequencies in no harmonic relation to one
+     another (1 : 1.52 : 2.31 : 3.08 : 3.92), the higher ones dying first,
+     which is what a stamped steel part actually does and what makes the ear
+     say METAL rather than NOTE — and the MASS behind it, a low-passed
+     thump with only a breath of sine under it.
+     `f` is the part's lowest mode: ~700-900 a magazine's sheet-steel box,
+     1100-1500 a bolt or a carrier, 2300-3000 a catch or a lever.
+     The mode gain is compensated for its bandwidth (`.208*sqrt(q*24000/f)`)
+     so a narrow band carries the level a tone would; `nm` limits the mode
+     count for the tiny ticks inside a scrape, which fire in dozens. */
+  const PART=[1,1.52,2.31,3.08,3.92],PAMP=[1,.62,.46,.3,.18];
+  function metal(t,{peak=.2,f=1800,q=26,dec=.08,body=180,bodyAmt=.5,click=1,nm=5}={}){
+    if(!ac)return;
+    noise(t,{peak:peak*.7*click,att:.0002,dec:.005,f0:7200,f1:2600,type:'highpass',Q:.6,white:true});        // the click
+    noise(t,{peak:peak*.5,att:.0003,dec:.02,f0:f*2.2,f1:f*.9,type:'bandpass',Q:.8,white:true});               // the strike
+    for(let i=0;i<nm;i++){const fm=f*PART[i]*rr2(.985,1.015);if(fm>6400)break;                                  // the part, ringing
+      noise(t+.0004*i,{peak:peak*PAMP[i]*.208*Math.sqrt(q*24000/fm),att:.0005,dec:dec/(1+i*.45),f0:fm,f1:fm*.996,type:'bandpass',Q:q,white:true});}
+    if(bodyAmt>0){noise(t,{peak:peak*bodyAmt,att:.0006,dec:.04,f0:body*5,f1:body*1.2,type:'lowpass',Q:.9,white:true});   // the mass
+      tone(t,{f:body,f2:body*.55,type:'sine',peak:peak*bodyAmt*.4,att:.0006,dec:.035});}
+  }
+  // the old name, kept so every call site speaks through the new voice
   function clack(t,{peak=.22,body=170,ring=3100,dec=.045,bright=1}={}){
-    noise(t,{peak:peak,att:.0004,dec:dec,f0:6000*bright,f1:1400,type:'bandpass',Q:.9});
-    noise(t,{peak:peak*.45,att:.0003,dec:.011,f0:9000*bright,f1:4200,type:'highpass',Q:.7});
-    tone(t,{f:body,f2:body*.45,type:'triangle',peak:peak*.38,att:.0004,dec:dec+.012});
-    tone(t+.0012,{f:ring,f2:ring*.87,type:'triangle',peak:peak*.09,att:.001,dec:.2});
+    metal(t,{peak,f:ring*.6,dec:Math.max(.05,dec*2.4),body,bodyAmt:.6,click:bright});
   }
+  /* METAL SLIDING ON METAL: a band that moves with the travel, the weight
+     of the part dragging under it, and a scatter of tiny catches — a rail
+     is not smooth, and the catches are what say the parts are steel. */
   function mscrape(t,{peak=.09,dur=.1,f0=1500,f1=3000}={}){
-    noise(t,{peak:peak,att:.012,dec:dur,f0:f0,f1:f1,type:'bandpass',Q:3.4});
+    noise(t,{peak:peak*.9,att:.01,dec:dur,f0:f0,f1:f1,type:'bandpass',Q:2.2,white:true});
+    noise(t,{peak:peak*.5,att:.015,dec:dur*.9,f0:f0*.35,f1:f1*.3,type:'bandpass',Q:1.4,white:true});
     const n=4+(Math.random()*3|0);
-    for(let i=0;i<n;i++)noise(t+dur*(i/n)+rr2(0,.01),{peak:peak*.5,att:.0004,dec:.007,f0:rr2(4200,6400),f1:2800,type:'bandpass',Q:5});
+    for(let i=0;i<n;i++)metal(t+dur*(i/n)+rr2(0,.01),{peak:peak*rr2(.25,.45),f:rr2(2400,3600),dec:.014,bodyAmt:0,click:.6,q:18,nm:2});
   }
+  // the HAND: glove and sleeve on the weapon before anything moves. Every
+  // recorded reload has it and every synthesised one forgets it
+  function rustle(t,dur,peak){dur=dur||.18;peak=peak||.045;
+    for(let i=0;i<3;i++)noise(t+i*dur/3+rr2(0,.02),{peak:peak*rr2(.6,1),att:dur*.15,dec:dur*.35,f0:rr2(1400,2600),f1:900,type:'bandpass',Q:.7,white:true});}
+  // the palm striking the floor plate home: flesh on steel, a low slap
+  function slap(t,peak){noise(t,{peak:peak||.14,att:.0006,dec:.05,f0:900,f1:220,type:'lowpass',Q:.8,white:true});
+    noise(t,{peak:(peak||.14)*.35,att:.0003,dec:.012,f0:3200,f1:1400,type:'bandpass',Q:1,white:true});}
+  // a spring left humming in the action: one narrow band, quiet, long
+  function spring(t,f,peak){noise(t,{peak:(peak||.03)*.208*Math.sqrt(60*24000/f),att:.001,dec:.22,f0:f,f1:f*.96,type:'bandpass',Q:60,white:true});}
   /* a VOICE: a sawtooth (the cords) through three formant filters (the
      throat and mouth, shaped to a vowel), on a pitch line, with a breath
      of noise under it and a vibrato if wanted — the nearest a synth gets
@@ -2531,64 +2575,79 @@ const AudioSys=(()=>{
        spent hull clearing it — and forward, which is the heavier of the
        two because that stroke chambers a shell and locks. */
     pump(){if(!ac)return;const t=now();
-      mscrape(t,{peak:.1,dur:.075,f0:1300,f1:2700});
-      clack(t+.072,{peak:.25,body:158,ring:2500,dec:.05});
-      clack(t+.104,{peak:.11,body:420,ring:3400,dec:.022,bright:1.2});      // the hull clears
-      mscrape(t+.13,{peak:.095,dur:.055,f0:2700,f1:1300});
-      clack(t+.192,{peak:.28,body:118,ring:2100,dec:.075,bright:1.15});     // and into battery
-      clack(t+.206,{peak:.12,body:300,ring:4200,dec:.018,bright:1.3});},
-    gunEmpty(){if(!ac)return;const t=now();clack(t,{peak:.1,body:640,ring:5200,dec:.018,bright:1.3});},
+      mscrape(t,{peak:.11,dur:.075,f0:1100,f1:2400});                       // the fore-end back along the tube
+      metal(t+.072,{peak:.26,f:1250,dec:.1,body:150,bodyAmt:.7});           // the action open, hard against the stop
+      metal(t+.1,{peak:.09,f:2100,dec:.05,body:420,bodyAmt:.2});            // the hull kicked clear (plastic and brass: short)
+      mscrape(t+.13,{peak:.1,dur:.055,f0:2400,f1:1100});                    // and forward
+      metal(t+.19,{peak:.32,f:1050,dec:.14,body:110,bodyAmt:.9});           // INTO BATTERY: the weight of it
+      metal(t+.205,{peak:.12,f:2700,dec:.04,bodyAmt:.1});},                 // the slide lock catching
+    gunEmpty(){if(!ac)return;const t=now();metal(t,{peak:.34,f:2600,dec:.03,body:700,bodyAmt:.25});},   // a dry click has to be HEARD over a fight: at .12 it rendered .017, under the hitmarker
     /* THE RELOAD, IN THREE MECHANISMS. Each stage is a small sequence, not
        a sound: a catch releases, a part travels, a part arrives and stops
        dead. The arrival is always the loudest thing in the stage — that is
        what tells the ear the magazine is home and not merely near. */
+    /* A MAGAZINE, the way a recorded one sounds: the hand arriving, the
+       release button (a small hard click with a lever's ring), the box
+       sliding out against the well with its catches, and the box itself
+       — a stamped steel box rings LOW — clearing the well. */
     magOut(){if(!ac)return;const t=now();
-      clack(t,{peak:.11,body:900,ring:5400,dec:.014,bright:1.35});          // the catch, thumbed
-      mscrape(t+.022,{peak:.075,dur:.085,f0:1700,f1:900});                  // the magazine dropping free
-      clack(t+.115,{peak:.12,body:132,ring:1500,dec:.055,bright:.8});},     // and clear of the well
+      rustle(t,.14,.027);
+      metal(t+.035,{peak:.088,f:2700,dec:.04,body:900,bodyAmt:.2});          // the release, thumbed
+      mscrape(t+.05,{peak:.061,dur:.09,f0:1300,f1:700});                     // the magazine sliding out of the well
+      metal(t+.14,{peak:.102,f:820,dec:.11,body:160,bodyAmt:.45});},         // and clear of it: the box ringing
+    /* AND IN: the lips finding the well, the box driven home — the loudest
+       beat of the reload, a low heavy CHUNK with the box ringing under it —
+       the latch taking it a hair after, and the palm slapping the floor
+       plate to be sure. The seat is what says the gun is loaded. */
     magIn(){if(!ac)return;const t=now();
-      mscrape(t,{peak:.07,dur:.05,f0:1100,f1:2100});                        // lips finding the well
-      clack(t+.052,{peak:.28,body:126,ring:2200,dec:.07,bright:.95});       // SEATED — the weight of the reload
-      clack(t+.072,{peak:.12,body:820,ring:5000,dec:.016,bright:1.35});},   // the catch taking it
+      rustle(t,.1,.024);
+      mscrape(t+.02,{peak:.054,dur:.045,f0:900,f1:1800});                    // lips finding the well
+      metal(t+.07,{peak:.204,f:760,dec:.14,body:118,bodyAmt:.9});             // SEATED
+      metal(t+.083,{peak:.095,f:2900,dec:.035,bodyAmt:.1});                  // the latch taking it
+      slap(t+.12,.082);},                                                     // and the palm, to be sure
     /* A SHELL INTO THE TUBE: the rim past the lifter, the brass sliding
        up the magazine, and the follower taking it. Small, and it plays
        once a shell, so it must stay small. */
     shellIn(){if(!ac)return;const t=now();
-      clack(t,{peak:.09,body:700,ring:4200,dec:.014,bright:1.25});
-      mscrape(t+.02,{peak:.055,dur:.05,f0:1400,f1:2400});
-      clack(t+.07,{peak:.13,body:210,ring:2600,dec:.03});},
+      metal(t,{peak:.061,f:2500,dec:.04,body:700,bodyAmt:.15});             // the rim past the lifter
+      mscrape(t+.02,{peak:.041,dur:.05,f0:1200,f1:2200});                    // up the tube
+      metal(t+.07,{peak:.109,f:1400,dec:.07,body:220,bodyAmt:.5});},         // the follower takes it
     /* THE ROCKET, seated: the tail slid down the tube and the shoulder of
        the warhead stopping against the mouth — one heavy arrival. */
     rocketIn(){if(!ac)return;const t=now();
-      mscrape(t,{peak:.09,dur:.14,f0:900,f1:1700});
-      clack(t+.15,{peak:.3,body:96,ring:1600,dec:.09,bright:.85});
-      clack(t+.17,{peak:.1,body:400,ring:3000,dec:.02,bright:1.1});},
+      mscrape(t,{peak:.061,dur:.14,f0:900,f1:1700});
+      clack(t+.15,{peak:.204,body:96,ring:1600,dec:.09,bright:.85});
+      clack(t+.17,{peak:.068,body:400,ring:3000,dec:.02,bright:1.1});},
     // an empty magazine on the ground: a dull box, not a case
     magDrop(){if(!ac)return;const t=now();
-      clack(t,{peak:.12,body:150,ring:1300,dec:.05,bright:.7});
-      clack(t+.05,{peak:.05,body:260,ring:1900,dec:.025,bright:.8});},
+      metal(t,{peak:.13,f:700,dec:.07,body:140,bodyAmt:.8,click:.7});      // an empty box on the ground: dull, and it rings low
+      metal(t+.05,{peak:.05,f:980,dec:.04,body:240,bodyAmt:.4,click:.5});},
+    /* THE CHARGING HANDLE: caught, drawn back against the spring, hard on
+       the stop, let go — and the bolt SLAMMING into battery, which is the
+       loudest thing a reload makes and the sound that means ready. */
     rack(){if(!ac)return;const t=now();
-      clack(t,{peak:.16,body:520,ring:3600,dec:.02,bright:1.2});            // the handle caught
-      mscrape(t+.012,{peak:.1,dur:.062,f0:1600,f1:3100});                   // drawn back
-      clack(t+.078,{peak:.2,body:240,ring:2800,dec:.03});                   // against the stop
-      mscrape(t+.1,{peak:.085,dur:.042,f0:3100,f1:1500});                   // released, running home
-      clack(t+.148,{peak:.30,body:104,ring:1900,dec:.085,bright:1.1});       // the bolt into battery
-      tone(t+.15,{f:2600,f2:1250,type:'triangle',peak:.045,att:.001,dec:.24});}, // the spring left ringing
+      metal(t,{peak:.082,f:2300,dec:.03,body:520,bodyAmt:.2});              // the handle caught
+      mscrape(t+.012,{peak:.068,dur:.065,f0:1400,f1:2600});                   // drawn back
+      metal(t+.08,{peak:.136,f:1500,dec:.06,body:260,bodyAmt:.5});           // against the stop
+      mscrape(t+.1,{peak:.054,dur:.042,f0:2600,f1:1300});                    // released, running home
+      metal(t+.145,{peak:.231,f:1150,dec:.16,body:105,bodyAmt:.9});         // THE BOLT INTO BATTERY
+      spring(t+.15,2400,.019);},                                           // and the spring left humming
     /* A TURN-BOLT is four motions and you hear every one: the handle up,
        the bolt back over the spent case, the bolt forward over a live
        round, the handle down and locked. */
     bolt(){if(!ac)return;const t=now();this.boltUp(t);this.boltDown(t+.2);},
     // the reload holds the bolt OPEN while the rounds go in, so it hears the two halves apart
+    /* THE TURN-BOLT, in its four beats — timed against BOLT_UP/BOLT_DOWN,
+       so the handle you see lift is the handle you hear. */
     boltUp(t0){if(!ac)return;const t=t0===undefined?now():t0;
-      clack(t,{peak:.19,body:380,ring:3200,dec:.026,bright:1.15});          // lifted out of its lug
-      mscrape(t+.03,{peak:.095,dur:.1,f0:1500,f1:2900});
-      clack(t+.135,{peak:.22,body:210,ring:2700,dec:.034});                 // hard against the stop
-      clack(t+.16,{peak:.1,body:560,ring:4600,dec:.016,bright:1.3});},      // the case flicked out
+      metal(t,{peak:.2,f:1900,dec:.06,body:300,bodyAmt:.35});             // lifted out of its lug: the cam breaking
+      mscrape(t+.03,{peak:.11,dur:.1,f0:1300,f1:2600});                    // drawn back over the spent case
+      metal(t+.135,{peak:.25,f:1350,dec:.09,body:200,bodyAmt:.5});         // hard against the stop
+      metal(t+.16,{peak:.1,f:3100,dec:.06,bodyAmt:0,click:.8});},          // the case flicked out: a brass ping
     boltDown(t0){if(!ac)return;const t=t0===undefined?now():t0;
-      mscrape(t,{peak:.09,dur:.09,f0:2900,f1:1400});
-      clack(t+.1,{peak:.24,body:140,ring:2300,dec:.06,bright:1.05});         // a round stripped and chambered
-      clack(t+.16,{peak:.20,body:320,ring:3000,dec:.03,bright:1.1});        // and locked down
-      tone(t+.362,{f:2200,f2:1100,type:'triangle',peak:.035,att:.001,dec:.2});},
+      mscrape(t,{peak:.1,dur:.09,f0:2600,f1:1300});                        // forward over a live round
+      metal(t+.1,{peak:.3,f:1100,dec:.12,body:130,bodyAmt:.75});           // stripped and chambered
+      metal(t+.16,{peak:.24,f:1700,dec:.07,body:260,bodyAmt:.5});},        // and the handle down, locked
     /* BRASS ON SOIL. Small, bright and gone — and it must stay under the
        report that threw it, or a magazine reads as a bag of spoons.
        IT WAS A SQUEAK, and the reason was the shape rather than the level:
@@ -13556,7 +13615,11 @@ function makeBoneHandRig(){
     return js;};
   for(let i=0;i<4;i++)rig.fingers.push(finger(-.23+i*.155,.26,.40-Math.abs(i-1.4)*.04,3,.055));
   rig.thumb=finger(-.34,.02,.36,2,.066);
-  rig.thumb[0].rotation.y=1.1;
+  /* THE THUMB TURNS OUT. It was +1.1, which from a root at the palm's -x
+     edge points the thumb back ACROSS the palm — measured, it ran
+     diagonally under the palm and came out 0.35 past the far side, 0.73
+     below it, where nothing could see it. The hand had no thumb. */
+  rig.thumb[0].rotation.y=-.95;
   for(const o of[bone,dark])rig.mats.push(o);
   return rig;
 }
@@ -15350,10 +15413,20 @@ function updateCamera(dt){
   }
   camTmp.set(cx,Math.max(heightAt(cx,cz)+.6,cy),cz);
   camera.position.lerp(camTmp,1-Math.pow(.0001,dt));
+  /* A GUN SHAKES THE LOOK, NOT THE PLACE. Shaking the position turns into
+     an angle through the camera's distance, and the brace brings it in —
+     so the same round threw the aimed picture 4.8 degrees and the resting
+     one 2.7, and neither matched the eye's 2.0. And the position is
+     lerped from last frame's, so the jitter smeared into a drift. With a
+     gun in the hands it is `SHAKE_ANG` of pitch and yaw after the lookAt,
+     the same rule behind the eyes, so a shot shakes the screen the same in
+     either view. A blade keeps the old shove: its camera never changed. */
+  let shA=0;
   if(G.camShake>0){
     G.camShake=Math.max(0,G.camShake-dt*1.6);
-    camera.position.x+=(Math.random()-.5)*G.camShake*.3;
-    camera.position.y+=(Math.random()-.5)*G.camShake*.3;
+    if(gunHeld())shA=G.camShake*SHAKE_ANG;
+    else{camera.position.x+=(Math.random()-.5)*G.camShake*.3;
+      camera.position.y+=(Math.random()-.5)*G.camShake*.3;}
   }
   let lx=player.x+brx,ly=hP+1.35+ADS_LOOK*ads,lz=player.z+brz;   // the gaze slides with the aim, so the pilgrim sits left of the line
   /* OVER THE BRINK, THE EYE GOES WITH HER. The body falls out of the world
@@ -15379,6 +15452,7 @@ function updateCamera(dt){
   const lk=1-Math.pow(.0005,dt);
   lookX=lerp(lookX,lx,lk);lookY=lerp(lookY,ly,lk);lookZ=lerp(lookZ,lz,lk);
   camera.lookAt(lookX,lookY,lookZ);
+  if(shA){camera.rotateY((Math.random()-.5)*shA);camera.rotateX((Math.random()-.5)*shA);}
 }
 
 /* ======================= CUTSCENES =======================
@@ -15468,7 +15542,13 @@ function cutHold(){
   for(const h of CUT.hold)if(h.o){h.o.x=h.x;h.o.z=h.z;h.o.vx=0;h.o.vz=0;}
 }
 function cutPlay(e,shots,name,sub,then,extra){
+  /* A SCENE IS SHOT THROUGH THE ORDINARY LENS. It never reset the field of
+     view, so a bell rung with three rounds down the Barrett's glass played
+     its whole introduction at 7 degrees — nearly ten times — and through
+     the ACOG at 30. The sights come down and the lens goes back; the gun
+     does not narrow it again while the scene runs (see `updateGun`). */
   if(CUT.on||G.mode!=='play')return false;
+  FPS.adsOn=false;FPS.ads=0;FPS.zoom=0;applyFov();
   CUT.on=true;CUT.shots=shots;CUT.i=0;CUT.t=0;CUT.e=e;CUT.name=name||'';CUT.sub=sub||'';
   CUT.then=then||null;CUT.titled=false;CUT.epped=false;CUT.out=0;
   // one bearing for the whole scene, taken now: every shot is written as
@@ -15841,11 +15921,15 @@ const GUNS=[
      round FROM THE HIP has a cone of its own (`sp`: at rest, walking, and
      the bloom a shot adds) that the crosshair draws; on the sights the cone
      is gone and the round goes exactly where the sight is — see gunRay. */
-  {key:'deagle',name:'desert eagle',cal:'50',mag:7,dmg:34,head:2,rof:.36,auto:false,gap:6,rlCarry:.55,sp:{hip:.026,walk:.018,shot:.05},
-    sway:{idle:.0045,rate:1.1,look:.0011,walk:.014,bob:.010},rec:{cam:.07,yaw:.018,back:.07,up:1.0,side:.25,recover:6,settle:.55},
+  /* `flip` is the muzzle thrown UP by the blowback (the viewmodel's pitch,
+     radians at a full kick, on the square of the kick so it snaps and
+     settles); `kickMul` is how much harder the pilgrim's arms ride it over
+     the shoulder. Only the pistols carry them: a .50 out of one hand. */
+  {key:'deagle',name:'desert eagle',cal:'50',mag:7,dmg:34,head:2,rof:.36,auto:false,gap:6,rlCarry:.55,flip:.6,kickMul:1.9,sp:{hip:.026,walk:.018,shot:.05},
+    sway:{idle:.0045,rate:1.1,look:.0011,walk:.014,bob:.010},rec:{cam:.095,yaw:.03,back:.12,up:1.6,side:.35,recover:5,settle:.55},
     poise:2.2,kb:1.3,reload:1.5,adsFov:50,adsSpeed:9,range:60,
     note:'a hand cannon in gold, .50 cal: seven rounds, each a hollow\'s worth and two to a brute; a head under one comes off. it climbs hard and the sights hold half of it down'},
-  {key:'1911',name:'colt 1911',cal:'9mm',mag:9,dmg:14,head:1.9,rof:.30,auto:false,gap:6,rlCarry:.55,sp:{hip:.024,walk:.016,shot:.04},
+  {key:'1911',name:'colt 1911',cal:'9mm',mag:9,dmg:14,head:1.9,rof:.30,auto:false,gap:6,rlCarry:.55,flip:.32,kickMul:1.3,sp:{hip:.024,walk:.016,shot:.04},
     sway:{idle:.0042,rate:1.15,look:.001,walk:.013,bob:.009},rec:{cam:.045,yaw:.014,back:.05,up:.8,side:.2,recover:7,settle:.5},
     poise:1.6,kb:.9,reload:1.45,adsFov:52,adsSpeed:10,range:55,
     note:'the eagle\'s slimmer cousin in blued steel, 9mm off the ump\'s pool: nine rounds, quick on the trigger, half the eagle\'s kick and a hollow in seven — four if they are all in the skull'},
@@ -16080,23 +16164,39 @@ function sightRedDot(railY,zc){const M=gunMats(),s=new THREE.Group(),wy=railY+.0
    modelled and the gun stays in the frame; the tube is open at both ends
    and drawn on both faces, so what is inside it is its own wall, and the
    HUD adds the reticle over the middle and nothing else. */
-function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.046;zc=zc||0;
-  s.add(vmOct(.026,.012,.056,M.gunD,0,railY+.006,zc));                       // the mount on the rail
-  s.add(vmOct(.040,.024,.016,M.gunD,0,railY+.022,zc-.030));                  // the rings that clamp the body
-  s.add(vmOct(.040,.024,.016,M.gunD,0,railY+.022,zc+.030));
-  /* ONE BORE, ONE RING. The body was r .024 with a WIDER eyepiece of
-     r .028 behind it, and looking down a tube whose radius steps you see
-     the edge of each one: two concentric hoops, one inside the other.
-     A scope's body is a single bore from the eye to the bell. The BELL may
-     flare, and does, because anything WIDER than the bore is outside what
-     the bore already frames and shows no edge of its own — it is only a
-     narrowing that draws a second ring. */
-  s.add(vmTube(.026,.148,14,M.tube,0,ay,zc-.008));                           // the body, one bore the whole way back to the eye
-  s.add(vmRing(.026,.004,14,M.gunD,0,ay,zc+.064));                           // and its ONE rim, at the eye's end
-  s.add(vmTube(.033,.032,14,M.tube,0,ay,zc-.088));                           // the bell, flaring out at the front
-  s.add(vmRing(.033,.004,14,M.gunD,0,ay,zc-.102));                           // its rim
-  s.add(vmKnob(.009,.017,8,M.gun,0,ay+.028,zc-.006));                        // the elevation turret
-  s.add(vmKnob(.008,.015,8,M.gun,.028,ay,zc-.006,Math.PI/2));                // the windage, on the side
+function sightAcog(railY,zc){const M=gunMats(),s=new THREE.Group(),ay=railY+.046,R=.026;zc=zc||0;
+  /* EVERY PART TOUCHES THE PART UNDER IT, AND NOTHING ENTERS THE BORE. The
+     first build clamped the tube with two BOXES whose tops stood 14mm
+     inside the bore — aimed, a dark shelf filled the bottom of the sight
+     picture — and centred both turrets on the tube's wall, so half of
+     each poked into the bore from above and from the side. From outside,
+     nothing held anything: parts passed through one another.
+     Now, bottom to top: the base clamped on the rail; two pedestals
+     standing from it to exactly the tube's underside (`ay-R`); a RING
+     round the tube on each, a torus of the tube's own radius plus its
+     wall, so it grips the outside and never crosses the bore; the turrets
+     standing FROM the tube's outer wall outward; and the bell flaring off
+     the front through a short open cone, so the step is a slope and not a
+     ledge. `sightZ` is the rear rim's back face, unchanged at zc+.068. */
+  s.add(vmOct(.028,.010,.070,M.gunD,0,railY+.005,zc));                        // the base, clamped on the rail
+  s.add(vmBox(.030,.004,.012,M.grey,0,railY+.002,zc-.022));s.add(vmBox(.030,.004,.012,M.grey,0,railY+.002,zc+.022));   // its two cross-bolts
+  for(const pz of[-.030,.030]){
+    const top=ay-R,bot=railY+.010,h=top-bot;
+    s.add(vmOct(.022,h+.001,.014,M.gunD,0,bot+h/2,zc+pz));                     // a pedestal, up to the tube's underside and no further
+    s.add(vmRing(R+.0035,.0035,16,M.gunD,0,ay,zc+pz));                         // and the ring round the tube: OUTSIDE it, gripping
+    s.add(vmBox(.006,.006,.012,M.grey,.0,ay+R+.006,zc+pz));                    // the ring's clamp screw on top
+  }
+  s.add(vmTube(R,.148,16,M.tube,0,ay,zc-.008));                               // the body, one bore the whole way back to the eye
+  s.add(vmRing(R,.0028,16,M.gunD,0,ay,zc+.066));                              // its ONE rim, at the eye's end (thinner: it is the nearest thing to the lens)
+  {const c=new THREE.Mesh(new THREE.CylinderGeometry(R,.033,.018,16,1,true),M.tube);   // the flare: an open cone, the bore widening into the bell
+   c.rotation.x=Math.PI/2;c.position.set(0,ay,zc-.091);s.add(c);}
+  s.add(vmTube(.033,.028,16,M.tube,0,ay,zc-.114));                            // the bell
+  s.add(vmRing(.033,.004,16,M.gunD,0,ay,zc-.128));                            // its rim
+  s.add(vmKnob(.0095,.014,10,M.gun,0,ay+R+.007,zc-.006));                     // the elevation turret, standing FROM the tube's crown
+  s.add(vmKnob(.0105,.004,10,M.grey,0,ay+R+.0155,zc-.006));                   // its cap
+  s.add(vmKnob(.0085,.013,10,M.gun,R+.0065,ay,zc-.006,Math.PI/2));            // the windage, from the tube's side
+  s.add(vmKnob(.0095,.004,10,M.grey,R+.0145,ay,zc-.006,Math.PI/2));           // its cap
+  s.add(vmOct(.010,.006,.050,M.gunD,0,ay+R+.003,zc+.040));                    // the fibre-optic housing along the top, rear half
   s.h=ay;return s;}
 /* SPENT BRASS. A pool of fourteen, because a magazine's worth of them all
    at once is thirty draws nobody asked for; the oldest is recycled. They
@@ -16287,14 +16387,34 @@ function buildGunModel(key,o){o=o||{};
        half and the gas port under it; the rib runs the whole length; the
        guard is squared with a hook forward; the grip is wide and flat-
        backed. The frame sits under the slide's rear only. */
-    g.body=vmOct(.046,.050,.170,M.goldM,0,.058,.000);g.add(g.body);            // the slide, z .085 .. -.085
+    /* THE SLIDE IS ITS OWN PART, AND IT MOVES. `slideG` (outer, a vmPart
+       the ADS split may take) holds `slideA` (inner, what the blowback
+       moves) — the magazine's pattern, so the split's z and the recoil's z
+       never fight. The barrel block, its rib and the sights stay: on a
+       Desert Eagle the barrel is fixed and the slide runs back under the
+       rib. `slideMotion` drives it; an empty gun holds it back. */
+    const slideG=new THREE.Group(),slideA=new THREE.Group();slideG.add(slideA);g.add(slideG);g.slideA=slideA;g.slideTravel=.046;
+    g.body=vmOct(.046,.050,.170,M.goldM,0,.058,.000);slideA.add(g.body);       // the slide, z .085 .. -.085
+    slideA.add(vmBox(.0462,.004,.166,M.gold,0,.0805,.000));                    // its top edge, flush with the flank: the line the light finds
+    for(let i=0;i<6;i++)slideA.add(vmBox(.0466,.034,.005,M.goldD,0,.057,.070-i*.013));   // the serrations at the rear — CUT, flush with the flank, not fins off it
+    for(let i=0;i<2;i++)slideA.add(vmBox(.0466,.034,.005,M.goldD,0,.057,-.052-i*.013));  // ...and the pair at the slide's front
+    slideA.add(vmBox(.0468,.048,.003,M.goldD,0,.058,-.0835));                   // the slide's front face, a dark line where it meets the block
     g.add(vmOct(.046,.078,.128,M.gold,0,.044,-.141));                          // THE BARREL BLOCK: full height, z -.077 .. -.205
-    g.add(vmBox(.0475,.005,.290,M.gold,0,.0805,-.060));                        // the top edge the light finds, the whole length
-    g.add(vmOct(.030,.012,.288,M.goldHi,0,.088,-.061));                        // the rib, the whole length
-    for(let i=0;i<5;i++)g.add(vmBox(.024,.005,.010,M.goldD,0,.0925,-.160+i*.046));  // the rib's slots, CUT: narrower than it and a step down
-    for(let i=0;i<6;i++)g.add(vmBox(.0492,.036,.005,M.goldD,0,.057,.070-i*.013));   // the serrations at the rear, PROUD of the flank
-    for(let i=0;i<2;i++)g.add(vmBox(.0492,.036,.005,M.goldD,0,.057,-.062-i*.013));  // ...and the pair at the slide's front
-    g.add(vmBox(.0475,.004,.050,M.goldD,0,.0555,-.082));                        // the seam where the slide meets the block, a dark line across
+    g.add(vmBox(.0462,.004,.126,M.goldHi,0,.0805,-.141));                      // its top edge, the same line carried on
+    /* THE RIB IS THE BARREL'S, AND IT IS ONE PIECE WITH IT. It was a cream
+       strip laid over a gold gun with five brown planks standing a
+       millimetre ABOVE it — from any height it read as a separate stick
+       with things stuck to it. Now the rib is the block's own gold, seated
+       half a millimetre into the top it stands on; only its crown is lit,
+       and the crown is broken into six lengths with the five slots cut
+       DOWN between them, a millimetre and a quarter below the lit faces,
+       so they read as cuts in one bar and not as parts on it. */
+    const RIB0=-.205,RIB1=.083,SLOT=[-.160,-.114,-.068,-.022,.024],SW=.010;
+    g.add(vmOct(.026,.010,RIB1-RIB0,M.gold,0,.0875,(RIB0+RIB1)/2));             // the rib body, y .0825 .. .0925, seated on the top
+    {let z0=RIB0;for(const zc of SLOT.concat([RIB1+SW/2])){const z1=Math.min(RIB1,zc-SW/2);
+       if(z1>z0)g.add(vmBox(.020,.002,z1-z0,M.goldHi,0,.0930,(z0+z1)/2));        // the lit crown, one length between each pair of slots
+       z0=zc+SW/2;}}
+    for(const zc of SLOT)g.add(vmBox(.016,.0025,SW,M.goldD,0,.0915,zc));         // the slots, cut down between the lengths
     // THE MUZZLE: a flat square face with the bore in its upper half and the gas port under it
     g.add(vmCyl(.0072,.012,8,M.dark,0,.059,-.208));                            // the bore
     g.add(vmCyl(.0055,.008,8,M.dark,0,.020,-.207));                            // the gas port
@@ -16327,12 +16447,12 @@ function buildGunModel(key,o){o=o||{};
     const mb=vmOct(.044,.012,.056,M.goldM,0,-.110,.086);mb.rotation.x=rk;magA.add(mb);   // the base plate closing the grip
     g.magG=magG;g.magA=magA;g.magAxis=new THREE.Vector3(0,-Math.cos(rk),Math.sin(rk));g.magDims=[.044,.100,.044];
     // THE CONTROLS, and every one of them a step off the gold it sits on
-    g.add(vmOct(.010,.016,.032,M.goldD,-.025,.052,.046));                      // the safety, on the slide — BOTH sides, a Desert Eagle's is
-    g.add(vmOct(.010,.016,.032,M.goldD,.025,.052,.046));
+    g.slideA.add(vmOct(.010,.016,.032,M.goldD,-.025,.052,.046));                // the safety, on the slide — BOTH sides, a Desert Eagle's is — and it rides with the slide
+    g.slideA.add(vmOct(.010,.016,.032,M.goldD,.025,.052,.046));
     g.add(vmOct(.008,.012,.042,M.dark,-.023,.026,.008));                       // the slide stop
     g.add(vmBall(.006,M.goldD,-.022,.018,-.040));                              // the takedown pin
     g.add(vmBall(.0065,M.dark,-.023,-.004,.030));                              // the magazine catch
-    g.add(vmBox(.005,.030,.064,M.dark,.0235,.060,-.028));                      // the ejection port, cut in the right side, and it is BIG
+    g.slideA.add(vmBox(.005,.030,.064,M.dark,.0235,.060,-.028));                // the ejection port, cut in the right side, and it is BIG
     /* THE HAMMER. It was a rod run right through the slide with a dark
        block standing up off it — from the side that read as a second
        trigger at the back of the gun. A Desert Eagle's is a flat SPUR
@@ -16377,12 +16497,13 @@ function buildGunModel(key,o){o=o||{};
           barrel showing through it, and the hammer is a spur laid back
           over a beavertail. */
     // THE SLIDE: narrow, ROUND-TOPPED, and long over a short frame
-    g.body=vmOct(.030,.030,.232,M.blue,0,.052,-.042);g.add(g.body);           // z .074 .. -.158
-    g.add(vmCyl(.0148,.232,10,M.blue,0,.066,-.042));                          // the round crown along the whole slide top
-    g.add(vmBox(.006,.003,.226,M.blueHi,0,.0808,-.042));                      // the one lit line along the crown
-    g.add(vmBox(.031,.003,.226,M.blueD,0,.038,-.042));                        // the dark seam over the frame
-    for(let i=0;i<6;i++){const sr=vmBox(.0312,.024,.0035,M.blueD,0,.050,.062-i*.010);sr.rotation.x=-.14;g.add(sr);}   // rear serrations, cut and angled
-    g.add(vmBox(.004,.014,.048,M.dark,.0145,.058,-.030));                     // the ejection port
+    const slideG=new THREE.Group(),slideA=new THREE.Group();slideG.add(slideA);g.add(slideG);g.slideA=slideA;g.slideTravel=.036;   // (see the Eagle: the slide runs back on its own node)
+    g.body=vmOct(.030,.030,.232,M.blue,0,.052,-.042);slideA.add(g.body);      // z .074 .. -.158
+    slideA.add(vmCyl(.0148,.232,10,M.blue,0,.066,-.042));                     // the round crown along the whole slide top
+    slideA.add(vmBox(.006,.003,.226,M.blueHi,0,.0808,-.042));                 // the one lit line along the crown
+    slideA.add(vmBox(.031,.003,.226,M.blueD,0,.038,-.042));                   // the dark seam over the frame
+    for(let i=0;i<6;i++){const sr=vmBox(.0312,.024,.0035,M.blueD,0,.050,.062-i*.010);sr.rotation.x=-.14;slideA.add(sr);}   // rear serrations, cut and angled
+    slideA.add(vmBox(.004,.014,.048,M.dark,.0145,.058,-.030));                // the ejection port
     // THE MUZZLE: the bushing, the barrel showing through it, the plug under it
     g.add(vmRing(.0118,.0032,10,M.blueHi,0,.066,-.158));                      // the barrel bushing, a ring in the slide's face
     g.add(vmCyl(.0088,.020,8,M.steel,0,.066,-.164));                          // the barrel, standing a little proud
@@ -17130,7 +17251,7 @@ function hitscan(o,d,range){
    way the sights do. */
 function coneNow(){return FPS.ads>.9?0:FPS.spread*(1-FPS.ads);}
 function gunRay(spread,base){
-  if(base)_gv4.copy(base);else camera.getWorldDirection(_gv4);
+  if(base)_gv4.copy(base);else if(FPS.on&&FPS.fwd)_gv4.copy(FPS.fwd);else camera.getWorldDirection(_gv4);   // (behind the eyes: the look without its shake)
   if(spread>0){
     const rx=Math.cos(G.camYaw),rz=-Math.sin(G.camYaw);        // screen-right in the world (see the stick's mapping)
     const a=Math.random()*TAU,m=spread*Math.sqrt(Math.random());
@@ -17393,6 +17514,7 @@ function rocketBurst(p,g,d){
 function fireGun(){
   const g=gunOf(),A=gunAmmo(g);
   A.mag--;FPS.shotT=g.rof;FPS.kick=1;FPS.kickSide=rr3(-1,1);FPS.flashT=g.key==='deagle'?.08:.05;FPS.boltT=(g.bolt||g.pump)?0:99;
+  FPS.slideT=0;FPS.cyc=!!(g.bolt||g.pump);                 // the slide runs back; a bolt or a pump owes its cycle (see updateGun)
   FPS.engageT=GUN_HOLD;                                    // the body stays squared up to what it is shooting at
   FPS.spread+=g.sp.shot;                                   // the hip's cone blooms (the sights' does not exist)
   // the climb, the gun's own: up, and a little to one side; the sights
@@ -17402,7 +17524,7 @@ function fireGun(){
   AudioSys.gun(g.key);G.vibr(g.rocket?60:g.key==='sniper'||g.key==='kar98k'||g.pump?40:g.suppressed?5:18);
   G.camShake=Math.max(G.camShake,R.cam*4*(g.shake||1));G.glowFlash=Math.max(G.glowFlash||0,g.suppressed?.12:g.key==='deagle'?.7:.45);   // `shake`: the rifle and the shotgun throw the picture harder than their climb alone says
   const mp=muzzleWorld().clone();
-  if(!g.rocket){ejectShell();smokePuff(mp.x,mp.y+.02,mp.z,1);}   // the brass, and the smoke off the muzzle
+  if(!g.rocket){if(!g.bolt&&!g.pump)ejectShell();smokePuff(mp.x,mp.y+.02,mp.z,1);}   // the brass (a bolt or a pump throws it when the action opens), and the smoke off the muzzle
   const o=FPS.on?camera.position.clone():mp.clone();
   const base=FPS.on?null:gunAimBase(o);
   if(g.rocket){smokePuff(mp.x,mp.y,mp.z,6);fireRocket(o,gunRay(coneNow(),base),g);FPS.lastHit='rocket';
@@ -17477,7 +17599,7 @@ function reloadPlan(g){
     ev.push({t:R.seat*dur,sfx:'rocketIn',ammo:need,warhead:true});
   }
   ev.push({t:dur,done:true});
-  return {type:R.type,R,dur,ev,i:0,need,n:need};
+  return {type:R.type,R,dur,ev,i:0,need,n:need,empty:A.mag<=0};
 }
 function startReload(){
   const g=gunOf(),A=gunAmmo(g);
@@ -17497,7 +17619,7 @@ function cancelReload(){
 }
 const RL_FADE=.16;
 function gunSwapped(){
-  FPS.reloading=false;FPS.shotT=Math.max(FPS.shotT,.4);FPS.zoom=0;FPS.kick=Math.max(FPS.kick,.6);FPS.boltT=99;
+  FPS.reloading=false;FPS.shotT=Math.max(FPS.shotT,.4);FPS.zoom=0;FPS.kick=Math.max(FPS.kick,.6);FPS.boltT=99;FPS.cyc=false;FPS.slideT=9;
   if(FPS.on&&gunHeld())AudioSys.rack();
 }
 // the swap bar cycles the GUNS in the loadout; the pause screen cycles everything
@@ -17639,7 +17761,7 @@ function updateGun(dt){
   const wantAds=(FPS.adsOn||IN.adsHeld)&&canAim&&!FPS.reloading;
   FPS.ads=lerp(FPS.ads,wantAds?1:0,Math.min(1,g.adsSpeed*(attOf(g)==='reddot'?1.2:attOf(g)==='acog'?.8:1)*dt));   // a dot is quick to the eye, a scope slower
   if(FPS.ads<.01)FPS.ads=0;
-  if(FPS.on){
+  if(FPS.on&&!CUT.on){
     const att=attOf(g);
     const fovAim=adsFovOf(attFov(g,att));
     const fov=lerp(VIEW.fov,fovAim,FPS.ads);
@@ -17658,7 +17780,18 @@ function updateGun(dt){
   FPS.spread=Math.min(base*SPREAD_CAP,Math.max(base,FPS.spread-dt*(g.auto?.09:.16)));
   // and the share of the climb that settles, settles
   if(FPS.recP>1e-4){const r=FPS.recP*Math.min(1,dt*g.rec.recover*.7);FPS.pitch-=r;FPS.recP-=r;}else FPS.recP=0;
-  FPS.shotT=Math.max(0,FPS.shotT-dt);FPS.hitT-=dt;FPS.killT-=dt;FPS.flashT-=dt;FPS.boltT+=dt;
+  FPS.shotT=Math.max(0,FPS.shotT-dt);FPS.hitT-=dt;FPS.killT-=dt;FPS.flashT-=dt;FPS.boltT+=dt;FPS.slideT=(FPS.slideT===undefined?9:FPS.slideT)+dt;
+  /* THE ACTION IS WORKED, AND YOU HEAR IT. The bolt and the pump both
+     cycled on screen after every shot in DEAD SILENCE: `AudioSys.bolt` and
+     `AudioSys.pump` existed and only the reload ever called them. A
+     turn-bolt is its sound — lift, draw, the case flicked out, forward,
+     lock — so each beat is struck here as `boltT` crosses it, the same
+     beats `boltCycle` moves the parts on, and the case leaves when the
+     bolt comes back rather than when the round goes. */
+  if(FPS.cyc&&!FPS.reloading){const b=FPS.boltT,a=b-dt;
+    if(g.bolt){if(a<BOLT_UP&&b>=BOLT_UP)AudioSys.boltUp();if(a<BOLT_EJECT&&b>=BOLT_EJECT)ejectShell();if(a<BOLT_DOWN&&b>=BOLT_DOWN)AudioSys.boltDown();if(b>=.85)FPS.cyc=false;}
+    else if(g.pump){if(a<.1&&b>=.1)AudioSys.pump();if(a<.2&&b>=.2)ejectShell();if(b>=.8)FPS.cyc=false;}
+    else FPS.cyc=false;}
   /* THE KICK DECAYS HERE, NOT IN THE VIEWMODEL. It lived in
      `updateViewmodel`, which only runs behind the eyes — so over the
      shoulder `FPS.kick` was set to 1 by the first round and stayed there
@@ -17718,7 +17851,8 @@ function updateGun(dt){
 function updateRigGun(dt,g){
   const P=player,R=P.rig&&P.rig.gunModel;
   if(!R)return;
-  reloadMotion(R,g);                                          // the magazine, the handle, the bolt, the warhead: the same plan the viewmodel runs
+  reloadMotion(R,g);
+  boltCycle(R);slideMotion(R,g);                              // the bolt worked and the slide run back over the shoulder too                                          // the magazine, the handle, the bolt, the warhead: the same plan the viewmodel runs
   /* THE MUZZLE FLASH OVER THE SHOULDER. Every gun model builds one, and
      nothing ever showed it: `V.flash.visible` is written in
      `updateViewmodel`, which runs behind the eyes alone, so a rifle fired
@@ -17740,6 +17874,44 @@ function updateRigGun(dt,g){
    easing back to 0 over `RL_FADE` after it ends or is cancelled, so a
    dodge does not snap a half-out magazine back into the well.
    Returns the whole-gun dip (0..1) for the viewmodel's carry to use. */
+/* THE TURN-BOLT'S BEATS, in seconds after the shot (`FPS.boltT`). The
+   sound (`updateGun`) and the parts (`boltCycle`) both read these, so
+   they cannot drift apart: the handle lifts at BOLT_UP, the bolt is fully
+   back — the case flicked out — at BOLT_EJECT, and it starts home at
+   BOLT_DOWN; the handle is down and locked by .62. The trigger waits for
+   .85 (`updateGun`), so the rifle is always ready a beat after it locks. */
+const BOLT_UP=.19,BOLT_EJECT=.33,BOLT_DOWN=.45;
+/* returns how far the gun is canted over while the hand is on the bolt
+   (0..1), and moves `V.bolt` if the model has one. The reload drives the
+   bolt itself, so this stands aside while a bolt reload is on the parts. */
+function boltCycle(V){
+  if(!V||!V.bolt||(FPS.rl&&FPS.rl.type==='bolt'&&rlW()>0))return 0;
+  const g=gunOf();if(!g.bolt)return 0;
+  const b=FPS.boltT;
+  const lift=b<BOLT_UP?0:b<BOLT_UP+.06?sstep((b-BOLT_UP)/.06):b<.55?1:b<.62?1-sstep((b-.55)/.07):0;
+  const back=b<BOLT_UP+.05?0:b<BOLT_EJECT?sstep((b-BOLT_UP-.05)/(BOLT_EJECT-BOLT_UP-.05)):b<BOLT_DOWN?1:b<.55?1-sstep((b-BOLT_DOWN)/.1):0;
+  V.bolt.rotation.z=(V.boltLift||-1.1)*lift;V.bolt.position.z=V.boltZ+.085*back;
+  return boltCant();
+}
+function boltCant(){const g=gunOf();if(!g.bolt||(FPS.rl&&FPS.rl.type==='bolt'&&rlW()>0))return 0;const b=FPS.boltT;
+  return b<.1||b>.8?0:b<.2?sstep((b-.1)/.1):b<.64?1:1-sstep((b-.64)/.16);}
+/* THE SLIDE: back in three hundredths of a second and home in a tenth,
+   held back on an empty magazine (slide lock), and during a reload held
+   back if it started empty, then released — or, on a tactical reload,
+   racked — when the plan works the action. */
+function slideMotion(V,g){
+  if(!V||!V.slideA)return;
+  const T=V.slideTravel||.04,rl=FPS.rl;let off=0;
+  if((FPS.reloading||rlW()>0)&&rl&&rl.type==='box'){
+    const a0=rl.R.act[0]*rl.dur,a1=rl.R.act[1]*rl.dur,t=FPS.reloadT;
+    if(t<a0)off=rl.empty?T:0;
+    else if(rl.empty)off=t<a0+.05?T*(1-(t-a0)/.05):0;               // the slide stop thumbed: it slams home
+    else off=t<a1?T*Math.sin(clamp((t-a0)/(a1-a0),0,1)*Math.PI):0;  // racked by hand
+    off*=rlW();
+  }else if(gunAmmo(g).mag<=0)off=T;                                // empty: held open
+  else{const u=FPS.slideT===undefined?9:FPS.slideT;off=u<.03?T*u/.03:u<.13?T*(1-sstep((u-.03)/.1)):0;}
+  V.slideA.position.z=off;
+}
 const RL_CARRY={x:-.05,up:.13,back:0,pitch:-.34,yaw:.20,roll:-.62};   // where the gun goes while it is reloaded — see updateViewmodel. `back` is 0: a pull toward the eye put the Eagle's tang behind the near plane
 const _rlV=new THREE.Vector3(),_rlW=new THREE.Vector3();
 function rlW(){return FPS.reloading?1:FPS.rlFade>0?sstep(FPS.rlFade/RL_FADE):0;}
@@ -17889,8 +18061,21 @@ function updateViewmodel(dt){
   vm.rotation.set(-k*R.up*.12+rc*RL_CARRY.pitch-sr*.17+hurt,                         // the muzzle DROPS, it does not rise
                   lerp(V.hipRy,0,ads)+FPS.swayX*2.5-sr*.09+k*R.side*.1*ks+rc*RL_CARRY.yaw,   // and barely turns: the yaw was the whole fault
                   lerp(V.hipRz||0,0,ads)+rc*RL_CARRY.roll+sr*.62+FPS.swayX*.8+k*R.side*.15*ks); // the CANT carries the posture, and costs no aim
-  if(V.bolt&&!(FPS.rl&&FPS.rl.type==='bolt'&&rlW()>0)){const u=clamp(FPS.boltT/.8,0,1),lift=Math.sin(u*Math.PI);   // the handle lifts, the bolt comes back, and goes home (the reload drives it itself)
-    V.bolt.rotation.z=(V.boltLift||-1.1)*Math.min(1,lift*1.4);V.bolt.position.z=V.boltZ+.05*Math.sin(Math.min(1,u*1.2)*Math.PI);}
+  /* THE BLOWBACK. A pistol's muzzle is thrown UP and back by the shot and
+     falls back on the kick to the power 1.5 — a snap, then a settle — and
+     the sights hold only part of it down. It was the SQUARE, and measured
+     through the camera the Eagle's barrel rose 15 degrees for one frame
+     and was level again inside a tenth of a second: gone before the eye
+     found it. Now 25 at the report, 8 at k .6, 1.5 at k .3 (the Colt
+     10 / 5 / 1). It has
+     to beat `-k*R.up*.12` above, which dips every gun as the eye climbs. */
+  if(g.flip)vm.rotation.x+=k*Math.sqrt(k)*g.flip*(1-.45*ads);
+  /* THE BOLT, WORKED: the parts on `boltCycle`'s beats, and the whole gun
+     canted over toward the hand and dipped while the hand is on the bolt —
+     which is what makes a turn-bolt read as one from behind the eyes. It
+     is not scaled down on the sights: working a bolt takes you off them. */
+  {const cyc=boltCycle(V);if(cyc>0){vm.rotation.z+=cyc*.3;vm.rotation.x-=cyc*.07;vm.position.y-=cyc*.014;vm.position.x+=cyc*.01;}}
+  slideMotion(V,g);
   if(V.pump){const u=clamp((FPS.boltT-.12)/.5,0,1);V.pump.position.z=V.pumpZ+.08*Math.sin(u*Math.PI);}   // the fore-end back and forward
   V.flash.visible=FPS.flashT>0;
   if(V.flash.visible){
@@ -17973,11 +18158,27 @@ function updateFpsCamera(dt){
     FPS.pitch=clamp(FPS.pitch+(Math.atan2(markY(L)-LOCK_CHEST-camera.position.y,dh)-FPS.pitch)*k,-1.25,1.25);
     camera.rotation.set(FPS.pitch,G.camYaw,0);
   }
+  /* THE SHAKE BEHIND THE EYES IS AN ANGLE, AND IT IS THE SAME ANGLE THE
+     SHOULDER CAMERA GETS. Over the shoulder the eye is jolted .3×shake in
+     position and then re-aimed at a point about three metres off, which
+     is a jitter in DIRECTION of about .3/3.2 = .094×shake radians. Behind
+     the eyes it was .1×shake in POSITION and no angle at all — and a
+     translation of a few centimetres moves nothing more than an arm's
+     length away, so the Barrett's 1.77 shook the field about a tenth as
+     much as it did over the shoulder. Now it is `SHAKE_ANG` radians of
+     look, scaled by the lens so a scope magnifies nothing: the same
+     movement ON THE SCREEN in either view, at the hip or in the glass. */
+  let shP=0,shY=0;
   if(G.camShake>0){G.camShake=Math.max(0,G.camShake-dt*1.6);
-    camera.position.x+=(Math.random()-.5)*G.camShake*.1;camera.position.y+=(Math.random()-.5)*G.camShake*.1;}
+    const a=G.camShake*SHAKE_ANG*(camera.fov/VIEW.fov);shP=(Math.random()-.5)*a;shY=(Math.random()-.5)*a;}
   const roll=(P.state==='floored'?.6*Math.min(1,P.t/FLOOR.LAND)*(P.t<FLOOR.RISE+.3?1:Math.max(0,1-(P.t-FLOOR.RISE-.3)/(FLOOR.DUR-FLOOR.RISE-.3))):0)+FPS.swayX*.5;
   camera.rotation.order='YXZ';
-  camera.rotation.set(FPS.pitch,G.camYaw,roll);
+  camera.rotation.set(FPS.pitch+shP,G.camYaw+shY,roll);
+  /* the look WITHOUT the shake, for `gunRay`: the shake is the picture's,
+     never the round's — or an aimed carbine throws its own rounds a third
+     of a degree off the mark every shot, and the .50's second round goes
+     where the first one's shake left the lens */
+  {const cp=Math.cos(FPS.pitch);(FPS.fwd||(FPS.fwd=new THREE.Vector3())).set(-Math.sin(G.camYaw)*cp,Math.sin(FPS.pitch),-Math.cos(G.camYaw)*cp);}
   if(!gunHeld())applyFov();
   lookX=P.x;lookY=hP+ey;lookZ=P.z;                        // so the third-person gaze picks up from here, not from wherever it last was
 }
@@ -18144,7 +18345,7 @@ function rlArm(rl){
   return T<i1?.15+.35*Math.sin(Math.PI*Math.min(1,T/i1)):0;
 }
 function poseGunCarry(r,t,P){
-  const kick=FPS.kick||0,side=FPS.kickSide||0,w=rlW(),rl=FPS.rl;
+  const kick=(FPS.kick||0)*(gunHeld()?(gunOf().kickMul||1):1),side=FPS.kickSide||0,w=rlW(),rl=FPS.rl;
   r.armR.rotation.set(-1.42+kick*.30+.30*w,-.1,-.2+kick*.12*side+.12*w);     // the gun comes down off the line to reload
   r.foreR.rotation.set(-.28+kick*.20-.10*w,0,0);
   r.armL.rotation.x-=kick*.16;                                // the support hand rides it too
@@ -18152,7 +18353,8 @@ function poseGunCarry(r,t,P){
   r.torso.rotation.x-=kick*.11-.08*w;                         // ...and back into it; and over the work
   r.head.rotation.x-=kick*.14-.16*w;                          // the head goes with the shoulder, and looks down at the well
   r.body.position.y-=kick*.022;                               // and the knees take the rest
-  r.weapon.rotation.set(-.02-kick*.30+.25*w,0,kick*.05*side-.30*w);   // the muzzle climbs; reloading it lies over, well up
+  r.weapon.rotation.set(-.02-kick*.30+.25*w,0,kick*.05*side-.30*w-.35*boltCant());   // the muzzle climbs; reloading it lies over, well up; working a bolt it cants over
+  if(boltCant()>0){const c=boltCant();r.armL.rotation.x-=.25*c;r.head.rotation.x+=.1*c;}
   if(w>0&&rl){
     const h=rlArm(rl);                                        // 0 fore-end .. .5 well .. 1 belt
     const ax=h<.5?lerp(-1.05,-.62,h/.5):lerp(-.62,.10,(h-.5)/.5);      // shoulder: forward on the guard, dropped at the belt
@@ -18858,7 +19060,7 @@ requestAnimationFrame(frame);
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
-window.BP={PROG_KEEP,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={PROG_KEEP,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

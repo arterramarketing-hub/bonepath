@@ -718,11 +718,19 @@ the same as three blows). The nearest thing takes the round.
 multiplies the camera shake its climb alone would give: the Barrett at
 2.6, the SPAS at 2.2 and the Kar98k at 1.6, so a .50, a twelve-gauge or
 a full-power rifle round going off is felt in the frame and not only
-heard.
+heard. **And it is the same shake in either view.** Behind the eyes the
+shake used to be a nudge of the camera's position of a tenth of what the
+shoulder camera got — a centimetre of travel half a metre from a lens
+reads as nothing — so the Barrett barely moved the picture in first
+person. It is a turn of the LOOK now, in both views: at the same shot the
+picture moves about two degrees behind the eyes and two over the
+shoulder, resting or braced (the brace used to double it, because a
+camera brought closer turns a shove into a bigger angle). A blade's
+camera is untouched.
 
 | | calibre | magazine · start | damage (body / head) | rate | the feel |
 |---|---|---|---|---|---|
-| **Desert Eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold — its name is the gun's, the gold is just what it is plated in. Its **muzzle flash is the biggest of the pistols** and lives a beat longer, and the halo it throws on the pilgrim is stronger: a .50 out of a hand should light the picture. The hammer is a flat spur laid back over the beavertail, not a rod through the slide with a block on it. **And it is a slab now, the way the real one is** — measured off the Mark XIX, 10.75 inches long, 6.25 tall and only 1.25 wide: from the side it is one tall rectangle from the tang to a flat, square muzzle, with the barrel block ahead of the slide running the full height of the gun (the gas system lives inside it — it was a bore with a cylinder slung under it), the rib the whole length, a squared guard with a hook forward, a wide flat-backed grip and a big ejection port. Its sights are exactly where they were. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down. The gold is a RANGE and not a colour — cream along the rib and the top edges where a light overhead finds them, a mid body, cuts nearly brown — because a flat yellow is what a toy is made of. Its slide is long and its frame short and stepped down off it, so the outline is an L rather than an equals sign, and the grip is dark, which is what stops the gold halfway down |
+| **Desert Eagle** | .50 cal | 7 · 40 | 34 / 68 | one a third of a second | a hand cannon in gold — its name is the gun's, the gold is just what it is plated in. Its **muzzle flash is the biggest of the pistols** and lives a beat longer, and the halo it throws on the pilgrim is stronger: a .50 out of a hand should light the picture. The hammer is a flat spur laid back over the beavertail, not a rod through the slide with a block on it. **And it is a slab now, the way the real one is** — measured off the Mark XIX, 10.75 inches long, 6.25 tall and only 1.25 wide: from the side it is one tall rectangle from the tang to a flat, square muzzle, with the barrel block ahead of the slide running the full height of the gun (the gas system lives inside it — it was a bore with a cylinder slung under it), the rib the whole length, a squared guard with a hook forward, a wide flat-backed grip and a big ejection port. Its sights are exactly where they were. A hollow in three, a brute in five; **a head under it comes off**. It climbs hard, and the sights hold half of it down. The gold is a RANGE and not a colour — cream along the rib and the top edges where a light overhead finds them, a mid body, cuts nearly brown — because a flat yellow is what a toy is made of. Its slide is long and its frame short and stepped down off it, so the outline is an L rather than an equals sign, and the grip is dark, which is what stops the gold halfway down. **The slide moves**: it slams back and returns on every shot, and on the last round it **locks open** until the reload drops the slide stop and it runs home (a tactical reload racks it instead). **It bucks**: the muzzle is thrown up about 25 degrees at the report and settles over a fifth of a second, and it sits deeper in the pilgrim's arms over the shoulder. **The rib on top is one piece**, flush from the tang to the muzzle with its cuts sunk into it, where it used to be a stick with slots standing proud of it |
 | **Colt 1911** | 9mm | 9 · (the 9mm pool) | 14 / 27 | one, three times a second | blued steel, 9mm off the UMP's pool: half the eagle's kick and a hollow in seven, or four if they are all in the skull. **It is not the eagle in blue**: a narrow round-topped slide over a frame half its length, a round loop of a guard, the barrel showing through its bushing, a long slim nearly-straight grip with walnut on both flanks and an arched housing at the heel, and a spur hammer laid back over a beavertail. Its rear sight is **one notch** — a low bed with two square ears — with the front bead the only pale thing in the picture; two separate posts with a dot each read as a pair of eyes. The first build was the eagle's shape with the colour swapped, and side by side they were one gun twice |
 | **UMP45** | 9mm | 25 · 100 | 12 / 22 | eleven a second, held | the spray, **suppressed**: a can on the barrel, a thick short thump instead of a crack, hardly any flash. Each one a scratch; it walks up a little and settles fast. Built off the real one — a flat-topped polymer receiver with a rail the whole length of it, a stubby barrel under a short front rail, the magazine raked forward out of a slanted well, and the **skeleton side-folder** at the back: an open rectangle of a stock, which is the one silhouette nobody mistakes for another gun. It is the one weapon that carries **two sets of its own sights** — the
 drum below, or a **ring sight**: no hood to look through, only a shallow
@@ -733,7 +741,7 @@ edges on a stub of a post, not up on a tower. Its top is a **channel** — a rai
 | **M4A1** | 5.56mm | 30 · 120 | 16 / 35 | eleven a second, held | the rifle: six to a hollow, two in the skull, **which a 5.56 takes off**. Steadier than the spray and it hits harder; the middle of everything. Built as a RIFLE rather than a compact: a twenty-seven centimetre quad rail with its rungs running the length of it, a barrel carrying well past that to a gas block and front sight, a flat-topped receiver with one rail unbroken from the stock to the muzzle, and a collapsing stock on a ribbed buffer tube. Its irons are a **ghost ring** — a fat hoop on the back of the rail with the post half a metre in front of it, which is what an aperture is for |
 | **SPAS-12** | 12 gauge | 8 · 32 | 9 / 14 a pellet, eight pellets | one, then the pump | a wall at arm's length, nothing at thirty metres: the pellets fall off with distance. **A limb under it up close comes off.** The fore-end works after every shell |
 | **Barrett .50** (the bone sniper, renamed) | .50 cal | 10 · (the .50 pool) | 96 / 220 | one a second, semi-automatic | one shot, one body; **a head under it is gone**. It was a turn-bolt in wood and it is a Barrett now, in every line: a long flat-topped steel receiver with a rail the whole length of it, a fat box magazine under the front of it, a pistol grip and a squared tail with a monopod under the pad, a bipod folded back along a **fluted** barrel that ends in the **arrowhead brake** — chevron fins swept back off a block — parkerised grey-black with no wood anywhere. Ten in the box, the magazine dropped and the charging handle racked. It is the one gun the field answers: the crack, and then the field coming back — a couple of returns off the stone you can still pick out, and then more of them, closer and closer together until they run into one another and the rest is a wash coming down, each darker than the last, with a roll going away under all of it. Four spaced returns is a canyon; a field answers with density. Its sights are a **scope** with two magnifications (4×, 8×) on the zoom button. From the hip it is a stick that goes off |
-| **Kar98k** | 7.92mm | 5 · 40 (its own pool) | 60 / 132 | one, then the bolt | the turn-bolt, in wood, off the Mauser: a one-piece stock with the comb dropped under the bolt and a flat steel buttplate, an **upper handguard** over the barrel held by a band and a nose cap, the barrel bare past the cap to a **hooded post**, the cleaning rod's tip under it, a **tangent-leaf** rear sight out on the barrel and the bolt handle **turned down** along the stock. A hollow in two, or one in the skull, which comes off; the bolt between every shot; five rounds pressed into the box by hand with the bolt held open, and **it waits to be asked** — an empty box does not reload itself. Its eye sits back on the comb, so the leaf and the hood read small and far, which is what a Mauser's sight picture is; a dot or the ACOG will go on its receiver |
+| **Kar98k** | 7.92mm | 5 · 40 (its own pool) | 60 / 132 | one, then the bolt | the turn-bolt, in wood, off the Mauser: a one-piece stock with the comb dropped under the bolt and a flat steel buttplate, an **upper handguard** over the barrel held by a band and a nose cap, the barrel bare past the cap to a **hooded post**, the cleaning rod's tip under it, a **tangent-leaf** rear sight out on the barrel and the bolt handle **turned down** along the stock. A hollow in two, or one in the skull, which comes off; the bolt between every shot, and **you see and hear it worked**: the gun cants over toward the hand, the handle comes up, the bolt runs back and the spent case flies out at the back of its travel, then forward and down — four sounds, where the cycle used to play in silence and the case left with the shot; five rounds pressed into the box by hand with the bolt held open, and **it waits to be asked** — an empty box does not reload itself. Its eye sits back on the comb, so the leaf and the hood read small and far, which is what a Mauser's sight picture is; a dot or the ACOG will go on its receiver |
 | **RPG-4** | rockets | 1 · 4 | 150 at the centre, falling off to four metres | one, then a long reload | **it flies** — a rocket at twenty-six metres a second with a smoke trail, and bursts on the first thing it meets. The burst is a white flash gone before you can look at it, a fireball that swells and climbs as it burns out, and smoke that outlives both and is still standing when you look back — with two rings going out, one fast and bright and one slow and wide with dust, and the whole field lit for an instant the way lightning lights it. Whatever stands within four metres comes apart: a small horror killed by it is not left as a body, it is thrown into its bones on the spot; the survivors go down in a heap. Stand in it yourself and it takes you off your feet |
 
 **What a round leaves.** A body flinches and bleeds (or chips, if it is
@@ -926,8 +934,15 @@ were looking at is the picture you aim with, the rifle stays in your
 hands, and the eye is on the mark a shade faster. **ACOG**: a short
 scope on the rail at **two and a half times** — a working magnification, not a
 sniper's — and it is a **scope you can see**, not a hole cut in the
-screen. The optic is modelled: a bell, a body, two rings clamping it to
-its mount, an elevation turret on top and a windage turret on the side,
+screen. The optic is modelled, and **it is fastened to the gun**: a base
+on the rail with its cross-bolts, two pedestals rising from it to exactly
+the tube's underside, a ring clamped round the tube over each with a
+screw on top, a body, a flare into the bell, an eyepiece rim, a turret on
+top and one on the side standing off the tube's wall, and the fibre-optic
+housing along the crown. It used to be a tube floating over the rail with
+its rings and turrets pushed INTO the bore, so down the scope you saw a
+dark shelf across the bottom and a block in the top of the picture; now
+nothing crosses the bore at all,
 and you look **down the tube** at the world through it, with the gun
 still under you and the field still round the edges of the frame. A red
 donut sits on the mark with a post under it and a pair of stadia ticks
@@ -976,21 +991,30 @@ clicks and reloads on its own if there is a reserve to reload from
 drops and rolls, the magazine falls out of the grip and is driven home,
 the action is racked, and the rounds move from reserve to magazine only
 when it is all done.
-**And it sounds like a mechanism.** Each of the three moments used to be
-one soft blip, and a rounded attack is exactly what makes a sound read
-as plastic. Each is a small SEQUENCE now: a catch releases, a part
-travels along its rail, a part arrives and stops dead — and the arrival
-is always the loudest thing in the stage, because that is what tells you
-the magazine is home rather than merely near. Every impact in it is
-three layers inside forty milliseconds — the strike itself with no
-attack at all, the low knock of whatever was hit, and the high ring left
-in the part afterwards, held five times longer and very quiet. The
-bolt-action is four such motions and you hear all four: the handle up,
-the bolt back over the spent case, forward over a live round, and down
-into its lug. A swap
-mid-reload abandons it. The Kar98k's bolt is worked after every shot,
-the handle lifting and the bolt coming back and going home, and the next
-round waits on it.
+**And it sounds like a mechanism, in steel.** It sounded like plastic
+toys, for two reasons that were both measurable. The noise every click
+was cut from was BROWN — each sample the last one plus a little — so it
+has almost nothing above two kilohertz, and every strike that filtered it
+at four to nine came out near silent; what was left was the soft triangle
+tone under each one, and a pure rounded tone is exactly what a toy
+sounds like. Now every impact is struck from **white** noise and rings as
+**metal**: a hard click with no attack at all, the strike, a handful of
+resonant modes at inharmonic ratios the way a stamped steel part rings,
+and a short low thump for the mass behind it. A magazine out is the hand
+arriving, the release thumbed, the box scraping out of the well with its
+catches and ringing low as it clears; in is the lips finding the well,
+the box **seated** with a heavy chunk, the latch a hair after, and the
+palm slapping the floor plate. A rack is the handle caught, drawn back
+along its rail, hard on the stop, let go — and the bolt **slamming into
+battery**, the loudest beat of any reload, with the spring left humming.
+The pump, the bolt's four motions, a shell into the tube and the dry
+click of an empty gun are built the same way. All of it sits at about
+half the report's loudness, so it is heard clearly and never talks over
+a shot. The Kar98k's bolt is worked after every shot, and so is the
+SPAS's fore-end — both heard now, where the cycle used to play in
+silence — and the next round waits on it. Their brass leaves on the
+cycle, not with the report: the case comes out at the back of the bolt's
+travel and on the pump's stroke.
 
 **The brass comes out.** Every round but the rocket throws its case out
 of the ejection port — the gun's own right and a little up, tumbling,
@@ -2287,6 +2311,12 @@ thirty-six metres away at the far end, so the frame was an empty nave with
 a speck in it. The Bell-Called takes an extra two beats, because it is
 three things — the bell, a hand, the other hand, and then the skull.
 
+**A scene is filmed through the plain lens.** Coming into one with the
+sights up used to keep the sight's field — the Barrett's eight-power glass
+is seven degrees — so the Bell-Called was introduced as a jaw filling the
+screen. A scene now puts the sights down and the lens back to your own
+field of view before the first shot, in either view.
+
 **Any of it is skipped with a tap** — a phone game cannot make you watch
 the same four seconds every time you die to a thing — and the return to
 play is a hard cut, not a five-metre glide back across the field.
@@ -2339,7 +2369,12 @@ from it.
   so the claw comes down close beneath the palm. They used to be
   knuckle-balls with an upright peg between each pair, standing on
   nothing — and the palm has come up to where the claws can actually
-  reach the soil, which is a good deal higher than it rode before. Two moves, and both of them put you on the
+  reach the soil, which is a good deal higher than it rode before.
+  **And each has its thumb.** It was always built — two bones and a claw
+  off the palm's inner edge — but it was swung the wrong way, in under
+  the palm, where it lay buried inside the bone and the hand read as four
+  fingers. It is swung OUT now, clear of the palm's edge and above the
+  soil, where a thumb belongs. Two moves, and both of them put you on the
   ground: the **sweep**, where the hand pitches back onto its wrist and
   then scythes across its whole front, and the **slam**, where it rears
   up on its fingertips and comes down flat, throwing out a ring and
