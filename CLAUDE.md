@@ -1425,6 +1425,8 @@ Known state of play:
     the view switched both ways and the selector pressed, and each ran on
     to a full 30. **Any new caller of `gunSwapped` must check
     `FPS.reloading` first.**
+    The refusal's toast was INVISIBLE on the pause screen: `#toast` sat at
+    z-index 8 under the panel (10) and the shop (11). It is 12 now.
   - **The magazines are GROUPS now, and they had to be.** Each mag was a
     body mesh plus separate ribs and a floor plate on the gun, and the old
     animation moved the body alone — the plate stayed in the grip while
@@ -2456,6 +2458,10 @@ Known state of play:
     through. `w` is multiplied by 1.14 for `road`, because the texture
     eats its own verges. `rm.userData.tex` is `'road'`, which is what the
     snow swap restores.
+    **Anything drawn into `road` that can wander must be drawn
+    `source-atop`.** The final pass forces every alpha over 100 to 255, so
+    a crack's random walk that strayed off a sett onto bare canvas became
+    an opaque black squiggle lying on the grass beside the road.
 - **THE PATH'S SHORN SIDES ARE A CLIFF** (`pathEdge`, `pathVertY`,
   `pathTileAt`, `pathSurfaceY`, beside `tileGround`). One rule, drawn by
   `tileGround` and read by the fall, so what you see is what holds you.
@@ -2530,10 +2536,19 @@ Known state of play:
     `pathHeightAt` directly, so the riverbed is drawn under the planks and
     the pilgrim still walks the arch. The deck is registered in
     `PATH.decks` and in `t.decks`, which `teardownTile` filters out.
-  - **`riverHold` is in `constrain` and keeps bodies out of the deep
-    channel** (within `.8*w` of the centre line) unless they are on the
-    deck. Wading from the bank stops at 8.8m, waist-deep. The pond has no
-    hold: it is 1.5m at the middle and meant to be waded.
+  - **`riverHold(p,hero)` is in `constrain`, and it has two rules.**
+    The PILGRIM (`hero` is `constrain`'s `offEdge`) is held by DEPTH: he
+    wades until the water is `RIVER_WAIST` (.9) deep and is walked back
+    out of anything deeper. It was a flat `.8*w` from the centre line,
+    and the audit measured the bank there half a metre ABOVE the water:
+    he could never wet his boots. A HORROR is eased back off the water to
+    the line of the deck's ends (a tenth of a metre a frame, never
+    snapped) and slid along it to x=0, where the deck takes it: the rails
+    run the deck's whole length, so the only way on is at an end. Before,
+    every horror on the far bank stood at the water's edge for good
+    (measured 23m off after twelve seconds of chase); now they cross and
+    close to 2.5m. The pond has no hold: it is 1.5m at the middle and
+    meant to be waded.
   - **The water materials are their own** (`RIVER_MAT`, `FALL_MAT`,
     `POND_MAT`, each on a CLONED texture) so `updatePath` can scroll the
     river and the falls without dragging every other water in the game.

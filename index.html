@@ -261,7 +261,7 @@
   #died .t{font-size:clamp(34px,9vw,84px);letter-spacing:.34em;text-transform:uppercase;
     color:#8f1d15;text-shadow:0 0 34px rgba(120,15,10,.8),0 2px 2px #000;font-weight:400;}
   #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(210px + env(safe-area-inset-bottom));
-    z-index:8;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--bone);
+    z-index:12;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--bone);   /* (over the pause panel, z 10, and the shop, z 11: a refusal made there has to be read there) */
     text-shadow:0 1px 3px #000;opacity:0;transition:opacity .5s;pointer-events:none;text-align:center;}
   /* title */
   /* ---- THE TITLE: a name, and three ways laid out as cards ---- */
@@ -873,7 +873,7 @@ function buildTextures(){
           ctx.fillStyle='rgba(0,0,0,.36)';ctx.fillRect(-bw/2,bh/2-3,bw,3);ctx.fillRect(bw/2-2,-bh/2,2,bh);
           if(crooked){ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(-bw/2,-bh/2,2,bh);}   // a raised edge where it has tipped
           ctx.restore();},oy,h);
-        if(rnd()<.45)crack(ctx,ox+rr(-w*.3,w*.3),oy+rr(-8,8),rr(3,7),rr(0,TAU),1,'#151713');
+        if(rnd()<.45){ctx.globalCompositeOperation='source-atop';crack(ctx,ox+rr(-w*.3,w*.3),oy+rr(-8,8),rr(3,7),rr(0,TAU),1,'#151713');ctx.globalCompositeOperation='source-over';}   // (atop: a crack wanders, and one that wandered off the stone onto bare canvas came out as a black squiggle on the grass)
         x+=w;
       }
     }
@@ -4328,7 +4328,7 @@ function constrain(p,arenaOnly,offEdge){
     const t=pathTileAt(p.z),lim=offEdge?33:t?pathEdge(t,p.z-t.zc)-.9:20;   // the shorn sides: held a stride short of the drop, as the field's rim holds — all but the pilgrim, who can walk off it
     p.x=clamp(p.x,-lim,lim);if(p.z>57)p.z=57;             // ...and its beginning
     if(PATH.backZ!=null){const bz=PATH.backZ-(offEdge?-8:1.9);if(p.z>bz)p.z=bz;}   // ...and the drop where the path behind has gone (see teardownTile)
-    riverHold(p);
+    riverHold(p,offEdge);
     const cz=cathZ(p.z);if(cz>1e8)return;
     p.z-=cz;constrainCath(p);p.z+=cz;return;              // the cathedral's rim and walls, in that cathedral's own frame
   }
@@ -6307,9 +6307,33 @@ function pathWaterAt(x,z){if(!PATH.terrain)return null;
     if(f.t==='river'&&Math.abs(z-f.zr)<f.w)return f.level;
     if(f.t==='pond'&&Math.hypot(x-f.cx,z-f.cz)<f.r)return f.level;}
   return null;}
-function riverHold(p){if(!PATH.terrain)return;
-  for(const f of PATH.terrain){if(f.t!=='river')continue;const dz=p.z-f.zr,lim=f.w*.8;
-    if(Math.abs(dz)<lim&&!(PATH.decks.length&&deckAt(p.x,p.z)!==null))p.z=f.zr+(dz<0?-lim:lim);}}
+/* A HORROR HELD AT THE BANK GOES TO THE BRIDGE. The hold alone left every
+   body on the far side standing at the water's edge for good (measured:
+   23m from the pilgrim after twelve seconds of chasing), which made the
+   near bank the safest place on the path. And it cannot simply slide
+   sideways onto the deck: the rails run the deck's whole length, so the
+   only way on is at an END. So a horror (`hero` is `constrain`'s
+   `offEdge`, which only the pilgrim passes) is eased back off the water
+   to the line of the deck's ends — never snapped, a tenth of a metre a
+   frame, more than a chase closes — and slid along that line to the
+   middle, where the deck takes it and it crosses.
+   THE PILGRIM IS HELD BY DEPTH, NOT BY DISTANCE. His hold was a flat
+   `.8*w` from the centre line, and the bank there stood half a metre
+   ABOVE the water (measured: ground −0.59, water −1.13) — he could not so
+   much as wet his boots. He wades now until the water is `RIVER_WAIST`
+   deep and is walked back out of anything deeper, so what holds him is
+   the channel he can see. */
+const RIVER_WAIST=.9;
+function riverHold(p,hero){if(!PATH.terrain)return;
+  for(const f of PATH.terrain){if(f.t!=='river')continue;const dz=p.z-f.zr,sd=dz<0?-1:1,lim=f.w*.8;
+    if(PATH.decks.length&&deckAt(p.x,p.z)!==null)continue;
+    if(hero){if(f.level-pathHeightAt(p.x,p.z)>RIVER_WAIST){let z=p.z;
+        for(let i=0;i<60&&Math.abs(z-f.zr)<f.w;i++){z+=sd*.1;if(f.level-pathHeightAt(p.x,z)<=RIVER_WAIST)break;}
+        p.z=z;}continue;}
+    const D=f.deck,end=D?Math.abs(D.za-f.zr)+.5:lim;
+    if(D&&Math.abs(p.x)<D.hw-.25&&Math.abs(dz)>=end-.6)continue;   // (in front of the way on: let it walk up)
+    if(Math.abs(dz)<lim)p.z=f.zr+sd*lim;
+    if(Math.abs(dz)<end){p.z+=sd*Math.min(.1,end-Math.abs(dz));p.x-=Math.sign(p.x)*Math.min(Math.abs(p.x),.07);}}}
 function specialTerrain(t){   // (world frame; called from startTile, on the tile's own stream)
   const zc=t.zc;let f=null;
   if(t.special==='river'){f={t:'river',zr:zc+rr(-4,4),w:11,d:2.8};PATH.terrain.push(f);

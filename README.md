@@ -1767,9 +1767,11 @@ twenty draws.
 - **the river** — a long hex crossed by a broad river, twenty-six metres of
   planked bridge arched over it on trestles, a rail each side. The water
   runs off both edges of the world in a fall, reeds stand in the shallows
-  and rocks break the current. The bridge is the way over: step off it
-  and the water takes you to the waist and holds you short of the deep
-  channel, so there is no swimming round it.
+  and rocks break the current. The bridge is the way over: wade in off
+  the bank and the water takes you to the waist and no further — the deep
+  channel turns you back, so there is no swimming round it. The horrors
+  know it too: whatever is on the far bank goes along it to the bridge
+  and comes over.
 - **the pond** — a still pool off one side of the trail under a crag of
   dark rock, with a waterfall coming down the crag's face into it and
   mist standing where it lands. Trees on the crag and on the far bank,
