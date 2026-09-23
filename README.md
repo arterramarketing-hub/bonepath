@@ -2685,15 +2685,30 @@ becomes a way of surviving something lethal.
 The Bonefield is one giant hexagon of rolling, haunted ground under
 true night — over 130 meters across — with the ruined cathedral sealed at
 its center under a pillar of moonlight you can steer by from anywhere.
-**It is a cathedral from outside as well as in**: a steep slate roof on
-rafters, near forty degrees to a ridge twenty metres up, with slates gone
-so the timbers show against the sky; stepped gables closing both ends,
-the portal's with a small rose; a pinnacle on every buttress and a gable
-over the door; and a lead spire standing on the ridge, leaning a little,
-that you can see from anywhere on the field. Inside, the nave is under a
-pointed stone vault, ribbed across at every bay and crossed diagonally in
-each, with a boss where the diagonals meet — fallen in here and there,
-and always over the altar's end, where the moon comes down.
+**It is a gothic cathedral, outside as well as in.** From across the field
+what you see first is **two towers** on the front, each three stages
+setting back as they climb — blind pointed arches on the second, a belfry
+of black pointed openings on the third — with a parapet of pinnacles and
+an eight-sided spire, and a slender lead flèche leaning a little over
+the crossing between them. The nave rises **high over its column rows**:
+the columns carry pointed arches from one to the next, a band of windows
+(the clerestory) runs along the high wall above them, and the old outer
+walls are now the **aisles**, low, under lean-to roofs of slate. Over
+those roofs **flying buttresses** arch from the aisle buttresses to the
+high wall, and every buttress steps back twice as it rises, sheds the
+rain off sloped set-offs and ends in a gabled cap and a crocketed
+pinnacle. The windows are **pointed, in pairs**, a round window over each
+pair and stone tracery framing them outside. The door is a **deep
+portal** — three pointed arches stepping out, each on its own slim
+columns, a carved panel over the lintel with a skull in a mandorla and
+two figures kneeling to it, a pillar parting the doorway, and a steep
+crocketed gable over the whole with a pinnacle either side — and over it
+all a **traceried rose**. At the eaves, **gargoyles** look out between the
+windows, and **in rain they spout**, a stream arcing off every one. The
+roof is steep slate on rafters, slates gone so the timbers show, and
+inside the nave is under a pointed stone vault springing from the high
+wall, ribbed and crossed and bossed — fallen in here and there, and always
+over the altar's end, where the moon comes down.
 A flagstone ring road (drawn at last — every road in the game was wound
 face-down and never reached the screen until the ravine's trail was
 found missing) circles the nave with straight roads running out

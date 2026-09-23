@@ -4182,6 +4182,7 @@ function pushOutOfCath(p,m){const cz=cathZ(p.z);if(cz>1e8)return;p.z-=cz;pushOut
 const CAM_DOOR=2.6;
 function camStone(x,zl){
   if(DEF.on)return false;                                           // (the house's walls are breakables, not stone)
+  if(zl>18.1&&zl<24.5&&Math.abs(x)>8.6&&Math.abs(x)<13.9)return true;   // the front towers (they stand proud of the front, and inside the aisles' last bay)
   if(Math.abs(x)>HW+WALLT||Math.abs(zl)>HL+WALLT)return false;      // clear of the building
   if(Math.abs(x)<HW-.3&&Math.abs(zl)<HL-.3)return false;            // in the nave
   if(Math.abs(x)<CAM_DOOR&&(PATH.on?Math.abs(zl):zl)>HL-.4)return false;   // the portal stands open
@@ -5471,20 +5472,77 @@ function buildWorld(){
       const fl=new THREE.Mesh(new THREE.PlaneGeometry(HW*2+1,HL*2+1),new THREE.MeshLambertMaterial({map:ft}));
       fl.rotation.x=-Math.PI/2;fl.position.y=.04;cath.add(fl);
     }
-    // ---- walls: long sides with buttresses and lancets, the north wall
-    //      with the rose window, the south wall parted by the portal
-    const WH=9.5,WX=HW+WALLT/2,WZ=HL+WALLT/2;
+    /* ==== THE GOTHIC CATHEDRAL ====
+       It read as a barn with a pointed roof: one tall box, flat-topped
+       windows, plain slab buttresses, a flat front and a door that only
+       suggested a point. What says GOTHIC, in the order it reads from
+       across the field: TWIN TOWERS on the front with spires; a HIGH NAVE
+       over the column rows with a band of windows (the clerestory), the
+       outer walls become lower AISLES under lean-to roofs, and FLYING
+       BUTTRESSES arch over them to hold the high wall; POINTED windows in
+       pairs with stone tracery and a small round window over each pair; a
+       DEEP PORTAL of three pointed arches stepping in, a carved tympanum
+       over the door, a pillar in the middle of it and a steep gable over
+       all; STEPPED buttresses with gabled tops and pinnacles; GARGOYLES at
+       the eaves, which spout when it rains; and a traceried ROSE over the
+       door. The collision is untouched: the outer walls, the portal and
+       the nave are where they were, the towers stand in the aisles' last
+       bay (an obstacle each), and the arcade stands on the columns that
+       were already there, with one more pair at each end.
+       Everything is folded by `bakeStatic`; the cost is triangles. */
+    const Q=new THREE.Quaternion(),ZF=new THREE.Vector3(0,0,1),V3=new THREE.Vector3();
+    const leadM=mat('iron'),darkM=lam({color:0x0c0d10});
+    const beamTo=(ax,ay,az,bx,by,bz,w,h,m)=>{   // a straight stone (or timber) from one point to another, in the hall's frame
+      const dx=bx-ax,dy=by-ay,dz=bz-az,l=Math.hypot(dx,dy,dz),o=new THREE.Mesh(new THREE.BoxGeometry(w,h,l+.04),m);
+      o.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);o.quaternion.copy(Q.setFromUnitVectors(ZF,V3.set(dx/l,dy/l,dz/l)));cath.add(o);return o;};
+    // a pointed arch: two arcs, each struck from beyond the middle (radius k x the half-span), springing at y0 — points from one foot to the other
+    const gArch=(w,y0,n,k)=>{const R=w*(k||1.6),cx=R-w,ta=Math.acos(-cx/R),L=[];
+      for(let i=0;i<=n;i++){const t=Math.PI-(Math.PI-ta)*i/n;L.push([cx+R*Math.cos(t),y0+R*Math.sin(t)]);}
+      const out=L.slice();for(let i=n-1;i>=0;i--)out.push([-L[i][0],L[i][1]]);return out;};
+    const lancetGeo=(w,h)=>{const P=gArch(w/2,h,5),sh=new THREE.Shape();sh.moveTo(-w/2,0);for(const[x,y]of P)sh.lineTo(x,y);sh.lineTo(w/2,0);sh.lineTo(-w/2,0);
+      const g=new THREE.ShapeGeometry(sh),p=g.attributes.position,uv=g.attributes.uv,H=P[5][1];
+      for(let i=0;i<p.count;i++)uv.setXY(i,(p.getX(i)+w/2)/w,p.getY(i)/H);return g;};
+    const archBeams=(P,map,w,h,m)=>{for(let i=0;i<P.length-1;i++){const a=map(P[i]),b=map(P[i+1]);beamTo(a[0],a[1],a[2],b[0],b[1],b[2],w,h,m);}};
+    /* (crockets and finials are TETRAHEDRA — four triangles apiece. As
+       icosahedra, thirteen to a pinnacle on some thirty-seven pinnacles, they
+       were ten thousand triangles of the cathedral's twenty-nine thousand.) */
+    const CROCK=new THREE.TetrahedronGeometry(1);
+    const pinnacle=(x,y,z,r,h)=>{const pn=new THREE.Mesh(new THREE.CylinderGeometry(0,r,h,4),cathM);pn.position.set(x,y+h/2,z);pn.rotation.y=Math.PI/4;cath.add(pn);
+      for(let i=0;i<2;i++){const u=.3+i*.28,rr2=r*(1-u)*.8;for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const c=new THREE.Mesh(CROCK,cathM);c.position.set(x+a*rr2,y+h*u,z+b*rr2);c.scale.setScalar(r*.2);cath.add(c);}}   // crockets
+      const f=new THREE.Mesh(CROCK,cathM);f.position.set(x,y+h+.1,z);f.scale.setScalar(r*.32);cath.add(f);};   // the finial
+    const GAR=[];   // the gargoyles' mouths (see GARG)
+    const TWR=(zz,end)=>end===1&&zz>=18;   // (the front towers stand in the aisles' last bay: no buttress, no flyer, no gargoyle there)
+    const WH=9.5,WX=HW+WALLT/2,WZ=HL+WALLT/2,ends=back?[1,-1]:[1];
+    // ---- the aisle walls: stepped buttresses, and between each pair two pointed lancets under an oculus, traceried outside
     for(const side of[1,-1]){
       MARKABLE.push(cbox(WALLT,WH,HL*2+WALLT*2,cathM,side*WX,WH/2,0));     // side wall
       for(let z=-HL;z<=HL;z+=5){
-        cbox(1.6,WH+1,1.4,cathM,side*(HW+WALLT+.2),(WH+1)/2,z);            // buttress
-        if(z>-HL&&z<HL){                                                   // a lancet between each pair
-          const win=new THREE.Mesh(new THREE.PlaneGeometry(1.7,4.4),glassM);
-          win.position.set(side*(HW-.14),5.1,z+2.5);win.rotation.y=-side*Math.PI/2;cath.add(win);
-          const wo=new THREE.Mesh(new THREE.PlaneGeometry(1.7,4.4),glassM);                // and its face on the outside
-          wo.position.set(side*(HW+WALLT+.14),5.1,z+2.5);wo.rotation.y=side*Math.PI/2;cath.add(wo);
-          addHaze(side*(HW-.7),PH+5.1,z+2.5,0x8fa6d8,4.2,.19);                             // a soft moon-glow off the glass, in...
-          addHaze(side*(HW+WALLT+.7),PH+5.1,z+2.5,0x8fa6d8,4.2,.19);                       // ...and out
+        if(!TWR(z,1)){const bx=side*(HW+WALLT);                               // the buttress: three stages, each set back, a gabled cap and a pinnacle
+          cbox(1.8,5.2,1.5,cathM,bx+side*.35,2.6,z);cbox(1.4,4.4,1.25,cathM,bx+side*.25,7.4,z);cbox(1.05,4.6,1.0,cathM,bx+side*.18,11.9,z);
+          for(const[y,dx]of[[5.2,.35],[9.6,.25]]){const sw=new THREE.Mesh(new THREE.BoxGeometry(.5,.24,1.5),cathM);sw.position.set(bx+side*(dx+.6),y+.02,z);sw.rotation.z=side*.55;cath.add(sw);}   // the set-offs, sloped to shed the rain
+          for(const sd of[1,-1])beamTo(bx+side*.18,14.2,z+sd*.5,bx+side*.18,14.85,z,1.05,.18,cathM);
+          pinnacle(bx+side*.18,14.7,z,.42,2.6);}
+        if(z>-HL&&z<HL){const zc=z+2.5,xi=side*(HW-.14),xo=side*(HW+WALLT+.14),ri=-side*Math.PI/2,ro=side*Math.PI/2;
+          for(const off of[-.62,.62]){                                       // two lancets, glass both faces
+            const g=lancetGeo(.9,3.3);
+            const wi=new THREE.Mesh(g,glassM);wi.position.set(xi,3.1,zc+off);wi.rotation.y=ri;cath.add(wi);
+            const wo=new THREE.Mesh(g,glassM);wo.position.set(xo,3.1,zc+off);wo.rotation.y=ro;cath.add(wo);}
+          const ocu=new THREE.CircleGeometry(.42,10);                         // the oculus over the pair
+          {const a=new THREE.Mesh(ocu,glassM);a.position.set(xi,7.35,zc);a.rotation.y=ri;cath.add(a);const b=new THREE.Mesh(ocu,glassM);b.position.set(xo,7.35,zc);b.rotation.y=ro;cath.add(b);}
+          const xt=side*(HW+WALLT+.3);                                        // the tracery, outside: the pair's pointed frame, the mullion, the sill, the oculus ring
+          archBeams(gArch(1.35,6.2,4),([u,v])=>[xt,v,zc+u],.3,.28,cathM);
+          cbox(.3,3.3,.16,cathM,xt,3.1+1.65,zc);cbox(.36,.2,2.9,cathM,xt,3.0,zc);
+          for(const sd of[1,-1])cbox(.3,3.2,.2,cathM,xt,3.1+1.6,zc+sd*1.35);
+          {const t=new THREE.Mesh(new THREE.TorusGeometry(.46,.07,3,8),cathM);t.position.set(xt,7.35,zc);t.rotation.y=Math.PI/2;cath.add(t);}
+          addHaze(side*(HW-.7),PH+5.1,zc,0x8fa6d8,4.2,.19);                                // a soft moon-glow off the glass, in...
+          addHaze(side*(HW+WALLT+.7),PH+5.1,zc,0x8fa6d8,4.2,.19);                          // ...and out
+          if(!TWR(zc,1)){                                                     // A GARGOYLE at the eave over the bay, looking out — and spouting, in the rain
+            const gx=side*(HW+WALLT+.35),gy=WH-.45;
+            beamTo(gx,gy,zc,gx+side*.95,gy+.12,zc,.34,.3,cathM);
+            const hd=new THREE.Mesh(ICO,cathM);hd.position.set(gx+side*1.15,gy+.2,zc);hd.scale.set(.3,.26,.27);cath.add(hd);
+            const jw=new THREE.Mesh(new THREE.BoxGeometry(.34,.1,.26),darkM);jw.position.set(gx+side*1.32,gy+.07,zc);cath.add(jw);
+            for(const sd of[1,-1]){const hn=new THREE.Mesh(new THREE.CylinderGeometry(0,.07,.32,4),cathM);hn.position.set(gx+side*1.08,gy+.45,zc+sd*.15);hn.rotation.z=-side*.6;cath.add(hn);}
+            const an=new THREE.Object3D();an.position.set(gx+side*1.42,gy+.06,zc);cath.add(an);GAR.push({o:an,dx:side,dz:0});}
         }
       }
     }
@@ -5496,99 +5554,139 @@ function buildWorld(){
       const roseO=new THREE.Mesh(rose.geometry,rose.material);roseO.position.set(0,7.2,-(HL+WALLT+.14));roseO.rotation.y=Math.PI;cath.add(roseO);
       addHaze(0,PH+7.2,-(HL-.9),0x9cb2d8,7,.22);addHaze(0,PH+7.2,-(HL+WALLT+.9),0x9cb2d8,7,.22);   // the rose glows, both ways
     }
-    const DW=1.9;                                                          // half the door's width
+    // ---- THE PORTAL: three pointed archivolts stepping out, each on its colonnettes; a carved tympanum over the lintel; a pillar in the doorway; a steep gable over all
+    const DW=1.9,DH=6.4;                                                   // half the door's width; its height to the lintel
     const segW=HW+WALLT-DW;
-    for(const end of(back?[1,-1]:[1]))for(const side of[1,-1]){            // the south wall parted by the portal — and the north, on the path
-      MARKABLE.push(cbox(segW,WH,WALLT,cathM,side*(DW+segW/2),WH/2,end*WZ));
-      cbox(1,7.4,1.2,cathM,side*(DW+.3),3.7,end*(WZ+.3));                  // portal jamb
-      const lint=cbox(2.6,.7,1.2,cathM,side*1.1,8.0,end*(WZ+.3));lint.rotation.z=.5*side; // pointed arch
+    for(const end of ends){
+      for(const side of[1,-1])MARKABLE.push(cbox(segW,WH,WALLT,cathM,side*(DW+segW/2),WH/2,end*WZ));
+      cbox(DW*2+.2,WH-DH,WALLT,cathM,0,DH+(WH-DH)/2,end*WZ);               // over the door, up to the aisle's height (the nave's end wall goes on up: see THE ROOF)
+      for(let k=0;k<3;k++){const w=DW+.32+k*.5,zk=end*(WZ+.62+k*.42),y0=DH+.25;
+        archBeams(gArch(w,y0,7),([u,v])=>[u,v,zk],.46,.5,cathM);
+        for(const sd of[1,-1]){cath.add(cyl(.17,.21,y0,6,cathM,sd*w,y0/2,zk));cbox(.52,.3,.52,cathM,sd*w,y0+.02,zk);}}
+      cbox(DW*2+.3,.46,.7,cathM,0,DH+.02,end*(WZ+.4));                      // the lintel
+      {const P=gArch(DW+.3,DH+.24,7),sh=new THREE.Shape();sh.moveTo(P[0][0],P[0][1]);for(const[x,y]of P)sh.lineTo(x,y);sh.lineTo(P[0][0],P[0][1]);   // the tympanum...
+        const ty=new THREE.Mesh(new THREE.ShapeGeometry(sh),cathM);ty.position.z=end*(WZ+.5);if(end<0)ty.rotation.y=Math.PI;cath.add(ty);
+        const sk=new THREE.Mesh(ICO,M.bone);sk.position.set(0,DH+1.35,end*(WZ+.62));sk.scale.set(.42,.46,.3);cath.add(sk);               // ...carved with a skull in a mandorla
+        for(const sd of[1,-1]){const e=new THREE.Mesh(ICO,darkM);e.position.set(sd*.15,DH+1.42,end*(WZ+.86));e.scale.setScalar(.09);cath.add(e);}
+        const md=new THREE.Mesh(new THREE.TorusGeometry(.78,.08,4,14),cathM);md.position.set(0,DH+1.35,end*(WZ+.56));md.scale.y=1.25;cath.add(md);
+        for(const sd of[1,-1]){cbox(.3,.62,.3,cathM,sd*1.25,DH+.72,end*(WZ+.6));const hd=new THREE.Mesh(ICO,cathM);hd.position.set(sd*1.25,DH+1.14,end*(WZ+.6));hd.scale.setScalar(.14);cath.add(hd);}}   // two figures kneeling to it
+      cath.add(cyl(.26,.32,DH,6,cathM,0,DH/2,end*(WZ+.42)));addObstacle(0,end*(WZ+.42),.38,true,PH+DH);   // the trumeau: the door parts round it
+      {const wg=DW+.32+1.0+.75,z=end*(WZ+1.5),top=DH+7.4;                   // the wimperg: a steep gable, its edges crocketed, a finial on its point
+        const sh=new THREE.Shape();sh.moveTo(-wg,DH+1);sh.lineTo(0,top);sh.lineTo(wg,DH+1);sh.lineTo(-wg,DH+1);
+        const tri=new THREE.Mesh(new THREE.ShapeGeometry(sh),cathM);tri.position.z=z-end*.12;if(end<0)tri.rotation.y=Math.PI;cath.add(tri);
+        for(const sd of[1,-1]){beamTo(sd*wg,DH+1,z,0,top,z,.42,.42,cathM);
+          for(let i=1;i<6;i++){const u=i/6,c=new THREE.Mesh(CROCK,cathM);c.position.set(sd*wg*(1-u),DH+1+(top-DH-1)*u+.26,z);c.scale.setScalar(.2);cath.add(c);}
+          cbox(.55,5.6,.55,cathM,sd*(wg+.55),DH+.2+2.8,z);pinnacle(sd*(wg+.55),DH+.2+5.6,z,.34,2.2);}
+        pinnacle(0,top-.1,z,.3,1.6);}
     }
-    for(const end of(back?[1,-1]:[1]))cbox(DW*2+1.2,WH-7.4,WALLT,cathM,0,7.4+(WH-7.4)/2,end*WZ);   // over the door
-    /* ---- THE ROOF, AS A CATHEDRAL'S. It was tie beams under a ridge 1.9m
-       over the walls — a shed's pitch, and it read as a shack. A great
-       church has two roofs: a stone VAULT you see from inside, and over it
-       a steep roof of slate on timber you see from outside, closed at each
-       end by a gable. So:
-       - THE VAULT: a pointed barrel over the whole nave, springing from the
-         walls at 7.9m to a crown at 15.1m, ribbed across at every bay and
-         crossed diagonally in each, a boss where the diagonals meet —
-         with its webbing fallen in here and there, and always over the
-         altar's end, where the moon comes down (`beam`).
-       - THE ROOF: slate courses on rafters, pitched near forty degrees to a
-         ridge at 20.5m, with slates gone so the rafters show against the sky.
-       - THE GABLES: stepped masonry filling each end up to the ridge, a
-         small rose in the portal's; a pinnacle on every buttress; a gable
-         over the portal itself; and a spire, leaning a little, standing on
-         the ridge — the thing you see from across the field.
-       All of it is folded by `bakeStatic` with the rest of the stone, so it
-       costs triangles and not draws. */
+    /* ---- THE ROOF, AS A CATHEDRAL'S — and now a gothic one. A great church
+       has two roofs: a stone VAULT seen from inside and a steep slate roof
+       over it seen from outside. The vault springs from the CLERESTORY now
+       (15.7m, crown 21.1), not from the aisle walls, and the high roof runs
+       from the clerestory's eave at 17 to a ridge at 27.5; each aisle has
+       its own lean-to from 9.5 up under the clerestory windows. The bay
+       over the altar is open in the vault and the slates, because the
+       moon's pillar comes down through it. */
     srand(444);
-    const RIDGE=WH+11,EAVE=HW+WALLT+.4,Q=new THREE.Quaternion(),ZF=new THREE.Vector3(0,0,1),V3=new THREE.Vector3();
-    const leadM=mat('iron');
-    const beamTo=(ax,ay,az,bx,by,bz,w,h,m)=>{   // a straight stone (or timber) from one point to another, in the hall's frame
-      const dx=bx-ax,dy=by-ay,dz=bz-az,l=Math.hypot(dx,dy,dz),o=new THREE.Mesh(new THREE.BoxGeometry(w,h,l+.04),m);
-      o.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);o.quaternion.copy(Q.setFromUnitVectors(ZF,V3.set(dx/l,dy/l,dz/l)));cath.add(o);return o;};
-    // the vault's profile: a pointed arch across the nave, as two arcs struck from either side of the middle
-    const VY0=WH-1.6,VRISE=7.2,VR=(HW*HW+VRISE*VRISE)/(2*HW),VC=HW-VR,VA=Math.acos(-VC/VR),NV=9;
+    const NX=8.25,WC=17,RIDGE=WC+10.5,NE=NX+.85,ACR=12.0,AE=HW+WALLT+.4,AT=NX+.45,ATY=12.3;   // the arcade line, the clerestory's top, the high ridge, the high eave; the arcade's crown; the aisle roof's foot and head
+    // ---- THE ARCADE AND THE CLERESTORY: pointed arches from column to column, the spandrels between, and the high wall on them with a window in every bay
+    const COLZ=[-20,-15,-10,-5,0,5,10,15,20];
+    for(const sd of[1,-1]){const x=sd*NX;
+      for(let i=0;i<COLZ.length-1;i++){const zm=(COLZ[i]+COLZ[i+1])/2;
+        archBeams(gArch(2.05,9.2,6,1.4),([u,v])=>[x,v,zm+u],.8,.45,cathM);}
+      for(const z of COLZ)for(const[y0,y1,hl]of[[9.2,10,.55],[10,11,.75],[11,11.7,1.35],[11.7,ACR,2.3]])cbox(.8,y1-y0,hl*2,cathM,x,(y0+y1)/2,z);   // the spandrels, widening as the arches close
+      for(const e of[1,-1])cbox(.8,ACR-9.2,2.5,cathM,x,(9.2+ACR)/2,e*21.25);   // the half-bays against the end walls are wall
+      cbox(.8,WC-ACR,HL*2+WALLT*2,cathM,x,(ACR+WC)/2,0);                     // the clerestory wall
+      cbox(1.1,.35,HL*2+WALLT*2,cathM,x,WC+.1,0);                             // its cornice
+      for(let z=-HL;z<HL-.01;z+=5){const zc=z+2.5,g=lancetGeo(1.3,2.5);
+        for(const f of[-1,1]){const wn=new THREE.Mesh(g,glassM);wn.position.set(x+f*sd*.42,12.5,zc);wn.rotation.y=f*sd*Math.PI/2;cath.add(wn);}
+        archBeams(gArch(.8,15.0,3),([u,v])=>[x+sd*.46,v,zc+u],.2,.22,cathM);}}   // its hood
+    // ---- THE HIGH VAULT: a pointed barrel over the nave between the clerestory walls, ribbed and bossed, fallen in here and there and always over the altar
+    const HV=NX-.4;
+    const VY0=WC-1.3,VRISE=5.4,VR=(HV*HV+VRISE*VRISE)/(2*HV),VC=HV-VR,VA=Math.acos(-VC/VR),NV=8;
     const vaultY=ax=>VY0+Math.sqrt(Math.max(0,VR*VR-(Math.abs(ax)-VC)*(Math.abs(ax)-VC)));
     const prof=[];for(let i=0;i<=NV;i++){const a=VA*i/NV;prof.push([VC+VR*Math.cos(a),VY0+VR*Math.sin(a)]);}   // right half, springing to crown
     const bays=[];for(let z=-HL;z<HL-.01;z+=5)bays.push([z,z+5]);
     const beamBay=bays.findIndex(b=>b[0]<=-15&&b[1]>-15);                  // the bay the moon comes down through
     for(let bi=0;bi<bays.length;bi++){const [za,zb]=bays[bi],zm=(za+zb)/2;
       for(const sd of[1,-1])for(let i=0;i<NV;i++){                           // the webbing: a panel of the barrel between two ribs
-        const top=i>=NV-3;if((bi===beamBay&&top)||(top&&rnd()<.22)||rnd()<.05)continue;   // fallen in: always over the altar's end, and here and there
-        const [x0,y0]=prof[i],[x1,y1]=prof[i+1],am=VA*(i+.5)/NV;              // (set back .28 along the arc's own normal, so the ribs stand proud of it)
+        const top=i>=NV-3;if((bi===beamBay&&top)||(top&&rnd()<.22)||rnd()<.05)continue;
+        const [x0,y0]=prof[i],[x1,y1]=prof[i+1],am=VA*(i+.5)/NV;
         const w=new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(x1-x0,y1-y0)+.06,.2,5.05),cathM);
         w.position.set(sd*((x0+x1)/2+Math.cos(am)*.28),(y0+y1)/2+Math.sin(am)*.28,zm);w.rotation.z=sd*Math.atan2(y1-y0,x1-x0);cath.add(w);}
-      // the diagonal ribs, following the barrel corner to corner, and the boss where they cross
-      for(const [a,b] of[[za,zb],[zb,za]]){let px=HW,py=VY0,pz=a;
-        for(let i=1;i<=12;i++){const u=i/12,x=HW*(1-2*u),z=a+(b-a)*u,y=vaultY(x)-.12;beamTo(px,py,pz,x,y,z,.34,.4,cathM);px=x;py=y;pz=z;}}
+      for(const [a,b] of[[za,zb],[zb,za]]){let px=HV,py=VY0,pz=a;           // the diagonal ribs, and the boss where they cross
+        for(let i=1;i<=10;i++){const u=i/10,x=HV*(1-2*u),z=a+(b-a)*u,y=vaultY(x)-.12;beamTo(px,py,pz,x,y,z,.3,.36,cathM);px=x;py=y;pz=z;}}
       const boss=new THREE.Mesh(ICO,cathM);boss.position.set(0,VY0+VRISE-.35,zm);boss.scale.set(.42,.32,.42);cath.add(boss);
     }
     for(let z=-HL+5;z<HL-.01;z+=5)for(const sd of[1,-1])for(let i=0;i<NV;i++){  // the transverse ribs, at every bay line
-      const [x0,y0]=prof[i],[x1,y1]=prof[i+1];beamTo(sd*x0,y0-.05,z,sd*x1,y1-.05,z,.62,.52,cathM);}
-    for(const sd of[1,-1])cbox(.9,.6,HL*2,cathM,sd*(HW-.35),VY0-.1,0);      // the string course the vault springs from
-    // the roof over it: rafters from eave to ridge, and courses of slate on them with slates gone
-    const RL=Math.hypot(EAVE,RIDGE-WH),RT=Math.atan2(RIDGE-WH,EAVE);
-    for(const sd of[1,-1]){
-      for(let z=-HL-WALLT+.3;z<=HL+WALLT-.3;z+=1.25)beamTo(sd*EAVE,WH-.1,z,0,RIDGE-.15,z,.16,.2,woodM);
-      for(let c=0;c<7;c++){const s0=c*RL/7,s1=(c+1)*RL/7,xm=sd*(EAVE-Math.cos(RT)*(s0+s1)/2),ym=WH+Math.sin(RT)*(s0+s1)/2;
-        for(let bi=0;bi<bays.length+1;bi++){const za=-HL-WALLT+bi*5,zb=Math.min(HL+WALLT,za+5);if(zb-za<.5)continue;
-          if((c>=4&&bays[bi]&&bi===beamBay)||rnd()<.13)continue;                // a slate gone: the moon's way in over the altar, and here and there
-          const sl=new THREE.Mesh(new THREE.BoxGeometry(RL/7+.08,.26,zb-za+.02),cathM);
-          sl.position.set(xm+sd*Math.sin(RT)*.22,ym+Math.cos(RT)*.22,(za+zb)/2);sl.rotation.z=-sd*RT;cath.add(sl);}}
-    }
+      const [x0,y0]=prof[i],[x1,y1]=prof[i+1];beamTo(sd*x0,y0-.05,z,sd*x1,y1-.05,z,.56,.48,cathM);}
+    for(const sd of[1,-1])cbox(.7,.5,HL*2,cathM,sd*(HV-.1),VY0-.1,0);       // the string course the vault springs from
+    // ---- THE ROOFS: the high roof over the nave, steep, on rafters, slates gone (always over the altar's bay); and a lean-to over each aisle
+    const woodRoof=(ex,ey,rx,ry2,courses,zSkip)=>{const RL=Math.hypot(ex-rx,ry2-ey),RT=Math.atan2(ry2-ey,Math.abs(ex-rx));
+      for(const sd of[1,-1]){
+        for(let z=-HL-WALLT+.3;z<=HL+WALLT-.3;z+=1.25){if(zSkip&&zSkip(z))continue;beamTo(sd*ex,ey-.1,z,sd*rx,ry2-.15,z,.16,.2,woodM);}
+        for(let c=0;c<courses;c++){const s0=c*RL/courses,s1=(c+1)*RL/courses,xm=sd*(ex-Math.cos(RT)*(s0+s1)/2),ym=ey+Math.sin(RT)*(s0+s1)/2;
+          for(let bi=0;bi<bays.length+1;bi++){const za=-HL-WALLT+bi*5,zb=Math.min(HL+WALLT,za+5);if(zb-za<.5)continue;if(zSkip&&zSkip((za+zb)/2))continue;
+            if((c>=courses-3&&courses>4&&bays[bi]&&bi===beamBay)||rnd()<.13)continue;
+            const sl=new THREE.Mesh(new THREE.BoxGeometry(RL/courses+.08,.26,zb-za+.02),cathM);
+            sl.position.set(xm+sd*Math.sin(RT)*.22,ym+Math.cos(RT)*.22,(za+zb)/2);sl.rotation.z=-sd*RT;cath.add(sl);}}}};
+    woodRoof(NE,WC,0,RIDGE,8,null);
+    woodRoof(AE,WH,AT,ATY,4,z=>z>18.1);                                     // (not inside the towers)
     cbox(.5,.5,HL*2+WALLT*2+.6,cathM,0,RIDGE+.1,0);                        // the ridge
-    // the gables: stepped masonry up to the ridge at both ends, a coping stone down each edge
+    // ---- the nave's end walls over the aisles' height, the gables over them, and the aisle ends where no tower stands
     for(const end of[1,-1]){const gz=end*(HL+WALLT/2);
-      for(let y=WH;y<RIDGE-.3;y+=.9){const w=2*EAVE*(1-(y+.45-WH)/(RIDGE-WH));if(w<.6)break;cbox(w,.92,WALLT,cathM,0,y+.45,gz);}
-      for(const sd of[1,-1])beamTo(sd*(EAVE+.2),WH,gz,0,RIDGE+.2,gz,.5,.4,cathM);
+      cbox(2*(NX+.45),WC-WH,WALLT,cathM,0,WH+(WC-WH)/2,gz);
+      for(let y=WC;y<RIDGE-.3;y+=.9){const w=2*NE*(1-(y+.45-WC)/(RIDGE-WC));if(w<.6)break;cbox(w,.92,WALLT,cathM,0,y+.45,gz);}
+      for(const sd of[1,-1])beamTo(sd*(NE+.2),WC,gz,0,RIDGE+.2,gz,.5,.4,cathM);
       cbox(.24,1.4,.24,leadM,0,RIDGE+.9,gz);cbox(.8,.2,.2,leadM,0,RIDGE+1.15,gz);       // a cross on the apex
-      if(end===1||back){                                                     // the portal's gable carries a small rose
-        const ro=new THREE.Mesh(new THREE.CircleGeometry(1.5,12),new THREE.MeshBasicMaterial({map:texCache.rose}));
-        ro.material.polygonOffset=true;ro.material.polygonOffsetFactor=-2;ro.material.polygonOffsetUnits=-2;
-        ro.position.set(0,WH+3.4,end*(HL+WALLT+.02));if(end<0)ro.rotation.y=Math.PI;cath.add(ro);
-        addHaze(0,PH+WH+3.4,end*(HL+WALLT+.8),0x9cb2d8,4.5,.18);}
+      if(end===-1)for(const sd of[1,-1])for(let y=WH;y<ATY;y+=.7){const f=(y+.35-WH)/(ATY-WH),x0=AT,x1=AE-(AE-AT)*f;if(x1-x0<.3)break;cbox(x1-x0,.72,WALLT,cathM,sd*(x0+x1)/2,y+.35,gz);}   // the aisles' ends (the front's are the towers)
     }
-    // pinnacles on every buttress
-    for(const side of[1,-1])for(let z=-HL;z<=HL;z+=5){const px=side*(HW+WALLT+.2);
-      cbox(1.8,.3,1.6,cathM,px,WH+1.15,z);
-      const pn=new THREE.Mesh(new THREE.CylinderGeometry(0,.66,3.0,4),cathM);pn.position.set(px,WH+2.8,z);pn.rotation.y=Math.PI/4;cath.add(pn);}
-    // a gable over each portal, and a pinnacle on each jamb
-    for(const end of(back?[1,-1]:[1])){const pz=end*(HL+WALLT+.75);
-      for(let k=0;k<4;k++){const w=5.4*(1-k/4.2);cbox(w,.62,.7,cathM,0,8.5+k*.62,pz);}
-      for(const sd of[1,-1]){const pn=new THREE.Mesh(new THREE.CylinderGeometry(0,.42,2.2,4),cathM);pn.position.set(sd*(1.9+.3),7.4+1.1,end*(HL+WALLT/2+.3));pn.rotation.y=Math.PI/4;cath.add(pn);}}
-    // the spire on the ridge: a square foot, an eight-sided drum, and a lead spire leaning a little
-    {const sp=new THREE.Group();sp.position.set(0,RIDGE,-2.5);sp.rotation.z=.035;cath.add(sp);
+    // ---- THE ROSE over the door, traceried: glass both faces, a ring of stone, twelve spokes and a hub
+    for(const end of ends){const rz=end*(HL+WALLT+.03),ry=13.2,Rr=2.7;
+      const ro=new THREE.Mesh(new THREE.CircleGeometry(Rr,16),new THREE.MeshBasicMaterial({map:texCache.rose}));
+      ro.material.polygonOffset=true;ro.material.polygonOffsetFactor=-2;ro.material.polygonOffsetUnits=-2;
+      ro.position.set(0,ry,rz);if(end<0)ro.rotation.y=Math.PI;cath.add(ro);
+      const ri=new THREE.Mesh(ro.geometry,ro.material);ri.position.set(0,ry,end*(HL-.03));if(end>0)ri.rotation.y=Math.PI;cath.add(ri);
+      const tz=end*(HL+WALLT+.12);
+      {const t=new THREE.Mesh(new THREE.TorusGeometry(Rr,.2,4,20),cathM);t.position.set(0,ry,tz);cath.add(t);
+       const h=new THREE.Mesh(new THREE.TorusGeometry(.55,.14,4,10),cathM);h.position.set(0,ry,tz);cath.add(h);}
+      for(let i=0;i<12;i++){const a=i/12*TAU;beamTo(Math.cos(a)*.6,ry+Math.sin(a)*.6,tz,Math.cos(a)*(Rr-.1),ry+Math.sin(a)*(Rr-.1),tz,.14,.14,cathM);}
+      addHaze(0,PH+ry,end*(HL+WALLT+.9),0x9cb2d8,5.5,.2);addHaze(0,PH+ry,end*(HL-.9),0x9cb2d8,5.5,.18);}
+    // ---- FLYING BUTTRESSES: from the top of each aisle buttress, over the lean-to, to the clerestory — a straight coping on a quarter-arc
+    for(const side of[1,-1])for(let z=-HL+5;z<HL-.01;z+=5){if(TWR(z,1))continue;
+      const ax=side*(HW+WALLT+.18),bx=side*(NX+.42);
+      beamTo(ax,14.0,z,bx,16.2,z,.5,.5,cathM);
+      let px=ax,py=12.9;for(let i=1;i<=5;i++){const u=i/5,x=ax+(bx-ax)*u,y=12.9+(15.3-12.9)*Math.pow(u,.55);beamTo(px,py,z,x,y,z,.46,.4,cathM);px=x;py=y;}}
+    // ---- THE TOWERS, twin, on the front: three stages each set back, blind arches, a belfry with pointed openings, a parapet with pinnacles, and an eight-sided spire
+    for(const sd of[1,-1]){const tx=sd*11.3,tz=21.3,T=(w,h,d,y)=>cbox(w,h,d,cathM,tx,y+h/2,tz);
+      T(5,11.5,6,0);
+      for(const cx of[1,-1])for(const cz of[1,-1]){cbox(.9,11,.9,cathM,tx+cx*2.62,5.5,tz+cz*3.07);pinnacle(tx+cx*2.62,11,tz+cz*3.07,.36,1.8);}
+      T(4.4,6.6,5.4,11.5);
+      const face=(y,w,h,n,m)=>{for(let i=0;i<n;i++){const off=(i-(n-1)/2)*(w+.35),g=lancetGeo(w,h);
+        const f=new THREE.Mesh(g,m);f.position.set(tx+off,y,tz+2.72);cath.add(f);
+        const s2=new THREE.Mesh(g,m);s2.position.set(tx+sd*2.22,y,tz+off*1.1);s2.rotation.y=sd*Math.PI/2;cath.add(s2);}};
+      face(12.4,.9,3.4,2,darkM);                                             // blind arches on the second stage
+      T(3.9,5.2,4.8,18.1);
+      {const g=lancetGeo(.85,2.6);for(let i=0;i<2;i++){const off=(i-.5)*1.25;   // the belfry: two pointed openings on every face, black
+        for(const[px,pz,ry]of[[tx+off,tz+2.42,0],[tx+off,tz-2.42,Math.PI],[tx+1.97,tz+off,Math.PI/2],[tx-1.97,tz+off,-Math.PI/2]]){const o=new THREE.Mesh(g,darkM);o.position.set(px,18.9,pz);o.rotation.y=ry;cath.add(o);}}}
+      T(4.5,.45,5.4,23.3);
+      for(const cx of[1,-1])for(const cz of[1,-1])pinnacle(tx+cx*1.9,23.7,tz+cz*2.35,.34,2.6);
+      {const sp=new THREE.Mesh(new THREE.CylinderGeometry(0,2.05,12,8),cathM);sp.position.set(tx,23.75+6,tz);sp.rotation.y=Math.PI/8;cath.add(sp);
+        for(let i=0;i<4;i++){const a=i/4*TAU+Math.PI/4;const lu=new THREE.Mesh(new THREE.CylinderGeometry(0,.45,1.1,4),cathM);lu.position.set(tx+Math.cos(a)*1.55,26.2,tz+Math.sin(a)*1.55);lu.rotation.y=Math.PI/4;cath.add(lu);}   // lucarnes on the spire
+        cbox(.14,1.3,.14,leadM,tx,36.4,tz);cbox(.62,.14,.14,leadM,tx,36.6,tz);}
+      addObstacle(sd*10.55,20.55,2.35,true,PH+35);}                        // (the tower stands in the aisle's last bay: bodies go round it)
+    // ---- the flèche at the crossing: a square foot, an eight-sided open drum, and a slender lead spire, leaning a little
+    {const sp=new THREE.Group();sp.position.set(0,RIDGE,-2.5);sp.rotation.z=.03;cath.add(sp);
       const add=(o,y)=>{o.position.y=y;sp.add(o);return o;};
-      add(new THREE.Mesh(new THREE.BoxGeometry(3,1.6,3),cathM),.2);
-      add(new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.25,3.8,8),cathM),2.9);
-      for(let i=0;i<8;i++){const a=i/8*TAU,o=new THREE.Mesh(new THREE.BoxGeometry(.28,2.2,.28),cathM);o.position.set(Math.cos(a)*1.18,3.1,Math.sin(a)*1.18);sp.add(o);}   // the drum's colonnettes
-      add(new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,.3,8),cathM),4.9);
-      add(new THREE.Mesh(new THREE.CylinderGeometry(0,1.2,12,8),leadM),11.05);
-      add(new THREE.Mesh(new THREE.BoxGeometry(.14,1.2,.14),leadM),17.5);add(new THREE.Mesh(new THREE.BoxGeometry(.6,.14,.14),leadM),17.7);}
+      add(new THREE.Mesh(new THREE.BoxGeometry(2.6,1.4,2.6),cathM),.2);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(.9,1.05,3.6,8),darkM),2.7);
+      for(let i=0;i<8;i++){const a=i/8*TAU,o=new THREE.Mesh(new THREE.BoxGeometry(.22,3.6,.22),cathM);o.position.set(Math.cos(a)*1.02,2.7,Math.sin(a)*1.02);sp.add(o);}   // the drum's colonnettes, open between
+      add(new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,.26,8),cathM),4.6);
+      add(new THREE.Mesh(new THREE.CylinderGeometry(0,1.0,15,8),leadM),12.2);
+      add(new THREE.Mesh(new THREE.BoxGeometry(.14,1.2,.14),leadM),20.3);add(new THREE.Mesh(new THREE.BoxGeometry(.6,.14,.14),leadM),20.5);}
+    GARG.add(GAR);
     // ---- colonnades: two rows of columns, some broken, down the nave
-    for(const side of[1,-1])for(let z=-15;z<=15;z+=5){
+    for(const side of[1,-1])for(let z=-20;z<=20;z+=5){                  // (a pair more at each end than there were: the arcade runs the nave's length)
       const ch=8.6;
       cath.add(cyl(.45,.55,ch,6,cathM,side*8.25,ch/2,z));
       cath.add(cyl(.7,.5,.6,6,cathM,side*8.25,ch+.3,z));
@@ -6811,6 +6909,29 @@ const HOURS={};   // filled by buildWorld: night, dusk, sunrise, noon
    An instant change (`applyTime`/`setWeather` from the menu or the codex)
    lands the blend first. `XF.busy` is set while the target is being
    measured, so that measuring it does not end the blend it is for. */
+/* THE GARGOYLES SPOUT IN THE RAIN (`GARG`). Each cathedral hands in its
+   gargoyles' mouths as plain `Object3D` anchors inside the hall's group —
+   `bakeStatic` folds meshes, not anchors, and a path cathedral's anchors
+   ride its tile's shift like everything else. While it rains or storms,
+   the sixteen nearest mouths each pour a stream of twelve drops on a
+   parabola, all of it one `Points` draw; anchors whose hall has been torn
+   down are dropped. */
+const GARG={a:[],pts:null,N:16*12,v:new THREE.Vector3(),
+  add(list){for(const g of list)this.a.push(g);},
+  tick(){
+    const wet=(RUN.weather==='rain'||RUN.weather==='storm')&&WX.rain;
+    if(!wet){if(this.pts)this.pts.visible=false;return;}
+    if(!this.pts){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(this.N*3).fill(-999),3));
+      this.pts=new THREE.Points(geo,new THREE.PointsMaterial({color:0xb8c6d4,size:.14,transparent:true,opacity:.7,depthWrite:false}));this.pts.frustumCulled=false;scene.add(this.pts);}
+    this.a=this.a.filter(g=>{let o=g.o;while(o.parent)o=o.parent;return o===scene;});
+    const cx=camera.position.x,cz=camera.position.z,near=[];
+    for(const g of this.a){g.o.getWorldPosition(this.v);const d=Math.hypot(this.v.x-cx,this.v.z-cz);if(d<45)near.push([d,this.v.x,this.v.y,this.v.z,g.dx,g.dz]);}
+    near.sort((a,b)=>a[0]-b[0]);
+    const P=this.pts.geometry.attributes.position,A=P.array;A.fill(-999);
+    for(let k=0;k<Math.min(16,near.length);k++){const[,x,y,z,dx,dz]=near[k],gy=heightAt(x+dx*1.2,z+dz*1.2);
+      for(let j=0;j<12;j++){const t=((G.time*1.4+j/12+k*.37)%1)*.95,px=x+dx*2.0*t,pz=z+dz*2.0*t,py=Math.max(gy+.02,y-4.9*t*t);const o=(k*12+j)*3;A[o]=px;A[o+1]=py;A[o+2]=pz;}}
+    P.needsUpdate=true;this.pts.visible=true;this.pts.material.opacity=.7*(WX.rain.material.opacity>0?Math.min(1,WX.rain.material.opacity/.38):0);
+  }};
 const XF_DUR=40;
 const XF={on:false,busy:false,t:0,dur:XF_DUR,A:null,B:null,from:null,to:null,mid:true,dome2:null,
   gb:{value:0},gbMap:{value:null},gbK:{value:1},leafA:1,leafB:1,op0:1,lv0:0};
@@ -7874,7 +7995,8 @@ function updateAmbient(t,dt){
   // faster when the wind is up enough to be driving snow or rain sideways
   if(worldLights.dome)worldLights.dome.rotation.y+=dt*(RUN.weather==='blizzard'?.028:RUN.weather==='storm'?.016:.0045);
   updateWeather(dt);
-  xfTick(dt);                                  // (after the weather: a blizzard writes its own fog, and a blend has the last word)
+  xfTick(dt);
+  GARG.tick();                                 // (the gargoyles, in the rain)                                  // (after the weather: a blizzard writes its own fog, and a blend has the last word)
   if(snowDeep()){trailInit();if(!PLOUGHS())trodEnemies();}
   updateTrail(dt);updateTrod(dt);
   flushPaint();
@@ -20951,7 +21073,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,GARG,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

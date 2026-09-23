@@ -2791,23 +2791,38 @@ Known state of play:
   gate individual lock consumers on it, gate the lock. The Mire's SPEND button
   used to sit exactly where LOCK now does (`right:108px`); it is at 166, left of it.
 
-- **THE CATHEDRAL'S ROOF IS A CATHEDRAL'S** (the block headed THE ROOF in
-  `buildCathedral`). It was tie beams under a ridge 1.9m over the walls,
-  and read as a shack. Now: a pointed barrel VAULT (`VY0` 7.9 → crown
-  15.1, two arcs struck from ±`VC`), transverse ribs at every bay line,
-  diagonal ribs corner to corner following `vaultY`, a boss where they
-  cross; a steep slate ROOF on rafters to `RIDGE` (WH+11); stepped GABLES
-  both ends with a small rose in the portal's; pinnacles on every
-  buttress; a gable over each portal; and a leaning lead SPIRE on the
-  ridge. `beamTo` lays a box between two points with a quaternion — the
-  cathedral group is not yet shifted when it is built, so never use
-  `lookAt` (world space) there.
-  **The bay over the altar is always open, vault AND slates** (`beamBay`),
-  because the moon's pillar (`beam`) comes down through it. Folded by
-  `bakeStatic` with the rest: measured on the field, seed 7, three
-  headings, **+1 draw and +8.7k triangles** (422/43.5k → 423/52.2k).
-  The transverse ribs stop short of the end walls: at z=±HL they covered
-  the rose window.
+- **THE GOTHIC CATHEDRAL** (the blocks headed THE GOTHIC CATHEDRAL and
+  THE ROOF in `buildCathedral`). It read as a barn; now it has twin front
+  towers with spires, a raised nave (arcade `NX`=8.25 on the columns,
+  clerestory to `WC`=17, high vault springing at 15.7 to 21.1, high roof
+  to `RIDGE`=27.5), aisles under lean-tos (`AE`→`AT`, 9.5→12.3), flying
+  buttresses, stepped buttresses with gabled caps and pinnacles, paired
+  pointed lancets under an oculus with outside tracery, a portal of three
+  archivolts with a tympanum, a trumeau and a wimperg, a traceried rose
+  over each door, gargoyles, and a flèche. Helpers: `gArch` (a
+  two-centred pointed arch's points, `k` the radius over the half-span),
+  `lancetGeo` (a pointed ShapeGeometry with its uv put back to 0..1, which
+  a ShapeGeometry does not give you), `archBeams`, `pinnacle`, `beamTo`.
+  **What did NOT move, on purpose: the collision.** The outer walls, the
+  portal gap, the nave rect (`HW`/`HL`/`WALLT`) and the plinth are where
+  they were. The arcade stands on the colonnade that was there, with one
+  more pair at z=±20. The towers stand IN the aisles' last bay at the
+  front (x 8.8..13.8, z 18.3..24.3): an obstacle each for bodies, a box in
+  `camStone` for the lens, and `TWR()` keeps buttresses, flyers, gargoyles
+  and the aisle roof out of them. The trumeau is an obstacle (r .38): the
+  door parts round it. On the path the towers are on the +z end only.
+  **The bay over the altar is still open, vault and slates** (`beamBay`).
+  **Cost, measured**: draws unchanged (181 at one heading, seed 7); the
+  cathedral from across the field 397 draws / 71k triangles, against 423 /
+  52k before. Crockets and finials are TETRAHEDRA: as icosahedra they were
+  ten thousand triangles on their own. `srand(444)` still precedes the
+  vault's rolls, and the field's wedges reseed after it, so no draw here
+  moves the field.
+  **THE GARGOYLES SPOUT** (`GARG`, its `tick` in `updateAmbient`): each
+  cathedral hands in plain `Object3D` anchors at the mouths (`bakeStatic`
+  folds meshes, never anchors, and a path cathedral's ride its tile's
+  shift); in rain or storm the sixteen nearest pour twelve drops each on
+  a parabola, one `Points` draw; anchors whose hall has gone are dropped.
 - **THE CODEX (`?mode=codex`, `PATH.codex`, `CODEX`, `CODEX_TILES`,
   `CODEX_CATS`, `codexShow`, `codexTick`, `codexCam`, the section headed
   THE CODEX just above `begin`).** A browser of everything in the game.
