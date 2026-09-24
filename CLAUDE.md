@@ -311,8 +311,10 @@ Each line is a rule. The why is in NOTES under the same names.
   `flies` (read through `aloft(e)`); the jaw opens on POSITIVE rotation.x;
   the hands are a left and a right (`body.scale.x` keeps its sign); skull
   heights are measured constants. Re-measure claw tips if the hand changes.
-- The Arm: `this.x/z` is the palm near the ground, else the root;
-  `spheres()` for gun hits. A grab is a player state.
+- The Arm: `this.x/z` is the palm near the ground, else the root (the ROOT
+  while its own scene plays); `spheres()` for gun hits. A grab is a player
+  state. Its FIRST tell is at home, ahead of the pilgrim: a scene needs a
+  bearing, and one under his feet has none.
 - **Every kill's marrow goes through `shedMarrow`.**
 - `DEF.might` is applied in every horror's `takeHit`, never at a call site.
 - New siege-walkers need `zombieMove`'s stuck-on-a-tree detour.
@@ -344,6 +346,13 @@ Each line is a rule. The why is in NOTES under the same names.
   tile's arrays IN PLACE and drops its roads, decks, stairs, bake records
   and own textures.
 - `bakeStatic` on a tile group is fine; `bakeWorld` on the path is not.
+- **A chunk on the path cannot see its own road** (step 0 builds the chunk,
+  step 1 lays the road). `roadPlan(t)` puts the route into `roads` for step
+  0 with `BUILD.plan` set, and `nearRoad` then ignores every other road
+  (they are in the world's frame). A new special with its own road shape
+  adds it to `roadPlan`. On the path a wedge's axis IS the road: anything a
+  chunk centres on the axis needs a path branch (the chapel, the causeway,
+  the ruins), gated on `BUILD.plan` so the field's draws do not move.
 - Ravine: trunks are `wood` obstacles, not `tree`; the chunk's `free()`
   keeps the trail clear; nothing stands in a stream bed (`streamNear`).
 - **Every piece of foliage goes through `leafMat()`**; fallen leaves do not.
@@ -421,7 +430,8 @@ node run.js parse boot            # the quick pass, ~1 minute
 
 Checks: `parse` (every inline script compiles), `boot` (field, path, ravine
 and Mire start clean), `codex` (every entry of every section), `path` and
-`ravine` (walk about seventy hexes), `castle` (raised at hex 3: the gate,
+`ravine` (walk about seventy hexes), `road` (nothing a hex builds stands on
+its own road), `castle` (raised at hex 3: the gate,
 the Rider's two halves, the keep, the road on), `leak` (walk to hex 80;
 ceilings on heap, geometry and the registries). Chromium comes from `$CHROME_PATH`,
 then `/opt/pw-browsers`, then playwright's own install.

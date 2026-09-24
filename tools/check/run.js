@@ -9,7 +9,8 @@
 
    Checks: parse (every inline script compiles), boot (field, path, ravine
    and Mire each start with no error), codex (every entry of every section
-   shown in turn), path / ravine (walk ~70 hexes of each), castle (raised
+   shown in turn), path / ravine (walk ~70 hexes of each), road (nothing
+   a hex builds stands on its own road, over 60 hexes), castle (raised
    at hex 3: the winch, the gate, the Rider's two halves, the keep, the road
    on), leak (walk the
    path to hex 80 and hold heap, GPU geometry and the registries to a
@@ -19,7 +20,7 @@
 const fs=require('fs'),path=require('path');
 const argv=process.argv.slice(2);
 const FILE=path.resolve((argv.find(a=>a.startsWith('--file='))||'').slice(7)||path.join(__dirname,'../../index.html'));
-const ALL=['parse','boot','codex','path','ravine','castle','leak'];
+const ALL=['parse','boot','codex','path','ravine','road','castle','leak'];
 const want=argv.filter(a=>!a.startsWith('--'));
 const RUN=want.length?want:ALL;
 for(const w of RUN)if(!ALL.includes(w)){console.error('unknown check '+w+' — one of '+ALL.join(', '));process.exit(2);}
@@ -119,6 +120,34 @@ async function walk(check,mode,id,seed){
   await pg.close();
 }
 
+/* ---- nothing stands on the road: every obstacle and breakable a hex builds, against that hex's own road ---- */
+async function checkRoad(){
+  let n=0;const bad=[];
+  for(const seed of [2,5]){
+    const {pg,errs}=await page(320,200);
+    await pg.goto(URL0+'?mode=path&seed='+seed+'&time=noon&wx=clear',{waitUntil:'load'});
+    await pg.waitForTimeout(3000);
+    await press(pg,'modePath');
+    await pg.waitForTimeout(1000);
+    const r=await pg.evaluate(async()=>{const B=window.BP,P=B.player,PA=B.PATH,f=()=>new Promise(q=>requestAnimationFrame(q)),seen=new Set(),hits=[];let n=0;
+      const segD=(x,z,s)=>{const dx=s.bx-s.ax,dz=s.bz-s.az,t=Math.max(0,Math.min(1,((x-s.ax)*dx+(z-s.az)*dz)/(dx*dx+dz*dz||1)));return Math.hypot(x-(s.ax+dx*t),z-(s.az+dz*t));};
+      const scan=()=>{for(let k=PA.lo||0;k<PA.tiles.length;k++){const t=PA.tiles[k];if(!t||t.dead||!t.ground||t===PA.job||seen.has(k))continue;seen.add(k);n++;
+        const rs=B.roads.filter(r=>r.tile===k);if(!rs.length)continue;
+        const cs=t.cs,gates=cs?[cs.blockF,cs.blockR]:[];      // (the castle's portcullises are meant to be across it: they lift)
+        const near=(x,z)=>Math.min(...rs.map(s=>segD(x,z,s)));
+        for(const o of B.obstacles){if(o.tile!==k||gates.includes(o))continue;let d;
+          if(o.seg){d=1e9;for(let u=0;u<=1;u+=.1)d=Math.min(d,near(o.ax+(o.bx-o.ax)*u,o.az+(o.bz-o.az)*u));}else d=near(o.x,o.z);
+          if(d-o.r<1.55){const b=B.breakables.find(b=>b.obs===o);hits.push(t.kind+' hex '+k+': '+(b?b.kind:o.seg?'wall':'obstacle')+' at x '+(o.seg?o.ax:o.x).toFixed(1));}}}};
+      let z=P.z;for(let i=0;i<4000&&PA.far<32;i++){z-=3;P.x=0;P.z=z;P.hp=P.maxHp;for(const e of B.enemies)if(Math.abs(e.z-P.z)<60&&e.kind!=='arm')e.x=300;await f();if(i%4===0)scan();}
+      return {n,hits};});
+    n+=r.n;for(const h of r.hits)bad.push('seed '+seed+' '+h);
+    if(errs.length)bad.push('seed '+seed+' errors: '+errs.slice(0,2).join(' | '));
+    await pg.close();
+  }
+  if(bad.length)fail('road',bad.length+' things on the road over '+n+' hexes: '+bad.slice(0,6).join('; '));
+  else ok('nothing on the road over '+n+' hexes');
+}
+
 /* ---- the castle, raised early: wind the gate, meet the Rider, bring down both halves, go on ---- */
 async function checkCastle(){
   const {pg,errs}=await page(640,360);
@@ -194,6 +223,7 @@ async function checkLeak(){
       if(w==='codex')await checkCodex();
       if(w==='path')await walk('path','path','modePath',3);
       if(w==='ravine')await walk('ravine','ravine','modeRavine',3);
+      if(w==='road')await checkRoad();
       if(w==='castle')await checkCastle();
       if(w==='leak')await checkLeak();
     }catch(e){fail(w,'harness: '+String(e&&e.message||e).split('\n')[0]);}

@@ -3453,3 +3453,43 @@ Known state of play:
     on 34m to skid and wheel; the horse at zero throws the rider, the bar
     reads 50% and hands over; the rider on foot killed lifts the keep and
     the walk on to hex 10 tears the castle down with 0 errors.
+
+- **NOTHING STOOD CLEAR OF THE PATH'S ROAD** (`roadPlan`, `BUILD.plan`,
+  `nearRoad`). Reported as gravestones on the path; measured with a
+  harness that walks forty hexes on each of several seeds and, for every
+  hex, lists every obstacle and breakable of that hex within a road's width
+  of that hex's own `roads` segments. Over 160 hexes on four seeds: **48
+  gravestones, 27 trees, 24 causeway stones, 37 lengths of ruin and chapel
+  wall, 12 stones and a lantern on the fork's branches** — all ON the road.
+  The cause was the build order: a chunk is built in step 0 and the road
+  laid in step 1, so every `clearSpot` asked a road list without this
+  hex's road in it, and on the path a wedge's axis is the road. Two more
+  things fell out of it:
+  - the ruins' "nudge off the road" was reading OTHER hexes' roads, which
+    are stored in the world's frame while a hex is built in its own — the
+    start's ring road lies under the first house's spot, so the nudge swung
+    the house ONTO the path's road. During a build `nearRoad` now reads the
+    plan alone.
+  - the chapel was centred on the axis, so the road ran in at its door and
+    into its back wall; the causeway's stones were strung down the axis;
+    the fork's shrine stood square on its own branch; a lantern at x 2.3
+    could stand on a fork branch. Each has a path branch now, gated on
+    `BUILD.plan` (the field's layout and its draws are untouched).
+  After: **0 on the road over 320 hexes on eight seeds**, apart from the
+  castle's two portcullises, which lift.
+- **THE ARM'S INTRODUCTION WAS MESSY, AND IT WAS TWO THINGS.** Filmed a
+  frame every 0.3s through the scene. (1) The first eruption was UNDER the
+  pilgrim, and a scene is shot along the line between him and the thing
+  (`CUT.base`), which there was `atan2(0,0)` — the shots came from an
+  arbitrary side, often through a wall, and the eruption floored him and
+  `cutPlay` stood him back up inside the bones. The first tell is at home
+  now, a dozen metres ahead. (2) The scene held the Arm's `x/z` from its
+  first frame, and with the hand still buried that is the PALM, six metres
+  toward the pilgrim: every orbit was centred on empty ground and the lens
+  sat 12–15m out instead of 7–9. `this.x/z` is the root while its own scene
+  plays. The roar is shot round the hand (`cutOrbitOn`) at its rest height
+  (6m: at the scene's start it is under the soil, so it cannot be read
+  there), and the title from the side, because at rest the arm leans out
+  over the pilgrim and a lens between them is under the hand. Its idle
+  cooldown no longer runs during the scene — it went straight back under
+  the moment the name was up.

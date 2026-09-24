@@ -1650,7 +1650,10 @@ every way, see *First person*.) **The path** is survival: instead of the one hex
 tiles laid end to end northward, without end — each an authored chunk
 (the grave rows, the wood, the ruins, a hollow, a causeway, a chapel)
 on its own seeded ground shape, with a flagstone road through, a lantern or two,
-and a host sown to a budget that grows with every hex. Two or three
+and a host sown to a budget that grows with every hex. **Nothing stands on
+the road**: the grave rows part for it, the causeway's stones flank it as an
+avenue, the chapel stands beside it with its door on it, and the ruined
+houses keep off it. Two or three
 tiles always stand ahead of you, built as you come; what is fifty
 metres behind is torn down — **and the ground goes with it.** The hex
 behind the one you left is gone, and where it stood the land now ends in
@@ -2673,7 +2676,9 @@ to that spot, and it does not follow you to the bonfire.
 
 ## The Arm
 
-What the barrow keeps. Walk onto that hex and the soil **cracks in a ring
+What the barrow keeps. Walk onto that hex and, the first time, the soil
+cracks in a ring in the barrow's middle ahead of you and the arm comes up
+there, whole, while you watch; after that the soil **cracks in a ring
 under your feet** and grumbles for a second and a quarter; then an arm the
 size of a tree comes up through it — a humerus, an elbow, the two bones of
 a forearm and a hand at the end, twice the size of the Bell-Called's —
@@ -3103,7 +3108,8 @@ There is no unit-test suite; the game is one file, and the honest test is
 to load it and play it. `tools/check/run.js` does that headless and fails
 on any page error: every inline script compiles, the field, the path, the
 ravine and the Mire each boot clean, every entry of the codex is shown in
-turn, seventy-odd hexes of the path and of the ravine are walked, the
+turn, seventy-odd hexes of the path and of the ravine are walked, nothing
+a hex builds is allowed to stand on its own road, the
 castle is raised early and fought through from the winch to the keep, and the
 path is walked to hex 80 and held to ceilings on heap, GPU geometry and
 the game's own registries, so a leak fails the build.
