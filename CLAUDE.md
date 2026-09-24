@@ -336,6 +336,17 @@ Each line is a rule. The why is in NOTES under the same names.
   nearest part above the soil (untouchable when there is none). A run
   carries one by `R.wyrm`, the LAST draw on the run's stream. Its scenes
   are shot along the trench: a lens swung to the side is up the wall.
+- The Lamplighter's light is `lampNear(e)`, cached for 20 frames on the
+  horror; the extra blow goes through the strike's `hd`, never `this.dmg`.
+  Its lantern is a Basic box and a sprite, never a light.
+- The Ossuary Swarm is two `InstancedMesh`es on a plain Lambert (no `psx`).
+  Its hp is its piece count times four; `takeHit` kills pieces, never hp.
+- The Hanged's rope is a child of its root, placed in world space through
+  `worldToLocal`, and `lodKeep`. Its rig is `humanoid=false`. A hanged
+  pilgrim uses the Arm's `'grabbed'` state.
+- **Anything a build drops into the host goes through `sowOdd`** (queued
+  on the path, straight in on the field). New variants are picked by
+  `posHash`, never `rnd()`, so no draw moves.
 - **The Rider is two bodies.** Mounted it is `RiderHorror` (its own rig, the
   top half of the bar; its `die()` unhorses). On foot it is
   `Enemy('boss',{rider:true})`, so **every `this.boss` rule that means "the

@@ -2794,6 +2794,36 @@ along its line when it comes, and it is fought the length of the run.
 Only what is above the soil can be struck. At half its life the walls
 shake and it comes faster, and erupts more. 820 life, worth 900 marrow.
 
+## The Lamplighter
+
+A tall, thin hollow with a **lantern on a pole** and no blade. It stands
+where the thrower would, at dusk, at night and in fog, and it keeps back:
+seven metres off, working round you, with a chop for anyone who closes.
+While it lives the host near it **burns** — within twelve metres a hollow's
+eyes go amber, a sleeping one wakes at nearly twice the distance, and every
+blow it lands is half a heart heavier. **Kill it first.** When it dies the
+lantern goes out and the eyes round it go back to their own colour.
+70 life, worth 60 marrow.
+
+## The Ossuary Swarm
+
+Not everything in the sunken hollow's bowl is a bone pile. Come within
+eight metres and some **sixty skulls and bones** get up as one carpet and
+scuttle after you, nibbling half a heart a bite while you stand in it. A
+light blow thins it a few pieces at a time; a **heavy** blow — a charged
+cut, the earthshaker, a rocket — blows a great hole in it. Under five
+pieces, what is left scatters. Worth 40 marrow.
+
+## The Hanged
+
+Now and then a dead tree has **something hanging from it**, swaying three
+metres up. Walk under it and it **drops onto your back and strangles**:
+it is the Arm's grip, so every press is a fifth of the way out, and it
+takes half a heart each beat it holds. Held too long, it takes a whole
+heart and lets go. Throw it off and it lies stunned a moment (every blow
+does half again), then comes after you on its hands. It can be cut down
+before it drops. 50 life, worth 30 marrow.
+
 ## The bat
 
 In the dark the crows are **bats**: half of them at night, in fog and in

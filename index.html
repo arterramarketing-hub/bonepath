@@ -718,6 +718,9 @@
    the Rider .......................... "THE RIDER", RiderHorror, makeRiderRig, riderFell, cutRider
    the fog wraith ..................... "THE FOG WRAITH", FogWraith, wraithTick
    the Ravine Wyrm .................... "THE RAVINE WYRM", RavineWyrm, makeWyrmRig, cutWyrm
+   the Lamplighter .................... "THE LAMPLIGHTER", makeLampRig, lampNear
+   the Ossuary Swarm .................. "THE OSSUARY SWARM", OssuarySwarm, sowOdd
+   the Hanged ......................... "THE HANGED", Hanged, HANGED_P
    the Bell-Called .................... "THE BELL-CALLED", BoneHand, GiantSkull
    the wand's bubbles ................. "THE BUBBLES", castBubble
    the home run, the shatter .......... homeRun, batShatter, flyBone
@@ -5914,6 +5917,7 @@ function buildWorld(){
     tr.position.set(px,heightAt(px,pz),pz);tr.rotation.y=rnd()*TAU;tr.rotation.z=rr(-.05,.05);
     world.add(tr);addObstacle(px,pz,.4,false,heightAt(px,pz)+h);
     obstacles[obstacles.length-1].tree={h,r:.32-.18*Math.min(1,1.1/h),trunk,grp:tr};   // the trunk itself, its height and its girth at blade height: a swing marks its bark
+    if(posHash(px,pz,31)<HANGED_P){const a=posHash(px,pz,37)*TAU;sowOdd('hanged',px+Math.sin(a)*1.05,pz+Math.cos(a)*1.05,{h});}   // (now and then something hangs from it: see THE HANGED)
   }
   function ruinWall(px,pz,len,ry,h){
     const w=box(len,h,.55,M.wall,px,heightAt(px,pz)+h/2,pz,ry);w.rotation.z=rr(-.03,.03);world.add(w);MARKABLE.push(w);
@@ -5963,6 +5967,7 @@ function buildWorld(){
       let piles=0;for(let i=0;i<40&&piles<7;i++){const a=rnd()*TAU,d=rnd()*6.5,px=w.cx+Math.cos(a)*d,pz=w.cz+Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;bonePile(px,pz);}
       for(let i=0;i<3;i++){const a=rnd()*TAU,px=w.cx+Math.cos(a)*9.5,pz=w.cz+Math.sin(a)*9.5;if(clearSpot(px,pz,.9))stone(px,pz,.9);}
       const p=inWedge(w,w.d+8,w.d+12,.35,2);if(p)tree(p[0],p[1],true);
+      sowOdd('swarm',w.cx,w.cz);                                                  // what lies in the bowl is not all bone piles (see THE OSSUARY SWARM)
     },
     causeway(w){                                                            // standing stones along the ridge's crest, one fallen
       const dx=Math.cos(w.a),dz=Math.sin(w.a);let fallen=false;
@@ -7136,6 +7141,8 @@ function drainSpawns(n){
     {const lim=pathEdge(t,q.z-t.zc)-1.4;q.x=clamp(q.x,-lim,lim);}             // (never raised over the drop: the host sows by the wedge, the narrows are nine metres wide)
     let e;
     if(q.kind==='crow'){e=new Crow(q.x,q.z,{bat:batFor(q.x,q.z)});e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
+    else if(q.kind==='swarm')e=new OssuarySwarm(q.x,q.z);
+    else if(q.kind==='hanged')e=new Hanged(q.x,q.z,(q.o&&q.o.h)||4);
     else{e=new Enemy(q.kind,q.x,q.z,q.o);if(q.roam)e.patrol();}   // (else it lies in the tile's ground and climbs out)
     enemies.push(e);t.foes.push(e);
   }
@@ -14376,9 +14383,10 @@ class Enemy{
        rifle's whole claim is one shot one body — if you raise this number
        again, raise that one with it. */
     this.shield=!!opts.shield&&kind==='hollow';          // the Shieldbearer (see its block, below)
+    this.lamp=!!opts.lamp&&kind==='hollow';              // the Lamplighter (see THE LAMPLIGHTER)
     this.rider=!!opts.rider;                            // the Rider, unhorsed: the Warden's body of blows with a flail and a limp (see THE RIDER)
-    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:this.shield?110:85;
-    this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:this.shield?2.1:2.5;
+    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:this.shield?110:this.lamp?70:85;
+    this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:this.shield?2.1:this.lamp?2.3:2.5;
     /* THE DROWNED: slow, heavy in the hand — a hundred, six swings of the
        greatsword — and they do not much care about you: under eight
        metres they come for you, further off they push for the house.
@@ -14402,14 +14410,14 @@ class Enemy{
       this.bashPower=this.mother||V==='hulk'?3:1;if(V==='hulk')this.heavyHitter=true;}
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
-    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:this.shield?45:35;
+    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:this.shield?45:this.lamp?60:35;
     if(this.zombie){const V=this.variant;this.poiseMax=this.mother?40:this.crawler?2:V==='hulk'?22:V==='runner'?2:7;this.marrow=this.mother?400:this.crawler?8:V==='hulk'?90:V==='runner'?25:40;
       if(this.mother){this.mini=true;this.name='THE CARRION MOTHER';this.engaged=true;this.spawnT=4;this.brood=[];}}
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
     this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;this.chillT=0;
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
-    this.rig=this.boss?(this.rider?makeRiderFootRig():makeWardenRig()):this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
+    this.rig=this.lamp?makeLampRig():this.boss?(this.rider?makeRiderFootRig():makeWardenRig()):this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
     if(!this.boss)clipWarm(this.rig,(this.zombie?'z'+(this.variant||'')+(this.mother?'m':'')+(this.crawler?'c':''):(this.big?'big':'')+(this.caster?'cast':'')+'h'));   // the cut's shaders and pipelines, built now rather than on the hit
     this.reach=this.boss?3.4:this.big?2.4:2.15;
     if(this.zombie){this.reach=this.mother?2.7:this.crawler?1.5:this.variant==='hulk'?2.3:1.95;
@@ -14639,7 +14647,7 @@ class Enemy{
     switch(frozen?'frozen':this.state){
       case 'frozen':break;                                   // (held: nothing moves)
       case 'dormant':
-        if(!this.boss&&dist<this.aggroR&&G.mode==='play')this.wake();
+        if(!this.boss&&dist<this.aggroR*(lampNear(this)?1.8:1)&&G.mode==='play')this.wake();
         /* WITH A GUN IN HAND THE FIELD SHOWS ITSELF. A host that lies under
            the soil until you are ten metres off gives a rifle nothing to
            look at, so about half of it climbs out early — from thirty-odd
@@ -14687,7 +14695,13 @@ class Enemy{
         // the Warden was swinging a greatsword through its own title card
         if(cutSubject(this))break;
         if(this.zombie){this.zombieMove(dt,dx,dz,dist);break;}
-        if(this.caster){
+        if(this.lamp){   // it keeps back, working round, and only swings if you come to it
+          const l=dist||1,err=dist-LAMP.BAND;
+          if(this.orbit===undefined)this.orbit=Math.random()<.5?-1:1;
+          if(Math.abs(err)>1.2){const sp=Math.sign(err)*this.speed*(err<0?1.05:.8);this.x+=dx/l*sp*dt;this.z+=dz/l*sp*dt;}
+          this.x+=-dz/l*this.orbit*this.speed*.5*dt;this.z+=dx/l*this.orbit*this.speed*.5*dt;
+          if(dist<2.4&&this.t>.8)this.begin('chop');
+        }else if(this.caster){
           /* THE THROWER DOES NOT STAND STILL ANY MORE. It held its band —
              back off under five and a half, close past eleven — and lobbed
              from whatever bearing it happened to be on, for ever: measured,
@@ -14752,12 +14766,13 @@ class Enemy{
         }
         break;}
       case 'strike':{
+        const hd=this.dmg+(lampNear(this)?5:0);   // (lit by a Lamplighter: half a heart heavier)
         const sd=this.attack==='lunge'?.4:this.attack==='throw'?.26:.18;
         if(this.attack==='lunge'){
           this.x+=this.vx*dt;this.z+=this.vz*dt;
           this.vx*=Math.pow(.1,dt);this.vz*=Math.pow(.1,dt);
           if(!this.hitDone&&dist<this.reach*.75){
-            this.hitDone=true;P.takeHit(this.dmg,this.x,this.z,true,this.big||this.boss?'heavy':'blade');
+            this.hitDone=true;P.takeHit(hd,this.x,this.z,true,this.big||this.boss?'heavy':'blade');
           }
         }else if(!this.hitDone&&this.t>=sd*.45){
           this.hitDone=true;
@@ -14768,11 +14783,11 @@ class Enemy{
             shockRing(this.x+Math.sin(this.facing)*1.6,this.z+Math.cos(this.facing)*1.6,0xd8b34a,4.2,.5);
             const sx=this.x+Math.sin(this.facing)*1.6,sz=this.z+Math.cos(this.facing)*1.6;
             const sd2=Math.hypot(P.x-sx,P.z-sz);
-            if(sd2<3.6)P.takeHit(this.dmg+6,sx,sz,true,this.big||this.boss?'heavy':'blade');
+            if(sd2<3.6)P.takeHit(hd+5,sx,sz,true,this.big||this.boss?'heavy':'blade');
           }else{
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             const arc=this.attack==='sweep'?1.9:1.05;
-            if(dist<this.reach&&ang<arc)P.takeHit(this.dmg,this.x,this.z,this.heavyHitter,this.big||this.boss?'heavy':'blade');
+            if(dist<this.reach&&ang<arc)P.takeHit(hd,this.x,this.z,this.heavyHitter,this.big||this.boss?'heavy':'blade');
             if(this.attack==='bash'&&this.segT&&(this.segT.roof?this.segT.roof.alive:this.segT.state<2)){   // and the wall, if it is the wall it was at
               const n=segNear(this.segT,this.x,this.z);if(n.d<this.reach+.4)bashSeg(this.segT,this.bashPower||1,n.x,n.z);}
           }
@@ -14934,6 +14949,9 @@ class Enemy{
         }
         break;
     }
+    if(r.lampPole&&this.hp>0&&this.state!=='down'&&this.state!=='dead'){r.armL.rotation.x=-.55;r.foreL.rotation.x=-.85;r.lantern.rotation.z=Math.sin(G.time*2.3+this.homeX)*.18;}
+    if(r.eyes&&!this.lamp){const lit=this.hp>0&&lampNear(this);if(lit!==!!this._litEyes){this._litEyes=lit;if(this._eyeBase===undefined)this._eyeBase=r.eyes[0].material.color.getHex();
+      for(const e of r.eyes)e.material.color.setHex(lit?0xffa040:this._eyeBase);}}   // (lit: the eyes go amber)
     if(r.shield){const u=this.hp>0?this.shieldUp:0;
       r.shield.piv.rotation.set(-.25*(1-u),1.35*(1-u),.25*(1-u));
       if(u>.05&&this.state!=='dead'&&this.state!=='down'){r.armL.rotation.x=lerp(r.armL.rotation.x,-1.05,u);r.foreL.rotation.x=lerp(r.foreL.rotation.x,-.75,u);r.armL.rotation.z=lerp(r.armL.rotation.z,-.2,u);}}
@@ -16536,6 +16554,205 @@ function cutWyrm(e){
     {d:1.3,at:cutOrbitOn(head,{a0:.25,a1:.12,r0:8.5,r1:5,y0:5,y1:5.3,l0:5.2,l1:5.4,e:'in'}),fx:()=>{AudioSys.wyrmRoar();G.camShake=Math.max(G.camShake,.7);G.vibr([70,40,120]);}},
     {d:2.6,epithet:1,title:1,at:cutOrbit({a0:.3,a1:.2,r0:13,r1:14,y0:2.6,y1:2.5,l0:4,l1:3.8,e:'out'})},
   ],'THE RAVINE WYRM','what the cut was dug by',()=>AudioSys.bossMusic(1));
+}
+
+/* ======================= THE LAMPLIGHTER =======================
+   A tall thin hollow with a lantern on a pole and no blade. It keeps back
+   from you — seven metres, working round — and while it lives the host
+   near it BURNS: within twelve metres a hollow's eyes go amber, a sleeping
+   one wakes at nearly twice the distance, and every blow it lands is half
+   a heart heavier. Kill it first. The lantern is a sprite and a lit box,
+   never a light (see LPOOL). It stands where the thrower would at dusk,
+   at night and in fog. */
+const LAMP={R:12,BAND:7};
+function makeLampRig(){
+  const r=buildHumanoid({scale:1.14*(0.97+Math.random()*.06),torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:mat('bone'),
+    bladeMat:mat('blade'),gripMat:mat('bark'),weapon:null,skeletal:true,hunch:.1+Math.random()*.05,eyes:0xffb050});
+  const s=r.s||1,pole=new THREE.Group();pole.position.set(.28*s,-.1*s,.22*s);r.torso.add(pole);r.lampPole=pole;
+  pole.add(M(GCyl(.025*s,.03*s,2.1*s,5),mat('bark'),0,.55*s,0));
+  pole.add(M(GBox(.3*s,.04*s,.04*s),mat('iron'),.12*s,1.58*s,0));                        // the crook it hangs from
+  const lan=new THREE.Group();lan.position.set(.26*s,1.36*s,0);pole.add(lan);r.lantern=lan;
+  lan.add(M(GBox(.18*s,.24*s,.18*s),mat('iron'),0,0,0));
+  const core=new THREE.Mesh(new THREE.BoxGeometry(.12*s,.17*s,.12*s),new THREE.MeshBasicMaterial({color:0xffb050}));lan.add(core);
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xffa040,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending}));
+  glow.scale.set(1.5*s,1.5*s,1);lan.add(glow);r.lampGlow=glow;
+  return r;
+}
+// is a living Lamplighter near enough to light this one? (cached a few times a second)
+function lampNear(e){
+  if(e.lamp||e.boss||e.mini)return false;
+  e.litT=(e.litT||0)-1;if(e.litT>0)return !!e.lit;
+  e.litT=20;e.lit=false;
+  for(const o of enemies)if(o.lamp&&o.hp>0&&o.state!=='dormant'&&Math.hypot(o.x-e.x,o.z-e.z)<LAMP.R){e.lit=true;break;}
+  return e.lit;
+}
+
+/* ======================= THE OSSUARY SWARM =======================
+   What lies in the sunken hollow's bowl is not all bone piles. Come within
+   eight metres and it gets up: some sixty skulls and bones in a carpet
+   that scuttles after you as one mass and nibbles — half a heart a bite —
+   while you stand in it. A light blow thins it a few pieces at a time; a
+   HEAVY one or anything that lands in an area (the earthshaker, a rocket, a
+   charged cut) blows a great hole in it. Under five pieces, what is left
+   scatters. Drawn as two instanced meshes, whatever its count. */
+const SWARM={N:60,BITE:.8,SPEED:2.9};
+let SWARM_G=null;
+function swarmGeo(){if(SWARM_G)return SWARM_G;return SWARM_G={skull:new THREE.SphereGeometry(.12,6,5),bone:new THREE.BoxGeometry(.32,.07,.07),
+  m:new THREE.MeshLambertMaterial({map:texCache.bone,color:0xe0d8c4})};}
+class OssuarySwarm{
+  constructor(x,z){
+    this.kind='swarm';this.name='the ossuary swarm';this.big=false;this.boss=false;this.mini=false;this.caster=false;this.crow=false;this.heavyHitter=false;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;this.radius=1.2;
+    this.n=SWARM.N;this.maxHp=this.n*4;this.hp=this.maxHp;this.dmg=5;this.marrow=40;this.markUp=.9;
+    this.poise=0;this.poiseMax=99;this.chillT=0;
+    const G2=swarmGeo(),root=new THREE.Group();this.rig={root,mats:[]};
+    this.sk=new THREE.InstancedMesh(G2.skull,G2.m,SWARM.N);this.bn=new THREE.InstancedMesh(G2.bone,G2.m,SWARM.N);
+    this.sk.frustumCulled=false;this.bn.frustumCulled=false;root.add(this.sk,this.bn);scene.add(root);this.mats=[];
+    this.p=[];for(let i=0;i<SWARM.N;i++)this.p.push({a:Math.random()*TAU,r:Math.sqrt(Math.random()),ph:Math.random()*TAU,sk:i%3===0,alive:true,ry:Math.random()*TAU,rx:Math.random()*TAU,ox:0,oz:0});
+    this.state='dormant';this.t=0;this.untouchable=true;this.biteT=0;this.flashUntil=0;this.crumbled=false;this.vx=0;this.vz=0;
+    this.dm=new THREE.Object3D();
+  }
+  spheres(){return this.untouchable||this.hp<=0?[]:[{x:this.x,y:heightAt(this.x,this.z)+.3,z:this.z,r:this.radius*.7,head:false}];}
+  reset(){}
+  scatter(){}
+  flash(){this.flashUntil=G.time+.08;}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);
+    if(this.hp<=0||this.untouchable)return;
+    const heavy=poise>=3||dmg>=30,k=Math.max(1,Math.ceil(dmg*(heavy?1.6:.45)/4));
+    let killed=0;for(const q of this.p){if(killed>=k)break;if(q.alive){q.alive=false;killed++;}}
+    this.n-=killed;this.hp=this.n*4;this.flash();
+    boneBurst(this.x,heightAt(this.x,this.z)+.3,this.z,0xcfc4a3,Math.min(18,4+killed),heavy?3:1.8);AudioSys.hit&&AudioSys.hit();
+    const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;this.vx+=dx/l*(heavy?5:1.5);this.vz+=dz/l*(heavy?5:1.5);
+    if(this.n<5)this.die();
+  }
+  die(){if(this.state==='dead')return;this.hp=0;this.n=0;this.state='dead';this.t=0;this.untouchable=true;this.crumbled=true;
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;scatterBones(this.x,this.z,0,0,1.6,false);boneBurst(this.x,heightAt(this.x,this.z)+.3,this.z,0xcfc4a3,16,2.4);
+    this.rig.root.visible=false;}
+  update(dt){
+    const P=player;this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
+    const sp=this.chillT>0?.3:1,live=G.mode==='play'&&P.state!=='dead'&&!CUT.on;
+    this.radius=.55+Math.sqrt(this.n)*.12;
+    let lift=0;
+    switch(this.state){
+      case 'dormant':if(live&&dist<8){this.state='rise';this.t=0;AudioSys.graveRise&&AudioSys.graveRise();}break;
+      case 'rise':lift=Math.min(1,this.t/1);if(this.t>=1){this.state='swarm';this.t=0;this.untouchable=false;}break;
+      case 'swarm':{lift=1;
+        if(dist>.3){const s=Math.min(dist,SWARM.SPEED*sp*dt);this.x+=dx/dist*s;this.z+=dz/dist*s;}
+        this.biteT-=dt;
+        if(live&&dist<this.radius+.35&&this.biteT<=0){this.biteT=SWARM.BITE;const res=P.takeHit(this.dmg,this.x,this.z,false,'bone');if(res==='hit'||res==='dead')boneBurst(P.x,heightAt(P.x,P.z)+.2,P.z,0xcfc4a3,4,1.2);}
+        if(!live&&dist>30){this.state='dormant';this.untouchable=true;}
+        break;}
+      case 'dead':return;
+    }
+    this.x+=this.vx*dt;this.z+=this.vz*dt;this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
+    if(this.state!=='dormant')constrain(this,false);
+    // the pieces: a carpet round the middle, each tumbling and hopping in its own time
+    const R=this.radius,dm=this.dm,fl=G.time<this.flashUntil;let si=0,bi=0;
+    for(const q of this.p){
+      const a=q.a+G.time*(this.state==='swarm'?.9:0)*(q.sk?1:-1),rr0=q.r*R*(this.state==='dormant'?1.8:1);
+      const x=this.x+Math.cos(a)*rr0,z=this.z+Math.sin(a)*rr0,gy=heightAt(x,z);
+      const hop=this.state==='swarm'?Math.abs(Math.sin(G.time*9+q.ph))*.16:0;
+      dm.position.set(x,gy+(q.sk?.1:.04)+hop*lift+(this.state==='rise'?Math.sin(lift*Math.PI)*.5*q.r:0),z);
+      dm.rotation.set(q.rx+(this.state==='swarm'?G.time*3:0),q.ry+a,0);
+      dm.scale.setScalar(q.alive?(fl?1.25:1):0);dm.updateMatrix();
+      if(q.sk)this.sk.setMatrixAt(si++,dm.matrix);else this.bn.setMatrixAt(bi++,dm.matrix);}
+    this.sk.count=si;this.bn.count=bi;this.sk.instanceMatrix.needsUpdate=true;this.bn.instanceMatrix.needsUpdate=true;
+  }
+}
+// what drops on you: queued on the path (a tile is built in its own frame), put straight in on the field
+function sowOdd(kind,x,z,o){
+  if(PATH.on&&BUILD.tile>=0){PATH.spawnQ.push({kind,x,z:z+BUILD.offZ,o:o||{},roam:false,tile:BUILD.tile});return;}
+  const e=kind==='swarm'?new OssuarySwarm(x,z):new Hanged(x,z,(o||{}).h||4);enemies.push(e);
+}
+
+/* ======================= THE HANGED =======================
+   Now and then a dead tree has something hanging from it (`HANGED_P`, by
+   the tree's own hash, so no draw moves). It sways. Walk under it and it
+   DROPS onto your back and strangles — the Arm's grip (`'grabbed'`): every
+   press is a fifth of the way out, and it takes half a heart each beat it
+   holds. Throw it off and it lies stunned a moment (every blow half again),
+   then comes after you on its hands. A roll through the drop and it lands
+   in the dirt instead. It can be cut down before it drops. */
+const HANGED_P=.07;
+class Hanged{
+  constructor(x,z,h){
+    this.kind='hanged';this.name='the hanged';this.big=false;this.boss=false;this.mini=false;this.caster=false;this.crow=false;this.heavyHitter=false;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=Math.random()*TAU;this.radius=.4;
+    this.maxHp=50;this.hp=50;this.dmg=5;this.marrow=30;this.markUp=1.4;
+    this.poise=0;this.poiseMax=99;this.chillT=0;
+    this.rig=makeHollowRig(false,false);if(this.rig.weapon)this.rig.weapon.visible=false;scene.add(this.rig.root);
+    this.rig.humanoid=false;   // (a body on a rope: the sever, the slice, the scatter and the far boxes are all the host's, and none of them knows about a rope)
+    this.mats=[];this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&!this.mats.includes(o.material))this.mats.push(o.material);});
+    const gy=heightAt(x,z);this.by=gy+Math.min(h*.72,3.6);                                 // where the rope is tied
+    this.rope=new THREE.Mesh(GCyl(.012,.012,1,4),mat('bark'));this.rope.userData.lodKeep=true;this.rig.root.add(this.rope);   // (on the rig's root, so whatever takes the body away takes the rope)
+    this.state='hang';this.t=0;this.untouchable=false;this.y=this.by-.25;this.hitDone=false;this.flashUntil=0;this.crumbled=false;this.exposed=0;this.biteT=0;
+  }
+  spheres(){if(this.hp<=0)return [];const hy=this.state==='hang'?this.y-1.1:heightAt(this.x,this.z)+(this.state==='crawl'?.4:.8);return [{x:this.x,y:hy,z:this.z,r:.45,head:false}];}
+  reset(){}
+  scatter(){}
+  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0xffffff);}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);if(this.hp<=0||this.untouchable)return;
+    this.hp-=dmg*(this.exposed>0?1.5:1);this.flash();boneBurst(this.x,(this.state==='hang'?this.y-1:heightAt(this.x,this.z)+.6),this.z,0xcfc4a3,6,2);
+    if(this.hp<=0)this.die();
+  }
+  release(thrown){const P=player;if(P.state==='grabbed'&&P.grabbedBy===this){P.state='free';P.t=0;P.grabbedBy=null;P.grabY=0;}
+    this.state='down';this.t=0;this.exposed=1.8;const a=P.facing+Math.PI;this.x=P.x+Math.sin(a)*1.1;this.z=P.z+Math.cos(a)*1.1;
+    if(thrown){AudioSys.bodyfall();boneBurst(this.x,heightAt(this.x,this.z)+.2,this.z,0x4a463a,6,1.6);}}
+  die(){if(this.state==='dead')return;
+    if(player.state==='grabbed'&&player.grabbedBy===this){player.state='free';player.grabbedBy=null;player.grabY=0;}
+    this.hp=0;this.state='dead';this.t=0;this.untouchable=true;this.crumbled=true;
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
+    boneCollapse(this.x,this.z,.9);this.rig.root.visible=false;}
+  update(dt){
+    const P=player,r=this.rig;this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);this.exposed=Math.max(0,this.exposed-dt);
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz),live=G.mode==='play'&&P.state!=='dead'&&!CUT.on&&!CODEX.on;
+    resetPose(r);let gy=heightAt(this.x,this.z);
+    switch(this.state){
+      case 'hang':   // swaying from its rope, neck broken, feet a man's height up
+        this.y=this.by-.25;r.head.rotation.z=.55;r.head.rotation.x=.25;r.armR.rotation.z=-.08;r.armL.rotation.z=.08;
+        this.facing+=Math.sin(G.time*.7+this.homeX)*.12*dt;
+        if(live&&dist<2.3&&P.state!=='grabbed'&&P.state!=='falling'){this.state='drop';this.t=0;AudioSys.windup();}
+        break;
+      case 'drop':{   // onto your back
+        const u=Math.min(1,this.t/.32);this.x=lerp(this.homeX,P.x,u);this.z=lerp(this.homeZ,P.z,u);this.y=lerp(this.by-.25,heightAt(P.x,P.z)+2.1,u);
+        r.armR.rotation.x=-2.4;r.armL.rotation.x=-2.4;
+        if(u>=1){
+          if(live&&dist<1.6&&!P.iframes()&&P.state!=='dead'&&P.state!=='falling'&&P.state!=='grabbed'){
+            P.state='grabbed';P.t=0;P.grabEsc=0;P.grabbedBy=this;P.grabY=0;P.dropThrown&&P.dropThrown();this.state='strangle';this.t=0;this.biteT=.8;
+            AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.3);G.vibr([40,20,40]);toast('it has you by the throat');}
+          else{this.state='down';this.t=0;this.exposed=1.2;AudioSys.bodyfall();}}
+        break;}
+      case 'strangle':{   // on your back, arms round your throat
+        if(P.state!=='grabbed'||P.grabbedBy!==this){this.release(false);break;}
+        const a=P.facing+Math.PI;this.x=P.x+Math.sin(a)*.3;this.z=P.z+Math.cos(a)*.3;this.y=heightAt(P.x,P.z)+.4;this.facing=P.facing;
+        r.armR.rotation.x=-1.9;r.armL.rotation.x=-1.9;r.foreR.rotation.x=-1.2;r.foreL.rotation.x=-1.2;
+        this.biteT-=dt;if(this.biteT<=0){this.biteT=.8;P.takeHit(this.dmg,this.x,this.z,false,'blade');}
+        if(P.grabEsc>=1){this.release(true);break;}
+        if(this.t>=3.4){P.takeHit(10,this.x,this.z,false,'blade');this.release(true);}
+        break;}
+      case 'down':   // thrown off (or missed): in the dirt a moment
+        this.y=gy;poseKnockdown(r,Math.min(1,this.t/1.9));if(this.t>=1.6){this.state='crawl';this.t=0;}
+        break;
+      case 'crawl':{   // after you on its hands
+        this.y=gy;poseCrawl(r,G.time*1.4+this.homeX,1);this.facing=angLerp(this.facing,Math.atan2(dx,dz),5*dt);
+        if(dist>1.1){const s=Math.min(dist,2.2*(this.chillT>0?.3:1)*dt);this.x+=dx/dist*s;this.z+=dz/dist*s;}
+        this.biteT-=dt;if(live&&dist<1.3&&this.biteT<=0){this.biteT=1.1;P.takeHit(this.dmg,this.x,this.z,false,'blade');}
+        constrain(this,false);
+        break;}
+      case 'dead':break;
+    }
+    const hang=this.state==='hang'||this.state==='drop';
+    r.root.position.set(this.x,hang?this.y-(r.s||1)*2.05:this.y,this.z);r.root.rotation.y=this.facing;
+    if(this.state==='strangle')r.root.rotation.x=-.3;else r.root.rotation.x=0;
+    // the rope: from the branch to the neck while it hangs, and empty after — laid in the world, carried on the root
+    {const hx=this.state==='hang'?this.x:this.homeX,hz=this.state==='hang'?this.z:this.homeZ,top=this.by+.4,bot=this.state==='hang'?this.y+.05:this.by-.6;
+      r.root.updateMatrixWorld(true);const v=r.root.worldToLocal(new THREE.Vector3(hx,(top+bot)/2,hz));
+      this.rope.position.copy(v);this.rope.quaternion.copy(r.root.quaternion).invert();this.rope.scale.set(1,top-bot,1);}
+    if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:this.exposed>0?0x120e02:0x000000);
+  }
 }
 
 /* ======================= THE BELL-CALLED =======================
@@ -18187,7 +18404,9 @@ function hostKit(kindOf){
   const T={
     pair:  {cost:70, place(w){const p=spot(w,24,50,.4);if(!p)return;sow('hollow',p[0],p[1],{red:red(w),shield:posHash(p[0],p[1],3)<.3||undefined});const q=spot(w,24,50,.4)||p;sow('hollow',q[0]+1.5,q[1],{red:red(w)});}},
     patrol:{cost:105,place(w){const base=rr(26,40),sd=rnd()<.5?1:-1;for(let k=0;k<3;k++){const d=base+k*3.2,off=rr(2.4,3.6)*sd,x=Math.cos(w.a)*d-Math.sin(w.a)*off,z=Math.sin(w.a)*d+Math.cos(w.a)*off;sow('hollow',x,z,{red:red(w),shield:(k===0&&posHash(x,z,3)<.45)||undefined});}}},   // (a patrol is led by a Shieldbearer, near half the time)
-    guard: {cost:115,place(w){const h=high(w)||spot(w,26,48,.4);if(!h)return;sow('caster',h[0],h[1],{red:red(w)});for(let k=0;k<2;k++){const p=spot(w,24,50,.45)||h;sow('hollow',p[0],p[1],{red:red(w)});}}},
+    guard: {cost:115,place(w){const h=high(w)||spot(w,26,48,.4);if(!h)return;
+      const lamp=(RUN.time==='night'||RUN.time==='dusk'||RUN.weather==='fog')&&posHash(h[0],h[1],5)<.6;   // (in the dark the one on the high ground carries a lantern: see THE LAMPLIGHTER)
+      sow(lamp?'hollow':'caster',h[0],h[1],{red:red(w),lamp:lamp||undefined});for(let k=0;k<2;k++){const p=spot(w,24,50,.45)||h;sow('hollow',p[0],p[1],{red:red(w)});}}},
     brute: {cost:155,place(w){const p=spot(w,28,50,.4);if(!p)return;sow('big',p[0],p[1],{red:red(w)});const q=spot(w,24,50,.45)||p;sow('hollow',q[0],q[1],{red:red(w)});}},
     // a brute on its own, out where there is room for it to swing
     lone:  {cost:120,place(w){const p=high(w)||spot(w,28,52,.4);if(!p)return;sow('big',p[0],p[1],{red:red(w)});}},
@@ -21706,6 +21925,12 @@ const CODEX_CATS=[
       t:'about one in seven of the host comes up red — a hollow, a thrower or a brute alike: 2.2 times the life and twice the marrow. The same fight held down longer, and worth it.'},
     {k:'hollow · shield',name:'the Shieldbearer',ep:'a tower of planks',where:'the field · the path: at the head of a patrol, or one of a pair',make:cxEnemy('hollow',{shield:true}),
       t:'a hollow behind a tower shield of iron-rimmed planks, with a short blade. From in front a blow stops on the planks and the blade is thrown back off it; a round sparks off, an arrow stands in the wood. It turns slowly, so get round it — from the side or behind there is nothing in the way. A heavy blow (a charged cut, the ultra\'s) or the fourth light one in a row breaks its guard and the shield hangs for a couple of seconds, and it lowers the shield to swing: strike as it recovers. 110 life.'},
+    {k:'hollow · lamp',name:'the Lamplighter',ep:'the host, burning',where:'the field · the path: on the high ground at dusk, at night and in fog',make:cxEnemy('hollow',{lamp:true}),
+      t:'a tall thin hollow with a lantern on a pole and no blade. It keeps back, seven metres off, working round you, and while it lives the host near it BURNS: within twelve metres a hollow\'s eyes go amber, a sleeping one wakes at nearly twice the distance, and every blow it lands is half a heart heavier. Kill it first. 70 life.'},
+    {k:'swarm',name:'the ossuary swarm',ep:'what lies in the bowl',where:'the field · the path: the sunken hollow',make:(x,z,px,pz)=>[cxFoe(new OssuarySwarm(x,z-2),px,pz)],
+      t:'some sixty skulls and bones in the sunken hollow\'s bowl that get up when you come within eight metres and scuttle after you as one mass, biting half a heart at a time while you stand in it. A light blow thins it a few pieces at a time; a heavy one, or anything that lands in an area — the earthshaker, a rocket, a charged cut — blows a great hole in it. Under five pieces, the rest scatters.'},
+    {k:'hanged',name:'the hanged',ep:'what hangs from the trees',where:'the field · the path: now and then, from a dead tree',make:(x,z,px,pz)=>[cxFoe(new Hanged(x,z-2,5),px,pz)],
+      t:'now and then a dead tree has something hanging from it. Walk under it and it drops onto your back and strangles: every press is a fifth of the way out, and it takes half a heart each beat it holds on. Throw it off and it lies stunned a moment — every blow half again — then comes after you on its hands. Roll through the drop and it lands in the dirt. It can be cut down before it drops. 50 life.'},
     {k:'caster',name:'the thrower',ep:'bone from a distance',where:'the field · the path',make:cxEnemy('caster'),
       t:'a lighter skeleton that keeps about eleven metres off and lobs bone at you — half a heart a bone. It never stands still to do it: it works round you in a circle, turning its circle after every throw and whenever you close inside seven metres. On the ravine path they stand on the rims.'},
     {k:'big',name:'the brute',ep:'the big skeleton',where:'the field · the path',make:cxEnemy('big'),
@@ -22487,7 +22712,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,GARG,ArmHorror,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,GARG,ArmHorror,OssuarySwarm,Hanged,lampNear,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

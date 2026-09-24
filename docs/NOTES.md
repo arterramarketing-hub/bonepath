@@ -3526,3 +3526,20 @@ Known state of play:
     the ravine-only path: under → strike (the scene on the first rear) →
     snap (a standing pilgrim floored for 20) → cross → strike → erupt, and
     killed it is pruned with its tile's other dead. 0 errors.
+
+- **BATCH TWO: THE LAMPLIGHTER, THE OSSUARY SWARM, THE HANGED.**
+  - *The Lamplighter* (`makeLampRig`, `lampNear`). A hollow two metres off
+    one read `lampNear` true with eyes `ffa040`; one fifteen metres off read
+    false. Killed, the near one's eyes went back to `_eyeBase` within a
+    third of a second (the cache is 20 frames). The lantern is not a light:
+    the pool stays at its count.
+  - *The Ossuary Swarm* (`OssuarySwarm`). At a bite every 0.6s it took 40
+    of a pilgrim's life in four seconds of standing still, which is a death
+    to something that looks like litter; it bites every 0.8s now. A light
+    blow of 20 killed 3 pieces; a charged one 16; it scattered under five.
+    Sixty pieces, two draws.
+  - *The Hanged* (`Hanged`). Hangs 3.35m up by its own rope. Walked under,
+    it dropped and the pilgrim went to `'grabbed'`; pressing threw it off
+    into its stunned lie; killed, it shed its 30. A roll's iframes at the
+    end of the drop put it in the dirt instead (`'down'`). 0 errors.
+
