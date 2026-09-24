@@ -3543,3 +3543,28 @@ Known state of play:
     into its stunned lie; killed, it shed its 30. A roll's iframes at the
     end of the drop put it in the dirt instead (`'down'`). 0 errors.
 
+- **BATCH THREE: THE DROWNED BRIDE, THE GARGOYLE, THE FROSTBOUND.**
+  - *The Drowned Bride* (`DrownedBride`). On seed 2 the first river is hex
+    17; she was sown in its water (x 13.6, 2.7m off the channel's line).
+    Walked up the bank from ten metres: she rose at 2.8m, reached, lunged,
+    and the pilgrim was grabbed and dragged 1.5m toward the channel before
+    five presses threw her off. 20 struck while she founders did 30; while
+    she is under, 0. Her body is sunk 3.4m under the bed, not hidden,
+    because `lodUpdate` owns `body.visible`.
+  - *The Gargoyle* (`Gargoyle`, `PERCH`). The first perch sat on the aisle
+    wall's top at x 12.9, and the aisle's lean-to roof starts at 13.4 on
+    the wall's head and climbs inward: at 12.9 its slates are 0.3m above
+    the wall, so the feet stood inside the roof. It crouches on the eave's
+    edge now (13.3, 0.6 up). Against a pilgrim who stands still the first
+    cut hit him eleven times in fifteen seconds: the dive, and then the
+    claw straight after it, while he was still getting up. The claw waits
+    0.9s after landing now, and the circling is longer (2.2 to 3.4s). A
+    blow on it while landed did 20; on its perch or aloft, 0.
+  - *The Frostbound* (`Enemy.frost`, `ICE`). Seed 7 in snow: 2 of 12
+    hollows frozen. Encased, the root stood on the ground (0.09 down, for
+    the snow). Four metres off it burst, left one patch and went straight
+    to the chase. Moving at 6 m/s with the stick let go, the pilgrim slid
+    3.9m in half a second on the ice and 0.9m on the snow beside it. The
+    first ice was near-white and vanished against the snow; it is a darker
+    blue now, which reads as cleared ice.
+

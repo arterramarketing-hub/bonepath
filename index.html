@@ -721,6 +721,9 @@
    the Lamplighter .................... "THE LAMPLIGHTER", makeLampRig, lampNear
    the Ossuary Swarm .................. "THE OSSUARY SWARM", OssuarySwarm, sowOdd
    the Hanged ......................... "THE HANGED", Hanged, HANGED_P
+   the Drowned Bride .................. "THE DROWNED BRIDE", DrownedBride, makeBrideRig
+   the Gargoyle ....................... "THE GARGOYLE", Gargoyle, PERCH, perchAdd, gargTick
+   the Frostbound ..................... "THE FROSTBOUND", ICE, icePatch, onIce, iceTick
    the Bell-Called .................... "THE BELL-CALLED", BoneHand, GiantSkull
    the wand's bubbles ................. "THE BUBBLES", castBubble
    the home run, the shatter .......... homeRun, batShatter, flyBone
@@ -3567,6 +3570,23 @@ const AudioSys=(()=>{
       for(let i=0;i<9;i++)noise(t+.1+i*.11+Math.random()*.04,{peak:.05,att:.002,dec:.05,f0:rr2(900,1800),f1:400,type:'bandpass',Q:3,white:true});},
     wraithWail(){if(!ac)return;const t=now();
       tone(t,{f:900,f2:180,type:'triangle',peak:.06,att:.05,dec:1.1});noise(t,{peak:.05,att:.05,dec:1,f0:3000,f1:300,white:true});},
+    /* THE DROWNED BRIDE: water broken from underneath, and a sob that goes under */
+    splash(k){if(!ac)return;const t=now();k=k||1;
+      noise(t,{peak:.16*k,att:.004,dec:.35,f0:2600,f1:500,white:true});
+      for(let i=0;i<5;i++)noise(t+.05+i*.07+Math.random()*.03,{peak:.04*k,att:.002,dec:.06,f0:rr2(1800,3600),f1:900,type:'bandpass',Q:3,white:true});
+      tone(t,{f:140,f2:60,type:'sine',peak:.08*k,att:.004,dec:.25});},
+    brideWail(){if(!ac)return;const t=now();
+      tone(t,{f:520,f2:340,type:'triangle',peak:.06,att:.12,dec:1.2});tone(t+.05,{f:530,f2:330,type:'sine',peak:.04,att:.12,dec:1.2});
+      noise(t,{peak:.04,att:.1,dec:1.1,f0:2400,f1:600,type:'bandpass',Q:2,white:true});},
+    // THE GARGOYLE: stone splitting along its grain, and the grit falling after
+    stoneWake(){if(!ac)return;const t=now();
+      noise(t,{peak:.2,att:.002,dec:.2,f0:1800,f1:200,white:true});tone(t,{f:90,f2:40,type:'sine',peak:.14,att:.003,dec:.35});
+      for(let i=0;i<10;i++)noise(t+.08+i*.06+Math.random()*.04,{peak:.035,att:.002,dec:.04,f0:rr2(1500,3500),f1:800,type:'bandpass',Q:4,white:true});},
+    // THE FROSTBOUND: a skin of ice let go all at once
+    iceBurst(){if(!ac)return;const t=now();
+      noise(t,{peak:.18,att:.002,dec:.25,f0:6000,f1:1500,white:true});
+      for(let i=0;i<8;i++)tone(t+i*.03+Math.random()*.02,{f:rr2(2400,4800),f2:rr2(1800,3000),type:'sine',peak:.03,att:.002,dec:.12});
+      tone(t,{f:110,f2:50,type:'sine',peak:.1,att:.003,dec:.2});},
     /* THE CASTLE. The winch: a ratchet walked round a few teeth, more of
        them each turn, and the chain taking the weight under it. */
     winch(n){if(!ac)return;const t=now();
@@ -5824,6 +5844,7 @@ function buildWorld(){
       add(new THREE.Mesh(new THREE.CylinderGeometry(0,1.0,15,8),leadM),12.2);
       add(new THREE.Mesh(new THREE.BoxGeometry(.14,1.2,.14),leadM),20.3);add(new THREE.Mesh(new THREE.BoxGeometry(.6,.14,.14),leadM),20.5);}
     GARG.add(GAR);
+    perchAdd(GAR,2,.6,1.45);   // two of them are not carved (see THE GARGOYLE): crouched on the aisle roof's eave, over the spout
     // ---- colonnades: two rows of columns, some broken, down the nave
     for(const side of[1,-1])for(let z=-20;z<=20;z+=5){                  // (a pair more at each end than there were: the arcade runs the nave's length)
       const ch=8.6;
@@ -6258,6 +6279,8 @@ function buildWorld(){
         // the banners, long and torn, hanging off the gatehouse's face
         add(box(1.1,3.8,.05,CM.banner,sd*(C.GW+2.4),gy+GH2-2.2,gz+C.GD+2.47));
       }
+      {const an=[];for(const sd of[1,-1]){const o=new THREE.Object3D();o.position.set(sd*(C.GW+2.4),gy+GH2+1.5,gz+C.GD+.4);G.add(o);an.push({o,dx:0,dz:1});}
+        perchAdd(an,2,0,0);}                                                               // the gatehouse's two, on its round fronts (see THE GARGOYLE)
       add(box(C.GW*2+.2,GH2-C.GH,C.GD*2,SM,0,gy+C.GH+(GH2-C.GH)/2,gz));                 // over the passage
       for(let i=0;i<7;i++)add(box(.5,.5,.6,SM,-1.9+i*.63,gy+GH2-.6,gz+C.GD+.3));          // machicolations under the front's parapet
       add(box(C.GW*2+.6,.5,1.2,SM,0,gy+GH2-.1,gz+C.GD+.5));
@@ -6944,6 +6967,12 @@ function specialTerrain(t){   // (world frame; called from startTile, on the til
   else if(t.special==='pond'){const sd=rnd()<.5?1:-1;f={t:'pond',sd,cx:sd*10.5,cz:zc+rr(-3,3),r:6.8,d:1.5,cragX:16,H:8.5};PATH.terrain.push(f);
     let lo=1e9;for(let i=0;i<16;i++){const a=i/16*TAU;lo=Math.min(lo,pathHeightAt(f.cx+Math.cos(a)*f.r*1.02,f.cz+Math.sin(a)*f.r*1.02));}
     f.level=lo-.55;}
+  /* THE DROWNED BRIDE (see its section): the river always keeps one, the
+     pond most of the time; placed by hash (no draw moves) and sown in the
+     world's frame, like everything here. The codex lays its own. */
+  if(f&&!PATH.codex&&(f.t==='river'||posHash(f.cx,f.cz,53)<.7)){
+    const sd=posHash(zc,f.w,51)<.5?-1:1,bx=f.t==='river'?sd*(7+posHash(zc,3,52)*7):f.cx,bz=f.t==='river'?f.zr+(posHash(zc,5,54)-.5)*6:f.cz;
+    PATH.spawnQ.push({kind:'bride',x:bx,z:bz,o:{},roam:false,tile:t.k});}
   if(t.special==='castle'){PATH.castle=t;t.cs={turns:0,open:0,lift:0,rearLift:0,rider:null};}   // (level: see THE CASTLE)
   if(t.special==='stairs'){
     /* THE STAIRS: flights of two steps, a landing between each, climbing
@@ -7143,6 +7172,7 @@ function drainSpawns(n){
     if(q.kind==='crow'){e=new Crow(q.x,q.z,{bat:batFor(q.x,q.z)});e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
     else if(q.kind==='swarm')e=new OssuarySwarm(q.x,q.z);
     else if(q.kind==='hanged')e=new Hanged(q.x,q.z,(q.o&&q.o.h)||4);
+    else if(q.kind==='bride')e=new DrownedBride(q.x,q.z);
     else{e=new Enemy(q.kind,q.x,q.z,q.o);if(q.roam)e.patrol();}   // (else it lies in the tile's ground and climbs out)
     enemies.push(e);t.foes.push(e);
   }
@@ -13385,7 +13415,11 @@ const player={
          blizzard's drifts drag, so the top speed comes down hard and the
          skid comes back, because a man wading is not a man sliding. */
       const bliz=RUN.weather==='blizzard',snowy=RUN.weather==='snow'||bliz;
-      const top=bliz?.78:snowy?.9:1,up=bliz?5.5:snowy?7:14,down=bliz?9:snowy?5:22;
+      /* ICE (see THE FROSTBOUND) is worse than snow: nothing to push on at
+         all, so a start is slow and a stop is a long slide. And a
+         Frostbound's blow leaves the legs half frozen for a moment. */
+      const ice=onIce(this.x,this.z),fr=(this.frostT||0)>0;
+      const top=(bliz?.78:snowy?.9:1)*(fr?.6:1),up=ice?2.4:bliz?5.5:snowy?7:14,down=ice?.9:bliz?9:snowy?5:22;
       this.spd=lerp(this.spd||0,wantSp*top,Math.min(1,(wantSp>(this.spd||0)?up:down)*dt));
       if(mAmt>0){this.x+=mvx*this.spd*dt;this.z+=mvz*this.spd*dt;}
       else if(this.spd>.05){this.x+=(this.moveX||0)*this.spd*dt;this.z+=(this.moveZ||0)*this.spd*dt;}   // the last stride's carry as it stops
@@ -14384,8 +14418,9 @@ class Enemy{
        again, raise that one with it. */
     this.shield=!!opts.shield&&kind==='hollow';          // the Shieldbearer (see its block, below)
     this.lamp=!!opts.lamp&&kind==='hollow';              // the Lamplighter (see THE LAMPLIGHTER)
+    this.frost=kind==='hollow'&&!this.shield&&!this.lamp&&(!!opts.frost||(!opts.plain&&!opts.spawned&&!opts.ambush&&!DEF.on&&(RUN.weather==='snow'||RUN.weather==='blizzard')&&posHash(x,z,43)<.3));   // the Frostbound (see THE FROSTBOUND): by its own hash, so no draw moves
     this.rider=!!opts.rider;                            // the Rider, unhorsed: the Warden's body of blows with a flail and a limp (see THE RIDER)
-    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:this.shield?110:this.lamp?70:85;
+    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:this.shield?110:this.lamp?70:this.frost?95:85;
     this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:this.shield?2.1:this.lamp?2.3:2.5;
     /* THE DROWNED: slow, heavy in the hand — a hundred, six swings of the
        greatsword — and they do not much care about you: under eight
@@ -14410,7 +14445,7 @@ class Enemy{
       this.bashPower=this.mother||V==='hulk'?3:1;if(V==='hulk')this.heavyHitter=true;}
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
-    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:this.shield?45:this.lamp?60:35;
+    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:this.shield?45:this.lamp?60:this.frost?50:35;
     if(this.zombie){const V=this.variant;this.poiseMax=this.mother?40:this.crawler?2:V==='hulk'?22:V==='runner'?2:7;this.marrow=this.mother?400:this.crawler?8:V==='hulk'?90:V==='runner'?25:40;
       if(this.mother){this.mini=true;this.name='THE CARRION MOTHER';this.engaged=true;this.spawnT=4;this.brood=[];}}
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
@@ -14424,6 +14459,7 @@ class Enemy{
       // the variants wear it: the runner paler, the hulk dark and waterlogged
       const tint=this.variant==='runner'?0xb9c9b0:this.variant==='hulk'?0x5e6a5a:0;
       if(tint)this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&o.material.map){o.material=psx(o.material.clone());o.material.color.setHex(tint);}});}
+    if(this.frost)this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&o.material.map){o.material=psx(o.material.clone());o.material.color.setHex(0xa6c6e6);}});   // rime on the bones
     // some of the host burns hotter: red-boned, worth double the marrow —
     // and twice the life, not three times: a red hollow at the old
     // multiplier would now be 285, which is not a harder fight, it is the
@@ -14463,8 +14499,23 @@ class Enemy{
     this.rig.root.position.y=this.boss?heightAt(this.x,this.z):heightAt(this.x,this.z)-1.6; // under the soil
     if(this.boss)this.facing=0;                  // kneeling, facing the south door
     if(this.rig.eyes)for(const e of this.rig.eyes)
-      e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:this.zombie?0xcfd9b8:0x2c4a42);
+      e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:this.zombie?0xcfd9b8:this.frost?0x8fd0ff:0x2c4a42);
+    if(this.frost)this.encase();
   }
+  /* THE FROSTBOUND's lump of ice and its drift: children of the root (so
+     whatever takes the body takes them) and `lodKeep`. It stands, not
+     buried: its dormant root is on the ground. */
+  encase(){const I=iceGeo(),s=this.rig.s||1;
+    if(!this.ice){this.ice=new THREE.Group();this.ice.userData.lodKeep=true;this.rig.root.add(this.ice);
+      const b=new THREE.Mesh(I.block,I.m);b.position.y=1.0*s;b.scale.setScalar(s);b.rotation.y=posHash(this.homeX,this.homeZ,44)*TAU;this.ice.add(b);
+      const d=new THREE.Mesh(I.drift,I.snow);d.position.y=.1;d.scale.setScalar(s);this.ice.add(d);}
+    this.ice.visible=true;this.rig.root.position.y=heightAt(this.x,this.z);}
+  thaw(){   // the ice bursts, and what was in it is already coming
+    this.state='chase';this.t=0;this.rollFlank();if(this.ice)this.ice.visible=false;
+    const gy=heightAt(this.x,this.z);this.rig.root.position.y=gy;
+    AudioSys.iceBurst();G.camShake=Math.max(G.camShake,.1);
+    boneBurst(this.x,gy+1,this.z,0xd8ecf8,16,2.8);for(let i=0;i<10;i++)elemFleck('ice',this.x+rr3(-.5,.5),gy+.3+Math.random()*1.8,this.z+rr3(-.5,.5));
+    icePatch(this.x,this.z,2.4);}
   flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)m.emissive.setHex(0xffffff);}   // one frame white, then the red
   scatter(dx,dz,sp){
     // blasted clean apart into a heap of bones (down a line, if a blow sent them)
@@ -14600,6 +14651,7 @@ class Enemy{
   }
   wake(){
     if(this.state!=='dormant')return;
+    if(this.frost){this.thaw();return;}
     this.state='rise';this.t=0;
     if(this.boss)return; // boss has its own cutscene path
     AudioSys.graveRise();
@@ -14617,6 +14669,8 @@ class Enemy{
     this.mound.position.set(this.x,heightAt(this.x,this.z)-.24,this.z);
     this.mound.rotation.y=a0;scene.add(this.mound);
   }
+  // a Frostbound's blow that lands chills the pilgrim (see THE FROSTBOUND)
+  frostBite(res){if(this.frost&&(res==='hit'||res==='grabbed'))player.frostT=2.4;return res;}
   /* the Mother's brood: a crawler every few seconds, six at a time,
      whatever else she is doing — ticked here rather than in the walk, or
      a Mother kept busy swinging never bred at all */
@@ -14647,14 +14701,14 @@ class Enemy{
     switch(frozen?'frozen':this.state){
       case 'frozen':break;                                   // (held: nothing moves)
       case 'dormant':
-        if(!this.boss&&dist<this.aggroR*(lampNear(this)?1.8:1)&&G.mode==='play')this.wake();
+        if(this.frost?(CODEX.on?this.t>2.6:dist<5.5)&&G.mode==='play':!this.boss&&dist<this.aggroR*(lampNear(this)?1.8:1)&&G.mode==='play')this.wake();   // (the Frostbound only bursts when you are on it)
         /* WITH A GUN IN HAND THE FIELD SHOWS ITSELF. A host that lies under
            the soil until you are ten metres off gives a rifle nothing to
            look at, so about half of it climbs out early — from thirty-odd
            metres — and PACES its ground instead of coming, the way the
            path's patrols do. It comes when you are close, or when it is
            shot. The ambushes stay down: that is what they are for. */
-        else if(FPS.on&&!this.boss&&!this.ambush&&G.mode==='play'&&dist<36&&dist>this.aggroR+3){
+        else if(FPS.on&&!this.boss&&!this.ambush&&!this.frost&&G.mode==='play'&&dist<36&&dist>this.aggroR+3){
           if(this.paceRoll===undefined)this.paceRoll=Math.random()<.55;
           if(this.paceRoll){this.wake();this.roseToPace=true;}}
         break;
@@ -14772,7 +14826,7 @@ class Enemy{
           this.x+=this.vx*dt;this.z+=this.vz*dt;
           this.vx*=Math.pow(.1,dt);this.vz*=Math.pow(.1,dt);
           if(!this.hitDone&&dist<this.reach*.75){
-            this.hitDone=true;P.takeHit(hd,this.x,this.z,true,this.big||this.boss?'heavy':'blade');
+            this.hitDone=true;this.frostBite(P.takeHit(hd,this.x,this.z,true,this.big||this.boss?'heavy':'blade'));
           }
         }else if(!this.hitDone&&this.t>=sd*.45){
           this.hitDone=true;
@@ -14783,11 +14837,11 @@ class Enemy{
             shockRing(this.x+Math.sin(this.facing)*1.6,this.z+Math.cos(this.facing)*1.6,0xd8b34a,4.2,.5);
             const sx=this.x+Math.sin(this.facing)*1.6,sz=this.z+Math.cos(this.facing)*1.6;
             const sd2=Math.hypot(P.x-sx,P.z-sz);
-            if(sd2<3.6)P.takeHit(hd+5,sx,sz,true,this.big||this.boss?'heavy':'blade');
+            if(sd2<3.6)this.frostBite(P.takeHit(hd+5,sx,sz,true,this.big||this.boss?'heavy':'blade'));
           }else{
             const ang=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
             const arc=this.attack==='sweep'?1.9:1.05;
-            if(dist<this.reach&&ang<arc)P.takeHit(hd,this.x,this.z,this.heavyHitter,this.big||this.boss?'heavy':'blade');
+            if(dist<this.reach&&ang<arc)this.frostBite(P.takeHit(hd,this.x,this.z,this.heavyHitter,this.big||this.boss?'heavy':'blade'));
             if(this.attack==='bash'&&this.segT&&(this.segT.roof?this.segT.roof.alive:this.segT.state<2)){   // and the wall, if it is the wall it was at
               const n=segNear(this.segT,this.x,this.z);if(n.d<this.reach+.4)bashSeg(this.segT,this.bashPower||1,n.x,n.z);}
           }
@@ -14893,6 +14947,7 @@ class Enemy{
         if(this.boss){ // kneeling in the dark
           poseRest(r,1);r.head.rotation.x=.5;
         }
+        else if(this.frost){poseRest(r,1);r.armR.rotation.x=-.55;r.armL.rotation.x=-.4;r.foreR.rotation.x=-.6;r.head.rotation.x=.25;}   // caught mid-stride, reaching
         break;
       case 'rise':
         poseRise(r,Math.min(1,this.t/(this.boss?1.1:2.6)),this.boss?undefined:t+this.homeX,sham);
@@ -14958,7 +15013,7 @@ class Enemy{
     r.root.position.x=this.x;r.root.position.z=this.z;
     const gh=heightAt(this.x,this.z)-(this.boss?.5:1)*snowSink(this.x,this.z);   // (the Warden is big enough to stand on it)
     if(this.state==='rise')r.root.position.y+=gh;      // poseRise set the burial offset
-    else if(this.state!=='dormant')r.root.position.y=gh;
+    else if(this.state!=='dormant'||this.frost)r.root.position.y=gh;
     r.root.rotation.y=this.facing;
     if(r.flail)swingFlail(this,dt);                    // the Rider's flail head trails the haft
 
@@ -16753,6 +16808,323 @@ class Hanged{
       this.rope.position.copy(v);this.rope.quaternion.copy(r.root.quaternion).invert();this.rope.scale.set(1,top-bot,1);}
     if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:this.exposed>0?0x120e02:0x000000);
   }
+}
+
+/* ======================= THE DROWNED BRIDE =======================
+   The river hex keeps one, and the pond hex most of the time: a drowned
+   woman in what is left of a wedding gown. Under the water she is only a
+   RING OF RIPPLES, and it follows you along the bank. Come within reach of
+   the water, on the bank or wading, and she rises out of it with her arms
+   out (the tell) and lunges. Caught, you are DRAGGED toward the deep water
+   and held there: the Arm's grip (`'grabbed'`), every press a fifth of the
+   way out, half a heart a beat and a whole one once the water is over your
+   waist. Thrown off, she founders in the shallows a moment (every blow half
+   again), then sinks and comes again. She can be struck only while she is
+   out of the water. Under, her body is sunk below the bed, not hidden:
+   `lodUpdate` owns `rig.body.visible`. */
+const BRIDE={HP:120,DMG:5,SIGHT:16,SWIM:3.4,REACH:2.4,SUNK:3.4};
+let BRIDE_M=null;
+function brideMats(){return BRIDE_M||(BRIDE_M={gown:lam({color:0x8a877a,side:THREE.DoubleSide}),veil:lam({color:0xa8a699,side:THREE.DoubleSide}),hair:lam({color:0x121110}),
+  gownG:new THREE.CylinderGeometry(.19,.66,.98,8,1,true),veilG:new THREE.CylinderGeometry(.1,.46,1.25,7,1,true),ringG:new THREE.RingGeometry(.5,.62,18),
+  rip:new THREE.MeshBasicMaterial({color:0xc8d8d8,transparent:true,opacity:.4,depthWrite:false,side:THREE.DoubleSide})});}
+function makeBrideRig(){
+  const B=brideMats(),r=buildHumanoid({scale:1.02,torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:mat('bone'),bladeMat:mat('blade'),gripMat:mat('bark'),weapon:null,skeletal:true,hunch:.16,eyes:0xa8e0dc});
+  const s=r.s||1;
+  const gw=M(B.gownG,B.gown,0,-.44*s,0);gw.scale.setScalar(s);r.body.add(gw);                 // the gown, waist to the ground, open at the hem
+  r.torso.add(M(GBox(.36*s,.36*s,.24*s),B.gown,0,.2*s,0));                                     // the bodice
+  const vl=M(B.veilG,B.veil,0,-.38*s,-.14*s);vl.rotation.x=.22;vl.scale.setScalar(s);r.head.add(vl);   // the veil, down her back
+  r.head.add(M(GBox(.28*s,.46*s,.07*s),B.hair,0,-.12*s,-.13*s));                               // the hair, hanging wet
+  for(const sd of[1,-1])r.head.add(M(GBox(.05*s,.4*s,.05*s),B.hair,sd*.13*s,-.14*s,.03*s));  // and down either side of the face
+  return r;
+}
+class DrownedBride{
+  constructor(x,z,o){o=o||{};
+    this.kind='bride';this.name='the drowned bride';this.big=false;this.boss=false;this.mini=false;this.caster=false;this.crow=false;this.heavyHitter=false;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=Math.random()*TAU;this.radius=.42;
+    this.maxHp=BRIDE.HP;this.hp=this.maxHp;this.dmg=BRIDE.DMG;this.marrow=90;this.markUp=1;
+    this.poise=0;this.poiseMax=4;this.chillT=0;this.dry=!!o.dry;   // (the codex has no water: she rises out of the ground there)
+    this.rig=makeBrideRig();this.rig.humanoid=false;scene.add(this.rig.root);
+    const B=brideMats(),own=[B.gown,B.veil,B.hair];
+    this.mats=[];this.rig.root.traverse(q=>{if(q.isMesh&&q.material&&q.material.emissive&&!own.includes(q.material)&&!this.mats.includes(q.material))this.mats.push(q.material);});
+    this.rip=new THREE.Group();this.rip.userData.lodKeep=true;this.rig.root.add(this.rip);        // (on the root, so whatever takes her away takes the ripples)
+    for(let i=0;i<2;i++){const m=new THREE.Mesh(B.ringG,B.rip);m.rotation.x=-Math.PI/2;this.rip.add(m);}
+    this.state='under';this.t=0;this.sub=1;this.untouchable=true;this.flashUntil=0;this.crumbled=false;this.exposed=0;this.biteT=0;this.cool=1;this.hitDone=false;this.pull={x:0,z:0};
+    this.y=this.floor(x,z);
+  }
+  // the bed under her (the deck is never her floor: she swims under the bridge), and the water's top
+  floor(x,z){return PATH.on&&!this.dry?pathHeightAt(x,z):heightAt(x,z);}
+  level(x,z){if(this.dry)return heightAt(x,z)+.2;const L=pathWaterAt(x,z);return L===null?null:L;}
+  wet(x,z){if(this.dry)return true;const L=pathWaterAt(x,z);return L!==null&&L-pathHeightAt(x,z)>.35;}
+  go(s){this.state=s;this.t=0;this.hitDone=false;}
+  spheres(){return this.hp<=0||this.untouchable?[]:[{x:this.x,y:this.y+1.1,z:this.z,r:.45,head:false}];}
+  reset(){}
+  scatter(){}
+  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0xffffff);}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);if(this.hp<=0||this.untouchable)return;
+    this.hp-=dmg*(this.exposed>0?1.5:1);this.flash();boneBurst(this.x,this.y+1,this.z,0xcfc4a3,6,2);
+    if(this.hp<=0){this.die();return;}
+    if(poise>=3&&this.state==='drag')this.release(true);   // a heavy blow from a free hand? there is none: but a rocket or a bolt from elsewhere shakes her off
+  }
+  release(thrown){const P=player;if(P.state==='grabbed'&&P.grabbedBy===this){P.state='free';P.t=0;P.grabbedBy=null;P.grabY=0;}
+    this.go('founder');this.exposed=1.6;
+    if(thrown){AudioSys.splash(1);boneBurst(this.x,this.y+.4,this.z,0xb8ccd0,10,2.2);}}
+  die(){if(this.state==='dead')return;
+    if(player.state==='grabbed'&&player.grabbedBy===this){player.state='free';player.grabbedBy=null;player.grabY=0;}
+    this.hp=0;this.go('dead');this.untouchable=true;shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;AudioSys.brideWail();}
+  update(dt){
+    const P=player,r=this.rig;this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);this.exposed=Math.max(0,this.exposed-dt);this.cool-=dt;
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz),live=G.mode==='play'&&P.state!=='dead'&&!CUT.on&&!CODEX.on;
+    const sp=this.chillT>0?.3:1,face=k=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
+    let lv=this.level(this.x,this.z);
+    switch(this.state){
+      case 'under':{   // a ring of ripples, keeping pace with you along the water
+        this.sub=1;
+        if(this.dry){if(this.t>1.4)this.go('rise'),AudioSys.splash(.7);break;}
+        if(live&&dist<BRIDE.SIGHT&&dist>.8){const s=Math.min(dist-.6,BRIDE.SWIM*sp*dt),ux=dx/dist,uz=dz/dist;
+          if(this.wet(this.x+ux*s,this.z+uz*s)){this.x+=ux*s;this.z+=uz*s;}
+          else if(this.wet(this.x+ux*s,this.z)){this.x+=ux*s;}
+          else if(this.wet(this.x,this.z+uz*s)){this.z+=uz*s;}}
+        const feet=heightAt(P.x,P.z);
+        if(live&&this.cool<=0&&dist<BRIDE.REACH+.6&&lv!==null&&feet-lv<1.1&&P.state!=='grabbed'&&P.state!=='falling'){this.go('rise');AudioSys.splash(1);AudioSys.brideWail();
+          boneBurst(this.x,lv+.1,this.z,0xb8ccd0,12,2.4);}
+        break;}
+      case 'rise':this.sub=1-sstep(Math.min(1,this.t/.7));face(8);if(this.t>=.7)this.go('reach');break;
+      case 'reach':this.sub=0;face(9);if(this.t>=.45)this.go('lunge');break;   // arms out: the tell
+      case 'lunge':{this.sub=0;
+        if(dist>.6){const s=Math.min(dist-.5,5.5*sp*dt);this.x+=dx/dist*s;this.z+=dz/dist*s;}
+        if(this.t>=.3){
+          if(live&&dist<1.5&&!P.iframes()&&P.state!=='dead'&&P.state!=='falling'&&P.state!=='grabbed'){
+            P.state='grabbed';P.t=0;P.grabEsc=0;P.grabbedBy=this;P.grabY=0;this.go('drag');this.biteT=.9;
+            // which way is deep: the lowest bed round him
+            let best=null,bd=-1e9;for(let i=0;i<12;i++){const a=i/12*TAU,qx=P.x+Math.sin(a)*2,qz=P.z+Math.cos(a)*2,L=pathWaterAt(qx,qz);if(L===null)continue;const d=L-pathHeightAt(qx,qz);if(d>bd){bd=d;best=a;}}
+            this.pull=best===null?{x:-dx/(dist||1),z:-dz/(dist||1)}:{x:Math.sin(best),z:Math.cos(best)};
+            AudioSys.splash(1.2);G.camShake=Math.max(G.camShake,.3);G.vibr([40,20,40]);toast('she has you by the arm');}
+          else this.go('linger');}
+        break;}
+      case 'drag':{   // backing into the deep, and you with her
+        this.sub=0;if(P.state!=='grabbed'||P.grabbedBy!==this){this.release(false);break;}
+        P.x+=this.pull.x*1.1*dt;P.z+=this.pull.z*1.1*dt;
+        this.x=P.x+this.pull.x*.6;this.z=P.z+this.pull.z*.6;this.facing=Math.atan2(-this.pull.x,-this.pull.z);
+        if(Math.random()<dt*6)boneBurst(P.x+rr3(-.4,.4),(this.level(P.x,P.z)||heightAt(P.x,P.z))+.05,P.z+rr3(-.4,.4),0xb8ccd0,2,1.4);
+        this.biteT-=dt;if(this.biteT<=0){this.biteT=.9;const L=this.level(P.x,P.z),deep=L!==null&&L-heightAt(P.x,P.z)>.6;
+          P.takeHit(deep?this.dmg*2:this.dmg,this.x,this.z,false,'blade');AudioSys.splash(.6);}
+        if(P.grabEsc>=1){this.release(true);break;}
+        if(this.t>=4.2){this.release(false);}
+        break;}
+      case 'linger':this.sub=0;face(4);if(this.t>=1.3)this.go('sink');break;   // missed: stood in the water a moment, open
+      case 'founder':this.sub=0;if(this.t>=1.6)this.go('sink');break;          // thrown off, floundering
+      case 'sink':this.sub=sstep(Math.min(1,this.t/.8));if(this.t>=.8){this.go('under');this.cool=2.2;}break;
+      case 'dead':this.sub=Math.min(1,this.t/2.2);if(this.t>=2.2&&!this.crumbled){this.crumbled=true;r.root.visible=false;}break;
+    }
+    this.untouchable=this.state==='under'||this.state==='dead'||(this.state==='sink'&&this.t>.4)||(this.state==='rise'&&this.t<.3);
+    lv=this.level(this.x,this.z);
+    const fy=this.floor(this.x,this.z);this.y=fy;
+    // the pose: under, arms up out of the deep; out, the arms reaching; dragging, pulling backward
+    resetPose(r);const sw=Math.sin(G.time*1.3+this.homeX);
+    r.torso.rotation.z=sw*.05;r.head.rotation.z=.25+sw*.06;
+    const st=this.state;
+    if(st==='under'||st==='rise'||st==='sink'||st==='dead'){r.armR.rotation.x=-2.7;r.armL.rotation.x=-2.5;r.foreR.rotation.x=-.3;r.foreL.rotation.x=-.4;r.head.rotation.x=-.4;}
+    else if(st==='reach'){r.armR.rotation.x=-1.5;r.armL.rotation.x=-1.45;r.foreR.rotation.x=-.15;r.foreL.rotation.x=-.2;r.torso.rotation.x+=.2+Math.sin(this.t*30)*.02;}
+    else if(st==='lunge'){r.armR.rotation.x=-1.6;r.armL.rotation.x=-1.6;r.torso.rotation.x+=.45;}
+    else if(st==='drag'){r.armR.rotation.x=-1.35;r.armL.rotation.x=-1.3;r.foreR.rotation.x=-.7;r.foreL.rotation.x=-.8;r.torso.rotation.x-=.25;r.head.rotation.x=.2;}
+    else {r.armR.rotation.z=-.3;r.armL.rotation.z=.3;r.foreR.rotation.x=-.5;r.foreL.rotation.x=-.4;r.torso.rotation.x+=.15;}
+    r.body.position.y-=this.sub*BRIDE.SUNK;
+    r.root.position.set(this.x,fy,this.z);r.root.rotation.y=this.facing;
+    // the ripples, on the water's top, widening out and fading in turn
+    const wl=lv===null?fy+.02:lv+.03;this.rip.visible=this.state!=='dead'||this.t<1.5;this.rip.position.y=wl-fy;
+    for(let i=0;i<2;i++){const m=this.rip.children[i],u=((G.time*.7+i*.5)%1),k=(this.state==='under'?.7:1.3)+u*1.2;m.scale.set(k,k,1);}
+    if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:this.exposed>0?0x120e02:0x000000);
+  }
+}
+
+/* ======================= THE GARGOYLE =======================
+   Two of the gargoyles on every cathedral's eaves, and the two on the
+   castle's gatehouse, are not carved (`PERCH`). Perched it is the hall's
+   own stone, and a blow rings off it. Come within fifteen metres, outside,
+   and the stone cracks and the eyes come on; it takes wing, CIRCLES you
+   five metres up, hangs a beat with its wings high (the tell) and DIVES,
+   talons first, and a dive that finds you puts you down. Where it lands
+   it stays a couple of seconds, crouched and clawing: that is when it can
+   be struck. Then it climbs and does it again. Go in under a roof, or far
+   enough off, and it flies home to its perch and is stone again. A perch
+   is an `Object3D` anchor in its hall's group, read every frame (a path
+   hall's anchors ride its tile), and a perched gargoyle whose hall is torn
+   down goes with it. They are woken lazily by `gargTick`, nearby. */
+const GARGOYLE={HP:130,DMG:10,WAKE:15,ALT:5.2,RING:7};
+const PERCH=[];   // {o, dx, dz, up, out, taken}
+function perchAdd(list,n,up,out){
+  const pool=list.slice();for(let i=0;i<n&&pool.length;i++){const g=pool.splice(Math.floor(Math.random()*pool.length),1)[0];PERCH.push({o:g.o,dx:g.dx,dz:g.dz,up,out,taken:false});}}
+function perchAt(p,v){p.o.getWorldPosition(v);v.x-=p.dx*p.out;v.z-=p.dz*p.out;v.y+=p.up;return v;}
+const _gv=new THREE.Vector3();
+function gargTick(){
+  if(CODEX.on||DEF.on||G.mode!=='play'||(G.frameN||0)%20)return;
+  for(let i=PERCH.length-1;i>=0;i--){const p=PERCH[i];let o=p.o;while(o.parent)o=o.parent;if(o!==scene){PERCH.splice(i,1);continue;}
+    if(p.taken)continue;perchAt(p,_gv);
+    if(Math.hypot(_gv.x-player.x,_gv.z-player.z)<45){p.taken=true;enemies.push(new Gargoyle(p));}}
+}
+let GARG_G=null;
+function gargGeo(){if(GARG_G)return GARG_G;
+  const P=[[0,.06],[.55,.24],[1.25,.42],[1.5,.05],[1.28,-.12],[1.08,-.02],[.86,-.34],[.62,-.12],[.38,-.42],[.16,-.2],[0,-.3]],sh=new THREE.Shape();
+  sh.moveTo(P[0][0],P[0][1]);for(let i=1;i<P.length;i++)sh.lineTo(P[i][0],P[i][1]);sh.lineTo(P[0][0],P[0][1]);
+  return GARG_G={wing:new THREE.ShapeGeometry(sh),ico:new THREE.IcosahedronGeometry(1,0)};}
+function makeGargRig(){
+  const G2=gargGeo(),s=1.1,st=psx(mat('cathedral').clone()),sw=psx(mat('cathedral').clone()),dk=lam({color:0x0b0a09}),eye=new THREE.MeshBasicMaterial({color:0x1a0a08});   // (its own stone: a flash on it must not light the hall)
+  sw.side=THREE.DoubleSide;
+  const root=new THREE.Group(),body=new THREE.Group();body.position.y=.5*s;root.add(body);
+  const r={root,body,s,mats:[st,sw],eye,baseY:.5*s};
+  body.add(M(GBox(.4*s,.22*s,.34*s),st,0,0,0));                                         // the haunches
+  const torso=new THREE.Group();torso.position.y=.08*s;body.add(torso);r.torso=torso;
+  torso.add(M(GBox(.5*s,.56*s,.36*s),st,0,.3*s,.02*s));                                  // the chest, deep and hunched
+  torso.add(M(GBox(.3*s,.2*s,.1*s),st,0,.46*s,.2*s));                                    // the breastbone's ridge
+  const head=new THREE.Group();head.position.set(0,.62*s,.14*s);torso.add(head);r.head=head;
+  {const sk=M(G2.ico,st,0,.06*s,.04*s);sk.scale.set(.2*s,.17*s,.22*s);head.add(sk);
+   head.add(M(GBox(.18*s,.1*s,.2*s),st,0,0,.22*s));                                     // the snout
+   const jaw=M(GBox(.16*s,.05*s,.18*s),dk,0,-.07*s,.2*s);head.add(jaw);r.jaw=jaw;
+   for(const sd of[1,-1]){const hn=M(GCyl(0,.05*s,.34*s,4),st,sd*.1*s,.2*s,-.04*s);hn.rotation.set(-.9,0,-sd*.35);head.add(hn);   // the horns, swept back
+     head.add(M(GBox(.05*s,.04*s,.03*s),eye,sd*.07*s,.08*s,.25*s));}}                   // the eyes
+  r.arms=[];for(const sd of[1,-1]){const a=new THREE.Group();a.position.set(sd*.3*s,.5*s,.04*s);torso.add(a);
+    a.add(M(GBox(.12*s,.4*s,.12*s),st,0,-.2*s,0));const f=new THREE.Group();f.position.y=-.4*s;a.add(f);
+    f.add(M(GBox(.1*s,.36*s,.1*s),st,0,-.18*s,0));f.add(M(GBox(.13*s,.14*s,.07*s),dk,0,-.42*s,.03*s));   // the forearm, and the talons
+    r.arms.push({sh:a,el:f});}
+  r.wings=[];for(const sd of[1,-1]){const wr=new THREE.Group();wr.position.set(sd*.14*s,.52*s,-.14*s);wr.scale.x=sd;torso.add(wr);
+    const fl=new THREE.Group();wr.add(fl);const w=M(G2.wing,sw,0,0,0);w.rotation.x=Math.PI/2;w.scale.setScalar(1.05*s);fl.add(w);
+    const sp=M(GBox(1.3*s,.05*s,.05*s),st,.62*s,0,.14*s);sp.rotation.y=-.28;fl.add(sp);  // the wing's leading bone
+    r.wings.push(fl);}
+  r.legs=new THREE.Group();body.add(r.legs);
+  for(const sd of[1,-1]){const th=M(GBox(.14*s,.34*s,.16*s),st,sd*.2*s,-.02*s,.14*s);th.rotation.x=-1.25;r.legs.add(th);   // the thigh, forward
+    const sh2=M(GBox(.1*s,.34*s,.1*s),st,sd*.22*s,-.28*s,.24*s);sh2.rotation.x=.5;r.legs.add(sh2);                         // the shin, back down to the foot
+    r.legs.add(M(GBox(.14*s,.06*s,.24*s),st,sd*.22*s,-.47*s,.22*s));}                                                        // the foot, clawed on its perch
+  {let p=body;for(let i=0;i<3;i++){const g=new THREE.Group();g.position.set(0,i?0:-.02*s,i?-.2*s:-.18*s);g.rotation.x=.3;p.add(g);g.add(M(GBox((.1-.025*i)*s,(.1-.025*i)*s,.22*s),st,0,0,-.1*s));p=g;}}   // the tail
+  return r;
+}
+class Gargoyle{
+  constructor(p,at){   // (p: a perch; or none and `at`, a fixed point: the codex's)
+    this.kind='gargoyle';this.name='the gargoyle';this.big=false;this.boss=false;this.mini=false;this.caster=false;this.crow=false;this.heavyHitter=true;this.flies=true;
+    this.p=p;this.at=at||null;const v=this.home();
+    this.x=v.x;this.z=v.z;this.y=v.y;this.homeX=v.x;this.homeZ=v.z;this.facing=p?Math.atan2(p.dx,p.dz):0;this.radius=.5;
+    this.maxHp=GARGOYLE.HP;this.hp=this.maxHp;this.dmg=GARGOYLE.DMG;this.marrow=80;this.markUp=1;
+    this.poise=0;this.poiseMax=4;this.chillT=0;
+    this.rig=makeGargRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.state='perch';this.t=0;this.untouchable=true;this.flashUntil=0;this.crumbled=false;this.hitDone=false;
+    this.ang=0;this.vy=0;this.sx=0;this.sy=0;this.sz=0;this.tx=0;this.tz=0;this.ty=0;this.lostT=0;this.lt=0;this.cT=2;this.wake=0;
+  }
+  home(){if(this.at)return _gv.set(this.at.x,this.at.y,this.at.z);let o=this.p.o;while(o.parent)o=o.parent;return o===scene?perchAt(this.p,_gv):null;}
+  go(s){this.state=s;this.t=0;this.hitDone=false;}
+  vanish(){this.hp=0;this.state='dead';this.crumbled=true;this.t=5;this.untouchable=true;this.rig.root.visible=false;}   // (its hall is gone: no marrow, nothing to see)
+  spheres(){return this.hp<=0||this.untouchable?[]:[{x:this.x,y:this.y+.7,z:this.z,r:.6,head:false}];}
+  reset(){}
+  scatter(){}
+  flash(){this.flashUntil=G.time+.1;for(const m of this.mats)m.emissive.setHex(0xffffff);}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);if(this.hp<=0||this.untouchable)return;
+    this.hp-=dmg;this.flash();boneBurst(this.x,this.y+.7,this.z,0x7a7770,7,2.2);
+    if(this.hp<=0){this.die();return;}
+    if(poise>=3&&(this.state==='landed'||this.state==='swipe'))this.lt=Math.max(0,this.lt-.8);   // a heavy blow keeps it down
+  }
+  die(){if(this.state==='dead')return;this.hp=0;this.go('dead');this.untouchable=true;this.vy=0;
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;AudioSys.stoneWake();}
+  update(dt){
+    const P=player,r=this.rig;this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);
+    const live=G.mode==='play'&&P.state!=='dead'&&!CUT.on;
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz),gy=heightAt(this.x,this.z),py=heightAt(P.x,P.z);
+    const sp=this.chillT>0?.35:1,face=k=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
+    const fly=(tx,ty,tz,v)=>{const ex=tx-this.x,ey=ty-this.y,ez=tz-this.z,l=Math.hypot(ex,ey,ez);if(l<.01)return l;const s=Math.min(l,v*sp*dt);
+      this.x+=ex/l*s;this.y+=ey/l*s;this.z+=ez/l*s;if(Math.hypot(ex,ez)>.3)this.facing=angLerp(this.facing,Math.atan2(ex,ez),5*dt);return l;};
+    const inside=inNave(P.x,P.z);
+    switch(this.state){
+      case 'perch':{const h=this.home();if(!h){this.vanish();return;}
+        this.x=h.x;this.y=h.y;this.z=h.z;if(this.p)this.facing=Math.atan2(this.p.dx,this.p.dz);
+        if(live&&(this.at?this.t>1.2:dist<GARGOYLE.WAKE&&!inside&&P.state!=='grabbed')){this.go('wake');AudioSys.stoneWake();G.camShake=Math.max(G.camShake,.12);}
+        break;}
+      case 'wake':   // the stone cracks, and the eyes come on
+        if(Math.random()<dt*14)boneBurst(this.x+rr3(-.3,.3),this.y+.6+rr3(0,.5),this.z+rr3(-.3,.3),0x7a7770,2,1.2);
+        if(this.t>=1.1){this.go('circle');this.ang=Math.atan2(this.x-P.x,this.z-P.z);this.cT=2.2+Math.random()*1.2;this.engaged=true;AudioSys.screech();}
+        break;
+      case 'circle':{
+        this.ang+=.55*dt;const tx=P.x+Math.sin(this.ang)*GARGOYLE.RING,tz=P.z+Math.cos(this.ang)*GARGOYLE.RING,ty=Math.max(py,gy)+GARGOYLE.ALT;
+        fly(tx,ty,tz,7.5);face(3);
+        if(!live||dist>34||inside){this.lostT+=dt;if(this.lostT>2){this.lostT=0;this.go('home');break;}}else this.lostT=0;
+        if(live&&!inside&&this.t>=this.cT&&Math.abs(this.y-ty)<1.6){this.go('tell');AudioSys.screech();}
+        break;}
+      case 'tell':face(8);   // hanging, wings high
+        if(this.t>=.55){this.go('dive');this.sx=this.x;this.sy=this.y;this.sz=this.z;const l=dist||1;this.tx=P.x+dx/l*2.2;this.tz=P.z+dz/l*2.2;this.ty=heightAt(this.tx,this.tz);AudioSys.windup();}
+        break;
+      case 'dive':{   // talons first, down the line it saw you on and past
+        const u=Math.min(1,this.t/.75),e=u*u;
+        this.x=lerp(this.sx,this.tx,e);this.z=lerp(this.sz,this.tz,e);
+        this.y=Math.max(heightAt(this.x,this.z),lerp(this.sy,Math.max(this.ty,heightAt(this.x,this.z))+.5,Math.min(1,e/.8)));
+        if(live&&!this.hitDone&&u>.4&&Math.hypot(P.x-this.x,P.z-this.z,(py+1.1)-(this.y+.6))<1.5){this.hitDone=true;P.takeHit(this.dmg,this.x,this.z,true,'heavy');}
+        if(u>=1){this.go('landed');this.lt=0;this.y=heightAt(this.x,this.z);AudioSys.bodyfall();G.camShake=Math.max(G.camShake,.15);boneBurst(this.x,this.y+.1,this.z,0x4a463a,8,1.8);}
+        break;}
+      case 'landed':case 'swipe':{   // down, crouched and clawing: the opening
+        this.lt+=dt;constrain(this,false);this.y=heightAt(this.x,this.z);
+        if(this.state==='landed'){face(5);if(live&&dist<2.2&&this.lt>.9&&this.t>.4){this.go('swipe');AudioSys.windup();}}   // (it lands, and the first beat is yours)
+        else{face(3);if(!this.hitDone&&this.t>=.45){this.hitDone=true;const off=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));
+            if(live&&dist<2.5&&off<1)P.takeHit(this.dmg,this.x,this.z,false,'blade');}
+          if(this.t>=.9)this.go('landed');}
+        if(this.lt>=2.6){this.go('rise');AudioSys.screech();}
+        break;}
+      case 'rise':fly(this.x,gy+GARGOYLE.ALT,this.z,5);if(this.t>=1.1){this.go('circle');this.cT=2.2+Math.random()*1.4;}break;
+      case 'home':{const h=this.home();if(!h){this.vanish();return;}
+        if(fly(h.x,h.y,h.z,8)<.15){this.go('perch');this.engaged=false;}break;}
+      case 'dead':
+        if(!this.crumbled){this.vy-=14*dt;this.y+=this.vy*dt;
+          if(this.y<=gy){this.y=gy;this.crumbled=true;this.t=0;r.root.visible=false;AudioSys.slam();G.camShake=Math.max(G.camShake,.2);
+            boneBurst(this.x,gy+.4,this.z,0x7a7770,16,2.6);boneBurst(this.x,gy+.2,this.z,0x4a463a,10,1.8);}}
+        break;
+    }
+    const st=this.state;
+    this.untouchable=st==='perch'||st==='wake'||st==='dead'||st==='home'||this.y-gy>2.6;
+    // the pose: 0 crouched stone, 1 flying, 2 wings high, 3 stooping
+    const W=r.wings,A=r.arms,fl=G.time*9+this.homeX;
+    r.body.rotation.set(0,0,0);r.torso.rotation.set(.35,0,0);r.head.rotation.set(-.15,0,0);r.legs.rotation.set(0,0,0);r.jaw.rotation.x=0;
+    for(const a of A){a.sh.rotation.set(-.35,0,0);a.el.rotation.set(-.5,0,0);}
+    const wing=(y,z)=>{for(const w of W)w.rotation.set(0,y,z);};
+    if(st==='perch'||st==='dead'&&this.crumbled)wing(1.35,.55);
+    else if(st==='wake'){const u=Math.min(1,this.t/1.1);wing(1.35-1.2*u,.55+.5*u);r.torso.rotation.z=Math.sin(this.t*40)*.03*(1-u);r.head.rotation.x=-.15-.4*u;r.jaw.rotation.x=.4*u;}
+    else if(st==='tell'){wing(-.1,1.15);r.torso.rotation.x=.55;r.head.rotation.x=.3;r.jaw.rotation.x=.5;for(const a of A)a.sh.rotation.set(-1.2,0,0);r.legs.rotation.x=.6;}
+    else if(st==='dive'){wing(.95,.3);r.body.rotation.x=.5;r.torso.rotation.x=1.0;r.head.rotation.x=-.5;for(const a of A){a.sh.rotation.set(-2.2,0,0);a.el.rotation.set(-.2,0,0);}r.legs.rotation.x=-.4;}
+    else if(st==='landed'||st==='swipe'){wing(.5,.45+Math.sin(G.time*3)*.08);r.head.rotation.x=-.05;
+      if(st==='swipe'){const u=this.t/.9,sw=u<.5?-2.5*(u/.5):-2.5+2.3*Math.min(1,(u-.5)/.15);A[0].sh.rotation.set(sw,0,0);r.jaw.rotation.x=.4;}}
+    else{wing(.12,.25+Math.sin(fl)*.75);r.torso.rotation.x=1.0;r.head.rotation.x=-.8;r.legs.rotation.x=.9;for(const a of A)a.sh.rotation.set(-.7,0,0);}   // flying
+    r.root.position.set(this.x,this.y,this.z);r.root.rotation.y=this.facing;
+    r.eye.color.setHex(st==='perch'||st==='home'||(st==='dead'&&this.crumbled)?0x1a0a08:0xff4a1a);
+    if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:0x000000);
+  }
+}
+
+/* ======================= THE FROSTBOUND =======================
+   In snow and in a blizzard some of the host did not climb into its
+   graves: it stood where it was and froze (`Enemy.frost`, a hollow picked
+   by its own hash, so no draw moves). It stands in the drifts in a lump of
+   ice, and it cannot be struck there. Come within five metres and the ice
+   BURSTS; what comes out is a hollow with rime on its bones, and its blows
+   CHILL you (`player.frostT`: the stride down to three-fifths for a couple
+   of seconds). Where it stood the ground is left ICE (`ICE`, `onIce`): the
+   boot gets almost nothing to push against there, so every start is slow
+   and every stop a long slide. A patch melts away in under a minute. */
+const ICE=[],ICE_LIFE=45;
+let ICE_G=null;
+function iceGeo(){return ICE_G||(ICE_G={block:(()=>{const g=new THREE.IcosahedronGeometry(1,0);g.scale(.6,1.2,.55);return g;})(),
+  m:lam({color:0x86bde4,transparent:true,opacity:.58,emissive:new THREE.Color(0x0e2a44)}),drift:new THREE.CylinderGeometry(.6,1.0,.35,8),
+  snow:lam({color:0xe6ecef}),patch:lam({color:0x5b8db8,transparent:true,opacity:.8,emissive:new THREE.Color(0x0a1c30),depthWrite:false})});}
+// the ice left behind: a disc laid ON the ground, a ring of heights at a time, above it (marks sit above the ground)
+function icePatch(x,z,R){
+  const I=iceGeo();if(ICE.length>=8){const o=ICE.shift();scene.remove(o.mesh);o.mesh.geometry.dispose();}
+  const N=12,pos=[0,heightAt(x,z)+.06,0],idx=[];
+  for(let ring=1;ring<=2;ring++)for(let i=0;i<N;i++){const a=i/N*TAU+ring*.13,rr0=R*ring/2*(ring===2?.85+posHash(x+i,z,ring)*.3:1),px=Math.cos(a)*rr0,pz=Math.sin(a)*rr0;pos.push(px,heightAt(x+px,z+pz)+.06,pz);}
+  for(let i=0;i<N;i++){const a=1+i,b=1+(i+1)%N,c=1+N+i,d=1+N+(i+1)%N;idx.push(0,b,a, a,b,d, a,d,c);}   // (wound to face the sky)
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  const m=new THREE.Mesh(g,I.patch);m.position.set(x,0,z);m.renderOrder=1;scene.add(m);
+  ICE.push({x,z,r:R,t:0,k:1,mesh:m});
+}
+function onIce(x,z){for(const o of ICE)if(Math.hypot(x-o.x,z-o.z)<o.r*o.k)return true;return false;}
+function iceTick(dt){
+  const P=player;
+  if((P.frostT||0)>0){P.frostT=Math.max(0,P.frostT-dt);if(Math.random()<dt*8)elemFleck('ice',P.x+rr3(-.3,.3),heightAt(P.x,P.z)+.5+Math.random()*1.3,P.z+rr3(-.3,.3));}
+  for(let i=ICE.length-1;i>=0;i--){const o=ICE[i];o.t+=dt;o.k=o.t>ICE_LIFE-4?Math.max(0,(ICE_LIFE-o.t)/4):1;o.mesh.scale.set(o.k,1,o.k);
+    if(o.k<=0||Math.hypot(o.x-P.x,o.z-P.z)>120){scene.remove(o.mesh);o.mesh.geometry.dispose();ICE.splice(i,1);}}
 }
 
 /* ======================= THE BELL-CALLED =======================
@@ -21931,6 +22303,12 @@ const CODEX_CATS=[
       t:'some sixty skulls and bones in the sunken hollow\'s bowl that get up when you come within eight metres and scuttle after you as one mass, biting half a heart at a time while you stand in it. A light blow thins it a few pieces at a time; a heavy one, or anything that lands in an area — the earthshaker, a rocket, a charged cut — blows a great hole in it. Under five pieces, the rest scatters.'},
     {k:'hanged',name:'the hanged',ep:'what hangs from the trees',where:'the field · the path: now and then, from a dead tree',make:(x,z,px,pz)=>[cxFoe(new Hanged(x,z-2,5),px,pz)],
       t:'now and then a dead tree has something hanging from it. Walk under it and it drops onto your back and strangles: every press is a fifth of the way out, and it takes half a heart each beat it holds on. Throw it off and it lies stunned a moment — every blow half again — then comes after you on its hands. Roll through the drop and it lands in the dirt. It can be cut down before it drops. 50 life.'},
+    {k:'bride',name:'the drowned bride',ep:'what the water keeps',where:'the path: the river, and most ponds',make:(x,z,px,pz)=>[cxFoe(new DrownedBride(x,z-1,{dry:true}),px,pz)],
+      t:'a drowned woman in what is left of a wedding gown. Under the water she is only a ring of ripples, and it follows you along the bank. Come within reach of the water and she rises with her arms out and lunges; caught, you are dragged toward the deep and held there — every press a fifth of the way out, half a heart a beat, a whole one once the water is over your waist. Thrown off, she founders a moment (every blow half again) and sinks. She can be struck only while she is out of the water. 120 life.'},
+    {k:'gargoyle',name:'the gargoyle',ep:'not all of them are carved',where:'the field · the path: two on every cathedral\'s eaves, two on the castle\'s gatehouse',make:(x,z,px,pz)=>[cxFoe(new Gargoyle(null,{x,y:heightAt(x,z-2)+2.2,z:z-2}),px,pz)],
+      t:'perched, it is the hall\'s own stone. Come within fifteen metres and the stone cracks and the eyes come on: it circles you five metres up, hangs a beat with its wings high, and dives talons first — a dive that finds you puts you down. Where it lands it stays a couple of seconds, crouched and clawing, and that is the only time it can be struck. Go in under a roof and it flies home and is stone again. 130 life.'},
+    {k:'hollow · frost',name:'the Frostbound',ep:'the host, frozen where it stood',where:'the field · the path: in snow and in a blizzard',make:(x,z,px,pz)=>[cxFoe(new Enemy('hollow',x,z,{plain:true,frost:true}),px,pz)],
+      t:'in the snow some of the host never climbed into its graves: it froze standing, in a lump of ice in the drifts, and nothing can touch it there. Within five metres the ice bursts. Its blows chill you — the stride drops to three-fifths for a couple of seconds — and where it stood the ground is left ice, where a start is slow and a stop is a long slide. 95 life.'},
     {k:'caster',name:'the thrower',ep:'bone from a distance',where:'the field · the path',make:cxEnemy('caster'),
       t:'a lighter skeleton that keeps about eleven metres off and lobs bone at you — half a heart a bone. It never stands still to do it: it works round you in a circle, turning its circle after every throw and whenever you close inside seven metres. On the ravine path they stand on the rims.'},
     {k:'big',name:'the brute',ep:'the big skeleton',where:'the field · the path',make:cxEnemy('big'),
@@ -22634,7 +23012,7 @@ function frame(now){
       // ...and whatever she is wearing goes on falling with her
       updateRigCloth(player.rig,wdt);
     }
-    if(G.mode==='play')wraithTick(wdt);            // the fog's own (see THE FOG WRAITH)
+    if(G.mode==='play'){wraithTick(wdt);iceTick(wdt);gargTick();}   // the fog's own (see THE FOG WRAITH), the ice (THE FROSTBOUND), the perches (THE GARGOYLE)
     for(const e of enemies){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
       if(e.burnT>0&&e.hp>0&&!e.untouchable&&G.mode==='play')tickBurn(e,wdt);
@@ -22712,7 +23090,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,GARG,ArmHorror,OssuarySwarm,Hanged,lampNear,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={camera,CODEX,GARG,ArmHorror,OssuarySwarm,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

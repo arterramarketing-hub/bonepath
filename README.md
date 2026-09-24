@@ -2824,6 +2824,43 @@ heart and lets go. Throw it off and it lies stunned a moment (every blow
 does half again), then comes after you on its hands. It can be cut down
 before it drops. 50 life, worth 30 marrow.
 
+## The Drowned Bride
+
+The river hex keeps one, and the pond most of the time: a drowned woman in
+what is left of a wedding gown. Under the water she is only a **ring of
+ripples**, and it follows you along the bank. Come within reach of the
+water, on the bank or wading, and she **rises** with her arms out (the
+tell) and lunges. Caught, you are **dragged toward the deep** and held
+there: every press is a fifth of the way out, and it costs half a heart a
+beat, a whole one once the water is over your waist. Thrown off, she
+founders in the shallows a moment (every blow does half again), then sinks
+and comes again. She can be struck only while she is out of the water.
+120 life, worth 90 marrow.
+
+## The Gargoyle
+
+Two of the gargoyles on every cathedral's aisle eaves, and the two on the
+castle's gatehouse, **are not carved**. Perched, one is the hall's own
+stone. Come within fifteen metres, outside, and the stone cracks and the
+eyes come on. It **circles** you five metres up, hangs a beat with its
+wings high (the tell), and **dives** talons first; a dive that finds you
+puts you down. Where it lands it stays a couple of seconds, crouched: the
+first beat is yours, and after it, it claws. That is the only time it can
+be struck. Then it climbs and does it again. Go in under a roof, or far
+enough off, and it flies home and is stone again. 130 life, worth 80
+marrow.
+
+## The Frostbound
+
+In snow and in a blizzard about three hollows in ten never climbed into
+their graves: they **froze standing**, each in a lump of ice in the drifts,
+and nothing can touch one there. Within five metres the ice **bursts**.
+What comes out has rime on its bones, and its blows **chill** you: the
+stride drops to three-fifths for a couple of seconds. Where it stood the
+ground is left **ice**, where the boot has almost nothing to push against:
+a start is slow and a stop is a long slide. The ice melts in under a
+minute. 95 life, worth 50 marrow.
+
 ## The bat
 
 In the dark the crows are **bats**: half of them at night, in fog and in

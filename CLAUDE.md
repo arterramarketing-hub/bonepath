@@ -347,6 +347,18 @@ Each line is a rule. The why is in NOTES under the same names.
 - **Anything a build drops into the host goes through `sowOdd`** (queued
   on the path, straight in on the field). New variants are picked by
   `posHash`, never `rnd()`, so no draw moves.
+- The Drowned Bride's body is SUNK below the bed while she is under
+  (`BRIDE.SUNK`), never hidden: `lodUpdate` owns `rig.body.visible`. Her
+  ripples ride the root. Her floor is `pathHeightAt`, never the deck.
+- A Gargoyle's perch is an `Object3D` anchor in its hall's group
+  (`PERCH`, `perchAdd`), read every frame; `gargTick` wakes one lazily
+  near the pilgrim. Its stone is a CLONE of the hall's material (a flash
+  on the shared one lights the hall). It never wakes, or chases, under a
+  roof (`inNave`).
+- The Frostbound is `Enemy.frost`, rolled by `posHash` (no draw moves).
+  Dormant, its root stands ON the ground in its ice (`encase`); `wake()`
+  thaws it. Its blows go through `frostBite`. Ice patches (`ICE`) are
+  marks: above the ground, wound to face the sky, disposed when they melt.
 - **The Rider is two bodies.** Mounted it is `RiderHorror` (its own rig, the
   top half of the bar; its `die()` unhorses). On foot it is
   `Enemy('boss',{rider:true})`, so **every `this.boss` rule that means "the
