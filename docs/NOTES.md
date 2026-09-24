@@ -3608,3 +3608,19 @@ Known state of play:
   The gargoyle's perch was checked by picture at last, through the codex
   lens: it crouches on the aisle roof's eave over the carved spout.
 
+- **WHAT THE MARROW REMEMBERS (`LORE`, `meetTick`, `loreBest`).** The path
+  and the ravine ended with a line of totals and kept nothing; the field
+  kept nothing either; only the house kept a best. And none of the eleven
+  new horrors but the bosses was ever named in play: a Lamplighter came at
+  you with no word for what it was. One record now, `bp_lore`: met,
+  felled (by codex key, counted in `shedMarrow` because every kill goes
+  through it), and the best of each mode. Measured on the path: a
+  Lamplighter four metres off put up its card ("the host, burning / the
+  Lamplighter") inside half a second, was tallied when killed, a death
+  eight hexes on wrote `best.path={hex:8}` and "the farthest yet", and the
+  title after a reload read "best · hex 8". The codex's stats line reads
+  "felled 1" for it, and "not yet met" for the swarm.
+  The ice left by a Frostbound was near white at noon: a pale blue under a
+  noon sun on snow grades to white. It is a dark slate (0x2c5070) now, and
+  reads blue at noon and at night.
+

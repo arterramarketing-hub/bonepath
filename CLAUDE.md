@@ -323,7 +323,10 @@ Each line is a rule. The why is in NOTES under the same names.
   `wake()`: a new class that lies dormant either has one or is skipped.
 - A Frostbound and a Shade never `patrol()`: a roaming template leaves
   them where they were sown.
-- **Every kill's marrow goes through `shedMarrow`.**
+- **Every kill's marrow goes through `shedMarrow`**, and so does the lore's
+  tally (`loreFell`). A new horror's key is its codex key: if its `kind`
+  is not already one, map it in `cxKeyOf`. A kind that enters in its own
+  scene goes in `MEET_SCENE`, or it gets a name card as well.
 - `DEF.might` is applied in every horror's `takeHit`, never at a call site.
 - New siege-walkers need `zombieMove`'s stuck-on-a-tree detour.
 - `reaperFinish` spends existing kills; the Warden is excluded.

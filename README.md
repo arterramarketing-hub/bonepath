@@ -2889,6 +2889,22 @@ only just begun, and when it is hurt and has room it **drinks**: twice a
 meeting, a third of its life each, and a blow while the flask is up spills
 it. Bait the roll, then punish it. 260 life, worth 250 marrow.
 
+## What the marrow remembers
+
+The game keeps one record in this browser, across every run and mode.
+- **The first meeting.** The first time you come near a kind of horror,
+  awake, its name comes up at the top of the screen, the epithet above
+  and the name below. It happens once, ever. The horrors that enter in a
+  scene are named by the scene.
+- **The felled.** Every kill is tallied by kind. The end screen of a run
+  lists what you felled in it, most first, and the codex says of each
+  horror how many you have felled, or that you have met it, or that you
+  have not yet met it.
+- **The best run.** The path and the ravine keep their farthest hex, the
+  field its quickest Warden. The title shows each under its mode, and the
+  end screen says when you have beaten it. The house keeps its best round,
+  as it did.
+
 ## The bat
 
 In the dark the crows are **bats**: half of them at night, in fog and in

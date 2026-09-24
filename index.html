@@ -245,7 +245,7 @@
     font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--bone-dim);
     opacity:0;transition:opacity .6s;}
   #cine.on #cineSkip{opacity:.5;}
-  body.cine #hud,body.cine #controls,body.cine #banner,body.cine #prompt,body.cine #toast,
+  body.cine #hud,body.cine #controls,body.cine #banner,body.cine #meet,body.cine #prompt,body.cine #toast,
   body.cine #pauseBtn,body.cine #povBtn,body.cine #lockBtn,body.cine #perf{
     opacity:0!important;transition:opacity .35s;}
   body.cine #controls{pointer-events:none;}
@@ -256,6 +256,12 @@
   #banner .rule{width:180px;height:1px;margin:10px auto;
     background:linear-gradient(90deg,transparent,var(--bone-dim),transparent);}
   #banner .sm{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--bone-dim);}
+  #meet{position:fixed;left:0;right:0;top:15%;z-index:7;text-align:center;pointer-events:none;
+    opacity:0;transition:opacity .9s;}
+  #meet .ep{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--bone-dim);}
+  #meet .rule{width:120px;height:1px;margin:7px auto;background:linear-gradient(90deg,transparent,var(--bone-dim),transparent);}
+  #meet .big{font-size:clamp(17px,3.6vw,28px);letter-spacing:.34em;text-transform:uppercase;
+    color:var(--bone);text-shadow:0 0 18px rgba(208,118,43,.35),0 2px 3px #000;}
   #died{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;
     background:rgba(4,5,5,.0);opacity:0;pointer-events:none;transition:opacity 1.2s, background 1.2s;}
   #died .t{font-size:clamp(34px,9vw,84px);letter-spacing:.34em;text-transform:uppercase;
@@ -617,6 +623,7 @@
   <div class="catch" id="cineCatch"></div>
 </div>
 <div id="banner"><div class="big" id="bannerBig"></div><div class="rule"></div><div class="sm" id="bannerSm"></div></div>
+<div id="meet"><div class="ep" id="meetSm"></div><div class="rule"></div><div class="big" id="meetBig"></div></div>
 <div id="toast"></div>
 <div id="died"><div class="t">YOU DIED</div></div>
 
@@ -625,9 +632,9 @@
   <div class="sub">the marrow remembers</div>
   <div class="rule"></div>
   <div id="modes">
-    <div class="mode" id="modeField"><b>The field</b><i>the run</i><span>harvest a thousand marrow from the sleeping host, open the cathedral, and fell the Warden at its altar</span></div>
-    <div class="mode" id="modePath"><b>The path</b><i>survival</i><span>hex after hex northward without end, a cathedral every sixth; six thousand marrow wins, and death ends it where you fall</span></div>
-    <div class="mode" id="modeRavine"><b>The ravine</b><i>path two</i><span>the path with nothing but its wooded cuts, one into the next, and the highway overhead now and then; the same six thousand marrow</span></div>
+    <div class="mode" id="modeField"><b>The field</b><i>the run</i><span>harvest a thousand marrow from the sleeping host, open the cathedral, and fell the Warden at its altar<em id="bestField"></em></span></div>
+    <div class="mode" id="modePath"><b>The path</b><i>survival</i><span>hex after hex northward without end, a cathedral every sixth; six thousand marrow wins, and death ends it where you fall<em id="bestPath"></em></span></div>
+    <div class="mode" id="modeRavine"><b>The ravine</b><i>path two</i><span>the path with nothing but its wooded cuts, one into the next, and the highway overhead now and then; the same six thousand marrow<em id="bestRav"></em></span></div>
     <div class="mode" id="modeDefend"><b>The house</b><i>defender</i><span>hold a house in a drowned churchyard against the Drowned, round after endless round; the lull between is the shop<em id="bestDef"></em></span></div>
   </div>
   <div id="begin">touch a way to begin</div>
@@ -743,6 +750,7 @@
      HUD, third-person gun ............ updateGunHud, updateRigGun, poseGunCarry
    HUD and messages ................... updateHUD, toast
    offerings, marrow .................. "interaction & offerings", MARROW, shedMarrow
+   what is remembered across runs ..... "WHAT THE MARROW REMEMBERS", LORE, cxKeyOf, meetTick, loreBest
    grain overlay ...................... "grain overlay"
    the codex .......................... "THE CODEX", CODEX_CATS, codexShow
    boot and the main loop ............. begin, setAutoLock, frame
@@ -17150,7 +17158,7 @@ const ICE=[],ICE_LIFE=45;
 let ICE_G=null;
 function iceGeo(){return ICE_G||(ICE_G={block:(()=>{const g=new THREE.IcosahedronGeometry(1,0);g.scale(.6,1.2,.55);return g;})(),
   m:lam({color:0x86bde4,transparent:true,opacity:.58,emissive:new THREE.Color(0x0e2a44)}),drift:new THREE.CylinderGeometry(.6,1.0,.35,8),
-  snow:lam({color:0xe6ecef}),patch:lam({color:0x5b8db8,transparent:true,opacity:.8,emissive:new THREE.Color(0x0a1c30),depthWrite:false})});}
+  snow:lam({color:0xe6ecef}),patch:lam({color:0x2c5070,transparent:true,opacity:.85,emissive:new THREE.Color(0x0e2640),depthWrite:false})});}
 // the ice left behind: a disc laid ON the ground, a ring of heights at a time, above it (marks sit above the ground)
 function icePatch(x,z,R){
   const I=iceGeo();if(ICE.length>=8){const o=ICE.shift();scene.remove(o.mesh);o.mesh.geometry.dispose();}
@@ -22339,6 +22347,59 @@ function doInteract(){
   if(promptAction&&promptAction.type==='altar')endGame(true);
   if(promptAction&&promptAction.type==='defCall'){DEF.called=true;AudioSys.tap();}
 }
+/* ======================= WHAT THE MARROW REMEMBERS =======================
+   One record in this browser (`bp_lore`), across every run and mode:
+   which horrors you have MET (the first time, a name card: `meetTick`),
+   how many of each you have FELLED (counted in `shedMarrow`, which every
+   kill goes through), and the best run of each mode (`loreBest`). A run's
+   own tally is `G.felled`, read by the end screen. A horror's key is its
+   codex key (`cxKeyOf`), so the codex can say what you have met. */
+const LORE=(()=>{let o={};try{o=JSON.parse(localStorage.getItem('bp_lore')||'{}');}catch(e){}
+  return Object.assign({met:{},felled:{},best:{}},o&&typeof o==='object'?o:{});})();
+let loreDirty=false;
+function loreSave(){loreDirty=false;try{localStorage.setItem('bp_lore',JSON.stringify(LORE));}catch(e){}}
+function cxKeyOf(e){
+  if(!e)return null;const k=e.kind;
+  if(e.crow)return e.bat?'bat':'crow';
+  if(k==='hollow')return e.shade?'hollow · shade':e.frost?'hollow · frost':e.lamp?'hollow · lamp':e.shield?'hollow · shield':e.red?'hollow · red':'hollow';
+  if(k==='zombie')return e.mother?'zombie · mother':e.variant==='runner'?'zombie · runner':e.variant==='hulk'?'zombie · hulk':'zombie';
+  if(k==='boss')return e.rider?'rider · unhorsed':'boss';
+  if(k==='hand'||k==='skull')return 'bell';
+  return k;}
+function cxItem(k){const c=CODEX_CATS[0];for(const it of c.items)if(it.k===k)return it;return null;}
+function loreFell(e){const k=cxKeyOf(e);if(!k||CODEX.on)return;G.felled=G.felled||{};G.felled[k]=(G.felled[k]||0)+1;LORE.felled[k]=(LORE.felled[k]||0)+1;loreDirty=true;}
+// the best run of a mode: returns whether this one beat it
+function loreBest(mode,rec,better){const b=LORE.best[mode];const nb=!b||better(rec,b);if(nb){LORE.best[mode]=rec;}loreSave();return {nb,b:LORE.best[mode]};}
+// the run's felled, most first: "the hollow ×12 · the thrower ×3 · the Ossuary King"
+function felledLine(){const F=G.felled||{},it=Object.entries(F).sort((a,b)=>b[1]-a[1]);if(!it.length)return '';
+  const nm=k=>{const c=cxItem(k);return c?c.name:k;};
+  return it.slice(0,7).map(([k,n])=>nm(k)+(n>1?' &times;'+n:'')).join(' &middot; ')+(it.length>7?' &middot; &hellip;':'');}
+const fmtT=secs=>String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
+function loreTitle(){const B=LORE.best;
+  if(B.path)$('bestPath').textContent='best \u00b7 hex '+B.path.hex+(B.path.won?' \u00b7 walked':'');
+  if(B.ravine)$('bestRav').textContent='best \u00b7 hex '+B.ravine.hex+(B.ravine.won?' \u00b7 walked':'');
+  if(B.field)$('bestField').textContent='best \u00b7 the Warden in '+fmtT(B.field.secs);}
+/* THE FIRST MEETING. The first time you are within fourteen metres of a
+   kind of horror that is awake and can be struck, its name comes up at
+   the top of the screen: the epithet above, the name below (the scenes'
+   own order). Once in this browser, ever. The kinds that make their
+   entrance in a scene are named by it, and only marked. */
+const MEET={q:[],t:0,seen:new Set()},MEET_ASLEEP=new Set(['dormant','heap','perch','under','dead','rise','scatter']),
+  MEET_SCENE=new Set(['boss','zombie · mother','angel','ghoul','bell','arm','rider','rider · unhorsed','wyrm','king']);
+function meetTick(dt){
+  if(CODEX.on)return;
+  if(MEET.t>0){MEET.t-=dt;if(MEET.t<=0)$('meet').style.opacity=0;}
+  if(G.frameN%15)return;
+  if(loreDirty&&G.frameN%300===0)loreSave();
+  if(G.mode!=='play')return;
+  const P=player;
+  for(const e of enemies){
+    if(e.hp<=0||e.untouchable||MEET_ASLEEP.has(e.state)||Math.hypot(e.x-P.x,e.z-P.z)>14)continue;
+    const k=cxKeyOf(e);if(!k||MEET.seen.has(k))continue;MEET.seen.add(k);
+    if(!LORE.met[k]){LORE.met[k]=1;loreDirty=true;if(!MEET_SCENE.has(k))MEET.q.push(k);}}
+  if(MEET.t<=-.6&&MEET.q.length&&!CUT.on){const it=cxItem(MEET.q.shift());if(it){$('meetSm').textContent=it.ep;$('meetBig').textContent=it.name;$('meet').style.opacity=1;MEET.t=3.2;}}
+  else if(MEET.t<=0)MEET.t-=dt*15;   // (a beat of nothing between two cards)
+}
 function endGame(won){
   G.mode='victory';
   const secs=Math.floor((performance.now()-G.runStart)/1000);
@@ -22346,15 +22407,22 @@ function endGame(won){
   const h2=$('victory').querySelector('h2');
   if(DEF.on){h2.textContent='The Mire Takes You';
     const b=defBest(true);
+    if(loreDirty)loreSave();
     $('stats').innerHTML='round '+DEF.round+(DEF.phase==='lull'?' held':' — the '+(DEF.phase==='boss'?'boss':'wave')+' took you')+', in '+mm+':'+ss+'<br>'+
-      (DEF.kills||0)+' of the drowned put down &middot; '+(G.kills||0)+' horrors felled &middot; '+player.marrow+' marrow unspent<br>'+
+      (DEF.kills||0)+' of the drowned put down &middot; '+(G.kills||0)+((G.kills||0)===1?' horror':' horrors')+' felled &middot; '+player.marrow+' marrow unspent<br>'+
       (b.round>0?'<span style="opacity:.7">best: round '+b.round+' &middot; '+b.kills+' drowned</span>':'');}
   else if(PATH.on){h2.textContent=won?'The Path Walked':'The Path Ends';
-    $('stats').innerHTML=(won?'six thousand marrow, in ':'the path took you at ')+mm+':'+ss+'<br>'+(PATH.far-2)+' hexes walked &middot; '+(G.kills||0)+' horrors felled &middot; '+player.marrow+' marrow';}
+    const hex=PATH.far-2,L=loreBest(PATH.only?'ravine':'path',{hex,marrow:player.marrow,secs,won:!!won},(a,b)=>a.hex>b.hex||(a.hex===b.hex&&a.marrow>b.marrow));
+    $('stats').innerHTML=(won?'six thousand marrow, in ':'the path took you at ')+mm+':'+ss+'<br>'+hex+' hexes walked &middot; '+(G.kills||0)+((G.kills||0)===1?' horror':' horrors')+' felled &middot; '+player.marrow+' marrow'+
+      (felledLine()?'<br><span style="opacity:.75;font-size:.85em">'+felledLine()+'</span>':'')+
+      '<br><span style="opacity:.7">'+(L.nb?'the farthest yet':'best: hex '+L.b.hex+' &middot; '+L.b.marrow+' marrow')+'</span>';}
   else{h2.textContent='The Warden Falls';
+  const L=loreBest('field',{secs,deaths:G.deaths},(a,b)=>a.secs<b.secs);
   $('stats').innerHTML=
     'the path walked in '+mm+':'+ss+'<br>'+
-    G.deaths+(G.deaths===1?' death':' deaths')+' &middot; '+player.marrow+' marrow kept';}
+    G.deaths+(G.deaths===1?' death':' deaths')+' &middot; '+player.marrow+' marrow kept'+
+    (felledLine()?'<br><span style="opacity:.75;font-size:.85em">'+felledLine()+'</span>':'')+
+    '<br><span style="opacity:.7">'+(L.nb?'the quickest yet':'best: '+fmtT(L.b.secs))+'</span>';}
   $('victory').style.display='flex';
   $('controls').style.display='none';$('hud').style.display='none';
   $('prompt').style.display='none';$('banner').style.opacity=0;$('toast').style.opacity=0;
@@ -22380,6 +22448,7 @@ function marrowInit(){
   const P=new THREE.Points(geo,pm);P.frustumCulled=false;P.renderOrder=5;scene.add(P);MARROW.pts=P;MARROW.pos=pos;
 }
 function shedMarrow(e,amount){
+  loreFell(e);   // (every kill comes through here: see WHAT THE MARROW REMEMBERS)
   amount=Math.round(amount||0);if(amount<=0)return;
   const x=e.x,z=e.z,y=(e.y!==undefined&&e.y>heightAt(x,z)+.3)?e.y:heightAt(x,z)+(e.boss?1.7:e.big||e.mini?1.3:1.0);
   const n=clamp(Math.round(amount/6),4,16);let left=amount;
@@ -22628,7 +22697,8 @@ function codexShow(ci,i){
     cxTiles(0);C.px=CX_STAGE.px;C.pz=CX_STAGE.pz;P.x=C.px;P.z=C.pz;P.facing=Math.PI;
     C.spec=it.make(CX_STAGE.x,CX_STAGE.z,C.px,C.pz);C.yaw=.6;C.pitch=.2;
     const e=C.spec[0];if(e){const bits=[];bits.push('life <b>'+Math.round(e.maxHp||e.hp||0)+'</b>');
-      if(e.dmg)bits.push('a blow <b>'+(e.dmg/HEART)+'</b> heart'+(e.dmg===HEART?'':'s'));if(e.speed)bits.push('pace <b>'+e.speed+'</b>');if(e.marrow)bits.push('marrow <b>'+e.marrow+'</b>');stats=bits.join(' &middot; ');}
+      if(e.dmg)bits.push('a blow <b>'+(e.dmg/HEART)+'</b> heart'+(e.dmg===HEART?'':'s'));if(e.speed)bits.push('pace <b>'+e.speed+'</b>');if(e.marrow)bits.push('marrow <b>'+e.marrow+'</b>');
+      {const n=LORE.felled[it.k]||0;bits.push(n?'felled <b>'+n+'</b>':LORE.met[it.k]?'met':'<i>not yet met</i>');}stats=bits.join(' &middot; ');}
   }else if(cat.id==='place'||cat.id==='sky'){
     if(it.wx){setWeather(it.wx);}else if(it.hr){applyTime(it.hr);RUN.lamp={night:1,dusk:.9,sunrise:.7,noon:.35}[it.hr];}
     const k=cat.id==='sky'?2:it.tile,t=PATH.tiles[k];cxTiles(k);
@@ -22777,6 +22847,7 @@ buildTextures();
 buildWorld();
 $(PATH.only?'modeRavine':PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
 try{const b=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');if(b.round)$('bestDef').textContent='best \u00b7 round '+b.round+' held';}catch(e){}
+loreTitle();
 if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
 spawnEnemies();
@@ -23226,6 +23297,7 @@ function frame(now){
       updateRigCloth(player.rig,wdt);
     }
     if(G.mode==='play'){wraithTick(wdt);iceTick(wdt);gargTick();shadeField();}   // the fog's own (see THE FOG WRAITH), the ice (THE FROSTBOUND), the perches (THE GARGOYLE)
+    meetTick(wdt);   // the first meetings, and the lore kept (see WHAT THE MARROW REMEMBERS)
     for(const e of enemies){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
       if(e.burnT>0&&e.hp>0&&!e.untouchable&&G.mode==='play')tickBurn(e,wdt);
@@ -23303,7 +23375,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={camera,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,OssuarySwarm,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,OssuarySwarm,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
