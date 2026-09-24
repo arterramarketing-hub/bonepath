@@ -359,6 +359,15 @@ Each line is a rule. The why is in NOTES under the same names.
   Dormant, its root stands ON the ground in its ice (`encase`); `wake()`
   thaws it. Its blows go through `frostBite`. Ice patches (`ICE`) are
   marks: above the ground, wound to face the sky, disposed when they melt.
+- The Ossuary King is its own class with a humanoid rig and
+  `rig.humanoid=false`. Its breaks are `KING.BREAK`; while it lies in
+  pieces its only sphere is the heart. It replaces the bowl's swarm by
+  `posHash` on the tile, never `rnd()`.
+- The Shade is `Enemy.shade`. Dormant it is unseen (`root.visible` false)
+  and `wake()` steps it out. Its roll and flask are decided in
+  `shadeCall` before the state's own step; a blow spills the flask in
+  `takeHit`. Its roll reads the pilgrim's attack STATE names: a new
+  attack state goes into that list.
 - **The Rider is two bodies.** Mounted it is `RiderHorror` (its own rig, the
   top half of the bar; its `die()` unhorses). On foot it is
   `Enemy('boss',{rider:true})`, so **every `this.boss` rule that means "the

@@ -724,6 +724,8 @@
    the Drowned Bride .................. "THE DROWNED BRIDE", DrownedBride, makeBrideRig
    the Gargoyle ....................... "THE GARGOYLE", Gargoyle, PERCH, perchAdd, gargTick
    the Frostbound ..................... "THE FROSTBOUND", ICE, icePatch, onIce, iceTick
+   the Ossuary King ................... "THE OSSUARY KING", OssuaryKing, makeKingRig, cutKing
+   the Shade .......................... "THE SHADE", SHADE, makeShadeRig, shadeCall (Enemy.shade)
    the Bell-Called .................... "THE BELL-CALLED", BoneHand, GiantSkull
    the wand's bubbles ................. "THE BUBBLES", castBubble
    the home run, the shatter .......... homeRun, batShatter, flyBone
@@ -5988,7 +5990,8 @@ function buildWorld(){
       let piles=0;for(let i=0;i<40&&piles<7;i++){const a=rnd()*TAU,d=rnd()*6.5,px=w.cx+Math.cos(a)*d,pz=w.cz+Math.sin(a)*d;if(!clearSpot(px,pz,.4))continue;piles++;bonePile(px,pz);}
       for(let i=0;i<3;i++){const a=rnd()*TAU,px=w.cx+Math.cos(a)*9.5,pz=w.cz+Math.sin(a)*9.5;if(clearSpot(px,pz,.9))stone(px,pz,.9);}
       const p=inWedge(w,w.d+8,w.d+12,.35,2);if(p)tree(p[0],p[1],true);
-      sowOdd('swarm',w.cx,w.cz);                                                  // what lies in the bowl is not all bone piles (see THE OSSUARY SWARM)
+      if(PATH.on&&BUILD.tile>=8&&!PATH.codex&&posHash(BUILD.tile,RUN.seed%997,61)<.2)sowOdd('king',w.cx,w.cz);   // (past the eighth hex the bowl may be one body: see THE OSSUARY KING)
+      else sowOdd('swarm',w.cx,w.cz);                                                  // what lies in the bowl is not all bone piles (see THE OSSUARY SWARM)
     },
     causeway(w){                                                            // standing stones along the ridge's crest, one fallen
       const dx=Math.cos(w.a),dz=Math.sin(w.a);let fallen=false;
@@ -6786,6 +6789,7 @@ function startTile(k){
   const z0=prev.z1,z1=z0-len,zc=(z0+z1)/2;
   const t={k,cath,special,z0,z1,zc,czc:zc,len,b0:prev.b1||0,b1:prev.b1||0,kind:cath?'cathedral':special,disp:[],objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[],foes:[],terrain:[],ground:null,dead:false,step:0};
   PATH.tiles[k]=t;PATH.far=k;
+  if(k>=10&&!cath&&!PATH.codex&&posHash(k,RUN.seed%991,73)<.045)PATH.spawnQ.push({kind:'hollow',x:0,z:zc,o:{shade:true,plain:true},roam:false,tile:k});   // THE SHADE (see its section): its own hash, no draw moves
   tileSeed(k,0);
   if(!cath){
     /* the kind is rolled FIRST, as it always was, and the ravine is asked
@@ -7173,6 +7177,7 @@ function drainSpawns(n){
     else if(q.kind==='swarm')e=new OssuarySwarm(q.x,q.z);
     else if(q.kind==='hanged')e=new Hanged(q.x,q.z,(q.o&&q.o.h)||4);
     else if(q.kind==='bride')e=new DrownedBride(q.x,q.z);
+    else if(q.kind==='king')e=new OssuaryKing(q.x,q.z);
     else{e=new Enemy(q.kind,q.x,q.z,q.o);if(q.roam)e.patrol();}   // (else it lies in the tile's ground and climbs out)
     enemies.push(e);t.foes.push(e);
   }
@@ -14418,10 +14423,11 @@ class Enemy{
        again, raise that one with it. */
     this.shield=!!opts.shield&&kind==='hollow';          // the Shieldbearer (see its block, below)
     this.lamp=!!opts.lamp&&kind==='hollow';              // the Lamplighter (see THE LAMPLIGHTER)
-    this.frost=kind==='hollow'&&!this.shield&&!this.lamp&&(!!opts.frost||(!opts.plain&&!opts.spawned&&!opts.ambush&&!DEF.on&&(RUN.weather==='snow'||RUN.weather==='blizzard')&&posHash(x,z,43)<.3));   // the Frostbound (see THE FROSTBOUND): by its own hash, so no draw moves
+    this.shade=!!opts.shade&&kind==='hollow';            // the Shade (see THE SHADE)
+    this.frost=kind==='hollow'&&!this.shield&&!this.lamp&&!this.shade&&(!!opts.frost||(!opts.plain&&!opts.spawned&&!opts.ambush&&!DEF.on&&(RUN.weather==='snow'||RUN.weather==='blizzard')&&posHash(x,z,43)<.3));   // the Frostbound (see THE FROSTBOUND): by its own hash, so no draw moves
     this.rider=!!opts.rider;                            // the Rider, unhorsed: the Warden's body of blows with a flail and a limp (see THE RIDER)
-    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:this.shield?110:this.lamp?70:this.frost?95:85;
-    this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:this.shield?2.1:this.lamp?2.3:2.5;
+    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:this.shade?SHADE.HP:this.shield?110:this.lamp?70:this.frost?95:85;
+    this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:this.shade?3.0:this.shield?2.1:this.lamp?2.3:2.5;
     /* THE DROWNED: slow, heavy in the hand — a hundred, six swings of the
        greatsword — and they do not much care about you: under eight
        metres they come for you, further off they push for the house.
@@ -14445,15 +14451,15 @@ class Enemy{
       this.bashPower=this.mother||V==='hulk'?3:1;if(V==='hulk')this.heavyHitter=true;}
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
-    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:this.shield?45:this.lamp?60:this.frost?50:35;
+    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:this.shade?250:this.shield?45:this.lamp?60:this.frost?50:35;
     if(this.zombie){const V=this.variant;this.poiseMax=this.mother?40:this.crawler?2:V==='hulk'?22:V==='runner'?2:7;this.marrow=this.mother?400:this.crawler?8:V==='hulk'?90:V==='runner'?25:40;
       if(this.mother){this.mini=true;this.name='THE CARRION MOTHER';this.engaged=true;this.spawnT=4;this.brood=[];}}
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
     this.phase2=false;this.vx=0;this.vz=0;this.flashUntil=0;this.chillT=0;
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
-    this.rig=this.lamp?makeLampRig():this.boss?(this.rider?makeRiderFootRig():makeWardenRig()):this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
-    if(!this.boss)clipWarm(this.rig,(this.zombie?'z'+(this.variant||'')+(this.mother?'m':'')+(this.crawler?'c':''):(this.big?'big':'')+(this.caster?'cast':'')+'h'));   // the cut's shaders and pipelines, built now rather than on the hit
+    this.rig=this.shade?makeShadeRig():this.lamp?makeLampRig():this.boss?(this.rider?makeRiderFootRig():makeWardenRig()):this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
+    if(!this.boss)clipWarm(this.rig,(this.zombie?'z'+(this.variant||'')+(this.mother?'m':'')+(this.crawler?'c':''):(this.big?'big':'')+(this.caster?'cast':'')+(this.shade?'shade':'')+'h'));   // the cut's shaders and pipelines, built now rather than on the hit
     this.reach=this.boss?3.4:this.big?2.4:2.15;
     if(this.zombie){this.reach=this.mother?2.7:this.crawler?1.5:this.variant==='hulk'?2.3:1.95;
       // the variants wear it: the runner paler, the hulk dark and waterlogged
@@ -14484,6 +14490,7 @@ class Enemy{
       this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&!this.mats.includes(o.material))this.mats.push(o.material);});}
     if(this.rider){this.mini=true;this.engaged=true;this.name='THE RIDER';this.phase2=true;this.reach=3.2;   // (enraged from the start: it has already lost the horse — and no banner for it)
       Object.defineProperty(this,'barFrac',{get(){return .5*Math.max(0,this.hp)/this.maxHp;}});}   // the bottom half of the one bar
+    if(this.shade){this.mini=true;this.name='THE SHADE';this.reach=2.7;this.aggroR=16;this.poiseMax=6;this.flasks=SHADE.FLASKS;this.rollCd=0;this.rig.root.visible=false;}   // (unseen until it steps out: see wake)
   }
   reset(){
     endRagdoll(this);this.lastHit=null;this.sliced=false;this.noRag=false;this.roseToPace=false;clearWounds(this);
@@ -14501,6 +14508,7 @@ class Enemy{
     if(this.rig.eyes)for(const e of this.rig.eyes)
       e.material.color.setHex(this.boss?0x551815:this.caster?0x577a35:this.zombie?0xcfd9b8:this.frost?0x8fd0ff:0x2c4a42);
     if(this.frost)this.encase();
+    if(this.shade){this.rig.root.visible=false;this.flasks=SHADE.FLASKS;}
   }
   /* THE FROSTBOUND's lump of ice and its drift: children of the root (so
      whatever takes the body takes them) and `lodKeep`. It stands, not
@@ -14541,6 +14549,7 @@ class Enemy{
       else if(this.big){boneBurst(this.x,y,this.z,0x8a7f66,7,1.5);smokePuff(this.x,y,this.z,2);}
       else boneBurst(this.x,y,this.z,0xcfc4a3,6,2.2);}
     if(this.state==='dormant')this.wake();
+    if(this.state==='flask'){this.state='chase';this.t=0;}   // (the Shade: a blow spills the flask)
     if(this.boss){$('bossfill').style.width=clamp(this.hp/this.maxHp*100,0,100)+'%';}
     if(this.hp<=0){this.die();return;}
     this.poise+=poise;
@@ -14652,6 +14661,9 @@ class Enemy{
   wake(){
     if(this.state!=='dormant')return;
     if(this.frost){this.thaw();return;}
+    if(this.shade){   // it steps out of nothing, already coming
+      this.state='chase';this.t=0;this.engaged=true;this.rig.root.visible=true;this.rig.root.position.y=heightAt(this.x,this.z);
+      smokePuff(this.x,1,this.z,6);if(!CODEX.on){AudioSys.nameSting();G.camShake=Math.max(G.camShake,.2);bannerShow('A SHADE OF YOU','it has come back for you');}return;}
     this.state='rise';this.t=0;
     if(this.boss)return; // boss has its own cutscene path
     AudioSys.graveRise();
@@ -14668,6 +14680,17 @@ class Enemy{
     this.mound=new THREE.Mesh(GCyl(.34,.62,.3,7),soilMat());
     this.mound.position.set(this.x,heightAt(this.x,this.z)-.24,this.z);
     this.mound.rotation.y=a0;scene.add(this.mound);
+  }
+  /* THE SHADE's two answers: out from under a blow just begun, and a
+     drink when it is hurt and has room (see THE SHADE) */
+  shadeCall(dt,dist){
+    const P=player;this.rollCd-=dt;
+    const busy=this.state==='chase'||this.state==='recover';
+    const swinging=['attack','charge','spin','sprintatk','rollatk','tiger','kthrust','iai','homerun','quake','dslash','backstab'].includes(P.state)&&P.t<.22;
+    if(busy&&swinging&&dist<3.4&&this.rollCd<=0){this.rollCd=SHADE.ROLL_CD;
+      if(Math.random()<.6){const a=Math.atan2(this.x-P.x,this.z-P.z)+(Math.random()<.5?-1:1)*.9;this.rdx=Math.sin(a);this.rdz=Math.cos(a);this.facing=Math.atan2(-this.rdx,-this.rdz);
+        this.state='sroll';this.t=0;this.untouchable=true;AudioSys.roll&&AudioSys.roll();}}
+    else if(this.state==='chase'&&this.flasks>0&&this.hp<this.maxHp*.45&&dist>4.5){this.flasks--;this.state='flask';this.t=0;this.drank=false;}
   }
   // a Frostbound's blow that lands chills the pilgrim (see THE FROSTBOUND)
   frostBite(res){if(this.frost&&(res==='hit'||res==='grabbed'))player.frostT=2.4;return res;}
@@ -14697,9 +14720,15 @@ class Enemy{
         elemFleck('ice',this.x+rr3(-.3,.3),.9+rr3(0,.8),this.z+rr3(-.3,.3));
     }
     if(frozen){this.vx=0;this.vz=0;}
+    if(this.shade&&this.hp>0&&!frozen)this.shadeCall(dt,dist);
 
     switch(frozen?'frozen':this.state){
       case 'frozen':break;                                   // (held: nothing moves)
+      case 'sroll':{const k=1-this.t/SHADE.ROLL;this.x+=this.rdx*7.5*k*dt;this.z+=this.rdz*7.5*k*dt;constrain(this,false);
+        this.untouchable=this.t<SHADE.ROLL*.75;if(this.t>=SHADE.ROLL){this.state='chase';this.t=0;this.untouchable=false;}break;}
+      case 'flask':
+        if(!this.drank&&this.t>=1.0){this.drank=true;this.hp=Math.min(this.maxHp,this.hp+this.maxHp*.33);AudioSys.flask();for(let i=0;i<8;i++)elemFleck('ice',this.x+rr3(-.3,.3),.8+Math.random()*1.2,this.z+rr3(-.3,.3));}
+        if(this.t>=1.4){this.state='chase';this.t=0;}break;
       case 'dormant':
         if(this.frost?(CODEX.on?this.t>2.6:dist<5.5)&&G.mode==='play':!this.boss&&dist<this.aggroR*(lampNear(this)?1.8:1)&&G.mode==='play')this.wake();   // (the Frostbound only bursts when you are on it)
         /* WITH A GUN IN HAND THE FIELD SHOWS ITSELF. A host that lies under
@@ -14708,7 +14737,7 @@ class Enemy{
            metres — and PACES its ground instead of coming, the way the
            path's patrols do. It comes when you are close, or when it is
            shot. The ambushes stay down: that is what they are for. */
-        else if(FPS.on&&!this.boss&&!this.ambush&&!this.frost&&G.mode==='play'&&dist<36&&dist>this.aggroR+3){
+        else if(FPS.on&&!this.boss&&!this.ambush&&!this.frost&&!this.shade&&G.mode==='play'&&dist<36&&dist>this.aggroR+3){
           if(this.paceRoll===undefined)this.paceRoll=Math.random()<.55;
           if(this.paceRoll){this.wake();this.roseToPace=true;}}
         break;
@@ -14972,6 +15001,9 @@ class Enemy{
         else poseChop(r,p,.8);
         break;}
       case 'recover':case 'guard':poseIdle(r,t);break;
+      case 'sroll':{const u=clamp(this.t/SHADE.ROLL,0,1),k=Math.sin(u*Math.PI);r.body.position.y-=.55*k*(r.s||1);r.torso.rotation.x+=1.3*k;r.head.rotation.x+=.6*k;
+        r.legR.rotation.x=-1.4*k;r.kneeR.rotation.x=1.9*k;r.legL.rotation.x=-1.2*k;r.kneeL.rotation.x=1.8*k;r.armR.rotation.x=-1*k;r.armL.rotation.x=-1*k;break;}   // tucked, and over
+      case 'flask':{poseIdle(r,t);const u=clamp(this.t/.5,0,1)*(1-clamp((this.t-1.1)/.3,0,1));r.armL.rotation.set(-2.3*u,0,.3*u);r.foreL.rotation.x=-1.4*u;r.head.rotation.x-=.45*u;break;}   // the flask to the mouth
       case 'stagger':poseStagger(r,this.t/(this.boss?1.1:.85));break;
       case 'held':poseStagger(r,.55+Math.sin(t*40)*.03);break;
       case 'down':poseKnockdown(r,Math.min(1,this.t/1.9));break;
@@ -16719,7 +16751,7 @@ class OssuarySwarm{
 // what drops on you: queued on the path (a tile is built in its own frame), put straight in on the field
 function sowOdd(kind,x,z,o){
   if(PATH.on&&BUILD.tile>=0){PATH.spawnQ.push({kind,x,z:z+BUILD.offZ,o:o||{},roam:false,tile:BUILD.tile});return;}
-  const e=kind==='swarm'?new OssuarySwarm(x,z):new Hanged(x,z,(o||{}).h||4);enemies.push(e);
+  const e=kind==='swarm'?new OssuarySwarm(x,z):kind==='king'?new OssuaryKing(x,z):new Hanged(x,z,(o||{}).h||4);enemies.push(e);
 }
 
 /* ======================= THE HANGED =======================
@@ -17125,6 +17157,173 @@ function iceTick(dt){
   if((P.frostT||0)>0){P.frostT=Math.max(0,P.frostT-dt);if(Math.random()<dt*8)elemFleck('ice',P.x+rr3(-.3,.3),heightAt(P.x,P.z)+.5+Math.random()*1.3,P.z+rr3(-.3,.3));}
   for(let i=ICE.length-1;i>=0;i--){const o=ICE[i];o.t+=dt;o.k=o.t>ICE_LIFE-4?Math.max(0,(ICE_LIFE-o.t)/4):1;o.mesh.scale.set(o.k,1,o.k);
     if(o.k<=0||Math.hypot(o.x-P.x,o.z-P.z)>120){scene.remove(o.mesh);o.mesh.geometry.dispose();ICE.splice(i,1);}}
+}
+
+/* ======================= THE OSSUARY KING =======================
+   Past the eighth hex, about one sunken hollow in five on the path keeps
+   something other than the swarm in its bowl (`posHash` on the tile, so no
+   draw moves): the bones of the whole hollow, which get up as ONE body
+   when you come in. A crowned giant of piled skeletons with a thigh-bone
+   club and a coal for a heart in its ribs.
+     THE SWEEP — the club drawn back across its body (the tell) and swung
+       flat through a half-circle in front of it.
+     THE STOMP — a foot lifted high and brought down: the ground round it
+       for three metres and more.
+     THE LEAP — from far off it crouches and jumps, and lands on where you
+       were.
+   Every blow that lands on it lands on BONE. At seven-tenths, four-tenths
+   and three-twentieths of its life it COMES APART: it falls into a heap
+   and the heart hangs bare in it, and every blow then is on the heart and
+   does two and a half times as much. Leave the heart alone and the heap
+   PULLS ITSELF BACK TOGETHER, with some of its life back. It is its own
+   class (`rig.humanoid` false: nothing that severs a hollow knows it). */
+const KING={HP:900,DMG:15,S:2.3,SPEED:1.7,BREAK:[.7,.4,.15]};
+function makeKingRig(){
+  const S=KING.S,r=buildHumanoid({scale:S,torsoMat:mat('ribs'),headMat:mat('skullface'),limbMat:mat('bone'),bladeMat:mat('blade'),gripMat:mat('bark'),weapon:'club',skeletal:true,hunch:.16,eyes:0xff5a2a});
+  const gold=lam({color:0x6e5a26}),bone=mat('bone');
+  for(let i=0;i<7;i++){const a=i/7*TAU,c=M(GCyl(0,.035*S,.16*S,4),gold,Math.sin(a)*.13*S,.2*S,Math.cos(a)*.13*S);c.rotation.set(Math.cos(a)*.25,0,-Math.sin(a)*.25);r.head.add(c);}   // the crown: spikes of old gilt
+  r.head.add(M(GCyl(.14*S,.14*S,.04*S,7),gold,0,.14*S,0));
+  for(const sd of[1,-1])for(let i=0;i<3;i++){const k=M(GSph(.07*S,5,4),bone,sd*(.17+i*.05)*S,(.42-i*.03)*S,(-.04+i*.05)*S);r.torso.add(k);}   // the skulls on its shoulders, the bones it is made of
+  const heart=new THREE.Mesh(GSph(.09*S,6,5),new THREE.MeshBasicMaterial({color:0xff3a1a}));heart.position.set(0,.26*S,.03*S);r.torso.add(heart);r.kingHeart=heart;
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color:0xff4020,transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending}));
+  glow.scale.set(.7*S,.7*S,1);heart.add(glow);r.kingGlow=glow;
+  return r;
+}
+class OssuaryKing{
+  constructor(x,z){
+    this.kind='king';this.mini=true;this.name='THE OSSUARY KING';this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=Math.random()*TAU;this.radius=.95;
+    this.maxHp=KING.HP;this.hp=this.maxHp;this.dmg=KING.DMG;this.marrow=700;this.markUp=3.6;
+    this.poise=0;this.poiseMax=99;this.chillT=0;
+    this.rig=makeKingRig();this.rig.humanoid=false;scene.add(this.rig.root);
+    this.mats=[];this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&!this.mats.includes(o.material))this.mats.push(o.material);});
+    this.state='heap';this.t=0;this.engaged=false;this.untouchable=true;this.metOnce=false;this.cool=1.5;this.breaks=0;this.cHit=0;
+    this.flashUntil=0;this.crumbled=false;this.hitDone=false;this.lx=0;this.lz=0;this.sx=0;this.sz=0;this.y=heightAt(x,z);
+  }
+  get barFrac(){return Math.max(0,this.hp)/this.maxHp;}
+  go(s){this.state=s;this.t=0;this.hitDone=false;}
+  heartAt(){const v=new THREE.Vector3();this.rig.kingHeart.getWorldPosition(v);return v;}
+  spheres(){if(this.untouchable||this.hp<=0)return[];
+    if(this.state==='broken'){const h=this.heartAt();return[{x:h.x,y:h.y,z:h.z,r:.7,head:true}];}
+    const gy=heightAt(this.x,this.z),S=KING.S;return[{x:this.x,y:gy+1.55*S,z:this.z,r:.35*S,head:true},{x:this.x,y:gy+1.1*S,z:this.z,r:.5*S,head:false}];}
+  reset(){}
+  scatter(){}
+  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0xffffff);}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);if(this.hp<=0||this.untouchable)return;
+    const bare=this.state==='broken',d=dmg*(bare?2.5:1);this.hp-=d;this.flash();if(bare)this.cHit+=d;
+    const h=bare?this.heartAt():null;boneBurst(bare?h.x:this.x,bare?h.y:heightAt(this.x,this.z)+1.8,bare?h.z:this.z,bare?0xff5a2a:0xcfc4a3,bare?10:6,2.4);
+    if(this.hp<=0){this.die();return;}
+    if(!bare&&this.breaks<KING.BREAK.length&&this.hp<this.maxHp*KING.BREAK[this.breaks]){this.breaks++;this.go('break');this.cHit=0;AudioSys.shatter&&AudioSys.shatter();AudioSys.bodyfall();
+      G.camShake=Math.max(G.camShake,.4);boneBurst(this.x,heightAt(this.x,this.z)+1.5,this.z,0xcfc4a3,24,3.4);}
+  }
+  die(){if(this.state==='dead')return;
+    this.hp=0;this.go('dead');this.untouchable=true;this.engaged=false;
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
+    AudioSys.bossMusic(0);AudioSys.shatter&&AudioSys.shatter();AudioSys.quake();G.camShake=Math.max(G.camShake,.7);G.hitstop=Math.max(G.hitstop,.2);
+    setTimeout(()=>bannerShow('THE KING IS BONES','and nothing holds them together'),900);
+    spawnElemDrop(this.x,this.z,'health');spawnElemDrop(this.x+1,this.z+.5);}
+  // a blow in an area round a point: the stomp's and the leap's
+  quakeAt(x,z,R,dmg){const P=player;G.camShake=Math.max(G.camShake,.45);AudioSys.slam();G.vibr([50,30,50]);
+    for(let i=0;i<14;i++){const a=i/14*TAU;boneBurst(x+Math.sin(a)*R*.7,heightAt(x,z)+.15,z+Math.cos(a)*R*.7,0x5a4d38,2,1.8);}
+    if(Math.hypot(P.x-x,P.z-z)<R&&P.state!=='dead')P.takeHit(dmg,x,z,true,'heavy');}
+  update(dt){
+    const P=player,r=this.rig,S=KING.S;this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);this.cool-=dt;
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz),live=G.mode==='play'&&P.state!=='dead'&&!cutSubject(this);
+    const sp=(this.chillT>0?.4:1)*(this.breaks>=2?1.25:1),face=k=>{this.facing=angLerp(this.facing,Math.atan2(dx,dz),k*dt);};
+    const u=(a,b)=>clamp((this.t-a)/(b-a),0,1);
+    let sink=0;   // how far into its own heap it has fallen, 0..1
+    switch(this.state){
+      case 'heap':sink=1;
+        if(live&&dist<9&&G.mode==='play'){this.go('rise');this.engaged=true;AudioSys.graveRise();AudioSys.roar();
+          if(!this.metOnce){this.metOnce=true;cutKing(this);}}
+        break;
+      case 'rise':{sink=1-sstep(u(0,2.6));   // the bowl's bones flying in
+        if(Math.random()<dt*16){const a=Math.random()*TAU,d=3+Math.random()*4;boneBurst(this.x+Math.sin(a)*d,heightAt(this.x,this.z)+.3,this.z+Math.cos(a)*d,0xcfc4a3,2,2.4);}
+        if(this.t>=2.6){this.go('chase');this.untouchable=false;this.cool=.8;}
+        break;}
+      case 'chase':{face(3);
+        if(dist>2.8){const s=Math.min(dist-2.6,KING.SPEED*sp*dt);this.x+=dx/dist*s;this.z+=dz/dist*s;}
+        if(live&&this.cool<=0){
+          if(dist<4.4)this.go(Math.random()<.55?'sweep':'stomp'),AudioSys.windup();
+          else if(dist>7&&dist<16&&Math.random()<dt*1.5){this.go('leap');this.lx=P.x;this.lz=P.z;this.sx=this.x;this.sz=this.z;AudioSys.windup();}}
+        constrain(this,false);break;}
+      case 'sweep':{   // drawn back across the body (.75s), swung flat through the front
+        if(this.t<.7)face(4);
+        if(!this.hitDone&&this.t>=.85){this.hitDone=true;AudioSys.heavySwing&&AudioSys.heavySwing();G.camShake=Math.max(G.camShake,.2);
+          const off=Math.abs(wrapA(Math.atan2(dx,dz)-this.facing));if(live&&dist<4.8&&off<1.5)P.takeHit(this.dmg,this.x,this.z,true,'heavy');}
+        if(this.t>=1.7){this.go('chase');this.cool=1.1/sp;}
+        break;}
+      case 'stomp':
+        if(this.t<.6)face(3);
+        if(!this.hitDone&&this.t>=.8){this.hitDone=true;const fx=this.x+Math.sin(this.facing)*.9,fz=this.z+Math.cos(this.facing)*.9;this.quakeAt(fx,fz,3.5,this.dmg);}
+        if(this.t>=1.6){this.go('chase');this.cool=1.2/sp;}
+        break;
+      case 'leap':{   // crouch .5s; in the air to 1.3; landed, and slow to rise
+        const a=u(.5,1.3);if(this.t<.5)face(6);
+        this.x=lerp(this.sx,this.lx,sstep(a));this.z=lerp(this.sz,this.lz,sstep(a));
+        if(!this.hitDone&&this.t>=1.3){this.hitDone=true;this.quakeAt(this.x,this.z,3.2,this.dmg+5);boneBurst(this.x,heightAt(this.x,this.z)+.3,this.z,0x4a463a,16,2.6);}
+        if(this.t>=2.2){this.go('chase');this.cool=1.4/sp;constrain(this,false);}
+        break;}
+      case 'break':sink=sstep(u(0,.6));if(this.t>=.6)this.go('broken');break;   // it comes apart
+      case 'broken':sink=1;   // a heap, and the heart bare in it
+        if(this.t>=4.6){this.go('rebuild');const heal=this.cHit<90?.07:0;if(heal){this.hp=Math.min(this.maxHp,this.hp+this.maxHp*heal);toast('it pulls itself back together');}AudioSys.graveRise();}
+        break;
+      case 'rebuild':sink=1-sstep(u(0,1.8));if(Math.random()<dt*12)boneBurst(this.x+rr3(-2,2),heightAt(this.x,this.z)+.3,this.z+rr3(-2,2),0xcfc4a3,2,2.2);
+        if(this.t>=1.8){this.go('chase');this.cool=.6;}break;
+      case 'dead':sink=Math.min(1,this.t/1.2);
+        if(this.t>=1.2&&!this.crumbled){this.crumbled=true;r.root.visible=false;boneCollapse(this.x,this.z,2.2);boneBurst(this.x,heightAt(this.x,this.z)+1,this.z,0xcfc4a3,24,3.4);}
+        break;
+    }
+    const st=this.state;
+    this.untouchable=st==='heap'||st==='rise'&&this.t<1.6||st==='dead'||st==='break';
+    // the pose
+    resetPose(r);const gy=heightAt(this.x,this.z),t=G.time*1.1+this.homeX;
+    if(st==='chase')poseWalk(r,t,.8,true);
+    else if(st==='sweep'){const w=u(0,.75),s=u(.75,1.0);r.torso.rotation.y=.9*w-1.8*s;r.armR.rotation.set(-1.2-.3*w+.4*s,0,-1.2*w+2.2*s);r.foreR.rotation.x=-.5*w;r.torso.rotation.x+=.1;}
+    else if(st==='stomp'){const w=u(0,.7),s=u(.7,.82);r.legR.rotation.x=-1.3*w*(1-s);r.kneeR.rotation.x=1.2*w*(1-s);r.armR.rotation.x=-1.8*w*(1-s)-.3;r.armL.rotation.x=-1.6*w*(1-s)-.3;r.torso.rotation.x-=.15*w*(1-s)-.3*s;}
+    else if(st==='leap'){const c=u(0,.5),air=u(.5,1.3),land=u(1.3,1.5);r.body.position.y-=.35*S*(c*(1-air)+land*(1-u(1.5,2.2)));r.torso.rotation.x+=.5*c*(1-air)+.6*land;r.armR.rotation.x=-2.6*air*(1-land);r.armL.rotation.x=-2.2*air*(1-land);}
+    else poseRest(r,1);
+    if(sink>0){poseKnockdown(r,sink);}   // what it comes apart into, and back out of
+    const arc=st==='leap'?Math.sin(Math.PI*u(.5,1.3))*4.5:0;
+    r.root.position.set(this.x,gy+arc-sink*.55*S,this.z);r.root.rotation.y=this.facing;this.y=gy;
+    // the heart: a coal in its ribs; bare and beating while it lies in pieces
+    const bare=st==='broken'||st==='break';r.kingHeart.scale.setScalar(bare?1.6+Math.sin(G.time*9)*.25:1);r.kingGlow.material.opacity=bare?.95:.55+Math.sin(G.time*3)*.1;
+    if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:bare?0x1a0602:0x000000);
+  }
+}
+function cutKing(e){
+  cutPlay(e,[
+    {d:1.5,at:cutOrbit({a0:.35,a1:.2,r0:13,r1:11,y0:1,y1:1.6,l0:.8,l1:1.8,e:'out'})},
+    {d:1.9,at:cutOrbit({a0:.5,a1:.3,r0:9,r1:7.5,y0:.6,y1:2.2,l0:1.2,l1:3.8})},
+    {d:1.3,at:cutOrbit({a0:.2,a1:.1,r0:7,r1:5.5,y0:2.6,y1:3.2,l0:4.2,l1:4.4,e:'in'}),fx:()=>{AudioSys.roar();G.camShake=Math.max(G.camShake,.6);G.vibr([60,40,100]);}},
+    {d:2.6,epithet:1,title:1,at:cutOrbit({a0:.4,a1:.3,r0:12,r1:13,y0:2.4,y1:2.3,l0:3.4,l1:3.2,e:'out'})},
+  ],'THE OSSUARY KING','the whole hollow, stood up',()=>AudioSys.bossMusic(1));
+}
+
+/* ======================= THE SHADE =======================
+   Now and then something walks the path behind you with your own shape
+   (`Enemy.shade`): a figure of shadow carrying the blade you carry. About
+   one hex in twenty-two past the tenth, by its own hash, and on the field
+   once, when you have killed twenty. It fights as you do. It ROLLS out
+   from under a blow you have only just begun (iframes, a cooldown), and
+   when it is hurt and has room it DRINKS — twice a meeting, a third of its
+   life each, and a blow while the flask is up stops it. It has a bar.
+   It rides the Enemy class, so every rule for a hollow's blows is its. */
+const SHADE={HP:260,ROLL:.5,ROLL_CD:1.6,FLASKS:2};
+// the field's shade: once a run, when twenty have fallen, somewhere behind you
+function shadeField(){
+  if(PATH.on||DEF.on||CODEX.on||G.shadeCame||(G.kills||0)<20||player.state==='dead'||CUT.on||G.bossActive)return;
+  G.shadeCame=true;const a=player.facing+Math.PI+rr3(-.6,.6),p={x:player.x+Math.sin(a)*14,z:player.z+Math.cos(a)*14};constrain(p,false);
+  enemies.push(new Enemy('hollow',p.x,p.z,{shade:true,plain:true}));}
+function makeShadeRig(){
+  const W=LOADOUT.weapon,key=W==='katana'||W==='bat'||W==='sheetsword'||W==='ultra'?W:'claymore';   // (a gun, a bow or a wand: the shade carries the greatsword)
+  const dk=psx(mat('rag').clone());dk.color.setHex(0x1c1a22);
+  const r=buildHumanoid({scale:1.02,torsoMat:dk,headMat:dk,limbMat:dk,bladeMat:psx(mat('blade').clone()),gripMat:dk,weapon:key,skeletal:false,hunch:.04});
+  r.bladeMesh&&r.bladeMesh.material&&r.bladeMesh.material.color&&r.bladeMesh.material.color.setHex(0x3a3848);
+  const eye=new THREE.MeshBasicMaterial({color:0xe8e4ff});r.eyes=[];
+  for(const sd of[1,-1]){const e2=M(GBox(.05,.025,.02),eye,sd*.055,.1,.13);r.head.add(e2);}
+  return r;
 }
 
 /* ======================= THE BELL-CALLED =======================
@@ -22309,6 +22508,10 @@ const CODEX_CATS=[
       t:'perched, it is the hall\'s own stone. Come within fifteen metres and the stone cracks and the eyes come on: it circles you five metres up, hangs a beat with its wings high, and dives talons first — a dive that finds you puts you down. Where it lands it stays a couple of seconds, crouched and clawing, and that is the only time it can be struck. Go in under a roof and it flies home and is stone again. 130 life.'},
     {k:'hollow · frost',name:'the Frostbound',ep:'the host, frozen where it stood',where:'the field · the path: in snow and in a blizzard',make:(x,z,px,pz)=>[cxFoe(new Enemy('hollow',x,z,{plain:true,frost:true}),px,pz)],
       t:'in the snow some of the host never climbed into its graves: it froze standing, in a lump of ice in the drifts, and nothing can touch it there. Within five metres the ice bursts. Its blows chill you — the stride drops to three-fifths for a couple of seconds — and where it stood the ground is left ice, where a start is slow and a stop is a long slide. 95 life.'},
+    {k:'king',name:'the Ossuary King',ep:'the whole hollow, stood up',where:'the path: past the eighth hex, one sunken hollow in five',make:(x,z,px,pz)=>{const K=new OssuaryKing(x,z-3);K.metOnce=true;K.go('chase');K.engaged=true;K.untouchable=false;K.cool=1.5;return [cxFoe(K,px,pz)];},
+      t:'the bones of a whole sunken hollow, got up as one crowned body with a thigh-bone club. It sweeps the club flat through the half-circle in front of it, stamps the ground round it for three metres and more, and from far off it leaps onto where you were. At seven-tenths, four-tenths and three-twentieths of its life it comes apart into a heap with the heart bare in it: every blow on the heart does two and a half times as much. Leave the heart alone and the heap pulls itself back together, with some life back. 900 life.'},
+    {k:'hollow · shade',name:'the Shade',ep:'your own shape, come back',where:'the path: one hex in twenty-odd past the tenth · the field: once, at twenty kills',make:(x,z,px,pz)=>{const e=new Enemy('hollow',x,z,{shade:true,plain:true});e.wake();return [cxFoe(e,px,pz)];},
+      t:'a figure of shadow with the blade you carry, that fights the way you do. It rolls out from under a blow you have only just begun, and when it is hurt and has room it drinks: twice a meeting, a third of its life each, and a blow while the flask is up spills it. Bait the roll, then punish it. 260 life.'},
     {k:'caster',name:'the thrower',ep:'bone from a distance',where:'the field · the path',make:cxEnemy('caster'),
       t:'a lighter skeleton that keeps about eleven metres off and lobs bone at you — half a heart a bone. It never stands still to do it: it works round you in a circle, turning its circle after every throw and whenever you close inside seven metres. On the ravine path they stand on the rims.'},
     {k:'big',name:'the brute',ep:'the big skeleton',where:'the field · the path',make:cxEnemy('big'),
@@ -23012,7 +23215,7 @@ function frame(now){
       // ...and whatever she is wearing goes on falling with her
       updateRigCloth(player.rig,wdt);
     }
-    if(G.mode==='play'){wraithTick(wdt);iceTick(wdt);gargTick();}   // the fog's own (see THE FOG WRAITH), the ice (THE FROSTBOUND), the perches (THE GARGOYLE)
+    if(G.mode==='play'){wraithTick(wdt);iceTick(wdt);gargTick();shadeField();}   // the fog's own (see THE FOG WRAITH), the ice (THE FROSTBOUND), the perches (THE GARGOYLE)
     for(const e of enemies){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
       if(e.burnT>0&&e.hp>0&&!e.untouchable&&G.mode==='play')tickBurn(e,wdt);
@@ -23090,7 +23293,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={camera,CODEX,GARG,ArmHorror,OssuarySwarm,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={camera,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,OssuarySwarm,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

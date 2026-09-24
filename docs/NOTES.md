@@ -3568,3 +3568,18 @@ Known state of play:
     first ice was near-white and vanished against the snow; it is a darker
     blue now, which reads as cleared ice.
 
+- **BATCH FOUR: THE OSSUARY KING, THE SHADE.**
+  - *The Ossuary King* (`OssuaryKing`). In the codex it first framed its
+    knees: the codex sizes its lens from `markY`, and a `markUp` of 2.2 is
+    a hollow's height, not a 4m giant's. It is 3.6 now. From eight metres
+    it rose, leapt (it was more than seven off), then stomped and swept in
+    turn, an attack about every second and a half; a pilgrim who stood
+    still was hit fifteen times. Driven to 69%: it came apart, its one
+    sphere was the heart, and a 20 on the heart did 50. Hit once there
+    (under 90), it rebuilt with 63 back (7%).
+  - *The Shade* (`Enemy.shade`). Unseen until woken; woken, the bar read
+    THE SHADE. Swung at from 2.5m twelve times with its cooldown cleared,
+    it rolled out seven times (it rolls 60% of the time). At 40% life with
+    eight metres of room it drank once: 86 back, a third of 260, one flask
+    left. The field's comes once, at twenty kills.
+

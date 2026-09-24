@@ -2861,6 +2861,34 @@ ground is left **ice**, where the boot has almost nothing to push against:
 a start is slow and a stop is a long slide. The ice melts in under a
 minute. 95 life, worth 50 marrow.
 
+## The Ossuary King
+
+Past the eighth hex, about one sunken hollow in five keeps something other
+than the swarm in its bowl: **the bones of the whole hollow**, which get up
+as one crowned giant with a thigh-bone club and a coal for a heart. Come
+within nine metres and it pulls itself together.
+- **the sweep**: the club drawn back across its body (the tell), then
+  swung flat through the half-circle in front of it.
+- **the stomp**: a foot lifted high and brought down on the ground round
+  it, three metres and more.
+- **the leap**: from far off it crouches and jumps onto where you were.
+
+At seven-tenths, four-tenths and three-twentieths of its life it **comes
+apart** into a heap with the heart bare in it, and every blow on the heart
+does two and a half times as much. Leave the heart alone and the heap
+**pulls itself back together** with some of its life back. After the
+second break it comes faster. 900 life, worth 700 marrow.
+
+## The Shade
+
+Now and then something walks the path with **your own shape**: a figure of
+shadow carrying the blade you carry. About one hex in twenty-two past the
+tenth, and on the field once, when twenty have fallen. It steps out of
+nothing and fights as you do. It **rolls** out from under a blow you have
+only just begun, and when it is hurt and has room it **drinks**: twice a
+meeting, a third of its life each, and a blow while the flask is up spills
+it. Bait the roll, then punish it. 260 life, worth 250 marrow.
+
 ## The bat
 
 In the dark the crows are **bats**: half of them at night, in fog and in
