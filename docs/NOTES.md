@@ -3493,3 +3493,36 @@ Known state of play:
   over the pilgrim and a lens between them is under the hand. Its idle
   cooldown no longer runs during the scene — it went straight back under
   the moment the name was up.
+
+- **BATCH ONE OF THE NEW HORRORS: THE SHIELDBEARER, THE FOG WRAITH, THE
+  RAVINE WYRM.**
+  - *The Shieldbearer* (`addShield`, `shieldBlocks`). Measured by calling
+    `meleeHit` against one standing on guard: a light blow from in front
+    did 0 and threw the pilgrim into `recoil`; the fourth light one broke
+    the guard (stagger, `guardT` 2.4); a blow while broken did its 20; a
+    charged blow from in front broke it outright for 0; from behind a blow
+    landed (36, a telling one). Left to fight a standing pilgrim for five
+    seconds it had its shield up 45% of the frames and struck five times.
+    The first version of the gun hook returned `undefined` from `gunHit`,
+    whose caller reads `.kill` — it would have thrown on the first round.
+  - *The fog wraith* (`FogWraith`, `wraithTick`). The first lunge glided a
+    fixed 2.7m from six metres and lingered 3.5m out: it never hit, and it
+    was never in reach to be punished. The glide is sized to the distance
+    now (it ends 1.1m off) and the claw is checked at the END of the glide
+    (checked at 60% of it, it still missed). A second wraith stalled at
+    14m, held off by the rim; a drifting wraith that stops closing for 2.5s
+    slips through the fog onto its ring. Two in step manifested together;
+    they take turns. After: a heart every three seconds or so against a
+    pilgrim who does nothing, and 0 damage to one struck while faded.
+  - *The Ravine Wyrm* (`RavineWyrm`, `makeWyrmRig`, `cutWyrm`). At first
+    build (28 segments at .62, a third of today's thickness) it read as a
+    pale thread over the wall across the ravine; it is 24 at .8, 1.6x as
+    thick, with a head half again the size, rearing to 5.2m. The entrance
+    was first shot with the lens swung a radian to the side, and in a
+    ravine that is up the wall's slope with the soil filling half the
+    frame; it is shot along the trench now. The LIE after a snap was 1.1s,
+    which is less than the knockdown it deals, so there was nothing left of
+    the opening by the time the pilgrim was up; it is 1.6s. Measured on
+    the ravine-only path: under → strike (the scene on the first rear) →
+    snap (a standing pilgrim floored for 20) → cross → strike → erupt, and
+    killed it is pruned with its tile's other dead. 0 errors.

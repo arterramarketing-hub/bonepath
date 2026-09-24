@@ -322,6 +322,20 @@ Each line is a rule. The why is in NOTES under the same names.
 - `fellTree` wraps the tree in a pivot at its foot; the obstacle drops the
   instant it starts to fall.
 - NaN bounding spheres: the guard is in `tip()` and `boltLine`/`boltArc`.
+- **A shield is decided BEFORE the blow** (`shieldBlocks`, called from
+  `meleeHit`, `gunHit` and `arrowStrike`): the melee loop severs, scatters
+  and bleeds AFTER `takeHit`, so a block inside `takeHit` would stop only
+  the damage. Area attacks pass the shield on purpose. `gunHit`'s early
+  return still returns `{kill,head}` — its caller reads them. Hollows get
+  their shields by `posHash` in the pair and patrol templates: no draw
+  moves, so the field's host is unchanged.
+- The fog wraith lives only while `RUN.weather==='fog'` (`wraithTick`);
+  `leave()` removes one without marrow. One manifests at a time.
+- **The Ravine Wyrm's body follows its head's `trail`**; a segment under
+  the soil is hidden, so the chain dives by itself. Its `x/z` is the
+  nearest part above the soil (untouchable when there is none). A run
+  carries one by `R.wyrm`, the LAST draw on the run's stream. Its scenes
+  are shot along the trench: a lens swung to the side is up the wall.
 - **The Rider is two bodies.** Mounted it is `RiderHorror` (its own rig, the
   top half of the bar; its `die()` unhorses). On foot it is
   `Enemy('boss',{rider:true})`, so **every `this.boss` rule that means "the

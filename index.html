@@ -710,11 +710,14 @@
    effects ............................ "effects", fellTree, "THE IMBUED WEAPON"
    game state ......................... "global game state", G
    the player ......................... "the player", player (die, takeHit, floored)
-   the host: enemies .................. "enemies", "THE PACK", Enemy, packSteer, alertPack
+   the host: enemies .................. "enemies", "THE PACK", Enemy, packSteer, alertPack,
+                                        addShield, shieldBlocks (the Shieldbearer)
    crows and bats ..................... "the crows", Crow, batFor
    the Fallen One, the Unburied ....... FallenAngel, GraveGhoul
    the Arm ............................ "THE ARM", ArmHorror, makeArmRig
    the Rider .......................... "THE RIDER", RiderHorror, makeRiderRig, riderFell, cutRider
+   the fog wraith ..................... "THE FOG WRAITH", FogWraith, wraithTick
+   the Ravine Wyrm .................... "THE RAVINE WYRM", RavineWyrm, makeWyrmRig, cutWyrm
    the Bell-Called .................... "THE BELL-CALLED", BoneHand, GiantSkull
    the wand's bubbles ................. "THE BUBBLES", castBubble
    the home run, the shatter .......... homeRun, batShatter, flyBone
@@ -3545,6 +3548,22 @@ const AudioSys=(()=>{
       for(let i=0;i<4;i++)
         noise(t+.1+i*.06+Math.random()*.03,{peak:.05,att:.002,dec:.05,f0:rr2(700,1400),f1:250});},
     parryTick(){tone(now(),{f:1680,f2:2200,type:'sine',peak:.05,dec:.07});},
+    /* THE FOG WRAITH. Its whisper: breath through a narrow throat, a word
+       that never forms; its shriek as it takes form, thin and falling; and
+       its wail as it goes. All of them quiet — it is heard, not announced. */
+    whisper(){if(!ac)return;const t=now();
+      for(let i=0;i<3;i++)noise(t+i*.18+Math.random()*.06,{peak:.045,att:.08,dec:.3,f0:rr2(2200,3400),f1:rr2(900,1400),type:'bandpass',Q:3,white:true});
+      tone(t,{f:rr2(180,220),f2:150,type:'sine',peak:.015,att:.2,dec:.7});},
+    wraithShriek(){if(!ac)return;const t=now();
+      tone(t,{f:1800,f2:620,type:'sawtooth',peak:.05,att:.03,dec:.55});tone(t,{f:1860,f2:600,type:'triangle',peak:.04,att:.03,dec:.6});
+      noise(t,{peak:.06,att:.02,dec:.5,f0:5200,f1:1200,type:'bandpass',Q:2,white:true});},
+    // THE RAVINE WYRM: bone grinding on bone deep in a throat, and the ground under it
+    wyrmRoar(){if(!ac)return;const t=now();
+      tone(t,{f:72,f2:38,type:'sawtooth',peak:.24,att:.1,dec:1.4});tone(t,{f:76,f2:40,type:'sawtooth',peak:.16,att:.1,dec:1.3});
+      tone(t,{f:36,f2:24,type:'sine',peak:.2,att:.05,dec:1.5});noise(t,{peak:.2,att:.08,dec:1.3,f0:900,f1:90});
+      for(let i=0;i<9;i++)noise(t+.1+i*.11+Math.random()*.04,{peak:.05,att:.002,dec:.05,f0:rr2(900,1800),f1:400,type:'bandpass',Q:3,white:true});},
+    wraithWail(){if(!ac)return;const t=now();
+      tone(t,{f:900,f2:180,type:'triangle',peak:.06,att:.05,dec:1.1});noise(t,{peak:.05,att:.05,dec:1,f0:3000,f1:300,white:true});},
     /* THE CASTLE. The winch: a ratchet walked round a few teeth, more of
        them each turn, and the chain taking the weight under it. */
     winch(n){if(!ac)return;const t=now();
@@ -6756,7 +6775,7 @@ function startTile(k){
     const cx=PATH.codex?CODEX_TILES[k]:undefined;                             // (the codex lays every kind down once, in order: see CODEX_TILES)
     const R=PATH.rav||(PATH.codex?(cx&&cx.v?ravineStart(k,z0,cx):null):ravineStart(k,z0));
     if(R){   // a tile of a ravine run (see ravineStart)
-      t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f,cross:R.cross};
+      t.kind='ravine';t.rav={v:R.v,i:R.i,n:R.n,via:R.via===R.i,f:R.f,cross:R.cross,wyrm:!!R.wyrm&&R.i===Math.floor(R.n/2)};
       if(R.i===0&&PATH.ravCarry){t.terrain.push(PATH.ravCarry);PATH.ravCarry=null;}   // (the run before reaches twelve metres into this tile: it goes with it)
       if(R.i===0&&prev)regroundTile(prev);                                     // (it widens to meet the run — see pathEdge — and its trail runs on, or eases in: see trailAt)
       R.i++;
@@ -6786,7 +6805,7 @@ const RAVINE={
   maple:{h:5.2,fw:5.5,sw:7,  leaf:0x5f8c3a,bark:'bark', trees:11,saplings:6,blobs:[3,5],bare:.05,fence:true, bushes:14,verge:8,logs:2,rocks:0, litter:0},
   shale:{h:8.2,fw:4.4,sw:5.2,leaf:0x78994a,bark:'bark', trees:8, saplings:8,blobs:[2,4],bare:.15,fence:false,bushes:6, verge:6,logs:5,rocks:9, litter:0},
   birch:{h:6.4,fw:6,  sw:6.5,leaf:0x9ab85a,bark:'birch',trees:10,saplings:5,blobs:[2,4],bare:.35,fence:false,bushes:5, verge:7,logs:3,rocks:0, litter:10}};
-const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6;
+const RAV_CHANCE=.075,RAV_VIA=.6,RAV_CROSS=.45,RAV_STREAM=.6,RAV_WYRM=.34;
 /* the codex's path: tile 0 is the cathedral as always, then one of every
    chunk, then the three ravines — the maple long enough to carry the
    underpass in its middle tile. Nobody is sown on any of it. */
@@ -7029,8 +7048,9 @@ function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named 
   const cross=via>=0&&(force?!!force.cross:rnd()<RAV_CROSS);                 // straight across from rim to rim, rather than down the trail and round
   if(v!=='shale'&&(force?!!force.stream:rnd()<RAV_STREAM))f.stream={sd:rnd()<.5?1:-1,ph:rnd()*TAU};   // (the gully's floor is too narrow to carry one)
   if(force&&force.stream)f.stream.ph=-(z0-1.5*PATH.TILE)*STREAM.k;          // (the codex's crosses the trail in the middle of its second tile, where it looks)
+  const wyrm=!force&&n>=3&&k>=6&&!PATH.codex&&rnd()<RAV_WYRM;                 // (the last draw: see THE RAVINE WYRM)
   PATH.terrain.push(f);
-  return PATH.rav={v,n,i:0,via,f,cross};
+  return PATH.rav={v,n,i:0,via,f,cross,wyrm};
 }
 // what a step adds — to the world, the scene, the haze, the lists — is
 // caught in a window, and the window is shifted north into the tile's place
@@ -7085,6 +7105,7 @@ function stepTile(){
        own road or trail is still lying under the half it covered */
     {const pv=PATH.tiles[k-1];if(pv&&!pv.dead&&!!pv.rav!==!!t.rav){const c2=tileCapture();laySeam(t.z0,!!t.rav);tileCommit(pv,c2,0);}}
     if(t.kind==='barrow'&&!PATH.codex){const A=new ArmHorror(rr(-3,3),t.zc+rr(-4,4));enemies.push(A);t.foes.push(A);}   // (what the barrow keeps: see THE ARM)
+    if(t.rav&&t.rav.wyrm&&!PATH.codex){const W=new RavineWyrm(t.rav.f,RAVINE[t.rav.v].fw,t.zc);enemies.push(W);t.foes.push(W);}   // (what the cut keeps: see THE RAVINE WYRM)
     if(t.kind==='castle'&&!PATH.codex){const R=new RiderHorror(0,t.zc+CASTLE.YZ0+5,t);enemies.push(R);t.foes.push(R);t.cs.rider=R;}   // (what the yard keeps: see THE RIDER)
     PATH.job=null;
   }
@@ -11088,6 +11109,22 @@ function makeHollowRig(big,caster){
     eyes:big?0x86d9c2:caster?0x9fe06a:0x1a2622,   // every hollow has eyes now — the small ones dark in their sockets, until the tell flares them
   });
 }
+/* THE SHIELDBEARER'S SHIELD: a tower of planks, iron-rimmed, a boss in its
+   middle and a dark stripe down it, on a pivot at the left shoulder. Up, it
+   covers the body from the thigh to the chin; down (swinging, recovering,
+   its guard broken) it swings out to the left and the chest is open. */
+function addShield(r){
+  const s=r.s||1,wood=mat('bark',{color:0x9a8266}),iron=mat('iron'),dark=lam({color:0x3a1712});
+  const piv=new THREE.Group();piv.position.set(.2*s,.36*s,.04*s);r.torso.add(piv);
+  const sh=new THREE.Group();sh.position.set(-.1*s,-.26*s,.3*s);piv.add(sh);
+  const W=.72*s,H=1.25*s;
+  sh.add(M(GBox(W,H,.06*s),wood,0,0,0));
+  sh.add(M(GBox(.14*s,H*.96,.02*s),dark,0,0,.035*s));                               // the stripe
+  for(const y of[H/2,-H/2])sh.add(M(GBox(W+.03*s,.05*s,.08*s),iron,0,y,0));          // the rim, top and foot
+  for(const x of[W/2,-W/2])sh.add(M(GBox(.05*s,H,.08*s),iron,x,0,0));                // and sides
+  sh.add(M(GSph(.09*s,6,4),iron,0,.06*s,.05*s));                                   // the boss
+  r.shield={piv,sh};
+}
 /* THE DROWNED: a body the bog gave back. It is a hollow's frame with the
    flesh still on it — grey-green, water-swollen, split — so every rule
    the skeletons obey (the ragdoll, the sever, the gun's spheres, the far
@@ -12900,6 +12937,9 @@ const player={
       if(d>reach+e.radius||d>stoneD)continue;
       const ang=Math.acos(clamp((dx*fx+dz*fz)/(d||1),-1,1));
       if(ang>arc)continue;
+      // a raised SHIELD takes the blow first (see shieldBlocks): a light one is thrown back off the planks, a heavy one breaks the guard
+      if(e.shieldBlocks){const sb=e.shieldBlocks(this.x,this.z,(opts.staggerAll||this.ultra())?99:poise);
+        if(sb){hitAny=true;clashed=true;if(sb==='block'&&!opts.noBounce&&!bounce)bounce={x:e.x,z:e.z,stone:true};continue;}}
       // steel on steel: catch a horror's weapon mid-swing and the blades
       // clash — sparks, a clang, and its attack is broken
       let parry=false;
@@ -14335,9 +14375,10 @@ class Enemy{
        .50 through the body of a hollow still takes it, exactly, and that
        rifle's whole claim is one shot one body — if you raise this number
        again, raise that one with it. */
+    this.shield=!!opts.shield&&kind==='hollow';          // the Shieldbearer (see its block, below)
     this.rider=!!opts.rider;                            // the Rider, unhorsed: the Warden's body of blows with a flail and a limp (see THE RIDER)
-    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:85;
-    this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:2.5;
+    this.maxHp=this.boss?(this.rider?340:380):this.big?140:this.caster?70:this.shield?110:85;
+    this.speed=this.boss?(this.rider?1.55:2.7):this.big?2.1:this.caster?2.3:this.shield?2.1:2.5;
     /* THE DROWNED: slow, heavy in the hand — a hundred, six swings of the
        greatsword — and they do not much care about you: under eight
        metres they come for you, further off they push for the house.
@@ -14361,7 +14402,7 @@ class Enemy{
       this.bashPower=this.mother||V==='hulk'?3:1;if(V==='hulk')this.heavyHitter=true;}
     this.ambush=!!opts.ambush;
     this.poise=0;this.poiseMax=this.boss?11:this.big?5:this.caster?2:3;
-    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:35;
+    this.marrow=this.boss?(this.rider?900:800):this.big?120:this.caster?45:this.shield?45:35;
     if(this.zombie){const V=this.variant;this.poiseMax=this.mother?40:this.crawler?2:V==='hulk'?22:V==='runner'?2:7;this.marrow=this.mother?400:this.crawler?8:V==='hulk'?90:V==='runner'?25:40;
       if(this.mother){this.mini=true;this.name='THE CARRION MOTHER';this.engaged=true;this.spawnT=4;this.brood=[];}}
     this.state='dormant';this.t=0;this.attack=null;this.hitDone=false;
@@ -14395,6 +14436,8 @@ class Enemy{
       boneBurst(this.x,heightAt(this.x,this.z)+.25,this.z,wet?0x93aa9c:0x5a4d38,wet?12:8,wet?2.2:1.6);
     }
     if(this.crawler){this.state='chase';this.t=0;this.rig.root.position.y=heightAt(this.x,this.z);}
+    if(this.shield){addShield(this.rig);this.shieldUp=1;this.guardT=0;this.blocks=0;this.blockAt=0;
+      this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&!this.mats.includes(o.material))this.mats.push(o.material);});}
     if(this.rider){this.mini=true;this.engaged=true;this.name='THE RIDER';this.phase2=true;this.reach=3.2;   // (enraged from the start: it has already lost the horse — and no banner for it)
       Object.defineProperty(this,'barFrac',{get(){return .5*Math.max(0,this.hp)/this.maxHp;}});}   // the bottom half of the one bar
   }
@@ -14518,6 +14561,27 @@ class Enemy{
       startRagdoll(this,h.dx,h.dz,3+h.kb*3.5,h.up!==undefined?1.3+h.up:2.6);
     }
   }
+  /* THE SHIELD. A blow from in front (within about sixty-five degrees of
+     where it faces) while the shield is up is stopped on the planks: no
+     damage, nothing severed, and a blade is thrown back off it the way it
+     is off stone. A HEAVY blow — a charged cut, the ultra's, poise three or
+     more — or the fourth light one in a row breaks the guard: it staggers
+     and the shield hangs down for a couple of seconds. From the side or
+     behind there is nothing in the way. Returns 'block', 'break' or null. */
+  shieldBlocks(fx,fz,poise){
+    if(!this.shield||this.hp<=0||this.guardT>0||this.shieldUp<.6)return null;
+    if(Math.abs(wrapA(Math.atan2(fx-this.x,fz-this.z)-this.facing))>1.15)return null;
+    if(G.time-this.blockAt>2.2)this.blocks=0;
+    this.blockAt=G.time;
+    const sx=this.x+Math.sin(this.facing)*.5,sz=this.z+Math.cos(this.facing)*.5,sy=heightAt(this.x,this.z)+1.05;
+    if(poise>=3||++this.blocks>=4){
+      this.blocks=0;this.guardT=2.4;this.state='stagger';this.t=0;this.attack=null;this.poise=0;
+      const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;this.vx=dx/l*3.2;this.vz=dz/l*3.2;
+      clashSparks(sx,sy,sz,30);AudioSys.clash();AudioSys.woodKnock();G.hitstop=Math.max(G.hitstop,.1);G.camShake=Math.max(G.camShake,.35);G.vibr([30,20,50]);
+      return 'break';}
+    clashSparks(sx,sy,sz,12);AudioSys.woodKnock();AudioSys.clang('metal');G.hitstop=Math.max(G.hitstop,.05);G.vibr(20);
+    return 'block';
+  }
   /* WHICH WAY THIS ONE BANKS. Signed, and its own — half the host curls
      one way and half the other, which is the whole of why a pack spreads
      into a crescent instead of queueing. Re-rolled when it is startled. */
@@ -14619,7 +14683,7 @@ class Enemy{
         if(this.startleT>0){
           this.startleT-=dt;
           this.facing=angLerp(this.facing,Math.atan2(this.lookX-this.x,this.lookZ-this.z),7*dt);
-        }else faceP(6);
+        }else faceP(this.shield?2.4:6);                  // (the Shieldbearer turns slowly: you get round it)
         // the Warden was swinging a greatsword through its own title card
         if(cutSubject(this))break;
         if(this.zombie){this.zombieMove(dt,dx,dz,dist);break;}
@@ -14748,6 +14812,10 @@ class Enemy{
         break;
     }
     this.speed=baseSpeed;
+    if(this.shield){this.guardT=Math.max(0,this.guardT-dt);
+      // up while it comes, waits or paces, and through the first half of its windup; down while it swings, recovers, reels, or has had its guard broken
+      const up=this.guardT<=0&&(['chase','return','guard','patrol'].includes(this.state)||(this.state==='windup'&&this.t<this.windDur()*.45));
+      this.shieldUp+=((up?1:0)-this.shieldUp)*Math.min(1,(up?5:9)*dt);}
     // knockback drift for non-stagger states (boss dashes own its velocity)
     if(this.state==='chase'||this.state==='recover'||
        (!this.boss&&(this.state==='windup'||this.state==='strike'))){
@@ -14866,6 +14934,9 @@ class Enemy{
         }
         break;
     }
+    if(r.shield){const u=this.hp>0?this.shieldUp:0;
+      r.shield.piv.rotation.set(-.25*(1-u),1.35*(1-u),.25*(1-u));
+      if(u>.05&&this.state!=='dead'&&this.state!=='down'){r.armL.rotation.x=lerp(r.armL.rotation.x,-1.05,u);r.foreL.rotation.x=lerp(r.foreL.rotation.x,-.75,u);r.armL.rotation.z=lerp(r.armL.rotation.z,-.2,u);}}
     r.root.position.x=this.x;r.root.position.z=this.z;
     const gh=heightAt(this.x,this.z)-(this.boss?.5:1)*snowSink(this.x,this.z);   // (the Warden is big enough to stand on it)
     if(this.state==='rise')r.root.position.y+=gh;      // poseRise set the burial offset
@@ -16113,6 +16184,360 @@ function cutRider(e){
   ],'THE RIDER','what the castle keeps',()=>AudioSys.bossMusic(1));
 }
 
+/* ======================= THE FOG WRAITH =======================
+   Only in dense fog (`RUN.weather==='fog'`), one or two at a time, and
+   never seen coming. It DRIFTS on a ring round the pilgrim, closing,
+   untouchable and all but invisible — a smudge in the fog's glow inside
+   ten metres, and a WHISPER when it is near. Six metres off it MANIFESTS:
+   it takes form, shrieks, LUNGES with both claws, LINGERS a beat, and
+   FADES, to come again from another bearing. It can only be struck while
+   it has form (`untouchable` otherwise, which also keeps it off the eye's
+   lock). Struck, it may break off and fade early. `wraithTick` keeps the
+   count and sends them away when the fog lifts. */
+const WRAITH={MAX:2,CD:9,R0:15,R1:6,HP:60,DMG:10};
+function makeWraithRig(){
+  const rig={mats:[],fade:[]};
+  const root=new THREE.Group();rig.root=root;
+  const ghost=(c)=>{const m=lam({color:c,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});rig.fade.push(m);return m;};
+  const robe=ghost(0xb8c4c8),boneM=ghost(0xd8d2c0),dark=ghost(0x0a0c10);
+  const body=new THREE.Group();body.position.y=.35;root.add(body);rig.body=body;
+  body.add(M(new THREE.ConeGeometry(.52,1.9,8,1,true),robe,0,.75,0));               // the robe, open at the hem
+  for(let i=0;i<7;i++){const a=i/7*TAU,tl=box(.16,.3+(i*5%4)*.12,.03,robe,Math.sin(a)*.47,-.3-(i*5%4)*.06,Math.cos(a)*.47,a);body.add(tl);}   // its rags
+  const hood=M(new THREE.SphereGeometry(.27,8,6,0,TAU,0,Math.PI*.62),robe,0,1.72,0);hood.rotation.x=-.35;body.add(hood);
+  const head=new THREE.Group();head.position.set(0,1.64,.06);body.add(head);rig.head=head;
+  head.add(M(GSph(.15,7,5),boneM,0,0,.02));head.add(M(GBox(.1,.06,.1),boneM,0,-.12,.06));
+  rig.eyes=[];
+  for(const sd of[1,-1]){head.add(M(GSph(.045,5,4),dark,sd*.06,.02,.12));
+    const e=new THREE.Mesh(GSph(.028,5,4),new THREE.MeshBasicMaterial({color:0xbfefff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+    e.position.set(sd*.06,.02,.14);head.add(e);rig.eyes.push(e);rig.fade.push(e.material);}
+  rig.arms=[];
+  for(const sd of[1,-1]){const sh=new THREE.Group();sh.position.set(sd*.3,1.38,0);body.add(sh);
+    sh.add(M(GCyl(.035,.03,.8,5),boneM,0,-.4,0));
+    const el=new THREE.Group();el.position.y=-.8;sh.add(el);el.add(M(GCyl(.03,.025,.7,5),boneM,0,-.35,0));
+    for(let k=-1;k<=1;k++){const c=M(GCone(.018,.3,4),boneM,k*.04,-.84,0);c.rotation.x=Math.PI;el.add(c);}   // the claws
+    rig.arms.push({sh,el,sd});}
+  for(const m of rig.fade)if(m.emissive)rig.mats.push(m);
+  return rig;
+}
+class FogWraith{
+  constructor(x,z){
+    this.kind='wraith';this.name='the fog wraith';this.big=false;this.boss=false;this.mini=false;this.caster=false;this.crow=false;this.heavyHitter=false;
+    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;this.radius=.5;
+    this.maxHp=WRAITH.HP;this.hp=this.maxHp;this.dmg=WRAITH.DMG;this.marrow=50;this.markUp=1.9;
+    this.poise=0;this.poiseMax=99;this.chillT=0;
+    this.rig=makeWraithRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.state='drift';this.t=0;this.untouchable=true;this.op=0;this.cool=1+Math.random()*2;
+    this.ang=Math.atan2(x-player.x,z-player.z);this.ring=WRAITH.R0;this.spin=Math.random()<.5?1:-1;
+    this.hitDone=false;this.flashUntil=0;this.crumbled=false;this.whisperT=0;this.reach=0;
+  }
+  spheres(){if(this.untouchable||this.hp<=0)return [];const gy=heightAt(this.x,this.z);
+    return [{x:this.x,y:gy+2.0,z:this.z,r:.22,head:true},{x:this.x,y:gy+1.3,z:this.z,r:.42,head:false}];}
+  reset(){}
+  scatter(){}
+  flash(){this.flashUntil=G.time+.11;for(const m of this.mats)m.emissive.setHex(0xffffff);}
+  go(s){this.state=s;this.t=0;this.hitDone=false;}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);
+    if(this.hp<=0||this.untouchable)return;
+    this.hp-=dmg;this.flash();
+    boneBurst(this.x,heightAt(this.x,this.z)+1.3,this.z,0xc8d4d8,6,1.6);
+    if(this.hp<=0){this.die();return;}
+    if(this.state!=='lunge'&&Math.random()<.4)this.go('fade');                          // struck, it may break off
+  }
+  die(){
+    this.hp=0;this.go('dead');this.untouchable=true;this.crumbled=true;
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
+    AudioSys.wraithWail();boneBurst(this.x,heightAt(this.x,this.z)+1.2,this.z,0xc8d4d8,16,2.4);
+    for(let i=0;i<6;i++)smokePuff(this.x+rr3(-.5,.5),heightAt(this.x,this.z)+.4+i*.3,this.z+rr3(-.5,.5),1);
+  }
+  leave(){if(this.hp<=0)return;this.hp=0;this.go('dead');this.untouchable=true;this.crumbled=true;}   // (the fog lifted: it goes with it, and leaves nothing)
+  update(dt){
+    const P=player,r=this.rig;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);
+    const sp=this.chillT>0?.4:1;
+    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz),toP=Math.atan2(dx,dz);
+    const live=G.mode==='play'&&P.state!=='dead'&&!CUT.on;
+    let op=0,reach=0;
+    switch(this.state){
+      case 'drift':{   // round and in on its ring, all but invisible
+        this.cool-=dt;this.ring=Math.max(WRAITH.R1,this.ring-dt*1.4*sp);this.ang+=this.spin*dt*.28*sp;
+        const tx=P.x+Math.sin(this.ang)*this.ring,tz=P.z+Math.cos(this.ang)*this.ring,ex=tx-this.x,ez=tz-this.z,el=Math.hypot(ex,ez);
+        if(el>.05){const st=Math.min(el,4.2*sp*dt);this.x+=ex/el*st;this.z+=ez/el*st;}
+        this.stuckT=el>3?(this.stuckT||0)+dt:0;
+        if(this.stuckT>2.5){this.stuckT=0;const q={x:tx,z:tz};constrain(q,false);this.x=q.x;this.z=q.z;}   // (held off by a wall or the rim: it is a ghost, and unseen — it slips through the fog onto its ring)
+        this.facing=angLerp(this.facing,toP,3*dt);
+        op=dist<10?.16*(1-(dist-6)/4)*(.6+.4*Math.sin(G.time*5+this.ang)):0;          // a smudge in the fog's glow, inside ten metres
+        this.whisperT-=dt;if(dist<12&&this.whisperT<=0&&live){this.whisperT=2.2+Math.random()*1.5;AudioSys.whisper();}
+        if(live&&this.cool<=0&&this.ring<=WRAITH.R1+.2&&dist<7.5){
+          if(enemies.some(e=>e!==this&&e.kind==='wraith'&&e.hp>0&&e.state!=='drift'&&e.state!=='dead'))this.cool=.9+Math.random()*.8;   // (one at a time: the other waits its turn on the far side)
+          else{this.go('manifest');AudioSys.wraithShriek();}}
+        break;}
+      case 'manifest':op=Math.min(1,this.t/.45);this.facing=angLerp(this.facing,toP,8*dt);
+        if(this.t>.15)this.untouchable=false;
+        if(this.t>=.5)this.go('lunge');
+        break;
+      case 'lunge':{op=1;const W=.38;this.facing=angLerp(this.facing,toP,this.t<W?6*dt:0);reach=this.t<W?this.t/W*.3:1;
+        if(this.t<W)this.glide=Math.min(22,Math.max(0,dist-1.1)/.3);                  // sized to where she is as it gathers...
+        if(this.t>=W&&this.t<W+.3){const st=this.glide*sp*dt;this.x+=Math.sin(this.facing)*st;this.z+=Math.cos(this.facing)*st;}   // ...and it glides the whole way in
+        if(!this.hitDone&&this.t>=W+.3){this.hitDone=true;
+          if(live&&dist<2.3&&Math.abs(wrapA(toP-this.facing))<1.1)P.takeHit(this.dmg,this.x,this.z,false,'blade');}
+        if(this.t>=W+.45)this.go('linger');
+        break;}
+      case 'linger':op=1;reach=Math.max(0,1-this.t/.4);if(this.t>=.9)this.go('fade');break;   // the beat to strike it in
+      case 'fade':op=Math.max(0,1-this.t/.6);if(this.t>.3)this.untouchable=true;
+        if(this.t>=.6){this.go('drift');this.ang+=this.spin*Math.PI*(.5+Math.random()*.5);this.ring=WRAITH.R0*.8;this.cool=1.2+Math.random()*1.8;if(Math.random()<.4)this.spin=-this.spin;}
+        break;
+      case 'dead':op=Math.max(0,1-this.t/.8);break;
+    }
+    if(this.state!=='dead')constrain(this,false);
+    // what can be seen of it
+    this.op+=(op-this.op)*Math.min(1,10*dt);
+    for(const m of r.fade)m.opacity=this.op*(m.blending===THREE.AdditiveBlending?1:.78);
+    r.root.visible=this.op>.01;
+    const gy=heightAt(this.x,this.z);
+    r.root.position.set(this.x,gy,this.z);r.root.rotation.y=this.facing;
+    r.body.position.y=.35+Math.sin(G.time*1.7+this.ang)*.08;
+    r.body.rotation.x=this.state==='lunge'?.25*reach:0;
+    for(const A of r.arms){const hang=Math.sin(G.time*1.3+A.sd)*.08;
+      A.sh.rotation.x=lerp(.1+hang,-1.45,reach);A.sh.rotation.z=A.sd*lerp(.12,.35,reach);A.el.rotation.x=lerp(-.25,-.1,reach);}
+    for(const e of r.eyes)e.scale.setScalar(this.state==='manifest'||this.state==='lunge'?1.6:1);
+    if(G.time>=this.flashUntil)for(const m of this.mats)m.emissive.setHex(this.chillT>0?0x0d3542:0x000000);
+  }
+}
+// the fog's own: kept at one or two while the fog is down, and sent away when it lifts
+let _wraithCd=6;
+function wraithTick(dt){
+  const fog=RUN.weather==='fog'&&!XF.on&&!CODEX.on&&!DEF.on;
+  let n=0;for(const e of enemies)if(e.kind==='wraith'&&e.hp>0){if(!fog)e.leave();else n++;}
+  if(!fog||CUT.on||G.mode!=='play'||player.state==='dead')return;
+  _wraithCd-=dt;
+  if(n<WRAITH.MAX&&_wraithCd<=0){_wraithCd=WRAITH.CD*(.7+Math.random()*.6);
+    for(let k=0;k<8;k++){const a=Math.random()*TAU,p={x:player.x+Math.sin(a)*WRAITH.R0,z:player.z+Math.cos(a)*WRAITH.R0};
+      constrain(p,false);if(Math.hypot(p.x-player.x,p.z-player.z)<WRAITH.R0*.7)continue;
+      const w=new FogWraith(p.x,p.z);enemies.push(w);break;}}
+}
+
+/* ======================= THE RAVINE WYRM =======================
+   What the cut was dug by: a serpent of bone seventeen metres long that
+   swims through the ravine's walls. It is carried by one run in three that
+   is three hexes or longer (`R.wyrm`, the last draw on the run's stream),
+   lives in that run's middle tile's host, and is fought the length of the
+   run. Its body is a chain of vertebrae laid along the TRACK its head has
+   left (`trail`), so whatever the head does the body follows — out of the
+   soil, over the trail and back in; anything under the ground is hidden.
+     THE STRIKE. It rises out of one wall and rears over the trail, jaws
+       open (the tell), then snaps at where you are and lies there a beat
+       with its skull on the ground: every blow then does half again.
+     THE CROSSING. The wall bursts and it arcs clean across the trench from
+       one side to the other; the body sweeps the trail behind the head.
+     THE ERUPTION. The ground cracks in a ring under your feet (the Arm's
+       tell) and it bursts straight up there, towers, and dives into a wall.
+   Only what is above ground can be struck — the nearest of it is its
+   `x/z` for the blade, and `spheres()` for a round. At half its life it
+   comes faster and erupts more. */
+const WYRM={N:24,SP:.8,HP:820,DMG:20,DEPTH:3};   // (thick enough to read across a ravine: at a third of this it was a pale thread over the wall)
+function makeWyrmRig(){
+  const rig={mats:[],segs:[]};
+  const root=new THREE.Group();rig.root=root;
+  const bone=mat('bone'),dark=lam({color:0x0c0a08});
+  // one vertebra, folded to one mesh and shared by every segment: a centrum, a spine, and a pair of ribs curling down
+  const T=new THREE.Group();
+  T.add(M(GBox(.34,.3,.4),bone,0,0,0));
+  {const sp=M(GCone(.07,.42,4),bone,0,.3,-.04);sp.rotation.x=-.4;T.add(sp);}
+  for(const sd of[1,-1]){const rb=M(GBox(.07,.62,.09),bone,sd*.3,-.2,0);rb.rotation.z=sd*.55;T.add(rb);
+    const tip=M(GBox(.06,.34,.08),bone,sd*.36,-.56,0);tip.rotation.z=-sd*.3;T.add(tip);}
+  bakeStatic(T);const geo=T.children.find(o=>o.isMesh&&o.userData.baked).geometry;
+  for(let i=0;i<WYRM.N;i++){const m=new THREE.Mesh(geo,bone);const s=i<3?1.75:Math.max(.55,1.7-(i/WYRM.N)*1.15);m.scale.setScalar(s);m.visible=false;root.add(m);rig.segs.push(m);}
+  // the head: a long skull, a jaw that drops, two ridges of horn, and embers deep in the sockets
+  const hd=new THREE.Group();root.add(hd);rig.head=hd;hd.scale.setScalar(1.55);
+  hd.add(M(GBox(.66,.52,.8),bone,0,.08,.05));
+  {const sn=M(GCyl(.16,.3,.85,5),bone,0,.02,.72);sn.rotation.x=Math.PI/2;sn.scale.set(1,1,.8);hd.add(sn);}
+  for(const sd of[1,-1]){for(let k=0;k<3;k++){const h=M(GCone(.07,.4-k*.08,4),bone,sd*.26,.38,-.1-k*.24);h.rotation.set(-.9,0,sd*.35);hd.add(h);}
+    hd.add(M(GSph(.1,5,4),dark,sd*.22,.18,.32));
+    const e=new THREE.Mesh(GSph(.055,5,4),new THREE.MeshBasicMaterial({color:0xffa040,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));e.position.set(sd*.24,.18,.36);hd.add(e);}
+  const jaw=new THREE.Group();jaw.position.set(0,-.14,.2);hd.add(jaw);rig.jaw=jaw;
+  jaw.add(M(GBox(.44,.1,.95),bone,0,-.04,.36));
+  for(let k=0;k<5;k++)for(const sd of[1,-1]){const t=M(GCone(.03,.14,3),bone,sd*.17,.06,.1+k*.17);jaw.add(t);}
+  root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive&&!rig.mats.includes(o.material))rig.mats.push(o.material);});
+  return rig;
+}
+class RavineWyrm{
+  constructor(f,fw,homeZ){
+    this.kind='wyrm';this.mini=true;this.name='THE RAVINE WYRM';this.big=true;this.boss=false;this.caster=false;this.crow=false;this.heavyHitter=true;
+    this.f=f||null;this.fw=fw||5;this.z0=f?f.z0:homeZ+30;this.z1=f?f.z1:homeZ-30;
+    this.homeX=0;this.homeZ=homeZ;this.x=0;this.z=homeZ;this.facing=0;this.radius=.9;
+    this.maxHp=WYRM.HP;this.hp=this.maxHp;this.dmg=WYRM.DMG;this.marrow=900;this.markUp=1.6;
+    this.poise=0;this.poiseMax=99;this.chillT=0;
+    this.rig=makeWyrmRig();scene.add(this.rig.root);this.mats=this.rig.mats;
+    this.state='dormant';this.t=0;this.engaged=false;this.untouchable=true;this.metOnce=false;
+    this.hx=this.fw+3;this.hy=heightAt(this.fw+3,homeZ)-WYRM.DEPTH;this.hz=homeZ;this.trail=[];this.pushTrail(true);
+    this.side=1;this.jawO=0;this.exposed=0;this.flashUntil=0;this.crumbled=false;this.hitDone=false;this.dustT=0;this.phase2=false;this.fallY=null;
+  }
+  get barFrac(){return Math.max(0,this.hp)/this.maxHp;}
+  go(s){this.state=s;this.t=0;this.hitDone=false;}
+  inRun(z){return z<this.z0+6&&z>this.z1-6;}
+  wallX(sd){return sd*(this.fw+3.2);}
+  under(x,z){return heightAt(x,z)-WYRM.DEPTH;}
+  // the track the head has left: points far enough apart, as long as the body
+  pushTrail(force){const T=this.trail,L=T[T.length-1];
+    if(force||!L||Math.hypot(this.hx-L.x,this.hy-L.y,this.hz-L.z)>.18){T.push({x:this.hx,y:this.hy,z:this.hz});
+      const need=Math.ceil(WYRM.N*WYRM.SP/.18)+8;if(T.length>need)T.splice(0,T.length-need);}}
+  // the parts above the soil, nearest first: what a blade can reach and a round can find
+  exposedParts(){const out=[],r=this.rig;
+    if(this.hp>0&&r.head.visible)out.push({x:r.head.position.x,y:r.head.position.y,z:r.head.position.z,r:1.0,head:true});
+    for(let i=0;i<12;i++){const m=r.segs[i];if(m.visible&&!m.userData.buried)out.push({x:m.position.x,y:m.position.y,z:m.position.z,r:.42*m.scale.x+.1,head:false});}
+    return out;}
+  spheres(){return this.untouchable?[]:this.exposedParts();}
+  reset(){}
+  scatter(){}
+  flash(){this.flashUntil=G.time+.11;this.popUntil=G.time+.035;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0xffffff);}
+  takeHit(dmg,poise,fx,fz,kb){
+    dmg=heroDmg(dmg);
+    if(this.hp<=0||this.untouchable)return;
+    const mul=this.exposed>0?1.5:1;this.hp-=dmg*mul;this.flash();
+    boneBurst(this.x,heightAt(this.x,this.z)+1,this.z,0xcfc4a3,this.exposed>0?10:5,2.2);
+    if(this.hp<=0){this.die();return;}
+    if(!this.phase2&&this.hp<this.maxHp*.5){this.phase2=true;AudioSys.wyrmRoar();G.camShake=Math.max(G.camShake,.5);bannerShow('THE WALLS SHAKE','the wyrm comes faster');}
+  }
+  die(){
+    if(this.state==='dead')return;
+    this.hp=0;this.go('dead');this.untouchable=true;this.engaged=false;
+    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;
+    AudioSys.wyrmRoar();AudioSys.quake();G.camShake=Math.max(G.camShake,.8);G.hitstop=Math.max(G.hitstop,.25);
+    setTimeout(()=>bannerShow('THE WYRM IS STILL','the cut is quiet'),900);
+    spawnElemDrop(this.hx,this.hz,'health');spawnElemDrop(this.hx+1,this.hz+.5);
+  }
+  // where it will come up next, and how
+  plan(){const P=player,r=Math.random(),sd=Math.random()<.5?1:-1;this.side=sd;
+    const e=this.phase2?.32:.18,c=this.phase2?.36:.32;
+    this.next=r<e?'erupt':r<e+c?'cross':'strike';
+    const zp=clamp(P.z,this.z1+4,this.z0-4);
+    if(this.next==='erupt'){this.tx=P.x;this.tz=P.z;}
+    else if(this.next==='cross'){this.tx=this.wallX(sd);this.tz=clamp(zp+(Math.random()<.5?1:-1)*rr3(1.5,3.5),this.z1+4,this.z0-4);}
+    else{this.tx=this.wallX(sd);this.tz=clamp(zp+rr3(-2,2),this.z1+4,this.z0-4);}
+    this.go('under');}
+  update(dt){
+    const P=player,r=this.rig;
+    this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);this.exposed=Math.max(0,this.exposed-dt);
+    const sp=(this.chillT>0?.45:1)*(this.phase2?1.25:1);
+    const live=G.mode==='play'&&P.state!=='dead'&&!cutSubject(this);
+    const pIn=P.state!=='dead'&&this.inRun(P.z);
+    const bez=(a,b,c,u)=>{const v=1-u;return v*v*a+2*v*u*b+u*u*c;};
+    let jaw=.08;
+    switch(this.state){
+      case 'dormant':
+        if(pIn&&G.mode==='play'&&Math.abs(P.z-this.homeZ)<24){this.engaged=true;this.plan();this.next='strike';this.tx=this.wallX(1);this.tz=clamp(P.z-6,this.z1+4,this.z0-4);}
+        break;
+      case 'under':{   // under the wall, coming: the soil heaves along its line
+        if(!pIn&&this.engaged){this.engaged=false;this.untouchable=true;}
+        const tx=this.next==='erupt'?P.x:this.tx,tz=this.next==='erupt'?P.z:this.tz;
+        const ex=tx-this.hx,ez=tz-this.hz,el=Math.hypot(ex,ez),v=11*sp;
+        if(el>.3){const st=Math.min(el,v*dt);this.hx+=ex/el*st;this.hz+=ez/el*st;}
+        this.hy=this.under(this.hx,this.hz);
+        this.dustT-=dt;if(this.dustT<=0&&el>.3){this.dustT=.14;const gy=heightAt(this.hx,this.hz);boneBurst(this.hx,gy+.1,this.hz,0x4a463a,3,1.6);if(Math.random()<.3)AudioSys.hoof(.7);}
+        if(el<=.3&&this.t>.5){
+          if(!pIn){this.go('dormant');this.engaged=false;break;}
+          this.engaged=true;
+          if(this.next==='erupt'){this.go('tell');this.ex=P.x;this.ez=P.z;this.hx=P.x;this.hz=P.z;
+            AudioSys.quake();G.camShake=Math.max(G.camShake,.35);for(let i=0;i<9;i++){const a=i/9*TAU;paintScar(P.x+Math.sin(a)*1.7,P.z+Math.cos(a)*1.7,a,.35,1.8,true);}}
+          else this.go(this.next);}
+        break;}
+      case 'strike':{   // up out of the wall, rear over the trail, snap, lie, and go back
+        const sd=Math.sign(this.tx)||1,U={x:this.tx,y:this.under(this.tx,this.tz),z:this.tz};
+        const Rx=sd*(this.fw*.55),Rz=this.tz,Ry=heightAt(Rx,Rz)+5.2;
+        const RISE=.85,HOLD=.6,SNAP=.28,LIE=1.6,BACK=.9;   // (LIE outlasts the knockdown it deals, or there is nothing left of the opening by the time she is up)
+        let u=this.t;
+        if(u<RISE){const q=sstep(u/RISE);this.hx=lerp(U.x,Rx,q);this.hz=Rz;this.hy=lerp(U.y,Ry,Math.min(1,q*1.3));this.untouchable=q<.35;}
+        else if(u<RISE+HOLD){
+          if(!this.metOnce&&!this.hitDone){this.hitDone=true;this.metOnce=true;cutWyrm(this);}
+          if(cutSubject(this)){this.t=RISE+.01;}                                 // (its entrance holds on the rear until the name is up)
+          jaw=.75;this.hx=Rx+Math.sin(G.time*3)*.15;this.hz=Rz;this.hy=Ry+Math.sin(G.time*2)*.1;
+          this.sx=P.x;this.sz=P.z;
+          if(u>RISE+.05&&!this.roared){this.roared=true;AudioSys.wyrmRoar();G.camShake=Math.max(G.camShake,.3);}}
+        else if(u<RISE+HOLD+SNAP){const q=(u-RISE-HOLD)/SNAP;jaw=.9;this.hx=lerp(Rx,this.sx,q*q);this.hz=lerp(Rz,this.sz,q*q);this.hy=lerp(Ry,heightAt(this.sx,this.sz)+.7,q*q);}
+        else if(u<RISE+HOLD+SNAP+LIE){jaw=.2;
+          if(!this.bit){this.bit=true;AudioSys.slam();G.camShake=Math.max(G.camShake,.45);boneBurst(this.hx,heightAt(this.hx,this.hz)+.2,this.hz,0x4a463a,14,2.4);
+            if(live&&Math.hypot(P.x-this.hx,P.z-this.hz)<1.7)P.floored(this.hx,this.hz,this.dmg);
+            this.exposed=LIE;}}
+        else if(u<RISE+HOLD+SNAP+LIE+BACK){const q=sstep((u-RISE-HOLD-SNAP-LIE)/BACK);this.hx=lerp(this.sx,U.x,q);this.hz=lerp(this.sz,U.z,q);this.hy=lerp(heightAt(this.sx,this.sz)+.7,U.y,q);this.untouchable=q>.8;}
+        else{this.bit=false;this.roared=false;this.untouchable=true;this.plan();}
+        break;}
+      case 'cross':{   // out of one wall, over the trench, into the other
+        if(this.t<=dt||!this.arc){const A={x:this.tx,y:this.under(this.tx,this.tz),z:this.tz};   // (the arc is fixed as it starts: it does not steer in the air)
+          const dz=(this.tz>P.z?-1:1)*7,Bx=-this.tx,Bz=clamp(this.tz+dz,this.z1+3,this.z0-3),B={x:Bx,y:this.under(Bx,Bz),z:Bz};
+          this.arc={A,B,C:{x:0,y:Math.max(A.y,B.y)+WYRM.DEPTH+5.4,z:(A.z+B.z)/2}};}
+        const {A,B,C}=this.arc;
+        const TELL=.55,D=1.5/sp;
+        if(this.t<TELL){if(Math.random()<dt*30){const gy=heightAt(A.x,A.z);boneBurst(A.x*.92,gy+.1,A.z,0x4a463a,3,2.4);}if(!this.hitDone){this.hitDone=true;AudioSys.quake();}}
+        else{const u=Math.min(1,(this.t-TELL)/D);this.hx=bez(A.x,C.x,B.x,u);this.hy=bez(A.y,C.y,B.y,u);this.hz=bez(A.z,C.z,B.z,u);jaw=.5;this.untouchable=false;
+          if(!this.swept&&live){for(const m of r.segs){if(!m.visible||m.userData.buried)continue;const gy=heightAt(m.position.x,m.position.z);
+            if(m.position.y-gy<2.4&&Math.hypot(P.x-m.position.x,P.z-m.position.z)<1.3){this.swept=true;P.floored(m.position.x,m.position.z,15);break;}}}
+          if(u>=1){this.swept=false;this.arc=null;this.untouchable=true;this.plan();}}
+        break;}
+      case 'tell':   // the ring cracks under her...
+        this.hy=this.under(this.ex,this.ez);if(Math.random()<dt*20)boneBurst(this.ex+rr3(-1.5,1.5),heightAt(this.ex,this.ez)+.1,this.ez+rr3(-1.5,1.5),0x4a463a,2,1.5);
+        if(this.t>=1.1/Math.min(sp,1.15)){this.go('erupt');AudioSys.quake();AudioSys.wyrmRoar();G.camShake=Math.max(G.camShake,.8);
+          if(live&&Math.hypot(P.x-this.ex,P.z-this.ez)<2.1)P.floored(this.ex+.01,this.ez,this.dmg);
+          boneBurst(this.ex,heightAt(this.ex,this.ez)+.3,this.ez,0x4a463a,28,4);shockRing(this.ex,this.ez,0x8a7a5a,4.2,.4);
+          const sd=Math.random()<.5?1:-1;this.tx=this.wallX(sd);this.tz=clamp(this.ez+(Math.random()<.5?1:-1)*6,this.z1+3,this.z0-3);}
+        break;
+      case 'erupt':{   // ...and it goes straight up there, towers, and dives into a wall
+        const E={x:this.ex,y:this.under(this.ex,this.ez),z:this.ez},top={x:this.ex,y:heightAt(this.ex,this.ez)+7.5,z:this.ez},W={x:this.tx,y:this.under(this.tx,this.tz),z:this.tz};
+        const UP=.5,ARC=1.3;jaw=.6;this.untouchable=this.t<.2;
+        if(this.t<UP){const q=easeOut(this.t/UP);this.hx=E.x;this.hz=E.z;this.hy=lerp(E.y,top.y,q);}
+        else{const u=Math.min(1,(this.t-UP)/ARC),C={x:(E.x+W.x)/2,y:top.y+1,z:(E.z+W.z)/2};
+          this.hx=bez(top.x,C.x,W.x,u);this.hy=bez(top.y,C.y,W.y,u);this.hz=bez(top.z,C.z,W.z,u);
+          if(u>=1){this.untouchable=true;this.plan();}}
+        break;}
+      case 'dead':{   // it stops; what is above the soil falls to it, and comes apart
+        if(this.fallY===null){this.fallY=0;}
+        this.fallY=Math.min(1,this.t/1.2);jaw=.6;
+        if(!this.crumbled&&this.t>4){this.crumbled=true;for(let i=0;i<WYRM.N;i+=3){const m=r.segs[i];if(m.visible)boneBurst(m.position.x,m.position.y,m.position.z,0xcfc4a3,5,2);}
+          scatterBones(this.hx,this.hz,0,0,2.6,false);}
+        if(this.t>4.4)r.root.visible=false;
+        break;}
+    }
+    this.pushTrail();
+    // ---- the body along the track
+    const T=this.trail,hd=r.head;
+    let dist=0,j=T.length-1,px=this.hx,py=this.hy,pz=this.hz;
+    const lay=(m,x,y,z,nx,ny,nz)=>{m.position.set(x,y,z);m.lookAt(nx,ny,nz);};
+    for(let i=0;i<WYRM.N;i++){const want=(i+1)*WYRM.SP;
+      while(j>0){const a=T[j],b=T[j-1],d=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);if(dist+d>=want){const q=(want-dist)/(d||1);px=a.x+(b.x-a.x)*q;py=a.y+(b.y-a.y)*q;pz=a.z+(b.z-a.z)*q;break;}dist+=d;j--;}
+      if(j<=0){px=T[0].x;py=T[0].y;pz=T[0].z;}
+      const m=r.segs[i],prev=i===0?{x:this.hx,y:this.hy,z:this.hz}:r.segs[i-1].position;
+      let y=py;if(this.state==='dead'&&this.fallY){const g=heightAt(px,pz)+.35;if(y>g)y=lerp(y,g,this.fallY);}
+      lay(m,px,y,pz,prev.x,prev.y,prev.z);
+      const gy=heightAt(px,pz);m.userData.buried=y<gy-.7;m.visible=!m.userData.buried&&r.root.visible;}
+    // the head, pointing along its own travel
+    {const L=T[Math.max(0,T.length-3)];let hy=this.hy;if(this.state==='dead'&&this.fallY){const g=heightAt(this.hx,this.hz)+.5;hy=lerp(hy,g,this.fallY);}
+      hd.position.set(this.hx,hy,this.hz);
+      if(L&&Math.hypot(this.hx-L.x,this.hy-L.y,this.hz-L.z)>.05){const d=new THREE.Vector3(this.hx-L.x,this.hy-L.y,this.hz-L.z).normalize();
+        if(this.state==='strike'&&this.t>.85&&this.t<1.45){d.set(P.x-this.hx,-.35,P.z-this.hz).normalize();}   // (rearing, it looks at her)
+        hd.lookAt(this.hx+d.x,hy+d.y,this.hz+d.z);}
+      hd.visible=hy>heightAt(this.hx,this.hz)-.8&&r.root.visible;}
+    this.jawO+=(jaw-this.jawO)*Math.min(1,8*dt);r.jaw.rotation.x=this.jawO;
+    // what the blade reaches: the nearest part above the soil
+    {let best=null,bd=1e9;for(const q of this.exposedParts()){const d=Math.hypot(q.x-P.x,q.z-P.z);if(d<bd){bd=d;best=q;}}
+      if(best&&this.state!=='dead'){this.x=best.x;this.z=best.z;}else{this.x=this.hx;this.z=this.hz;}
+      if(!best&&this.state!=='dead')this.untouchable=true;}
+    this.facing=Math.atan2(P.x-this.x,P.z-this.z);
+    if(this.popUntil&&G.time>=this.popUntil&&G.time<this.flashUntil){this.popUntil=0;for(const m of this.mats)if(m.emissive)m.emissive.setHex(0x6e1410);}
+    if(G.time>=this.flashUntil)for(const m of this.mats)if(m.emissive)m.emissive.setHex(this.chillT>0?0x0d3542:this.exposed>0?0x120e02:(this.state==='tell'||(this.state==='strike'&&this.t>.85&&this.t<1.45))?0x2e0c06:0x000000);
+  }
+}
+function cutWyrm(e){
+  /* shot ALONG the trench: a lens swung out to the side of a ravine is up
+     the wall's slope with the soil filling half the frame */
+  const head=()=>({x:e.hx,z:e.hz});
+  cutPlay(e,[
+    {d:1.4,at:cutOrbit({a0:.25,a1:.15,r0:12,r1:11,y0:.8,y1:1.1,l0:1.5,l1:3.8,e:'out'})},
+    {d:1.9,at:cutOrbit({a0:.35,a1:.2,r0:7.5,r1:6.5,y0:.5,y1:2.6,l0:1.5,l1:5.4})},
+    {d:1.3,at:cutOrbitOn(head,{a0:.25,a1:.12,r0:8.5,r1:5,y0:5,y1:5.3,l0:5.2,l1:5.4,e:'in'}),fx:()=>{AudioSys.wyrmRoar();G.camShake=Math.max(G.camShake,.7);G.vibr([70,40,120]);}},
+    {d:2.6,epithet:1,title:1,at:cutOrbit({a0:.3,a1:.2,r0:13,r1:14,y0:2.6,y1:2.5,l0:4,l1:3.8,e:'out'})},
+  ],'THE RAVINE WYRM','what the cut was dug by',()=>AudioSys.bossMusic(1));
+}
+
 /* ======================= THE BELL-CALLED =======================
    The fallen bell is the only thing in the field that answers back.
    Strike it and it TOLLS — deeper each time, the whole mass of it let go
@@ -16918,6 +17343,8 @@ function bombBurst(x,y,z,dx,dz){
   }
 }
 function arrowStrike(e,a,cx,cz,dx,dz,dmg,kind,through){
+  if(e.shieldBlocks&&e.rig.shield&&e.shieldBlocks(e.x-dx*5,e.z-dz*5,1)==='block'){   // an arrow from in front stands in the planks
+    a.traverse(o=>{if(o.isSprite)o.visible=false;});a.position.set(cx-dx*.3,a.position.y,cz-dz*.3);e.rig.shield.sh.attach(a);return;}
   const el=player.element;
   const stuck=through?a.clone():a;
   stuck.traverse(o=>{if(o.isSprite)o.visible=false;});     // the glow goes out in the body
@@ -17758,8 +18185,8 @@ function hostKit(kindOf){
   const high=(w)=>{let best=null,bh=-1e9;for(let k=0;k<14;k++){const p=spot(w,24,HEX_AP-12,.4);if(!p)continue;const h=groundAt(p[0],p[1]);if(h>bh){bh=h;best=p;}}return best;};
   let crows=0;const red=(w)=>PATH.on?(rnd()<.14||undefined):(RUN.rare==='redhost'&&RUN.rareWedge===w.i?true:undefined);
   const T={
-    pair:  {cost:70, place(w){const p=spot(w,24,50,.4);if(!p)return;sow('hollow',p[0],p[1],{red:red(w)});const q=spot(w,24,50,.4)||p;sow('hollow',q[0]+1.5,q[1],{red:red(w)});}},
-    patrol:{cost:105,place(w){const base=rr(26,40),sd=rnd()<.5?1:-1;for(let k=0;k<3;k++){const d=base+k*3.2,off=rr(2.4,3.6)*sd;sow('hollow',Math.cos(w.a)*d-Math.sin(w.a)*off,Math.sin(w.a)*d+Math.cos(w.a)*off,{red:red(w)});}}},
+    pair:  {cost:70, place(w){const p=spot(w,24,50,.4);if(!p)return;sow('hollow',p[0],p[1],{red:red(w),shield:posHash(p[0],p[1],3)<.3||undefined});const q=spot(w,24,50,.4)||p;sow('hollow',q[0]+1.5,q[1],{red:red(w)});}},
+    patrol:{cost:105,place(w){const base=rr(26,40),sd=rnd()<.5?1:-1;for(let k=0;k<3;k++){const d=base+k*3.2,off=rr(2.4,3.6)*sd,x=Math.cos(w.a)*d-Math.sin(w.a)*off,z=Math.sin(w.a)*d+Math.cos(w.a)*off;sow('hollow',x,z,{red:red(w),shield:(k===0&&posHash(x,z,3)<.45)||undefined});}}},   // (a patrol is led by a Shieldbearer, near half the time)
     guard: {cost:115,place(w){const h=high(w)||spot(w,26,48,.4);if(!h)return;sow('caster',h[0],h[1],{red:red(w)});for(let k=0;k<2;k++){const p=spot(w,24,50,.45)||h;sow('hollow',p[0],p[1],{red:red(w)});}}},
     brute: {cost:155,place(w){const p=spot(w,28,50,.4);if(!p)return;sow('big',p[0],p[1],{red:red(w)});const q=spot(w,24,50,.45)||p;sow('hollow',q[0],q[1],{red:red(w)});}},
     // a brute on its own, out where there is room for it to swing
@@ -20073,6 +20500,7 @@ function popLimb(e,hv,key,p){
 }
 function gunHit(g,hit,o,d,dmgScale){
   const e=hit.e,head=!!hit.s.head,limb=hit.s.limb||null,p=hit.point,C=calOf(g);FPS.lastHitE=e;
+  if(e.shieldBlocks&&e.shieldBlocks(o.x,o.z,(g.poise||1)*(C.strong?3:1))==='block'){sparkBurst(p.x,p.y,p.z,6);return {kill:false,head:false};}   // (the Shieldbearer's planks take it; a heavy calibre breaks the guard instead)
   let dmg=g.dmg*(head?g.head:limb?.85:1)*(dmgScale||1);
   const el=player.element;
   if(el==='lightning')dmg*=1.2;
@@ -21276,6 +21704,8 @@ const CODEX_CATS=[
       t:'a skeleton in rags with a blade: the common body of the host. In the field most of them are still in their graves and climb out when you come near; on the path they pace their posts. A telling blow bursts one into a heap of bones that drags itself back together; five greatsword swings, or one .50 round.'},
     {k:'hollow · red',name:'the red-boned',ep:'the host, burning hotter',where:'the field · the path',make:cxEnemy('hollow',{red:true,plain:false}),
       t:'about one in seven of the host comes up red — a hollow, a thrower or a brute alike: 2.2 times the life and twice the marrow. The same fight held down longer, and worth it.'},
+    {k:'hollow · shield',name:'the Shieldbearer',ep:'a tower of planks',where:'the field · the path: at the head of a patrol, or one of a pair',make:cxEnemy('hollow',{shield:true}),
+      t:'a hollow behind a tower shield of iron-rimmed planks, with a short blade. From in front a blow stops on the planks and the blade is thrown back off it; a round sparks off, an arrow stands in the wood. It turns slowly, so get round it — from the side or behind there is nothing in the way. A heavy blow (a charged cut, the ultra\'s) or the fourth light one in a row breaks its guard and the shield hangs for a couple of seconds, and it lowers the shield to swing: strike as it recovers. 110 life.'},
     {k:'caster',name:'the thrower',ep:'bone from a distance',where:'the field · the path',make:cxEnemy('caster'),
       t:'a lighter skeleton that keeps about eleven metres off and lobs bone at you — half a heart a bone. It never stands still to do it: it works round you in a circle, turning its circle after every throw and whenever you close inside seven metres. On the ravine path they stand on the rims.'},
     {k:'big',name:'the brute',ep:'the big skeleton',where:'the field · the path',make:cxEnemy('big'),
@@ -21286,6 +21716,10 @@ const CODEX_CATS=[
       t:'a dead knight on a dead horse, in the yard behind the castle\'s gate. It trots to the end of the yard away from you, turns, and the horse REARS and screams — the tell — and it comes down the yard at fourteen metres a second with its lance couched, hardly steering once it has gone: roll through the line or be thrown. At the far end it has to pull up and WHEEL round, side-on and slow, and every blow does half again — that is where it is fought. Stand close and the horse rears and STAMPS. Half its bar is the horse: bring that down and the rider is thrown clear and gets up.'},
     {k:'rider · unhorsed',name:'the Rider, unhorsed',ep:'the second half of the bar',where:'the castle, when the horse goes down',make:(x,z,px,pz)=>{const e=new Enemy('boss',x,z-1.5,{rider:true});e.state='rise';e.t=0;e.rig.root.position.y=heightAt(x,z-1.5);return [cxFoe(e,px,pz)];},
       t:'the Rider on foot, with a war flail on three links of chain and a limp: the Warden\'s body of blows, slower, the iron head swinging behind the haft. Its death lifts the keep\'s portcullis and the road goes on.'},
+    {k:'wraith',name:'the fog wraith',ep:'what the fog hides',where:'the field · the path, in dense fog only',make:(x,z,px,pz)=>{const w=new FogWraith(x,z-4);w.cool=0;w.ring=WRAITH.R1;return [cxFoe(w,px,pz)];},
+      t:'only in dense fog, one or two at a time, and never seen coming: it drifts round you on a closing ring, untouchable and all but invisible — a smudge in the fog\'s glow inside ten metres, and a whisper when it is near. Six metres off it takes form with a shriek, lunges with both claws, lingers a beat, and fades, to come again from another side. It can only be struck while it has form; struck, it may break off early. 60 life.'},
+    {k:'wyrm',name:'the Ravine Wyrm',ep:'what the cut was dug by',where:'the path: one ravine run in three, three hexes or longer',make:(x,z,px,pz)=>{const W=new RavineWyrm(null,5,z-4);W.metOnce=true;return [cxFoe(W,px,pz)];},
+      t:'a serpent of bone seventeen metres long that swims through the ravine\'s walls; the soil heaves along its line when it comes. It REARS out of one wall with its jaws open — the tell — snaps at where you are and lies a beat with its skull on the ground, when every blow does half again. It ARCS clean across the trench from wall to wall, the body sweeping the trail behind the head. And the ground cracks in a ring under your feet and it ERUPTS there and dives into a wall. Only what is above the soil can be struck. At half its life it comes faster. 820 life.'},
     {k:'bat',name:'the bat',ep:'the crow of the dark',where:'the field · the path, most at night, in fog and in the ravines',make:(x,z,px,pz)=>{const c=new Crow(x,z,{bat:true});c.state='roost';c.y=heightAt(x,z)+.25;return [cxFoe(c,px,pz)];},
       t:'the crow\'s place taken by a bat: a small dark body, big ears, wings of skin stretched on finger bones. It flies faster and never straight — its circle breathes in and out and it jinks as it goes — winds its dive in a third of a second and comes in at seventeen metres a second. Fourteen life, one heart a bite, and it squeaks. Half the crows are bats at night, in fog and in the ravines; about one in seven anywhere else.'},
     {k:'crow',name:'the crow',ep:'carrion bird',where:'the field · the path',make:(x,z,px,pz)=>{const c=new Crow(x,z);c.state='roost';c.y=heightAt(x,z)+.25;return [cxFoe(c,px,pz)];},
@@ -21975,6 +22409,7 @@ function frame(now){
       // ...and whatever she is wearing goes on falling with her
       updateRigCloth(player.rig,wdt);
     }
+    if(G.mode==='play')wraithTick(wdt);            // the fog's own (see THE FOG WRAITH)
     for(const e of enemies){
       if(G.mode==='play'||e.state==='dead')e.update(wdt);
       if(e.burnT>0&&e.hp>0&&!e.untouchable&&G.mode==='play')tickBurn(e,wdt);
@@ -22052,7 +22487,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={CODEX,GARG,ArmHorror,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={CODEX,GARG,ArmHorror,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

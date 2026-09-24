@@ -2754,6 +2754,46 @@ Warden's body of blows with a **war flail**, its spiked head swinging on
 three links of chain behind the haft, and a limp: slower than the Warden,
 340 life, 900 marrow. His death lifts the keep's portcullis.
 
+## The Shieldbearer
+
+A hollow behind a **tower shield** of iron-rimmed planks, with a short blade.
+It leads a patrol near half the time, and is sometimes one of a pair. From
+in front a blow stops on the planks and your blade is thrown back off it
+the way it is off stone; a round sparks off, and an arrow stands in the
+wood. It turns slowly, so **get round it**: from the side or behind there
+is nothing in the way. A **heavy** blow — a charged cut, the ultra's — or
+the fourth light one in a row **breaks its guard**, and it reels with the
+shield hanging for a couple of seconds. It lowers the shield to swing, so
+the other opening is just after it strikes. 110 life, worth 45 marrow.
+
+## The fog wraith
+
+Only in **dense fog**, one or two at a time, and never seen coming. A
+wraith drifts round you on a closing ring, untouchable and all but
+invisible — a smudge in the fog's glow inside ten metres, and a **whisper**
+when it is near. Six metres off it **takes form** with a shriek, lunges
+with both claws, lingers a beat, and fades, to come again from another
+side; two of them take turns. It can only be struck while it has form, and
+struck it may break off early. When the fog lifts, they go with it.
+60 life, worth 50 marrow.
+
+## The Ravine Wyrm
+
+What the cut was dug by: a serpent of bone some eighteen metres long that
+**swims through the ravine's walls**. About one ravine run in three, of
+three hexes or longer and past the sixth hex, carries one; the soil heaves
+along its line when it comes, and it is fought the length of the run.
+- **the strike** — it rears out of one wall over the trail, jaws open (the
+  tell), snaps at where you are, and **lies a beat with its skull on the
+  ground**: every blow then does half again. Two hearts if it takes you.
+- **the crossing** — the wall bursts and it arcs clean across the trench to
+  the other side, the body sweeping the trail behind the head.
+- **the eruption** — the ground cracks in a ring under your feet and it
+  bursts straight up there, towers, and dives into a wall.
+
+Only what is above the soil can be struck. At half its life the walls
+shake and it comes faster, and erupts more. 820 life, worth 900 marrow.
+
 ## The bat
 
 In the dark the crows are **bats**: half of them at night, in fog and in
