@@ -2905,6 +2905,22 @@ The game keeps one record in this browser, across every run and mode.
   end screen says when you have beaten it. The house keeps its best round,
   as it did.
 
+## Kept on the phone, and played with no signal
+
+Everything the game remembers — the records, the lore, the loadout, the
+settings — is stored on the device itself. Once the page has loaded, it
+is kept by the phone (`sw.js`) and **plays with no signal**; with one, it
+always fetches the latest version first. When a run begins the game asks
+the browser to keep its storage for good.
+- **On an iPhone, add it to the Home Screen** (share, then *Add to Home
+  Screen*). Safari clears a site's records after a week unused; the Home
+  Screen app keeps them. The title says so on an iPhone that has not.
+- **The save.** The pause screen's *the record* tab shows every best and
+  the total felled, and can **copy the save** as a code and **load a
+  save** from one. That is a spare against a cleared browser, and the way
+  to carry a record from Safari into the Home Screen app (which keeps its
+  own storage) or to another device.
+
 ## The bat
 
 In the dark the crows are **bats**: half of them at night, in fog and in

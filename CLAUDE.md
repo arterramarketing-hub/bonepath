@@ -59,9 +59,11 @@ look dated. Preserve it:
 - Everything procedural, generated at boot: textures are 256px canvases,
   audio is synthesized WebAudio, geometry is built in code. **No external
   asset files.** The single-file property is non-negotiable.
-  The one exception is the home-screen icon (`icons/`), because a launcher
-  reads it before the page runs. `tools/make_icons.py` paints it; re-run the
-  script, never edit a PNG. Nothing the GAME draws may come from disk.
+  The exceptions are the home-screen icon (`icons/`), because a launcher
+  reads it before the page runs, and the offline keeper `sw.js` with the
+  manifest. `tools/make_icons.py` paints the icon; re-run the script, never
+  edit a PNG. Nothing the GAME draws may come from disk. A new file the
+  page needs offline goes into `sw.js`'s `KEEP` list.
 
 When asked to improve graphics, improve *art direction within the
 constraint* — lighting, colour, silhouette, texture design. Do not
@@ -444,6 +446,11 @@ Each line is a rule. The why is in NOTES under the same names.
   `CX_ARMOUR` or `CX_WX`. `opts.plain` stops the red roll.
 
 ### Interface
+
+- Every record is localStorage under `bp_`. `saveOut` copies every `bp_`
+  key but the panels' tabs; a new record needs no more than the prefix.
+  `sw.js` is NETWORK FIRST: never make it cache first, or a phone keeps an
+  old game for good. It registers only over http(s), never under `file://`.
 
 - `#toast` sits at z-index 12, over the pause panel and the shop.
 - Panels are tabbed (`panelTab`); `setPaused` refuses while the shop is open.

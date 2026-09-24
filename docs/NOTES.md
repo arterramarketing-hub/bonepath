@@ -3624,3 +3624,17 @@ Known state of play:
   noon sun on snow grades to white. It is a dark slate (0x2c5070) now, and
   reads blue at noon and at night.
 
+- **KEPT ON THE DEVICE (`sw.js`, `keepAsk`, `saveOut`/`saveIn`).** The
+  records were always on the phone (localStorage), but there was a
+  manifest and no service worker, so the game needed a signal to load, and
+  on an iPhone Safari deletes a site's storage after seven days unused
+  unless it is on the Home Screen, whose storage is SEPARATE from Safari's.
+  `sw.js` keeps the page, the manifest and the icons, network first (a
+  cache-first keeper would pin a phone to an old build). Measured over
+  http: the keeper took all eight files; with the network cut, a reload
+  booted the title and a mode switch (a new page load, `?mode=path`)
+  booted the path. A save copied out (218 characters) and loaded into a
+  fresh profile brought its "best · hex 17" and 42 felled hollows with it;
+  a pasted "nonsense" was refused. The first layout of the record tab put
+  the save buttons below the fold of a landscape phone; they lead now.
+

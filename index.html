@@ -262,6 +262,8 @@
   #meet .rule{width:120px;height:1px;margin:7px auto;background:linear-gradient(90deg,transparent,var(--bone-dim),transparent);}
   #meet .big{font-size:clamp(17px,3.6vw,28px);letter-spacing:.34em;text-transform:uppercase;
     color:var(--bone);text-shadow:0 0 18px rgba(208,118,43,.35),0 2px 3px #000;}
+  #keepHint{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--bone-dim);opacity:.8;text-align:center;margin-top:6px;}
+  #keepHint:empty{display:none;}
   #died{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;
     background:rgba(4,5,5,.0);opacity:0;pointer-events:none;transition:opacity 1.2s, background 1.2s;}
   #died .t{font-size:clamp(34px,9vw,84px);letter-spacing:.34em;text-transform:uppercase;
@@ -536,7 +538,7 @@
 <div id="shopBtn">&#10022; spend</div>
 <div id="pause"><div class="panel">
   <h2>Paused</h2><div class="sub">the marrow remembers</div>
-  <div class="tabs" id="pauseTabs"><div class="tab on" data-t="hero">the pilgrim</div><div class="tab" data-t="run">this run</div><div class="tab" data-t="ctl">controls</div><div class="tab" data-t="fld">the field</div></div>
+  <div class="tabs" id="pauseTabs"><div class="tab on" data-t="hero">the pilgrim</div><div class="tab" data-t="run">this run</div><div class="tab" data-t="ctl">controls</div><div class="tab" data-t="fld">the field</div><div class="tab" data-t="rec">the record</div></div>
   <div class="cols">
     <div class="col hero on" data-t="hero">
       <canvas id="heroView" width="200" height="240"></canvas>
@@ -573,6 +575,18 @@
       <div class="sel"><span>music &amp; ambience</span><div class="pick"><div class="arrow fld" data-k="music" data-d="1">&lsaquo;</div><b id="selMusic">on</b><div class="arrow fld" data-k="music" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>frame counter</span><div class="pick"><div class="arrow fld" data-k="perf" data-d="1">&lsaquo;</div><b id="selPerf">off</b><div class="arrow fld" data-k="perf" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>go to seed</span><div class="pick"><input id="seedIn" inputmode="numeric" pattern="[0-9]*" placeholder="number"><div class="btn2 sm" id="btnSeed">Enter</div></div></div>
+    </div>
+    <div class="col" data-t="rec">
+      <h3>The record</h3>
+      <div class="btns" style="margin:0 0 2px;padding-top:0;border:0;justify-content:flex-start"><div class="btn2 sm" id="btnSaveOut" style="margin-left:0">copy save</div><div class="btn2 sm" id="btnSaveIn">load save</div></div>
+      <div class="note" id="rcNote" style="margin-top:4px"></div>
+      <div class="stat"><span>the path</span><b id="rcPath">—</b></div>
+      <div class="stat"><span>the ravine</span><b id="rcRav">—</b></div>
+      <div class="stat"><span>the Warden</span><b id="rcField">—</b></div>
+      <div class="stat"><span>the house</span><b id="rcDef">—</b></div>
+      <div class="stat"><span>horrors felled, ever</span><b id="rcFelled">0</b></div>
+      <div class="stat"><span>kinds met</span><b id="rcMet">0</b></div>
+      <div class="stat"><span>kept</span><b id="rcKept">on this device</b></div>
     </div>
     <div class="col" data-t="ctl">
       <h3>Touch</h3>
@@ -638,6 +652,7 @@
     <div class="mode" id="modeDefend"><b>The house</b><i>defender</i><span>hold a house in a drowned churchyard against the Drowned, round after endless round; the lull between is the shop<em id="bestDef"></em></span></div>
   </div>
   <div id="begin">touch a way to begin</div>
+  <div id="keepHint"></div>
   <div id="codexBtn">the codex<i>every horror, place, weapon and weather, to look at</i></div>
   <div class="hint" id="titleHint">left thumb &mdash; move &middot; tap &mdash; strike &middot; flick &mdash; roll &middot; hold &amp; drag &mdash; camera &middot; the 3RD / 1ST switch brings the guns out &middot; best in landscape</div>
 </div>
@@ -751,6 +766,7 @@
    HUD and messages ................... updateHUD, toast
    offerings, marrow .................. "interaction & offerings", MARROW, shedMarrow
    what is remembered across runs ..... "WHAT THE MARROW REMEMBERS", LORE, cxKeyOf, meetTick, loreBest
+   kept on the device, offline ........ "KEPT ON THE DEVICE", keepAsk, saveOut, saveIn, recordFill (and sw.js)
    grain overlay ...................... "grain overlay"
    the codex .......................... "THE CODEX", CODEX_CATS, codexShow
    boot and the main loop ............. begin, setAutoLock, frame
@@ -22400,6 +22416,49 @@ function meetTick(dt){
   if(MEET.t<=-.6&&MEET.q.length&&!CUT.on){const it=cxItem(MEET.q.shift());if(it){$('meetSm').textContent=it.ep;$('meetBig').textContent=it.name;$('meet').style.opacity=1;MEET.t=3.2;}}
   else if(MEET.t<=0)MEET.t-=dt*15;   // (a beat of nothing between two cards)
 }
+/* KEPT ON THE DEVICE. Everything the game remembers is localStorage, which
+   is the phone's own. What can lose it: the browser clearing a site's data
+   under pressure, and Safari deleting a site's storage after a week unused
+   unless it is on the Home Screen. So: the page asks for PERSISTENT storage
+   when a run begins (`keepAsk`); it is kept for play with no connection by
+   `sw.js` (network first: the latest page when there is a signal); and the
+   whole record can be copied out as a code and pasted back (`saveOut`,
+   `saveIn`), which is also the way to carry it from Safari into the Home
+   Screen app, whose storage is its own. */
+const SAVE_TAG='BONEPATH1:';
+function standalone(){try{return !!(navigator.standalone||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches);}catch(e){return false;}}
+const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let keepState='unknown';
+function keepAsk(){try{if(!navigator.storage||!navigator.storage.persist)return;
+  navigator.storage.persisted().then(p=>p||navigator.storage.persist()).then(p=>{keepState=p?'kept':'best effort';}).catch(()=>{});}catch(e){}}
+function saveOut(){
+  const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('bp_')===0&&k.indexOf('bp_tab_')!==0)o[k]=localStorage.getItem(k);}}catch(e){}
+  if(loreDirty)o.bp_lore=JSON.stringify(LORE);
+  const code=SAVE_TAG+btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+  const done=()=>toast('the save is copied: keep it somewhere safe');
+  try{navigator.clipboard.writeText(code).then(done,()=>window.prompt('copy this save',code));}catch(e){window.prompt('copy this save',code);}
+}
+function saveIn(){
+  const code=(window.prompt('paste a save (it replaces this device\'s record)')||'').trim();if(!code)return;
+  let o=null;try{if(code.indexOf(SAVE_TAG)!==0)throw 0;o=JSON.parse(decodeURIComponent(escape(atob(code.slice(SAVE_TAG.length)))));}catch(e){toast('that is not a save');return;}
+  if(!o||typeof o!=='object'){toast('that is not a save');return;}
+  try{for(const k in o)if(k.indexOf('bp_')===0&&typeof o[k]==='string')localStorage.setItem(k,o[k]);}catch(e){toast('the save could not be written');return;}
+  toast('the save is loaded');setTimeout(()=>location.reload(),900);
+}
+function recordFill(){
+  const B=LORE.best,x=id=>$(id);
+  x('rcPath').textContent=B.path?'hex '+B.path.hex+(B.path.won?' \u00b7 walked':''):'\u2014';
+  x('rcRav').textContent=B.ravine?'hex '+B.ravine.hex+(B.ravine.won?' \u00b7 walked':''):'\u2014';
+  x('rcField').textContent=B.field?'felled in '+fmtT(B.field.secs):'\u2014';
+  let d={};try{d=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');}catch(e){}
+  x('rcDef').textContent=d.round?'round '+d.round:'\u2014';
+  let n=0;for(const k in LORE.felled)n+=LORE.felled[k];x('rcFelled').textContent=n;
+  x('rcMet').textContent=Object.keys(LORE.met).length;
+  x('rcKept').textContent=keepState==='kept'?'on this device, kept':'on this device';
+  x('rcNote').textContent=IOS&&!standalone()?'Safari clears a site\u2019s records after a week unused. Add Bonepath to the Home Screen to keep them and to play with no signal; copy the save first, then load it there, because the Home Screen app keeps its own.'
+    :standalone()?'Installed: it plays with no signal, and its records stay on this device. Copy the save now and then to keep a spare.'
+    :'It plays with no signal once it has loaded here. Copy the save now and then to keep a spare, or to carry the record to another device.';
+}
 function endGame(won){
   G.mode='victory';
   const secs=Math.floor((performance.now()-G.runStart)/1000);
@@ -22809,6 +22868,7 @@ function codexExit(){gotoMode('');}
 function begin(){
   if(G.mode!=='title')return;
   AudioSys.start();AudioSys.layersStart();   // no theme: wind, the three layers, and the Warden's drone
+  keepAsk();   // (see KEPT ON THE DEVICE)
   G.mode='play';G.runStart=performance.now();$('pauseBtn').classList.add('on');$('povBtn').classList.add('on');$('lockBtn').classList.add('on');
   $('title').style.display='none';
   $('hud').style.display='block';
@@ -22848,6 +22908,7 @@ buildWorld();
 $(PATH.only?'modeRavine':PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
 try{const b=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');if(b.round)$('bestDef').textContent='best \u00b7 round '+b.round+' held';}catch(e){}
 loreTitle();
+if(IOS&&!standalone())$('keepHint').textContent='share \u2192 add to home screen: it keeps your records, and plays with no signal';
 if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
 spawnEnemies();
@@ -23175,7 +23236,7 @@ function setPaused(on){
   G.paused=on;
   if(on)Input.releaseAll();     // no thumb survives the pause screen holding a direction
   $('pause').classList.toggle('on',on);
-  if(on)fillPause();
+  if(on){fillPause();recordFill();}
   AudioSys.pause(on);
 }
 $('pauseBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();setPaused(!G.paused);});
@@ -23187,6 +23248,9 @@ for(const id of['pause','shop']){const r=$(id);if(!r)continue;
   r.addEventListener('pointerdown',e=>{const tb=e.target.closest('.tab');if(tb&&tb.dataset.t){e.preventDefault();e.stopPropagation();panelTab(r,tb.dataset.t);}});
   try{const t=localStorage.getItem('bp_tab_'+id);if(t&&r.querySelector('.tab[data-t="'+t+'"]'))panelTab(r,t);}catch(e){}}
 $('btnRestart').addEventListener('pointerdown',e=>{e.preventDefault();location.reload();});
+$('btnSaveOut').addEventListener('click',e=>{e.preventDefault();saveOut();});
+$('btnSaveIn').addEventListener('click',e=>{e.preventDefault();saveIn();});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});   // the offline keeper (see KEPT ON THE DEVICE)
 $('pause').addEventListener('pointerdown',e=>{e.stopPropagation();});
 
 /* THE FRAME'S OWN MEASURE. Not for the player: for knowing whether a change
