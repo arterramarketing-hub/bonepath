@@ -12149,7 +12149,7 @@ function thorStrike(P,foe,full){
   if(!t)return;
   const dmg=full?52:40;
   const hold=(e,d)=>{e.takeHit(d,e.boss?4:99,e.x,e.z-.01,0,{dx:0,dz:0,up:0});
-    if(e.hp>0){if(e.crow)e.scatter();else if(!e.boss){e.state='stagger';e.t=0;e.poise=0;e.attack=null;e.vx=0;e.vz=0;}}};
+    if(e.hp>0){if(e.crow)e.scatter();else if(!e.boss&&staggers(e)){e.state='stagger';e.t=0;e.poise=0;e.attack=null;e.vx=0;e.vz=0;}}};
   hold(t,dmg);
   const near=enemies.filter(e=>e!==t&&e.hp>0&&e.state!=='dormant'&&e.state!=='rise'&&!e.untouchable&&e.state!=='scatter'&&Math.hypot(e.x-tx,e.z-tz)<4.5)
     .sort((a,b)=>Math.hypot(a.x-tx,a.z-tz)-Math.hypot(b.x-tx,b.z-tz)).slice(0,2);
@@ -12218,7 +12218,7 @@ function katanaMeets(P,K,e,tip,ey){
   e.takeHit(dmg,e.boss?4:99,P.x,P.z,1.2,{dx:d.x,dz:d.z,up:.6});
   const m=K.mesh;m.position.set(e.x,ey,e.z).addScaledVector(d,.25-K.tipLen);   // the point a hand's width past the chest's centre
   (e.rig.torso||e.rig.root).attach(m);K.state='stuck';K.target=e;
-  if(!e.boss&&e.hp>0&&e.state!=='down'&&!e.rag){e.state='stagger';e.t=0;e.poise=0;e.attack=null;e.vx=d.x*2;e.vz=d.z*2;}
+  if(!e.boss&&staggers(e)&&e.hp>0&&e.state!=='down'&&!e.rag){e.state='stagger';e.t=0;e.poise=0;e.attack=null;e.vx=d.x*2;e.vz=d.z*2;}
 }
 function recallKatana(P){
   const K=P.katThrown;if(!K||K.state==='return')return;
@@ -12910,7 +12910,7 @@ const player={
     let best=null,bd=1.8;
     const fx=Math.sin(this.facing),fz=Math.cos(this.facing);
     for(const e of enemies){
-      if(e.hp<=0||e.boss||e.mini||e.crow||e.untouchable||e.rag)continue;
+      if(e.hp<=0||e.boss||e.mini||e.crow||e.untouchable||e.rag||!isHost(e))continue;
       if(['dead','held','down','scatter','stagger','dormant','rise','buried'].includes(e.state))continue;
       const dx=e.x-this.x,dz=e.z-this.z,d=Math.hypot(dx,dz);
       if(d>bd||d<.2)continue;
@@ -12925,7 +12925,7 @@ const player={
     if(this.weapon()==='wand'||gunHeld())return null;      // nor stand over a held horror with one
     let best=null,bd=2.7;
     for(const e of enemies){
-      if(e.hp<=0||e.boss||e.mini||e.crow||e.state!=='stagger'||e.untouchable)continue;
+      if(e.hp<=0||e.boss||e.mini||e.crow||e.state!=='stagger'||e.untouchable||!isHost(e))continue;
       const d=Math.hypot(e.x-this.x,e.z-this.z);
       if(d<bd){bd=d;best=e;}
     }
@@ -13041,7 +13041,7 @@ const player={
       if(crit){
         // a telling blow blasts a small skeleton clean apart —
         // if life remains in it, the bones will crawl back together
-        if(e.hp>0&&!e.big&&!e.boss&&this.weapon()!=='katana')e.scatter(hv.dx,hv.dz,3.4);   // (a heavy blade's doing; the katana cuts, it doesn't blast) — the bones fly the way the blow went
+        if(e.hp>0&&!e.big&&!e.boss&&!e.mini&&this.weapon()!=='katana')e.scatter(hv.dx,hv.dz,3.4);   // (a heavy blade's doing; the katana cuts, it doesn't blast) — the bones fly the way the blow went
       }
       if(el){
         elemBurst(el,(this.x+e.x)/2,1.2,(this.z+e.z)/2);
@@ -13681,7 +13681,7 @@ const player={
           const px=e.x-this.x,pz=e.z-this.z,tt=clamp((px*dx+pz*dz)/L,0,1),cx=this.x+dx*L*tt,cz=this.z+dz*L*tt;
           if(Math.hypot(e.x-cx,e.z-cz)<e.radius+.7){
             this.iaiHits.push(e);
-            if(!e.boss&&!e.mini){e.state='held';e.t=0;e.vx=0;e.vz=0;e.attack=null;}
+            if(!e.boss&&!e.mini&&isHost(e)){e.state='held';e.t=0;e.vx=0;e.vz=0;e.attack=null;}
           }
         }
         this.x=nx;this.z=nz;this.iaiGo+=L;G.slowMo=.45;
@@ -13820,7 +13820,7 @@ const player={
           const U=this.ultra()?3:1;                                 // the slab drives it three times as deep
           if(e.boss||e.mini){e.takeHit((full?32:20)*U,4,ix,iz,1,{dx:ux,dz:uz,up:.5});continue;}
           e.takeHit((full?26:16)*U,99,ix,iz,2,{dx:ux,dz:uz,up:2});
-          if(e.hp<=0)continue;
+          if(e.hp<=0||!isHost(e))continue;
           if(!e.big&&Math.random()<.4){                              // bones burst away down the line
             e.scatter(ux,uz,9+8*near);
           }else{                                                     // or the whole body is flung
@@ -14388,12 +14388,20 @@ function packSteer(e,dx,dz,dist){
    look, and whatever was asleep or pacing comes. `startleT` is short on
    purpose: it is a beat, not a stun — a pack that freezes every time you
    kill something is a pack you can kill one at a time for nothing. */
+/* WHO CAN BE PUT IN A HOLLOW'S STATE. A blow that staggers, holds or
+   flings a horror WRITES 'stagger', 'held' or 'down' onto it, and a horror
+   of its own class with no such state stood frozen in it for good (the
+   Arm, the Wyrm, the wraith, the bride, the gargoyle: every one written
+   since the host). Only the host knows 'held' and 'down' (`isHost`); the
+   Fallen One, the Unburied and the Bell-Called also know 'stagger'. */
+function isHost(e){return e instanceof Enemy;}
+function staggers(e){return !!e&&!e.crow&&(isHost(e)||e.kind==='angel'||e.kind==='ghoul'||e.kind==='hand'||e.kind==='skull');}
 function alertPack(x,z,from){
   for(const e of enemies){
     if(e===from||e.hp<=0||e.state==='dead'||e.boss)continue;
     const d=Math.hypot(e.x-x,e.z-z);
     if(d>12)continue;
-    if(e.state==='dormant'){if(!e.ambush&&d<8)e.wake();continue;}
+    if(e.state==='dormant'){if(!e.ambush&&d<8&&e.wake)e.wake();continue;}   // (the Wyrm lies 'dormant' too, and has no waking but its own)
     if(e.state==='patrol'||e.state==='guard'||e.state==='return'){e.state='chase';e.t=0;continue;}
     if(e.state==='chase'&&d<7&&(e.startleCd||0)<=0){
       e.startleT=.34;e.startleCd=3.5;e.lookX=x;e.lookZ=z;
@@ -14655,6 +14663,7 @@ class Enemy{
      into a crescent instead of queueing. Re-rolled when it is startled. */
   rollFlank(){this.flank=(Math.random()<.5?-1:1)*rr3(.4,1.0);}
   patrol(){ // path-born: no grave to climb from — it stands on the road already, pacing a few strides back and forth
+    if(this.frost||this.shade)return;   // (the Frostbound stays in its ice; the Shade stays unseen)
     this.state='patrol';this.t=rr3(0,6);this.patA=rr3(0,TAU);this.patR=rr3(1.6,3.4);this.patW=rr3(.5,.8);this.patMv=0;
     this.rig.root.position.y=heightAt(this.x,this.z);
   }
@@ -14663,7 +14672,7 @@ class Enemy{
     if(this.frost){this.thaw();return;}
     if(this.shade){   // it steps out of nothing, already coming
       this.state='chase';this.t=0;this.engaged=true;this.rig.root.visible=true;this.rig.root.position.y=heightAt(this.x,this.z);
-      smokePuff(this.x,1,this.z,6);if(!CODEX.on){AudioSys.nameSting();G.camShake=Math.max(G.camShake,.2);bannerShow('A SHADE OF YOU','it has come back for you');}return;}
+      smokePuff(this.x,heightAt(this.x,this.z)+1,this.z,6);if(!CODEX.on){AudioSys.nameSting();G.camShake=Math.max(G.camShake,.2);bannerShow('A SHADE OF YOU','it has come back for you');}return;}
     this.state='rise';this.t=0;
     if(this.boss)return; // boss has its own cutscene path
     AudioSys.graveRise();
@@ -14689,7 +14698,7 @@ class Enemy{
     const swinging=['attack','charge','spin','sprintatk','rollatk','tiger','kthrust','iai','homerun','quake','dslash','backstab'].includes(P.state)&&P.t<.22;
     if(busy&&swinging&&dist<3.4&&this.rollCd<=0){this.rollCd=SHADE.ROLL_CD;
       if(Math.random()<.6){const a=Math.atan2(this.x-P.x,this.z-P.z)+(Math.random()<.5?-1:1)*.9;this.rdx=Math.sin(a);this.rdz=Math.cos(a);this.facing=Math.atan2(-this.rdx,-this.rdz);
-        this.state='sroll';this.t=0;this.untouchable=true;AudioSys.roll&&AudioSys.roll();}}
+        this.state='sroll';this.t=0;AudioSys.roll&&AudioSys.roll();}}
     else if(this.state==='chase'&&this.flasks>0&&this.hp<this.maxHp*.45&&dist>4.5){this.flasks--;this.state='flask';this.t=0;this.drank=false;}
   }
   // a Frostbound's blow that lands chills the pilgrim (see THE FROSTBOUND)
@@ -14720,12 +14729,12 @@ class Enemy{
         elemFleck('ice',this.x+rr3(-.3,.3),.9+rr3(0,.8),this.z+rr3(-.3,.3));
     }
     if(frozen){this.vx=0;this.vz=0;}
-    if(this.shade&&this.hp>0&&!frozen)this.shadeCall(dt,dist);
+    if(this.shade){this.untouchable=this.state==='sroll'&&this.t<SHADE.ROLL*.75;if(this.hp>0&&!frozen)this.shadeCall(dt,dist);}   // (set every frame: a roll cut short must not leave it untouchable)
 
     switch(frozen?'frozen':this.state){
       case 'frozen':break;                                   // (held: nothing moves)
       case 'sroll':{const k=1-this.t/SHADE.ROLL;this.x+=this.rdx*7.5*k*dt;this.z+=this.rdz*7.5*k*dt;constrain(this,false);
-        this.untouchable=this.t<SHADE.ROLL*.75;if(this.t>=SHADE.ROLL){this.state='chase';this.t=0;this.untouchable=false;}break;}
+        if(this.t>=SHADE.ROLL){this.state='chase';this.t=0;}break;}
       case 'flask':
         if(!this.drank&&this.t>=1.0){this.drank=true;this.hp=Math.min(this.maxHp,this.hp+this.maxHp*.33);AudioSys.flask();for(let i=0;i<8;i++)elemFleck('ice',this.x+rr3(-.3,.3),.8+Math.random()*1.2,this.z+rr3(-.3,.3));}
         if(this.t>=1.4){this.state='chase';this.t=0;}break;
@@ -16700,6 +16709,7 @@ class OssuarySwarm{
     this.dm=new THREE.Object3D();
   }
   spheres(){return this.untouchable||this.hp<=0?[]:[{x:this.x,y:heightAt(this.x,this.z)+.3,z:this.z,r:this.radius*.7,head:false}];}
+  wake(){if(this.state==='dormant'){this.state='rise';this.t=0;AudioSys.graveRise();}}   // (a death in the bowl gets it up: see alertPack)
   reset(){}
   scatter(){}
   flash(){this.flashUntil=G.time+.08;}

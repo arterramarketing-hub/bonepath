@@ -315,6 +315,14 @@ Each line is a rule. The why is in NOTES under the same names.
   while its own scene plays); `spheres()` for gun hits. A grab is a player
   state. Its FIRST tell is at home, ahead of the pilgrim: a scene needs a
   bearing, and one under his feet has none.
+- **A horror of its own class has none of the host's states.** Anything
+  that WRITES `'stagger'` onto a horror asks `staggers(e)`; anything that
+  writes `'held'` or `'down'`, or picks a backstab or finishing target,
+  asks `isHost(e)`. A horror left in a state it does not know stands
+  frozen for good. `alertPack` wakes a `'dormant'` horror only if it has a
+  `wake()`: a new class that lies dormant either has one or is skipped.
+- A Frostbound and a Shade never `patrol()`: a roaming template leaves
+  them where they were sown.
 - **Every kill's marrow goes through `shedMarrow`.**
 - `DEF.might` is applied in every horror's `takeHit`, never at a call site.
 - New siege-walkers need `zombieMove`'s stuck-on-a-tree detour.

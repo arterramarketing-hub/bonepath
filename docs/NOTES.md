@@ -3583,3 +3583,28 @@ Known state of play:
     eight metres of room it drank once: 86 back, a third of 260, one flask
     left. The field's comes once, at twenty kills.
 
+- **THE AUDIT AFTER THE ELEVEN (`isHost`, `staggers`, `alertPack`).**
+  Every horror of its own class — the Arm, the Rider on its horse, the
+  wraith, the Wyrm and all of the eleven but the variants — was open to
+  the player's blows that write a HOLLOW'S state onto whatever they meet:
+  the thunder's hold and the stuck katana write 'stagger', the iai and
+  the backstab 'held', the earthshaker 'down'. Those classes have no such
+  state, so the horror stood where it was for good. Measured on the
+  pushed build: the finishing stab (`backstabTarget`) chose the bride,
+  a landed gargoyle and the swarm; after, none of them. Worse,
+  `alertPack` called `wake()` on anything lying 'dormant' within eight
+  metres of a death, and the swarm and the Wyrm lie 'dormant' with no
+  `wake()`: `e.wake is not a function`, thrown from inside a kill. The
+  swarm has a `wake()` now (a death in the bowl gets it up); the Wyrm is
+  skipped. A crit's blast also scattered the Shade into white bones (it
+  is not `big`); a mini is never scattered now. And on a snowy path two
+  Frostbound in three were ROAMING hollows, which `patrol()` stood up and
+  walked about still in their ice; they stay put. The Shade's roll set
+  `untouchable` and cleared it only when the roll ended, so a roll cut
+  short by a freeze could leave it untouchable; it is set every frame.
+  A blade stroke through `meleeHit` (not `takeHit` straight) did its 20
+  on the bride, a landed gargoyle, the King, the Hanged down, the Shade
+  and the Frostbound, and killed three pieces of the swarm.
+  The gargoyle's perch was checked by picture at last, through the codex
+  lens: it crouches on the aisle roof's eave over the carved spout.
+
