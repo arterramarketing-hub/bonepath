@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Bonepath">
 <meta name="application-name" content="Bonepath">
 <meta name="description" content="A haunted PSX-style souls-like that runs in a phone browser.">
+<script>try{if(/[?&]go=1/.test(location.search)&&!/[?&]mode=codex/.test(location.search))document.documentElement.className+=' going';}catch(e){}</script>
 <style>
   /* BONEPATH — haunted PSX souls-like. Single committed theme: bone ivory on grave fog. */
   :root{
@@ -285,21 +286,46 @@
     text-shadow:0 0 44px rgba(208,118,43,.22),0 0 18px rgba(207,196,163,.12),0 3px 0 #000,0 4px 14px #000;}
   #title .sub{margin-top:8px;font-size:clamp(9px,2vw,12px);letter-spacing:.56em;text-indent:.56em;
     text-transform:uppercase;color:var(--bone-dim);}
-  #title .rule{width:min(46vw,300px);height:1px;margin:14px auto 16px;
-    background:linear-gradient(90deg,transparent,var(--ember),transparent);opacity:.7;}
-  #modes{display:flex;gap:12px;justify-content:center;align-items:stretch;width:min(96vw,880px);margin:0 0 12px;}
-  #modes .mode{flex:1 1 0;min-width:0;padding:13px 14px 12px;border:1px solid rgba(200,190,160,.2);text-align:left;position:relative;
-    background:linear-gradient(180deg,rgba(16,20,17,.78),rgba(6,7,8,.82));cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;
-    box-shadow:inset 0 1px 0 rgba(200,190,160,.06);transition:border-color .15s,box-shadow .15s;}
-  #modes .mode b{display:block;font-weight:normal;font-size:clamp(12px,1.9vw,15px);letter-spacing:.3em;text-transform:uppercase;color:var(--bone);}
-  #modes .mode i{display:block;font-style:normal;font-size:9px;letter-spacing:.36em;text-transform:uppercase;color:var(--ember);margin:4px 0 8px;}
-  #modes .mode span{display:block;font-size:10.5px;line-height:1.5;color:var(--bone-dim);}
-  #modes .mode em{display:block;margin-top:7px;font-style:normal;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ember-hi);opacity:.85;}
-  #modes .mode.on{border-color:var(--ember-hi);box-shadow:0 0 26px rgba(208,118,43,.22),inset 0 0 0 1px rgba(240,166,72,.28);}
-  #modes .mode.on b{color:var(--ember-hi);}
-  #modes .mode:active{background:rgba(200,190,160,.12);}
-  @media (max-height:470px){#title h1{font-size:clamp(30px,7.5vw,56px);} #title .rule{margin:9px auto 10px;} #modes .mode{padding:9px 12px 9px;} #modes .mode span{font-size:9.5px;line-height:1.4;} #modes .mode i{margin:2px 0 5px;}}
-  @media (max-width:560px){#modes{flex-wrap:wrap;} #modes .mode{flex:1 1 100%;} #modes .mode span{display:none;}}
+  /* THE TITLE MENU: the three ways in, the codex under a rule, and the card
+     of whichever is chosen beside them (see THE TITLE MENU) */
+  #title{justify-content:center;padding:max(16px,env(safe-area-inset-top)) 24px max(18px,env(safe-area-inset-bottom));}
+  #tHead{margin-bottom:clamp(10px,3.2vh,26px);}
+  #menu{display:flex;gap:clamp(18px,4vw,48px);align-items:stretch;justify-content:center;width:min(94vw,760px);text-align:left;}
+  #menuList{flex:0 0 clamp(170px,30vw,240px);display:flex;flex-direction:column;justify-content:center;}
+  #menuList .mi{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:clamp(7px,1.9vh,12px) 12px clamp(7px,1.9vh,12px) 22px;
+    position:relative;cursor:pointer;border-left:1px solid transparent;}
+  #menuList .mi b{white-space:nowrap;font-weight:normal;font-size:clamp(13px,2vw,17px);letter-spacing:.28em;text-transform:uppercase;color:var(--bone-dim);transition:color .2s;}
+  #menuList .mi i{font-style:normal;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--bone-faint);}
+  #menuList .mi.small b{font-size:clamp(11px,1.6vw,13px);}
+  #menuList .mi::before{content:"\2726";position:absolute;left:4px;top:50%;transform:translateY(-52%);font-size:10px;color:var(--ember-hi);opacity:0;transition:opacity .2s;}
+  #menuList .mi.on{border-left-color:var(--ember);background:linear-gradient(90deg,rgba(208,118,43,.14),transparent 85%);}
+  #menuList .mi.on b{color:var(--ember-hi);}
+  #menuList .mi.on i{color:var(--ember);}
+  #menuList .mi.on::before{opacity:1;}
+  #menuList .mi:active{background:rgba(200,190,160,.1);}
+  #menuList .mrule{height:1px;margin:clamp(6px,1.6vh,12px) 0 clamp(6px,1.6vh,12px) 22px;background:linear-gradient(90deg,rgba(200,190,160,.22),transparent);}
+  #menuCard{flex:1 1 auto;min-width:0;max-width:420px;padding:clamp(12px,2.6vh,20px) clamp(14px,2.4vw,22px);border:1px solid rgba(200,190,160,.16);
+    background:linear-gradient(180deg,rgba(14,18,16,.82),rgba(8,10,9,.82));display:flex;flex-direction:column;}
+  #menuCard .ep{font-size:9px;letter-spacing:.36em;text-transform:uppercase;color:var(--ember);}
+  #menuCard h2{margin:4px 0 0;font-weight:normal;font-size:clamp(17px,2.8vw,24px);letter-spacing:.3em;text-transform:uppercase;color:var(--bone);}
+  #menuCard p{margin:clamp(6px,1.6vh,12px) 0 0;font-size:clamp(11px,1.5vw,12.5px);line-height:1.55;color:var(--bone-dim);}
+  #mcRoute{display:none;align-items:center;gap:10px;margin-top:clamp(8px,1.8vh,14px);}
+  #mcRoute>span{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--bone-faint);}
+  #mcRoute .seg{display:flex;border:1px solid rgba(200,190,160,.22);}
+  #mcRoute .opt{padding:6px 11px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-dim);cursor:pointer;}
+  #mcRoute .opt+.opt{border-left:1px solid rgba(200,190,160,.22);}
+  #mcRoute .opt.on{background:rgba(208,118,43,.18);color:var(--ember-hi);}
+  #mcRec{margin-top:clamp(8px,1.8vh,14px);font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ember-hi);opacity:.9;min-height:1.4em;}
+  #mcRec.none{color:var(--bone-faint);}
+  #menuGo{margin-top:auto;align-self:flex-start;padding:clamp(9px,2vh,12px) 30px;border:1px solid var(--ember-hi);color:var(--ember-hi);font-size:12px;
+    letter-spacing:.46em;text-indent:.46em;text-transform:uppercase;cursor:pointer;box-shadow:0 0 22px rgba(208,118,43,.18);}
+  #menuCard p+#mcRoute,#menuCard p+#mcRec{}
+  #menuGo:active{background:rgba(208,118,43,.2);}
+  #turnHint{display:none;margin-top:14px;font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--bone-faint);}
+  @media (orientation:portrait) and (max-width:700px){#turnHint{display:block;}}
+  @media (max-width:600px){#menu{flex-direction:column;align-items:stretch;} #menuList{flex:none;} #menuCard{max-width:none;} #menuGo{margin-top:14px;align-self:stretch;text-align:center;}}
+  @media (max-height:430px){#title h1{font-size:clamp(28px,6.5vw,52px);} #title .sub{margin-top:5px;}}
+  html.going #title{display:none!important;}
   /* ---- first person: the shooter's controls and its HUD ----
      laid out the way a phone shooter lays them: a trigger under EACH
      thumb, the sights / reload / dodge in a cluster to the right of the
@@ -438,10 +464,6 @@
   #perf.on{display:block;}
   #perf b{font-weight:normal;color:#e8dcc0;}
   /* the codex (see THE CODEX in the script): a lens you turn with a finger, a list, and a card */
-  #codexBtn{margin-top:12px;padding:7px 16px 8px;border:1px solid rgba(200,190,160,.18);font-size:10px;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;color:var(--bone);
-    cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
-  #codexBtn i{display:block;font-style:normal;font-size:8.5px;letter-spacing:.22em;text-indent:.22em;color:var(--bone-dim);margin-top:3px;text-transform:none;}
-  #codexBtn:active{background:rgba(200,190,160,.12);}
   #verLine{position:absolute;right:max(14px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--bone-dim);display:flex;gap:10px;align-items:center;}
   #verBtn{padding:5px 9px;border:1px solid rgba(200,190,160,.22);color:var(--bone);cursor:pointer;pointer-events:auto;}
   #verBtn:active{background:rgba(200,190,160,.12);}
@@ -479,11 +501,7 @@
   #codex .cx-hint{position:absolute;left:202px;bottom:16px;right:calc(min(46vw,380px) + 30px);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(200,190,160,.42);text-shadow:0 1px 2px #000;}
   @media (max-width:640px){#codex .cx-list{width:120px;} #codex .cx-card{width:calc(100vw - 156px);} #codex .cx-hint{display:none;}}
   @media (max-height:430px){#codex .cx-tx{max-height:26vh;font-size:10.5px;line-height:1.42;}}
-  #begin{margin-top:2px;font-size:11.5px;letter-spacing:.46em;text-indent:.46em;text-transform:uppercase;
-    color:var(--ember-hi);animation:breathe 2.6s ease-in-out infinite;}
   @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
-  #title .hint{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));left:16px;right:16px;
-    font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-faint);line-height:1.8;}
   /* victory */
   #victory{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;
     justify-content:center;background:rgba(6,8,7,.92);text-align:center;padding:24px;}
@@ -496,7 +514,7 @@
     font-family:var(--serif);font-size:12px;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;
     background:transparent;}
   @media (prefers-reduced-motion: reduce){
-    #begin,#lowhp{animation:none}
+    #lowhp{animation:none}
   }
 </style>
 
@@ -646,20 +664,27 @@
 <div id="died"><div class="t">YOU DIED</div></div>
 
 <div id="title">
-  <h1>Bonepath</h1>
-  <div class="sub">the marrow remembers</div>
-  <div class="rule"></div>
-  <div id="modes">
-    <div class="mode" id="modeField"><b>The field</b><i>the run</i><span>harvest a thousand marrow from the sleeping host, open the cathedral, and fell the Warden at its altar<em id="bestField"></em></span></div>
-    <div class="mode" id="modePath"><b>The path</b><i>survival</i><span>hex after hex northward without end, a cathedral every sixth; six thousand marrow wins, and death ends it where you fall<em id="bestPath"></em></span></div>
-    <div class="mode" id="modeRavine"><b>The ravine</b><i>path two</i><span>the path with nothing but its wooded cuts, one into the next, and the highway overhead now and then; the same six thousand marrow<em id="bestRav"></em></span></div>
-    <div class="mode" id="modeDefend"><b>The house</b><i>defender</i><span>hold a house in a drowned churchyard against the Drowned, round after endless round; the lull between is the shop<em id="bestDef"></em></span></div>
-  </div>
-  <div id="begin">touch a way to begin</div>
-  <div id="keepHint"></div>
   <div id="verLine"><span id="verTxt"></span><span id="verBtn">check for updates</span></div>
-  <div id="codexBtn">the codex<i>every horror, place, weapon and weather, to look at</i></div>
-  <div class="hint" id="titleHint">left thumb &mdash; move &middot; tap &mdash; strike &middot; flick &mdash; roll &middot; hold &amp; drag &mdash; camera &middot; the 3RD / 1ST switch brings the guns out &middot; best in landscape</div>
+  <header id="tHead"><h1>Bonepath</h1><div class="sub">the marrow remembers</div></header>
+  <div id="menu">
+    <nav id="menuList" aria-label="ways in">
+      <div class="mi" id="modeField" data-k="field"><b>The field</b></div>
+      <div class="mi" id="modePath" data-k="path"><b>The path</b></div>
+      <div class="mi" id="modeDefend" data-k="house"><b>The house</b></div>
+      <div class="mrule"></div>
+      <div class="mi small" id="codexBtn" data-k="codex"><b>The codex</b></div>
+    </nav>
+    <section id="menuCard">
+      <div class="ep" id="mcEp"></div>
+      <h2 id="mcName"></h2>
+      <p id="mcText"></p>
+      <div id="mcRoute"><span>route</span><div class="seg"><div class="opt" id="routeOpen" data-r="open">open country</div><div class="opt" id="modeRavine" data-r="ravines">the ravines</div></div></div>
+      <div id="mcRec"></div>
+      <div id="menuGo">begin</div>
+    </section>
+  </div>
+  <div id="keepHint"></div>
+  <div id="turnHint">best played with the phone on its side</div>
 </div>
 
 <div id="perf"></div>
@@ -22359,10 +22384,6 @@ function felledLine(){const F=G.felled||{},it=Object.entries(F).filter(([k])=>cx
   const nm=k=>{const c=cxItem(k);return c?c.name:k;};
   return it.slice(0,7).map(([k,n])=>nm(k)+(n>1?' &times;'+n:'')).join(' &middot; ')+(it.length>7?' &middot; &hellip;':'');}
 const fmtT=secs=>String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
-function loreTitle(){const B=LORE.best;
-  if(B.path)$('bestPath').textContent='best \u00b7 hex '+B.path.hex+(B.path.won?' \u00b7 walked':'');
-  if(B.ravine)$('bestRav').textContent='best \u00b7 hex '+B.ravine.hex+(B.ravine.won?' \u00b7 walked':'');
-  if(B.field)$('bestField').textContent='best \u00b7 the Warden in '+fmtT(B.field.secs);}
 /* THE FIRST MEETING. The first time you are within fourteen metres of a
    kind of horror that is awake and can be struck, its name comes up at
    the top of the screen: the epithet above, the name below (the scenes'
@@ -22481,7 +22502,7 @@ function endGame(won){
   $('prompt').style.display='none';$('banner').style.opacity=0;$('toast').style.opacity=0;
   AudioSys.victory();
 }
-$('again').addEventListener('click',()=>location.reload());
+$('again').addEventListener('click',()=>gotoMode(modeOf(pageKey()),true));   // (the same way again, at once: see THE TITLE MENU)
 
 /* ======================= MARROW, AS ESSENCE ========================
    A horror's marrow is no longer a number added the instant it dies. It
@@ -22870,14 +22891,70 @@ function begin(){
   bannerShow(DEF.on?'THE MIRE':PATH.only?'THE RAVINE':'THE BONE PATH',DEF.on?'hold the house':'walk it to its end');
   if(DEF.on)defStart();
 }
-// the two ways: the field, or the path — a mode is a page (the world is built for one at load), so choosing the other reloads into it
-function gotoMode(m){const u=new URL(location.href);if(m)u.searchParams.set('mode',m);else u.searchParams.delete('mode');location.href=u.toString();}
-$('modeField').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(PATH.on)gotoMode('');else begin();});
-$('modePath').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.on||PATH.only)gotoMode('path');else begin();});
-$('modeRavine').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!PATH.only)gotoMode('ravine');else begin();});
-$('modeDefend').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!DEF.on)gotoMode('defend');else begin();});
-$('codexBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();gotoMode('codex');});
-$('title').addEventListener('pointerdown',begin);   // (a touch anywhere else begins the way the page is set to)
+/* THE TITLE MENU. Three ways in — the field, the path, the house — and the
+   codex under a rule; the card beside them is whichever is chosen: what
+   it is, its best, and the one BEGIN. The path and the ravine are ONE way
+   with two ROUTES (open country, the ravines), each keeping its own best.
+   A way is a page (the world is built for one at load), so beginning one
+   that is not the page reloads into it with `?go=1`, and that page begins
+   at once, its title never shown (`html.going`); the sound, which may not
+   start without a touch, starts on the first one (`wakeOnTouch`). A tap on
+   the chosen way begins it too. The choice is remembered (`bp_menu`). */
+function gotoMode(m,go){const u=new URL(location.href);if(m)u.searchParams.set('mode',m);else u.searchParams.delete('mode');
+  if(go)u.searchParams.set('go','1');else u.searchParams.delete('go');location.href=u.toString();}
+const MENU={k:'field',route:'open',keys:['field','path','house','codex']};
+const MENU_TX={
+  field:{ep:'the run',name:'The field',go:'begin',t:'Harvest a thousand marrow from the sleeping host, open the cathedral, and fell the Warden at its altar. Death sends you back to the gate; the field keeps what you have done.'},
+  path:{ep:'survival',name:'The path',go:'begin',t:'Hex after hex northward, without end: a cathedral every sixth, a castle at the thirtieth. Six thousand marrow wins it, and death ends it where you fall.'},
+  house:{ep:'defender',name:'The house',go:'begin',t:'Hold a house in a drowned churchyard against the Drowned, round after endless round. The lull between rounds is the shop.'},
+  codex:{ep:'to look at',name:'The codex',go:'open',t:'Every horror, place, weapon and weather, laid out to look at. It marks what you have met, and what you have felled.'}};
+const ROUTE_TX={open:'Open country: graves, woods, ruins, rivers and ravines, one into the next.',ravines:'The ravines: nothing but the wooded cuts, one into the next, and the highway overhead now and then.'};
+const pageKey=()=>DEF.on?'house':PATH.only?'path:ravines':PATH.on?'path:open':'field';
+const wantKey=()=>MENU.k==='path'?'path:'+MENU.route:MENU.k;
+const modeOf=k=>({'field':'','path:open':'path','path:ravines':'ravine','house':'defend','codex':'codex'})[k];
+function menuRec(){const B=LORE.best;
+  if(MENU.k==='field')return B.field?'best \u00b7 the Warden in '+fmtT(B.field.secs):'';
+  if(MENU.k==='path'){const b=B[MENU.route==='ravines'?'ravine':'path'];return b?'best \u00b7 hex '+b.hex+' \u00b7 '+b.marrow+' marrow'+(b.won?' \u00b7 walked':''):'';}
+  if(MENU.k==='house'){let d={};try{d=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');}catch(e){}return d.round?'best \u00b7 round '+d.round+' held':'';}
+  const n=Object.keys(LORE.met).length;return n?n+' kinds of horror met':'';}
+function menuShow(){
+  for(const el of document.querySelectorAll('#menuList .mi'))el.classList.toggle('on',el.dataset.k===MENU.k);
+  const T=MENU_TX[MENU.k];$('mcEp').textContent=T.ep;$('mcName').textContent=T.name;
+  $('mcText').textContent=T.t+(MENU.k==='path'?' '+ROUTE_TX[MENU.route]:'');
+  $('mcRoute').style.display=MENU.k==='path'?'flex':'none';
+  for(const el of document.querySelectorAll('#mcRoute .opt'))el.classList.toggle('on',el.dataset.r===MENU.route);
+  const r=menuRec();$('mcRec').textContent=r||(MENU.k==='codex'?'':'not yet walked');$('mcRec').classList.toggle('none',!r);
+  $('menuGo').textContent=T.go;
+  try{localStorage.setItem('bp_menu',JSON.stringify({k:MENU.k,route:MENU.route}));}catch(e){}}
+function menuGo(){
+  if(G.mode!=='title')return;
+  const want=wantKey();
+  if(want==='codex'){gotoMode('codex');return;}
+  if(want===pageKey()){begin();return;}
+  $('menuGo').textContent='\u2026';gotoMode(modeOf(want),true);}
+function menuPick(k){if(G.mode!=='title')return;if(k===MENU.k&&k!=='codex'){menuGo();return;}MENU.k=k;menuShow();AudioSys.tap&&AudioSys.tap();}
+function menuInit(){ // the menu's first state: the page's own way when one was asked for by the address, else the last chosen (called once the world is built: only then is the page's own way known)
+  let saved=null;try{saved=JSON.parse(localStorage.getItem('bp_menu')||'null');}catch(e){}
+  const asked=/[?&]mode=(path|ravine|defend)/.test(location.search);
+  const pk=pageKey();
+  if(asked||!saved||!MENU_TX[saved.k]){MENU.k=pk.split(':')[0];MENU.route=pk==='path:ravines'?'ravines':'open';if(saved&&!PATH.on&&saved.route)MENU.route=saved.route;}
+  else{MENU.k=saved.k;MENU.route=saved.route==='ravines'?'ravines':'open';}
+  if(PATH.on)MENU.route=PATH.only?'ravines':'open';
+  menuShow();}
+for(const el of document.querySelectorAll('#menuList .mi'))el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();menuPick(el.dataset.k);});
+for(const el of document.querySelectorAll('#mcRoute .opt'))el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(G.mode!=='title')return;
+  if(MENU.route===el.dataset.r&&MENU.k==='path')return;MENU.k='path';MENU.route=el.dataset.r;menuShow();});
+$('menuGo').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();menuGo();});
+addEventListener('keydown',e=>{if(G.mode!=='title'||e.repeat)return;const K=MENU.keys,i=K.indexOf(MENU.k);
+  if(e.code==='ArrowDown'||e.code==='KeyS'){MENU.k=K[(i+1)%K.length];menuShow();}
+  else if(e.code==='ArrowUp'||e.code==='KeyW'){MENU.k=K[(i+K.length-1)%K.length];menuShow();}
+  else if((e.code==='ArrowLeft'||e.code==='ArrowRight'||e.code==='KeyA'||e.code==='KeyD')&&MENU.k==='path'){MENU.route=MENU.route==='open'?'ravines':'open';menuShow();}
+  else if(e.code==='Enter'||e.code==='Space'){e.preventDefault();menuGo();}});
+// a page that began without a touch (`?go=1`) has its sound held: the first touch lets it go, and asks for the full screen
+let wokeOnTouch=false;
+function wakeOnTouch(){if(G.mode==='title'||G.paused)return;AudioSys.start();
+  if(!wokeOnTouch){wokeOnTouch=true;const el=document.documentElement;if(!document.fullscreenElement&&el.requestFullscreen&&!standalone())el.requestFullscreen().catch(()=>{});}}
+addEventListener('pointerdown',wakeOnTouch,true);addEventListener('keydown',wakeOnTouch,true);
 // first person is not a third way: it is a switch inside either, by the pause button
 // the cutscene's own catcher: any touch anywhere over it ends the scene
 $('cineCatch').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(CUT.on)cutEnd();});
@@ -22897,9 +22974,7 @@ $('lockBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropaga
 
 buildTextures();
 buildWorld();
-$(PATH.only?'modeRavine':PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
-try{const b=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');if(b.round)$('bestDef').textContent='best \u00b7 round '+b.round+' held';}catch(e){}
-loreTitle();
+menuInit();
 $('verTxt').textContent=verLabel(BP_BUILD,BP_BUILT);
 $('verBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();checkUpdate();});
 if(IOS&&!standalone())$('keepHint').textContent='share \u2192 add to home screen: it keeps your records, and plays with no signal';
@@ -23241,7 +23316,7 @@ function panelTab(root,t){root.querySelectorAll('.tab').forEach(x=>x.classList.t
 for(const id of['pause','shop']){const r=$(id);if(!r)continue;
   r.addEventListener('pointerdown',e=>{const tb=e.target.closest('.tab');if(tb&&tb.dataset.t){e.preventDefault();e.stopPropagation();panelTab(r,tb.dataset.t);}});
   try{const t=localStorage.getItem('bp_tab_'+id);if(t&&r.querySelector('.tab[data-t="'+t+'"]'))panelTab(r,t);}catch(e){}}
-$('btnRestart').addEventListener('pointerdown',e=>{e.preventDefault();location.reload();});
+$('btnRestart').addEventListener('pointerdown',e=>{e.preventDefault();gotoMode(modeOf(pageKey()),true);});
 $('btnSaveOut').addEventListener('click',e=>{e.preventDefault();saveOut();});
 $('btnSaveIn').addEventListener('click',e=>{e.preventDefault();saveIn();});
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});   // the offline keeper (see KEPT ON THE DEVICE)
@@ -23429,6 +23504,8 @@ function frame(now){
 }
 if(PATH.codex)codexOpen();   // (the codex has no title: it opens on the first horror)
 requestAnimationFrame(frame);
+// a page asked to begin at once (`?go=1`, from the title menu or WALK AGAIN): take `go` out of the address, so a reload is the title, and begin
+if(/[?&]go=1/.test(location.search)&&!CODEX.on){try{const u=new URL(location.href);u.searchParams.delete('go');history.replaceState(null,'',u.toString());}catch(e){}begin();}
 
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);

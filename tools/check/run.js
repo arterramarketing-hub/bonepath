@@ -50,6 +50,10 @@ async function page(vw,vh){
 }
 const press=(pg,id)=>pg.evaluate(I=>{const e=document.getElementById(I);if(!e)throw new Error('no #'+I);
   e.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));},id);
+// begin the way a page was loaded for: tap its row in the title menu (a tap on the chosen way begins it; on
+// one not yet chosen it chooses it, and BEGIN does the rest). The ravine is the path's second route, so its row is the path's.
+const enter=async(pg,id)=>{if(id==='modeRavine')id='modePath';await press(pg,id);
+  if(await pg.evaluate(()=>window.BP?window.BP.G.mode==='title':true))await press(pg,'menuGo');};
 
 /* ---- parse ---- */
 function checkParse(){
@@ -65,7 +69,7 @@ async function checkBoot(){
     const {pg,errs}=await page(420,320);
     await pg.goto(URL0+'?seed=7&time=noon&wx=clear'+q,{waitUntil:'load'});
     await pg.waitForTimeout(4000);
-    await press(pg,id);
+    await enter(pg,id);
     await pg.waitForTimeout(5000);
     const st=await pg.evaluate(()=>window.BP?{mode:window.BP.G.mode,foes:window.BP.enemies.length}:{mode:'never started',foes:0});
     const msg=id+' mode='+st.mode+' foes='+st.foes+' errors='+errs.length;
@@ -99,7 +103,7 @@ async function walk(check,mode,id,seed){
   const {pg,errs}=await page(400,240);
   await pg.goto(URL0+'?mode='+mode+'&seed='+seed+'&time=noon&wx=clear',{waitUntil:'load'});
   await pg.waitForTimeout(3500);
-  await press(pg,id);
+  await enter(pg,id);
   await pg.waitForTimeout(1500);
   const r=await pg.evaluate(async()=>{const B=window.BP,P=B.player,PA=B.PATH,f=()=>new Promise(q=>requestAnimationFrame(q));
     let z=P.z,turns=0,hour=B.RUN.time;
@@ -127,7 +131,7 @@ async function checkRoad(){
     const {pg,errs}=await page(320,200);
     await pg.goto(URL0+'?mode=path&seed='+seed+'&time=noon&wx=clear',{waitUntil:'load'});
     await pg.waitForTimeout(3000);
-    await press(pg,'modePath');
+    await enter(pg,'modePath');
     await pg.waitForTimeout(1000);
     const r=await pg.evaluate(async()=>{const B=window.BP,P=B.player,PA=B.PATH,f=()=>new Promise(q=>requestAnimationFrame(q)),seen=new Set(),hits=[];let n=0;
       const segD=(x,z,s)=>{const dx=s.bx-s.ax,dz=s.bz-s.az,t=Math.max(0,Math.min(1,((x-s.ax)*dx+(z-s.az)*dz)/(dx*dx+dz*dz||1)));return Math.hypot(x-(s.ax+dx*t),z-(s.az+dz*t));};
@@ -153,7 +157,7 @@ async function checkCastle(){
   const {pg,errs}=await page(640,360);
   await pg.goto(URL0+'?mode=path&seed=7&time=noon&wx=clear&castle=3',{waitUntil:'load'});
   await pg.waitForTimeout(3500);
-  await press(pg,'modePath');
+  await enter(pg,'modePath');
   await pg.waitForTimeout(1500);
   const r=await pg.evaluate(async()=>{const B=window.BP,P=B.player,PA=B.PATH,f=()=>new Promise(q=>requestAnimationFrame(q));
     const frames=async(n,fn)=>{for(let i=0;i<n;i++){P.hp=P.maxHp;for(const e of B.enemies)if(!e.mini&&!e.boss&&e.kind!=='rider'&&e.kind!=='angel')e.x=300;if(fn)fn();await f();}};
@@ -185,7 +189,7 @@ async function checkLeak(){
   const {pg,errs}=await page(640,360);
   await pg.goto(URL0+'?mode=path&seed=2&time=noon&wx=clear',{waitUntil:'load'});
   await pg.waitForTimeout(3500);
-  await press(pg,'modePath');
+  await enter(pg,'modePath');
   await pg.waitForTimeout(1500);
   const snap=()=>pg.evaluate(async()=>{const B=window.BP,f=()=>new Promise(q=>requestAnimationFrame(q));
     for(let i=0;i<30;i++)await f();if(window.gc)window.gc();

@@ -466,7 +466,16 @@ Each line is a rule. The why is in NOTES under the same names.
 - `#toast` sits at z-index 12, over the pause panel and the shop.
 - Panels are tabbed (`panelTab`); `setPaused` refuses while the shop is open.
 - A thin slider needs a 22px hit box and stopped pointer events.
-- A harness must press title cards by id (`#modePath`, `#modeDefend`, ...).
+- **The title is a menu** (`MENU`, `menuInit`, `menuGo`): three ways and the
+  codex, and a card. The path and the ravine are ONE way with two routes
+  (`MENU.route`); never put a second path back as a way of its own. A way
+  not loaded is begun by reloading with `?go=1`, which begins at boot's end
+  and drops `go` from the address; `html.going` hides that page's title
+  before it is drawn. `menuInit` runs after `buildWorld` (only then is the
+  page's way known). Sound held by a phone starts on the first touch
+  (`wakeOnTouch`).
+- A harness begins a run with `enter(pg,'#modeX')` in `tools/check`: it
+  taps the way's row (which begins the chosen way) and BEGIN if needed.
 
 ### How to measure (each one settled an argument)
 

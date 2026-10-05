@@ -8,6 +8,20 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 
 ## Playing it
 
+**The title** is a menu of **three ways in** — *the field* (the run, with
+an end), *the path* (endless survival) and *the house* (defender) — and,
+under a rule, **the codex**, which is somewhere to look rather than a way
+to play. The card beside the list is whichever is chosen: what it is, your
+best at it, and one **begin**. The path has two **routes**, *open
+country* and *the ravines*: they are one way, not two, and each keeps its
+own best. Tap a way to choose it and tap it again (or **begin**) to set
+out; the last way chosen is remembered. On a keyboard, the arrows choose
+and Enter begins. A way is a page of its own, so beginning one that is not
+the page loaded reloads straight into it and begins at once (`?go=1`);
+the sound, which a phone will not start without a touch, starts on the
+first one. **Walk again** at a run's end, and **restart** on the pause
+screen, begin the same way again at once.
+
 - **Phone**: serve the repo with any static host (GitHub Pages works) and open
   it in your mobile browser. Landscape recommended. Add to home screen for
   fullscreen.
@@ -1641,8 +1655,9 @@ corridor that has been torn down behind her.
 
 ## The path — survival
 
-The title screen offers four ways — the field, the path, the ravine
-(path two, below) and the house — with the codex under them.
+The title offers three ways — the field, the path and the house — with
+the codex under them; the path has two routes, open country and the
+ravines (below).
 **The field** is the game above. (The old first-person plan is in
 `docs/FPS_MODE_PLAN.md` and a brief for an importable hero model in
 `docs/HERO_MODEL_BRIEF.md`; first person itself is now a switch inside
@@ -1728,7 +1743,7 @@ leaves (see *summer*, under the weather).
 Horror-wise it is walked ground: patrols and pairs on the trail and
 throwers up on the rims looking down.
 
-**The ravine — path two.** A way of its own on the title: the path with
+**The ravines — the path's second route.** Chosen beside the path on the title: the path with
 nothing but its ravines, one run straight into the next, three to five
 tiles each, never the same kind twice in a row, and no cathedral after
 the one you start at. Each run reaches twelve metres past its own end
@@ -1849,8 +1864,8 @@ shifted into place — objects, colliders, breakables, lanterns and the
 host alike — so the field and the path share one set of pieces; the
 cathedral's collision, stairs and doors are resolved against whichever
 cathedral the pilgrim is nearest. `?mode=path` on the address loads
-the path directly; a mode is a page, so choosing the other way on the
-title reloads into it.
+the path directly (`?mode=ravine` its ravines); a mode is a page, so
+beginning another way on the title reloads straight into it.
 
 **What kills you decides how you go down.** Not one canned fall but four,
 and the field goes on around you through all of them — the hollows keep
@@ -1943,7 +1958,7 @@ is out.
 ## The codex
 
 **Every horror, place, weapon, armour and weather in the game, one at a
-time, to look at and to name.** Under the four ways on the title is
+time, to look at and to name.** Under the three ways on the title is
 **the codex** (`?mode=codex`). It opens on a lens you turn with a finger
 (drag to turn, pinch or the wheel for nearer and further; left alone it
 drifts round on its own), a list down the left, and a card: the thing's
@@ -2892,7 +2907,7 @@ The game keeps one record in this browser, across every run and mode.
   horror how many you have felled, or that you have met it, or that you
   have not yet met it.
 - **The best run.** The path and the ravine keep their farthest hex, the
-  field its quickest Warden. The title shows each under its mode, and the
+  field its quickest Warden. The title's card shows the chosen way's, and the
   end screen says when you have beaten it. The house keeps its best round,
   as it did.
 

@@ -3682,3 +3682,26 @@ Known state of play:
   browser keep the page ten minutes, and a reload inside that window would
   have shown the old build after an update.
 
+- **THE TITLE MENU (`MENU`).** The old title was four equal cards of
+  paragraph text, a breathing "touch a way to begin", the codex button, a
+  line of controls and a version stamp, all at once. Worse was what a tap
+  did: every card but the page's own RELOADED the page into its mode and
+  showed the same title again, so a way took two taps with a reload
+  between and nothing said so; and a tap on empty space began whatever the
+  page happened to be. And two of the four cards, the path and the ravine,
+  were one way on different ground. Now: a list of three ways (the
+  ravine is the path's second route, each route keeping its own best), the
+  codex under a rule, and one card for the chosen way with its best and a
+  single BEGIN. Beginning a way the page is not reloads with `?go=1`, and
+  that page begins at the end of its boot without showing its title
+  (`html.going`, set by a line in the head before the body is drawn). A
+  phone will not start sound without a touch, so `wakeOnTouch` starts it
+  on the first. Measured: each of the field, the path, the ravines, the
+  house and the codex began (or opened) from one tap of BEGIN; a reload of
+  a `go` page is the title; the controls line went (the pause screen has
+  them) for a "turn the phone" note in portrait. The first cut chose the
+  menu's way before the world was built, when `PATH.on` is still false, so
+  a path page opened on the field; `menuInit` runs after `buildWorld`.
+  The names alone stand in the list: with their epithets beside them they
+  wrapped on a phone.
+
