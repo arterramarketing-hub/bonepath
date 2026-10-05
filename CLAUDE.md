@@ -125,6 +125,12 @@ Each line is a rule. The why is in NOTES under the same names.
   with `emissive` or `multiplyScalar` above one, never by lerping a tint.
 - `Material.clone()` drops `onBeforeCompile`: reapply `psx()` or the part
   stops wobbling.
+- **Every canvas reaches WebGL through `cleanCanvasUploads`** (Safari
+  speckles the see-through pixels of a canvas uploaded as itself). It must
+  stay AFTER `'use strict'` and before the renderer. Never upload a canvas
+  another way (an `ImageBitmap`, an `OffscreenCanvas`, a raw `texImage2D`
+  on a WebGL handle) without its `getImageData` pixels. A canvas repainted
+  during play is made with `willReadFrequently`. `?rawcanvas` turns it off.
 - Sky dome: the horizon is the MIDDLE of its texture; paint the top half.
   A radial gradient uses absolute canvas coordinates — scale about the
   lobe's own centre.

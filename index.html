@@ -700,6 +700,7 @@
 
    utilities, noise, rng .............. clamp, srand, rnd, makeNoise
    textures (all painted at boot) ..... buildTextures, HEART_PX
+   clean canvas uploads (Safari) ...... "CLEAN CANVAS UPLOADS", cleanCanvasUploads (above everything)
    renderer and the PSX look .......... "renderer / PSX pipeline", psx, renderFrame
    the player's two numbers ........... VIEW, baseFov, adsFovOf
    audio (every sound synthesized) .... AudioSys, metal, mscrape
@@ -774,6 +775,33 @@
    test handle ........................ window.BP (BP._reg counts the registries)
 */
 'use strict';
+/* CLEAN CANVAS UPLOADS. Safari garbles the see-through pixels of a 2D
+   canvas on their way into WebGL: coloured speckles in every glow, light
+   pool, haze and soft gradient. The canvas's own pixels (getImageData) are
+   clean, so every canvas is uploaded as those instead. It patches WebGL
+   itself, before the renderer exists, so every canvas texture the game
+   makes goes through it (flipY and premultiply still apply to ImageData).
+   It sits AFTER 'use strict' on purpose: anything above it would stop the
+   directive being the script's first statement. A canvas repainted during
+   play (the ground paint, the bark and stone marks) is made with
+   `willReadFrequently`, so the read back is from memory, not the GPU.
+   `?rawcanvas` turns it off, to compare the two on a phone. */
+(function cleanCanvasUploads(){
+  try{if(new URLSearchParams(location.search).has('rawcanvas'))return;}catch(e){}
+  const clean=src=>{
+    try{
+      if(typeof HTMLCanvasElement==='undefined'||!(src instanceof HTMLCanvasElement)||!src.width||!src.height)return src;
+      const g=src.getContext('2d');   // null for WebGL canvases: those are left alone
+      return g?g.getImageData(0,0,src.width,src.height):src;
+    }catch(e){return src;}
+  };
+  for(const C of [window.WebGLRenderingContext,window.WebGL2RenderingContext]){
+    if(!C)continue;
+    const p=C.prototype,ti=p.texImage2D,ts=p.texSubImage2D;
+    p.texImage2D=function(...a){if(a.length===6)a[5]=clean(a[5]);else if(a.length===9)a[8]=clean(a[8]);return ti.apply(this,a);};
+    p.texSubImage2D=function(...a){if(a.length===7)a[6]=clean(a[6]);else if(a.length===9)a[8]=clean(a[8]);return ts.apply(this,a);};
+  }
+})();
 (function(){
 
 /* ---------------- utils ---------------- */
@@ -5584,7 +5612,7 @@ function buildWorld(){
     // PAINTED into (torn earth, scorch) — sampled by world position in the
     // ground's own shader, so a mark is a change of the ground's colour,
     // follows every rise and hollow, and is never a thing laid on top
-    GP.cv=document.createElement('canvas');GP.cv.width=GP.cv.height=GP.S;GP.ctx=GP.cv.getContext('2d');
+    GP.cv=document.createElement('canvas');GP.cv.width=GP.cv.height=GP.S;GP.ctx=GP.cv.getContext('2d',{willReadFrequently:true});   // (re-uploaded as it is painted: see CLEAN CANVAS UPLOADS)
     GP.tex=new THREE.CanvasTexture(GP.cv);GP.tex.magFilter=THREE.NearestFilter;GP.tex.minFilter=THREE.LinearFilter;GP.tex.generateMipmaps=false;GP.tex.encoding=THREE.sRGBEncoding;GP.tex.flipY=false;
     gm.onBeforeCompile=s=>{s.uniforms.uPaint={value:GP.tex};s.uniforms.uPaintZ={value:GP.oz};gm.userData.shader=s;
       s.uniforms.uTrailMap={value:texCache.trail};s.uniforms.uTrailK=TRAIL_GROUND.k;
@@ -11888,7 +11916,7 @@ function markTree(o,hx,hz,tr,sd){
   unbakeGroup(T.grp);                    // (a marked tree is drawn on its own from here on)
   if(!T.tex){
     const src=trunk.material.map,img=src.image,S=img.width;
-    const cv=document.createElement('canvas');cv.width=cv.height=S;cv.getContext('2d').drawImage(img,0,0);
+    const cv=document.createElement('canvas');cv.width=cv.height=S;cv.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0);
     const tex=new THREE.CanvasTexture(cv);tex.magFilter=src.magFilter;tex.minFilter=src.minFilter;tex.wrapS=src.wrapS;tex.wrapT=src.wrapT;tex.encoding=src.encoding;tex.anisotropy=1;tex.repeat.copy(src.repeat);
     const m=mat('bark');m.map=tex;trunk.material=m;T.tex=tex;T.cv=cv;
   }
@@ -11978,7 +12006,7 @@ function markStone(hx,hz,tr,sd){
   unbake(m);                             // (a scored wall is drawn on its own from here on)
   if(!m.markTex){
     const src=m.material.map,img=src.image,S=img.width;
-    const cv=document.createElement('canvas');cv.width=cv.height=S;cv.getContext('2d').drawImage(img,0,0);
+    const cv=document.createElement('canvas');cv.width=cv.height=S;cv.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0);
     const tex=new THREE.CanvasTexture(cv);tex.magFilter=src.magFilter;tex.minFilter=src.minFilter;tex.wrapS=src.wrapS;tex.wrapT=src.wrapT;tex.encoding=src.encoding;tex.anisotropy=1;tex.repeat.copy(src.repeat);
     const mm=m.material.clone();mm.map=tex;m.material=mm;m.markTex=tex;m.markCv=cv;
   }

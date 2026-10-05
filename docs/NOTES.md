@@ -3638,3 +3638,27 @@ Known state of play:
   a pasted "nonsense" was refused. The first layout of the record tab put
   the save buttons below the fold of a landscape phone; they lead now.
 
+- **CLEAN CANVAS UPLOADS (`cleanCanvasUploads`).** In Safari (iPhone and
+  Mac) every soft glow, light pool and see-through gradient showed random
+  red, green and blue speckles; Chrome was clean. Safari garbles the
+  semi-transparent pixels of a 2D canvas uploaded to WebGL as itself, while
+  the same canvas read with `getImageData` is clean (found in another
+  project). WebGL's `texImage2D`/`texSubImage2D` are patched before the
+  renderer exists to upload the `getImageData` pixels instead. It is placed
+  after `'use strict'`: above it, the directive stops being the script's
+  first statement and the whole game silently leaves strict mode.
+  Measured in Chromium: uploading the ImageData gives byte-identical texels
+  to uploading the canvas for all eight cases (flipY on/off, premultiply
+  on/off, texImage2D and texSubImage2D) on a gradient with 3000
+  see-through texels, so colour and orientation do not move. At boot 76
+  canvases go through it (about 90ms in all, once, in software GL). In play
+  only the ground paint (`GP`, 1024 square) is re-uploaded often: once per
+  boot print or scar, about once a second walking in snow; the read adds
+  about 3ms to each (3.8 to 6.7ms, software GL). The repainted canvases
+  (`GP`, the bark and stone marks) are made `willReadFrequently`, which on a
+  phone keeps them in memory so the read is not a GPU readback; it changes
+  nothing in a headless browser, whose canvases are never on the GPU. Not
+  yet seen in Safari from here: `?rawcanvas` turns the patch off for a
+  side-by-side on the device. If the ground paint ever hitches, upload only
+  the painted rectangle (`getImageData` of it, through `texSubImage2D`).
+
