@@ -11,8 +11,8 @@ HTML file — no build, no install, no server. Open `index.html` in any browser
 **The title** is a menu of **three ways in** — *the field* (the run, with
 an end), *the path* (endless survival) and *the house* (defender) — and,
 under a rule, **the codex**, which is somewhere to look rather than a way
-to play. The card beside the list is whichever is chosen: what it is, your
-best at it, and one **begin**. The path has two **routes**, *open
+to play. The card beside the list is whichever is chosen — what it is (not
+its name again: the list says that), your best at it, and one **begin**. The path has two **routes**, *open
 country* and *the ravines*: they are one way, not two, and each keeps its
 own best. Tap a way to choose it and tap it again (or **begin**) to set
 out; the last way chosen is remembered. On a keyboard, the arrows choose

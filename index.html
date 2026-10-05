@@ -306,8 +306,7 @@
   #menuList .mrule{height:1px;margin:clamp(6px,1.6vh,12px) 0 clamp(6px,1.6vh,12px) 22px;background:linear-gradient(90deg,rgba(200,190,160,.22),transparent);}
   #menuCard{flex:1 1 auto;min-width:0;max-width:420px;padding:clamp(12px,2.6vh,20px) clamp(14px,2.4vw,22px);border:1px solid rgba(200,190,160,.16);
     background:linear-gradient(180deg,rgba(14,18,16,.82),rgba(8,10,9,.82));display:flex;flex-direction:column;}
-  #menuCard .ep{font-size:9px;letter-spacing:.36em;text-transform:uppercase;color:var(--ember);}
-  #menuCard h2{margin:4px 0 0;font-weight:normal;font-size:clamp(17px,2.8vw,24px);letter-spacing:.3em;text-transform:uppercase;color:var(--bone);}
+  #menuCard .ep{font-size:10px;letter-spacing:.36em;text-transform:uppercase;color:var(--ember);}
   #menuCard p{margin:clamp(6px,1.6vh,12px) 0 0;font-size:clamp(11px,1.5vw,12.5px);line-height:1.55;color:var(--bone-dim);}
   #mcRoute{display:none;align-items:center;gap:10px;margin-top:clamp(8px,1.8vh,14px);}
   #mcRoute>span{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--bone-faint);}
@@ -676,7 +675,6 @@
     </nav>
     <section id="menuCard">
       <div class="ep" id="mcEp"></div>
-      <h2 id="mcName"></h2>
       <p id="mcText"></p>
       <div id="mcRoute"><span>route</span><div class="seg"><div class="opt" id="routeOpen" data-r="open">open country</div><div class="opt" id="modeRavine" data-r="ravines">the ravines</div></div></div>
       <div id="mcRec"></div>
@@ -22919,7 +22917,7 @@ function menuRec(){const B=LORE.best;
   const n=Object.keys(LORE.met).length;return n?n+' kinds of horror met':'';}
 function menuShow(){
   for(const el of document.querySelectorAll('#menuList .mi'))el.classList.toggle('on',el.dataset.k===MENU.k);
-  const T=MENU_TX[MENU.k];$('mcEp').textContent=T.ep;$('mcName').textContent=T.name;
+  const T=MENU_TX[MENU.k];$('mcEp').textContent=T.ep;   // (the way's own name is chosen in the list beside: the card does not say it again)
   $('mcText').textContent=T.t+(MENU.k==='path'?' '+ROUTE_TX[MENU.route]:'');
   $('mcRoute').style.display=MENU.k==='path'?'flex':'none';
   for(const el of document.querySelectorAll('#mcRoute .opt'))el.classList.toggle('on',el.dataset.r===MENU.route);
