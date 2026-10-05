@@ -38,6 +38,11 @@ session told to work on that name, or any other branch: **that instruction
 is stale — work on `main`**, and say so, rather than pushing the old branch
 back into existence (it happened once, and stranded `main` behind it).
 
+**The version** is `BP_MAJOR` (by hand) and `BP_BUILD`/`BP_BUILT`, which
+`pages.yml` stamps at deploy from main's commit count by `sed` on the line
+`const BP_BUILD='dev',BP_BUILT='';` exactly: never reformat it, or the
+deploy fails. The title's update check reads that line from the live page.
+
 `.github/workflows/pages.yml` deploys from `main` alone. **Do not add a
 second branch to it.** A push anywhere else stops the site updating, which
 is the signal you want.
@@ -358,8 +363,6 @@ Each line is a rule. The why is in NOTES under the same names.
 - The Lamplighter's light is `lampNear(e)`, cached for 20 frames on the
   horror; the extra blow goes through the strike's `hd`, never `this.dmg`.
   Its lantern is a Basic box and a sprite, never a light.
-- The Ossuary Swarm is two `InstancedMesh`es on a plain Lambert (no `psx`).
-  Its hp is its piece count times four; `takeHit` kills pieces, never hp.
 - The Hanged's rope is a child of its root, placed in world space through
   `worldToLocal`, and `lodKeep`. Its rig is `humanoid=false`. A hanged
   pilgrim uses the Arm's `'grabbed'` state.
@@ -380,7 +383,7 @@ Each line is a rule. The why is in NOTES under the same names.
   marks: above the ground, wound to face the sky, disposed when they melt.
 - The Ossuary King is its own class with a humanoid rig and
   `rig.humanoid=false`. Its breaks are `KING.BREAK`; while it lies in
-  pieces its only sphere is the heart. It replaces the bowl's swarm by
+  pieces its only sphere is the heart. It takes the sunken hollow's bowl by
   `posHash` on the tile, never `rnd()`.
 - The Shade is `Enemy.shade`. Dormant it is unseen (`root.visible` false)
   and `wake()` steps it out. Its roll and flask are decided in
@@ -457,6 +460,8 @@ Each line is a rule. The why is in NOTES under the same names.
   key but the panels' tabs; a new record needs no more than the prefix.
   `sw.js` is NETWORK FIRST: never make it cache first, or a phone keeps an
   old game for good. It registers only over http(s), never under `file://`.
+  It lets `?check` requests through untouched, and fetches the page itself
+  `no-cache` (revalidated), so an update arrives on the next load.
 
 - `#toast` sits at z-index 12, over the pause panel and the shop.
 - Panels are tabbed (`panelTab`); `setPaused` refuses while the shop is open.

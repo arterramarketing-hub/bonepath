@@ -29,6 +29,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # THE BUILD STAMP: main's commit count and date go into index.html's
+      # `const BP_BUILD='dev',BP_BUILT='';` line, which the title's check for
+      # updates compares. It fails the deploy if the line is not there.
+      - name: Stamp the build
+        run: |
+          N=$(git rev-list --count HEAD)
+          D=$(git log -1 --format=%cd --date=format:'%-d %b %Y')
+          grep -q "const BP_BUILD='dev',BP_BUILT='';" index.html
+          sed -i "s/const BP_BUILD='dev',BP_BUILT='';/const BP_BUILD='$N',BP_BUILT='$D';/" index.html
+          grep -q "const BP_BUILD='$N'" index.html
+          echo "stamped v$(grep -o "BP_MAJOR='[^']*'" index.html | cut -d"'" -f2).$N ($D)"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

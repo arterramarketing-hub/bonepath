@@ -442,6 +442,10 @@
     cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
   #codexBtn i{display:block;font-style:normal;font-size:8.5px;letter-spacing:.22em;text-indent:.22em;color:var(--bone-dim);margin-top:3px;text-transform:none;}
   #codexBtn:active{background:rgba(200,190,160,.12);}
+  #verLine{position:absolute;right:max(14px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--bone-dim);display:flex;gap:10px;align-items:center;}
+  #verBtn{padding:5px 9px;border:1px solid rgba(200,190,160,.22);color:var(--bone);cursor:pointer;pointer-events:auto;}
+  #verBtn:active{background:rgba(200,190,160,.12);}
+  #verBtn.new{border-color:var(--ember-hi);color:var(--ember-hi);}
   #codex{position:fixed;inset:0;z-index:9;display:none;font-family:Georgia,'Times New Roman',serif;color:var(--bone);pointer-events:none;}
   body.codex #codex{display:block;}
   body.codex #hud,body.codex #controls,body.codex #pauseBtn,body.codex #povBtn,body.codex #lockBtn,body.codex #shopBtn,body.codex #prompt,
@@ -653,6 +657,7 @@
   </div>
   <div id="begin">touch a way to begin</div>
   <div id="keepHint"></div>
+  <div id="verLine"><span id="verTxt"></span><span id="verBtn">check for updates</span></div>
   <div id="codexBtn">the codex<i>every horror, place, weapon and weather, to look at</i></div>
   <div class="hint" id="titleHint">left thumb &mdash; move &middot; tap &mdash; strike &middot; flick &mdash; roll &middot; hold &amp; drag &mdash; camera &middot; the 3RD / 1ST switch brings the guns out &middot; best in landscape</div>
 </div>
@@ -742,7 +747,7 @@
    the fog wraith ..................... "THE FOG WRAITH", FogWraith, wraithTick
    the Ravine Wyrm .................... "THE RAVINE WYRM", RavineWyrm, makeWyrmRig, cutWyrm
    the Lamplighter .................... "THE LAMPLIGHTER", makeLampRig, lampNear
-   the Ossuary Swarm .................. "THE OSSUARY SWARM", OssuarySwarm, sowOdd
+   what a build drops in .............. "WHAT DROPS ON YOU", sowOdd
    the Hanged ......................... "THE HANGED", Hanged, HANGED_P
    the Drowned Bride .................. "THE DROWNED BRIDE", DrownedBride, makeBrideRig
    the Gargoyle ....................... "THE GARGOYLE", Gargoyle, PERCH, perchAdd, gargTick
@@ -768,6 +773,7 @@
    offerings, marrow .................. "interaction & offerings", MARROW, shedMarrow
    what is remembered across runs ..... "WHAT THE MARROW REMEMBERS", LORE, cxKeyOf, meetTick, loreBest
    kept on the device, offline ........ "KEPT ON THE DEVICE", keepAsk, saveOut, saveIn, recordFill (and sw.js)
+   the version, updates ............... "THE VERSION", BP_MAJOR, BP_BUILD, "CHECK FOR UPDATES", checkUpdate
    grain overlay ...................... "grain overlay"
    the codex .......................... "THE CODEX", CODEX_CATS, codexShow
    boot and the main loop ............. begin, setAutoLock, frame
@@ -803,6 +809,14 @@
   }
 })();
 (function(){
+/* THE VERSION. `BP_MAJOR` is set by hand, when the game changes in kind.
+   `BP_BUILD` and `BP_BUILT` are STAMPED BY THE DEPLOY (pages.yml: the
+   commit count of main, and its date), so every push is a new build with
+   nobody to remember it; run from a file the build reads 'dev'. The deploy
+   seds the line below exactly as it stands: do not reformat it. The title's
+   check for updates reads the live page's own stamp (`checkUpdate`). */
+const BP_MAJOR='1.0';
+const BP_BUILD='dev',BP_BUILT='';
 
 /* ---------------- utils ---------------- */
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -6043,7 +6057,6 @@ function buildWorld(){
       for(let i=0;i<3;i++){const a=rnd()*TAU,px=w.cx+Math.cos(a)*9.5,pz=w.cz+Math.sin(a)*9.5;if(clearSpot(px,pz,.9))stone(px,pz,.9);}
       const p=inWedge(w,w.d+8,w.d+12,.35,2);if(p)tree(p[0],p[1],true);
       if(PATH.on&&BUILD.tile>=8&&!PATH.codex&&posHash(BUILD.tile,RUN.seed%997,61)<.2)sowOdd('king',w.cx,w.cz);   // (past the eighth hex the bowl may be one body: see THE OSSUARY KING)
-      else sowOdd('swarm',w.cx,w.cz);                                                  // what lies in the bowl is not all bone piles (see THE OSSUARY SWARM)
     },
     causeway(w){                                                            // standing stones along the ridge's crest, one fallen
       const dx=Math.cos(w.a),dz=Math.sin(w.a);let fallen=false;
@@ -7226,7 +7239,6 @@ function drainSpawns(n){
     {const lim=pathEdge(t,q.z-t.zc)-1.4;q.x=clamp(q.x,-lim,lim);}             // (never raised over the drop: the host sows by the wedge, the narrows are nine metres wide)
     let e;
     if(q.kind==='crow'){e=new Crow(q.x,q.z,{bat:batFor(q.x,q.z)});e.state='roost';e.y=heightAt(q.x,q.z)+.25;}
-    else if(q.kind==='swarm')e=new OssuarySwarm(q.x,q.z);
     else if(q.kind==='hanged')e=new Hanged(q.x,q.z,(q.o&&q.o.h)||4);
     else if(q.kind==='bride')e=new DrownedBride(q.x,q.z);
     else if(q.kind==='king')e=new OssuaryKing(q.x,q.z);
@@ -16735,85 +16747,13 @@ function lampNear(e){
   return e.lit;
 }
 
-/* ======================= THE OSSUARY SWARM =======================
-   What lies in the sunken hollow's bowl is not all bone piles. Come within
-   eight metres and it gets up: some sixty skulls and bones in a carpet
-   that scuttles after you as one mass and nibbles — half a heart a bite —
-   while you stand in it. A light blow thins it a few pieces at a time; a
-   HEAVY one or anything that lands in an area (the earthshaker, a rocket, a
-   charged cut) blows a great hole in it. Under five pieces, what is left
-   scatters. Drawn as two instanced meshes, whatever its count. */
-const SWARM={N:60,BITE:.8,SPEED:2.9};
-let SWARM_G=null;
-function swarmGeo(){if(SWARM_G)return SWARM_G;return SWARM_G={skull:new THREE.SphereGeometry(.12,6,5),bone:new THREE.BoxGeometry(.32,.07,.07),
-  m:new THREE.MeshLambertMaterial({map:texCache.bone,color:0xe0d8c4})};}
-class OssuarySwarm{
-  constructor(x,z){
-    this.kind='swarm';this.name='the ossuary swarm';this.big=false;this.boss=false;this.mini=false;this.caster=false;this.crow=false;this.heavyHitter=false;
-    this.x=x;this.z=z;this.homeX=x;this.homeZ=z;this.facing=0;this.radius=1.2;
-    this.n=SWARM.N;this.maxHp=this.n*4;this.hp=this.maxHp;this.dmg=5;this.marrow=40;this.markUp=.9;
-    this.poise=0;this.poiseMax=99;this.chillT=0;
-    const G2=swarmGeo(),root=new THREE.Group();this.rig={root,mats:[]};
-    this.sk=new THREE.InstancedMesh(G2.skull,G2.m,SWARM.N);this.bn=new THREE.InstancedMesh(G2.bone,G2.m,SWARM.N);
-    this.sk.frustumCulled=false;this.bn.frustumCulled=false;root.add(this.sk,this.bn);scene.add(root);this.mats=[];
-    this.p=[];for(let i=0;i<SWARM.N;i++)this.p.push({a:Math.random()*TAU,r:Math.sqrt(Math.random()),ph:Math.random()*TAU,sk:i%3===0,alive:true,ry:Math.random()*TAU,rx:Math.random()*TAU,ox:0,oz:0});
-    this.state='dormant';this.t=0;this.untouchable=true;this.biteT=0;this.flashUntil=0;this.crumbled=false;this.vx=0;this.vz=0;
-    this.dm=new THREE.Object3D();
-  }
-  spheres(){return this.untouchable||this.hp<=0?[]:[{x:this.x,y:heightAt(this.x,this.z)+.3,z:this.z,r:this.radius*.7,head:false}];}
-  wake(){if(this.state==='dormant'){this.state='rise';this.t=0;AudioSys.graveRise();}}   // (a death in the bowl gets it up: see alertPack)
-  reset(){}
-  scatter(){}
-  flash(){this.flashUntil=G.time+.08;}
-  takeHit(dmg,poise,fx,fz,kb){
-    dmg=heroDmg(dmg);
-    if(this.hp<=0||this.untouchable)return;
-    const heavy=poise>=3||dmg>=30,k=Math.max(1,Math.ceil(dmg*(heavy?1.6:.45)/4));
-    let killed=0;for(const q of this.p){if(killed>=k)break;if(q.alive){q.alive=false;killed++;}}
-    this.n-=killed;this.hp=this.n*4;this.flash();
-    boneBurst(this.x,heightAt(this.x,this.z)+.3,this.z,0xcfc4a3,Math.min(18,4+killed),heavy?3:1.8);AudioSys.hit&&AudioSys.hit();
-    const dx=this.x-fx,dz=this.z-fz,l=Math.hypot(dx,dz)||1;this.vx+=dx/l*(heavy?5:1.5);this.vz+=dz/l*(heavy?5:1.5);
-    if(this.n<5)this.die();
-  }
-  die(){if(this.state==='dead')return;this.hp=0;this.n=0;this.state='dead';this.t=0;this.untouchable=true;this.crumbled=true;
-    shedMarrow(this,this.marrow);G.kills=(G.kills||0)+1;scatterBones(this.x,this.z,0,0,1.6,false);boneBurst(this.x,heightAt(this.x,this.z)+.3,this.z,0xcfc4a3,16,2.4);
-    this.rig.root.visible=false;}
-  update(dt){
-    const P=player;this.t+=dt;this.chillT=Math.max(0,this.chillT-dt);
-    const dx=P.x-this.x,dz=P.z-this.z,dist=Math.hypot(dx,dz);
-    const sp=this.chillT>0?.3:1,live=G.mode==='play'&&P.state!=='dead'&&!CUT.on;
-    this.radius=.55+Math.sqrt(this.n)*.12;
-    let lift=0;
-    switch(this.state){
-      case 'dormant':if(live&&dist<8){this.state='rise';this.t=0;AudioSys.graveRise&&AudioSys.graveRise();}break;
-      case 'rise':lift=Math.min(1,this.t/1);if(this.t>=1){this.state='swarm';this.t=0;this.untouchable=false;}break;
-      case 'swarm':{lift=1;
-        if(dist>.3){const s=Math.min(dist,SWARM.SPEED*sp*dt);this.x+=dx/dist*s;this.z+=dz/dist*s;}
-        this.biteT-=dt;
-        if(live&&dist<this.radius+.35&&this.biteT<=0){this.biteT=SWARM.BITE;const res=P.takeHit(this.dmg,this.x,this.z,false,'bone');if(res==='hit'||res==='dead')boneBurst(P.x,heightAt(P.x,P.z)+.2,P.z,0xcfc4a3,4,1.2);}
-        if(!live&&dist>30){this.state='dormant';this.untouchable=true;}
-        break;}
-      case 'dead':return;
-    }
-    this.x+=this.vx*dt;this.z+=this.vz*dt;this.vx*=Math.pow(.02,dt);this.vz*=Math.pow(.02,dt);
-    if(this.state!=='dormant')constrain(this,false);
-    // the pieces: a carpet round the middle, each tumbling and hopping in its own time
-    const R=this.radius,dm=this.dm,fl=G.time<this.flashUntil;let si=0,bi=0;
-    for(const q of this.p){
-      const a=q.a+G.time*(this.state==='swarm'?.9:0)*(q.sk?1:-1),rr0=q.r*R*(this.state==='dormant'?1.8:1);
-      const x=this.x+Math.cos(a)*rr0,z=this.z+Math.sin(a)*rr0,gy=heightAt(x,z);
-      const hop=this.state==='swarm'?Math.abs(Math.sin(G.time*9+q.ph))*.16:0;
-      dm.position.set(x,gy+(q.sk?.1:.04)+hop*lift+(this.state==='rise'?Math.sin(lift*Math.PI)*.5*q.r:0),z);
-      dm.rotation.set(q.rx+(this.state==='swarm'?G.time*3:0),q.ry+a,0);
-      dm.scale.setScalar(q.alive?(fl?1.25:1):0);dm.updateMatrix();
-      if(q.sk)this.sk.setMatrixAt(si++,dm.matrix);else this.bn.setMatrixAt(bi++,dm.matrix);}
-    this.sk.count=si;this.bn.count=bi;this.sk.instanceMatrix.needsUpdate=true;this.bn.instanceMatrix.needsUpdate=true;
-  }
-}
+/* ======================= WHAT DROPS ON YOU =======================
+   The host a hex builds is sown by its templates; the odd ones a build
+   drops in (the Hanged in a tree, the King in the bowl) come through here. */
 // what drops on you: queued on the path (a tile is built in its own frame), put straight in on the field
 function sowOdd(kind,x,z,o){
   if(PATH.on&&BUILD.tile>=0){PATH.spawnQ.push({kind,x,z:z+BUILD.offZ,o:o||{},roam:false,tile:BUILD.tile});return;}
-  const e=kind==='swarm'?new OssuarySwarm(x,z):kind==='king'?new OssuaryKing(x,z):new Hanged(x,z,(o||{}).h||4);enemies.push(e);
+  const e=kind==='king'?new OssuaryKing(x,z):new Hanged(x,z,(o||{}).h||4);enemies.push(e);
 }
 
 /* ======================= THE HANGED =======================
@@ -17223,7 +17163,7 @@ function iceTick(dt){
 
 /* ======================= THE OSSUARY KING =======================
    Past the eighth hex, about one sunken hollow in five on the path keeps
-   something other than the swarm in its bowl (`posHash` on the tile, so no
+   something other than bone piles in its bowl (`posHash` on the tile, so no
    draw moves): the bones of the whole hollow, which get up as ONE body
    when you come in. A crowned giant of piled skeletons with a thigh-bone
    club and a coal for a heart in its ribs.
@@ -22415,7 +22355,7 @@ function loreFell(e){const k=cxKeyOf(e);if(!k||CODEX.on)return;G.felled=G.felled
 // the best run of a mode: returns whether this one beat it
 function loreBest(mode,rec,better){const b=LORE.best[mode];const nb=!b||better(rec,b);if(nb){LORE.best[mode]=rec;}loreSave();return {nb,b:LORE.best[mode]};}
 // the run's felled, most first: "the hollow ×12 · the thrower ×3 · the Ossuary King"
-function felledLine(){const F=G.felled||{},it=Object.entries(F).sort((a,b)=>b[1]-a[1]);if(!it.length)return '';
+function felledLine(){const F=G.felled||{},it=Object.entries(F).filter(([k])=>cxItem(k)).sort((a,b)=>b[1]-a[1]);if(!it.length)return '';
   const nm=k=>{const c=cxItem(k);return c?c.name:k;};
   return it.slice(0,7).map(([k,n])=>nm(k)+(n>1?' &times;'+n:'')).join(' &middot; ')+(it.length>7?' &middot; &hellip;':'');}
 const fmtT=secs=>String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
@@ -22486,6 +22426,32 @@ function recordFill(){
   x('rcNote').textContent=IOS&&!standalone()?'Safari clears a site\u2019s records after a week unused. Add Bonepath to the Home Screen to keep them and to play with no signal; copy the save first, then load it there, because the Home Screen app keeps its own.'
     :standalone()?'Installed: it plays with no signal, and its records stay on this device. Copy the save now and then to keep a spare.'
     :'It plays with no signal once it has loaded here. Copy the save now and then to keep a spare, or to carry the record to another device.';
+}
+/* CHECK FOR UPDATES (the title's corner). Reads the LIVE page with the
+   cache bypassed and compares its stamped build with this one's; `sw.js`
+   lets a `?check` request through to the network, so no signal says so
+   instead of finding the kept copy "up to date". An update drops the kept
+   copies and reloads, which fetches the page fresh (network first). */
+const verLabel=(b,d,mj)=>'v'+(mj||BP_MAJOR)+(b==='dev'?' \u00b7 dev':'.'+b)+(d?' \u00b7 '+d:'');
+let verBusy=false,verNew=null;
+async function checkUpdate(){
+  const b=$('verBtn');if(verNew){b.textContent='updating\u2026';applyUpdate();return;}
+  if(verBusy)return;verBusy=true;b.textContent='checking\u2026';
+  try{
+    if(!/^https?:$/.test(location.protocol))throw 'file';
+    const r=await fetch('index.html?check='+Date.now(),{cache:'no-store'});if(!r.ok)throw 'http';
+    const t=await r.text(),m=t.match(/const BP_BUILD='([^']*)',BP_BUILT='([^']*)';/),mj=t.match(/const BP_MAJOR='([^']*)';/);
+    if(!m)throw 'bad';
+    const nb=m[1],newer=nb!=='dev'&&(BP_BUILD==='dev'||+nb>+BP_BUILD);
+    if(newer){verNew={b:nb,d:m[2],mj:mj?mj[1]:BP_MAJOR};b.textContent='update to '+verLabel(nb,'',verNew.mj)+' \u2014 tap';b.classList.add('new');}
+    else b.textContent='up to date';
+  }catch(e){b.textContent=e==='file'?'no checking from a file':navigator.onLine===false?'no signal \u2014 try again':'could not check \u2014 try again';}
+  verBusy=false;
+}
+async function applyUpdate(){
+  try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}catch(e){}
+  try{const r=await navigator.serviceWorker.getRegistration();if(r)r.update().catch(()=>{});}catch(e){}   // (not awaited: it can hang, and the page is fetched fresh anyway)
+  location.reload();
 }
 function endGame(won){
   G.mode='victory';
@@ -22664,8 +22630,6 @@ const CODEX_CATS=[
       t:'a hollow behind a tower shield of iron-rimmed planks, with a short blade. From in front a blow stops on the planks and the blade is thrown back off it; a round sparks off, an arrow stands in the wood. It turns slowly, so get round it — from the side or behind there is nothing in the way. A heavy blow (a charged cut, the ultra\'s) or the fourth light one in a row breaks its guard and the shield hangs for a couple of seconds, and it lowers the shield to swing: strike as it recovers. 110 life.'},
     {k:'hollow · lamp',name:'the Lamplighter',ep:'the host, burning',where:'the field · the path: on the high ground at dusk, at night and in fog',make:cxEnemy('hollow',{lamp:true}),
       t:'a tall thin hollow with a lantern on a pole and no blade. It keeps back, seven metres off, working round you, and while it lives the host near it BURNS: within twelve metres a hollow\'s eyes go amber, a sleeping one wakes at nearly twice the distance, and every blow it lands is half a heart heavier. Kill it first. 70 life.'},
-    {k:'swarm',name:'the ossuary swarm',ep:'what lies in the bowl',where:'the field · the path: the sunken hollow',make:(x,z,px,pz)=>[cxFoe(new OssuarySwarm(x,z-2),px,pz)],
-      t:'some sixty skulls and bones in the sunken hollow\'s bowl that get up when you come within eight metres and scuttle after you as one mass, biting half a heart at a time while you stand in it. A light blow thins it a few pieces at a time; a heavy one, or anything that lands in an area — the earthshaker, a rocket, a charged cut — blows a great hole in it. Under five pieces, the rest scatters.'},
     {k:'hanged',name:'the hanged',ep:'what hangs from the trees',where:'the field · the path: now and then, from a dead tree',make:(x,z,px,pz)=>[cxFoe(new Hanged(x,z-2,5),px,pz)],
       t:'now and then a dead tree has something hanging from it. Walk under it and it drops onto your back and strangles: every press is a fifth of the way out, and it takes half a heart each beat it holds on. Throw it off and it lies stunned a moment — every blow half again — then comes after you on its hands. Roll through the drop and it lands in the dirt. It can be cut down before it drops. 50 life.'},
     {k:'bride',name:'the drowned bride',ep:'what the water keeps',where:'the path: the river, and most ponds',make:(x,z,px,pz)=>[cxFoe(new DrownedBride(x,z-1,{dry:true}),px,pz)],
@@ -22936,6 +22900,8 @@ buildWorld();
 $(PATH.only?'modeRavine':PATH.on?'modePath':DEF.on?'modeDefend':'modeField').classList.add('on');   // (the mode is known once the world is built)
 try{const b=JSON.parse(localStorage.getItem('bp_defend_best')||'{}');if(b.round)$('bestDef').textContent='best \u00b7 round '+b.round+' held';}catch(e){}
 loreTitle();
+$('verTxt').textContent=verLabel(BP_BUILD,BP_BUILT);
+$('verBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();checkUpdate();});
 if(IOS&&!standalone())$('keepHint').textContent='share \u2192 add to home screen: it keeps your records, and plays with no signal';
 if(!PATH.on&&!DEF.on)makeFogGate();
 player.init();
@@ -23467,7 +23433,7 @@ requestAnimationFrame(frame);
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,OssuarySwarm,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

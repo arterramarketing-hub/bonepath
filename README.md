@@ -2805,15 +2805,6 @@ blow it lands is half a heart heavier. **Kill it first.** When it dies the
 lantern goes out and the eyes round it go back to their own colour.
 70 life, worth 60 marrow.
 
-## The Ossuary Swarm
-
-Not everything in the sunken hollow's bowl is a bone pile. Come within
-eight metres and some **sixty skulls and bones** get up as one carpet and
-scuttle after you, nibbling half a heart a bite while you stand in it. A
-light blow thins it a few pieces at a time; a **heavy** blow — a charged
-cut, the earthshaker, a rocket — blows a great hole in it. Under five
-pieces, what is left scatters. Worth 40 marrow.
-
 ## The Hanged
 
 Now and then a dead tree has **something hanging from it**, swaying three
@@ -2864,7 +2855,7 @@ minute. 95 life, worth 50 marrow.
 ## The Ossuary King
 
 Past the eighth hex, about one sunken hollow in five keeps something other
-than the swarm in its bowl: **the bones of the whole hollow**, which get up
+than bone piles in its bowl: **the bones of the whole hollow**, which get up
 as one crowned giant with a thigh-bone club and a coal for a heart. Come
 within nine metres and it pulls itself together.
 - **the sweep**: the club drawn back across its body (the tell), then
@@ -2920,6 +2911,16 @@ the browser to keep its storage for good.
   save** from one. That is a spare against a cleared browser, and the way
   to carry a record from Safari into the Home Screen app (which keeps its
   own storage) or to another device.
+
+## The version, and updates
+
+The title's top corner shows the version, as **v1.0.166 · 5 Oct 2026**:
+the first part is set by hand when the game changes in kind, the last
+number is the build, stamped by the deploy from the count of commits on
+`main`, so every update has a higher one. Run from a file it reads *dev*.
+**Check for updates** asks the live site for its build: *up to date*, or
+*update to v1.0.170 — tap*, which drops the copy the phone keeps for
+offline play and reloads the new one. With no signal it says so.
 
 ## The bat
 

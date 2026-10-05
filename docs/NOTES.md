@@ -3662,3 +3662,23 @@ Known state of play:
   side-by-side on the device. If the ground paint ever hitches, upload only
   the painted rectangle (`getImageData` of it, through `texSubImage2D`).
 
+- **THE OSSUARY SWARM, REMOVED.** It was felt to be silly, and taken out
+  whole: the class, its sowing in the sunken hollow's bowl (the bowl keeps
+  its bone piles, and past the eighth hex sometimes the King), its spawn
+  kind, its codex entry and its `BP` handle. Its `wake()` went with it, so
+  `alertPack`'s guard is what keeps a dormant class without one safe. A
+  browser's lore may still hold felled swarms; `felledLine` drops kinds
+  the codex no longer has.
+- **THE VERSION AND CHECK FOR UPDATES (`BP_BUILD`, `checkUpdate`).** A hand
+  version could not be trusted to be bumped on every push, so the build is
+  the commit count, stamped by `pages.yml` at deploy (166 when it came in).
+  Tested as deployed, over http with a stamped copy: "up to date"; a new
+  build put behind it made the button read "update to v1.0.167 — tap"; the
+  tap reloaded into v1.0.167; with the network cut the page still loaded
+  and the check said "no signal". The first update awaited
+  `registration.update()`, which never resolved under test, and the page
+  never reloaded; it is fired and not awaited now. The keeper had to change
+  too: the page itself is fetched `no-cache`, because GitHub Pages lets a
+  browser keep the page ten minutes, and a reload inside that window would
+  have shown the old build after an update.
+
