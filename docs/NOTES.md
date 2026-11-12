@@ -3705,3 +3705,30 @@ Known state of play:
   The names alone stand in the list: with their epithets beside them they
   wrapped on a phone.
 
+- **The controller, and the picture.** Asked for together: a PS5 pad on a
+  desktop or a phone, and more resolution without losing the console.
+  The pad is the Gamepad API polled once a frame (`Input.pad`), since a
+  browser raises no events for a pad's buttons; it has to run before the
+  pause check in `frame`, because a paused frame returns before `poll`
+  and OPTIONS could then begin a pause and never end it. It writes into
+  `st`, so nothing downstream knows about it. Held things (`PAD.trig`,
+  `PAD.ads`, the sticks) are folded in `poll` beside the keys. R2 behind
+  the eyes with a blade waits `HEAVY_HOLD` like the touch trigger, or the
+  wind would beat the cut on the same frame. The panels are walked by a
+  cursor that raises `pointerdown` on what it stands on, so there is no
+  second set of handlers; the shop redraws itself on a purchase, so the
+  cursor re-finds the nearest thing to where it stood. Proven with a
+  stubbed `navigator.getGamepads` headless: menu, begin, walk, look,
+  strike, roll, charge (`charge` then `dslash`), lock, view, rumble, the
+  pause cursor and tabs. NOT proven on a real DualSense, and the
+  unmapped Firefox order (`PAD_RAW`) is from documentation only. With the
+  lock held the right stick does nothing, which is the lock camera's rule
+  and not the pad's.
+  The picture is `VIEW.res`: 1, 1.5 or 2 times the 216 lines, capped at
+  the glass. What keeps it the same game is that the snap grid and the
+  dither grid do NOT follow it: `snapUniform` and the grade's `uSize` are
+  set from the console frame (`bw`,`bh`), and the two shaders that
+  stipple by `gl_FragCoord` (the leaves, the slash arc) divide by
+  `uResK`. Compared at 844x390: `sharp` and `fine` clean the edges and
+  leave texels, wobble and dither chunky. Frame cost was not measurable
+  here (software GL); it is fill only, and wants a phone.

@@ -554,6 +554,39 @@ screen, begin the same way again at once.
 
 No flask. No stamina. Only nerve.
 
+## A controller
+
+A PlayStation pad (or any pad the browser reports in the standard layout)
+plays the whole game, on a desktop or on a phone it is paired to. Nothing
+needs switching on: press a button and it is in use.
+
+- **Left stick** — move; push far to sprint. **Right stick** — look.
+- **R1** — strike, or fire. **R2** — held and let go, the charged attack;
+  with a gun, the trigger.
+- **Circle** — roll. **Cross** — claim the altar. **Triangle** — swap.
+  **Square** — reload.
+- **L2** — the sights, in first person. **L1** (or R3) — the auto-lock.
+  **Create** — first or third person. **Options** — pause.
+- On the title the d-pad or the stick walks the menu and Cross begins. On
+  the pause screen and in the shop a cursor walks whatever can be pressed:
+  Cross presses it, L1 and R1 turn the tabs, Circle goes back.
+- The pad shakes where the phone would.
+- While the eye is locked to a horror the right stick does nothing, as the
+  thumb does nothing: L1 lets the lock go.
+- A browser will not start sound from a pad's button alone. Click or touch
+  the page once.
+
+## The picture
+
+The pause screen's **the picture** has three settings. `console` is the
+game as it was made: 216 lines, stretched to the screen. `sharp` and
+`fine` draw the same picture on a raster half as fine again, or twice as
+fine, the way an emulator's internal resolution does for a PlayStation
+game: cleaner edges and texels, and nothing else. The wobble of the
+vertices and the grain of the dither stay the console's own size. `fine`
+is four times the pixels to fill, so it is for a desktop or a strong
+phone. It is off until chosen, and remembered.
+
 ## First person, and the guns
 
 Two things that used to be one. **The view** is a switch inside either

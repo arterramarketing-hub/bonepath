@@ -94,6 +94,7 @@
   #pause .note{font-size:11px;color:var(--bone-dim);line-height:1.45;margin-top:8px;min-height:2.8em;}
   #pause .btn2,#shop .btn2{padding:11px 26px;border:1px solid rgba(200,190,160,.32);letter-spacing:.32em;text-indent:.32em;text-transform:uppercase;font-size:11.5px;cursor:pointer;
     user-select:none;-webkit-user-select:none;color:var(--bone);touch-action:manipulation;background:rgba(6,7,8,.4);}
+  .padcur{outline:2px solid var(--ember-hi)!important;outline-offset:2px;}
   #pause .btn2.primary,#shop .btn2.primary{border-color:var(--ember);color:var(--ember-hi);box-shadow:0 0 18px rgba(208,118,43,.2);}
   #pause .btn2:active,#shop .btn2:active{background:rgba(200,190,160,.15);}
   #pause .btn2.sm{padding:5px 11px;font-size:10px;margin-left:8px;text-indent:0;}
@@ -569,6 +570,7 @@
       <div class="sel"><span>armour</span><div class="pick"><div class="arrow" data-k="armour" data-d="-1">&lsaquo;</div><b id="selArmour">knight plate</b><div class="arrow" data-k="armour" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span id="selChargeLbl">charge</span><div class="pick"><div class="arrow" data-k="charge" data-d="-1">&lsaquo;</div><b id="selCharge">double slash</b><div class="arrow" data-k="charge" data-d="1">&rsaquo;</div></div></div>
       <div class="sel"><span>the view</span><div class="pick"><div class="arrow" data-k="pov" data-d="-1">&lsaquo;</div><b id="selPov">over the shoulder</b><div class="arrow" data-k="pov" data-d="1">&rsaquo;</div></div></div>
+      <div class="sel"><span>the picture</span><div class="pick"><div class="arrow" data-k="res" data-d="-1">&lsaquo;</div><b id="selRes">console</b><div class="arrow" data-k="res" data-d="1">&rsaquo;</div></div></div>
       <div class="sel rng"><span>field of view</span><div class="pick"><input type="range" id="rngFov" min="60" max="100" step="1"><b id="lblFov">68&deg;</b></div></div>
       <div class="sel rng"><span>turn speed</span><div class="pick"><input type="range" id="rngSens" min="40" max="220" step="5"><b id="lblSens">1.00</b></div></div>
       <div class="note" id="selNote"></div>
@@ -632,6 +634,11 @@
       <div><span class="k">E</span> — claim the altar · <span class="k">Z / C</span> — turn the camera</div>
       <div><span class="k">Esc</span> — pause</div>
       <div><span class="k">first person</span> — click to take the mouse · <span class="k">LMB / J</span> fire · <span class="k">RMB / L</span> aim · <span class="k">R</span> reload · <span class="k">Q, 1–3</span> swap · <span class="k">F</span> zoom · <span class="k">Shift</span> sprint · <span class="k">Space</span> dodge</div>
+      <h3>Controller</h3>
+      <div><span class="k">left stick</span> — move · push far — sprint · <span class="k">right stick</span> — look</div>
+      <div><span class="k">R1</span> — strike / fire · <span class="k">R2</span> (hold, release) — the charged attack / fire</div>
+      <div><span class="k">&#9675;</span> — roll · <span class="k">&#10005;</span> — claim the altar · <span class="k">&#9651;</span> — swap · <span class="k">&#9633;</span> — reload</div>
+      <div><span class="k">L2</span> — aim (first person) · <span class="k">L1</span> — the auto-lock · <span class="k">create</span> — 1st / 3rd · <span class="k">options</span> — pause</div>
       <h3>The path</h3>
       <div>harvest 1000 marrow from the sleeping host · climb the stair · walk the nave to the altar · fell the Warden · claim it</div>
     </div>
@@ -729,10 +736,10 @@
    utilities, noise, rng .............. clamp, srand, rnd, makeNoise
    textures (all painted at boot) ..... buildTextures, HEART_PX
    clean canvas uploads (Safari) ...... "CLEAN CANVAS UPLOADS", cleanCanvasUploads (above everything)
-   renderer and the PSX look .......... "renderer / PSX pipeline", psx, renderFrame
+   renderer and the PSX look .......... "renderer / PSX pipeline", psx, renderFrame, "THE PICTURE" (VIEW.res, resK)
    the player's two numbers ........... VIEW, baseFov, adsFovOf
    audio (every sound synthesized) .... AudioSys, metal, mscrape
-   input: thumbs, keys, buttons ....... Input, livePtr, fireDown
+   input: thumbs, keys, buttons, pad .. Input, livePtr, fireDown, "THE CONTROLLER" (pad, PAD, padUi)
    the run and its modes .............. "THE RUN", RUN, PATH, CASTLE, CODEX, DEF, WX_NAMES
    the ground as a function ........... heightAt, pathBase, groundGone, slopeHold, constrain,
                                         camStone, castleStone, castleWalk
@@ -2154,12 +2161,13 @@ const camera=new THREE.PerspectiveCamera(68,16/9,0.1,220);
    additionally scales with `camera.fov/VIEW.fov`, which is what keeps the
    rate on the screen the same while the sights are up. */
 const FOV_REF=68;
-const VIEW={fov:FOV_REF,sens:1};
+const VIEW={fov:FOV_REF,sens:1,res:0};
 const SHAKE_ANG=.094;   // radians of look per unit of camShake with a gun in the hands, in EITHER view — declared up here because both cameras read it
 const _vclamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 try{const v=JSON.parse(localStorage.getItem('bp_view')||'{}');
   if(isFinite(v.fov))VIEW.fov=_vclamp(+v.fov,60,100);
-  if(isFinite(v.sens))VIEW.sens=_vclamp(+v.sens,.4,2.2);}catch(e){}
+  if(isFinite(v.sens))VIEW.sens=_vclamp(+v.sens,.4,2.2);
+  if(v.res===1||v.res===2)VIEW.res=v.res;}catch(e){}
 function saveView(){try{localStorage.setItem('bp_view',JSON.stringify(VIEW));}catch(e){}}
 /* a field tuned at FOV_REF, re-expressed at whatever base is set now: take
    the magnification it stood for and apply it to the player's own lens */
@@ -2324,21 +2332,40 @@ function renderFrame(){
 
 const snapUniform={value:new THREE.Vector2(80,60)};
 let INTERNAL_H=216;
+/* THE PICTURE (`VIEW.res`, the pause screen's third number, off by
+   default). The console's frame is 216 lines and that is still what the
+   game is: `console`. The other two are what an emulator's "internal
+   resolution" switch does to a PS1 game — the SAME picture drawn on a
+   finer raster, half as fine again (`sharp`) or twice (`fine`). Edges and
+   texels get cleaner; nothing else is allowed to change, so the two things
+   that are sized in console pixels stay there: the vertex snap
+   (`snapUniform`) keeps the 216-line grid, so the wobble is as big on the
+   screen as it ever was, and the grade's dither and every screen-door
+   pattern (`resK`) keep the console's cell, so the stipple does not thin
+   out into noise. Never past the screen's own pixels: a raster finer than
+   the glass is heat for nothing. `?res=<lines>` forces a figure, for
+   measuring. The cost is fill: `fine` is four times the fragments. */
+const RES_NAMES=['console','sharp','fine'],RES_MUL=[1,1.5,2];
+const resK={value:1};   // internal pixels per console pixel
+let RES_FORCE=0;try{const q=+new URLSearchParams(location.search).get('res');if(q>=120&&q<=1440)RES_FORCE=q;}catch(e){}
 function resize(){
   const w=innerWidth,h=innerHeight;
   // the internal frame is sized off the SHORT side of the screen, so a
   // phone held upright gets the same pixel density as one held sideways
   // (before, portrait was rendered ~100 pixels wide and stretched)
-  const short=Math.min(w,h),k=Math.min(INTERNAL_H,short)/short;
-  const iw=Math.round(w*k),ih=Math.round(h*k);
+  const short=Math.min(w,h),bk=Math.min(INTERNAL_H,short)/short;
+  const bw=Math.round(w*bk),bh=Math.round(h*bk);            // the console's frame: the snap and the dither live on this
+  const glass=short*Math.min(3,devicePixelRatio||1),bshort=Math.min(bw,bh);
+  const m=Math.max(1,Math.min(RES_FORCE?RES_FORCE/bshort:RES_MUL[VIEW.res]||1,glass/bshort));
+  const iw=Math.round(bw*m),ih=Math.round(bh*m);resK.value=m;
   // the canvas itself is the device's size when the hero is drawn crisp
   // (the PSX frame is upscaled onto it); otherwise it is the small frame
   if(HERO_HI){renderer.setSize(w,h,false);crispRT.setSize(w,h);heroRes.value.set(w,h);}
   else renderer.setSize(iw,ih,false);
   rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
-  gradeMat.uniforms.uPx.value.set(2/iw,2/ih);gradeMat.uniforms.uSize.value.set(iw,ih);
+  gradeMat.uniforms.uPx.value.set(2/iw,2/ih);gradeMat.uniforms.uSize.value.set(bw,bh);
   camera.aspect=w/h;camera.updateProjectionMatrix();applyFov();   // (the lens at rest depends on which way up the screen is)
-  snapUniform.value.set(iw/2,ih/2);
+  snapUniform.value.set(bw/2,bh/2);
 }
 addEventListener('resize',resize);
 
@@ -4163,6 +4190,144 @@ const Input=(()=>{
   });
   canvas.addEventListener('pointerdown',()=>{st.anyPressed=true;});
 
+  /* THE CONTROLLER. A pad (a DualSense, or anything the browser hands
+     over in the `standard` layout) is a third way in beside the thumbs and
+     the keys, and it writes into the same `st` they do: nothing downstream
+     knows which hand it was. The browser raises no events for a pad's
+     buttons, so `pad()` is asked once a frame, at the TOP of `frame` and
+     ahead of the pause check, because a paused game never reaches `poll`
+     and OPTIONS has to be able to end the pause it began.
+       left stick   move (push far to sprint)      right stick  look
+       R1           strike / fire                  R2           the heavy (hold, let go) / fire
+       L2           the sights (first person)      L1 or R3     the auto-lock
+       circle       roll                           cross        take / claim
+       square       reload                         triangle     swap
+       d-pad up     the scope's zoom               create       1st / 3rd
+       options      pause
+     On the title it walks the menu; on the pause screen and in the shop a
+     cursor (`.padcur`) walks whatever can be pressed, cross presses it,
+     L1/R1 turn the tabs, and circle or options goes back. The cursor
+     presses by raising the same `pointerdown` a thumb would, so no panel
+     has a second set of handlers to keep in step.
+     A page may not start its sound from a pad: browsers do not count a pad
+     button as the player's touch. One click or key lets it go (`wakeOnTouch`). */
+  const PAD={idx:-1,prev:[],lx:0,ly:0,rx:0,ry:0,trig:false,trigT:0,ads:false,r1:false,live:false,navT:0,navK:'',cur:null,cx:0,cy:0,said:false};
+  const PAD_DEAD=.16;
+  // Firefox hands a DualSense over unmapped: its own order, the right stick on axes 2 and 5
+  const PAD_RAW={b:[2,0,1,3,4,5,6,7,8,9,10,11,16,17],ax:[0,1,2,5]};   // (raw button -> its place in the standard layout; not proven on a real pad)
+  function padGet(){
+    let list;try{list=navigator.getGamepads?navigator.getGamepads():null;}catch(e){return null;}
+    if(!list)return null;
+    let g=PAD.idx>=0?list[PAD.idx]:null;
+    if(!g||!g.connected){g=null;for(const q of list)if(q&&q.connected&&q.buttons.length>=10&&q.axes.length>=4){g=q;break;}}
+    PAD.idx=g?g.index:-1;return g;
+  }
+  function padStick(x,y){const d=Math.hypot(x,y);if(d<PAD_DEAD)return[0,0];const k=Math.min(1,(d-PAD_DEAD)/(1-PAD_DEAD-.04))/d;return[x*k,y*k];}
+  function padUiRoot(){return DEF.shopOpen?$('shop'):G.paused?$('pause'):null;}
+  function padKey(code){for(const t of ['keydown','keyup'])dispatchEvent(new KeyboardEvent(t,{code,bubbles:true,cancelable:true}));}
+  function padPress(el){if(!el)return;
+    el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:1,pointerType:'mouse',isPrimary:true}));
+    el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}
+  function padCursor(el){
+    if(PAD.cur&&PAD.cur!==el)PAD.cur.classList.remove('padcur');
+    PAD.cur=el||null;
+    if(el){el.classList.add('padcur');const r=el.getBoundingClientRect();PAD.cx=r.left+r.width/2;PAD.cy=r.top+r.height/2;
+      if(el.scrollIntoView)try{el.scrollIntoView({block:'nearest'});}catch(e){}}
+  }
+  // what the cursor can stand on: whatever in the open panel can be pressed, and is showing
+  function padItems(root){return [...root.querySelectorAll('.tab,.arrow,.btn2,.shbuy,input[type=range]')].filter(el=>el.offsetParent!==null&&el.getClientRects().length);}
+  function padUi(root,nav,b){
+    const items=padItems(root);
+    if(!items.length){padCursor(null);return;}
+    if(!PAD.cur||!PAD.cur.isConnected||!items.includes(PAD.cur)){
+      // the panel was redrawn under it (a purchase), or it has only just opened: the nearest to where it stood, else the primary button
+      let best=null,bd=1e9;
+      if(PAD.cur)for(const el of items){const r=el.getBoundingClientRect(),d=Math.hypot(r.left+r.width/2-PAD.cx,r.top+r.height/2-PAD.cy);if(d<bd){bd=d;best=el;}}
+      padCursor(best||root.querySelector('.btn2.primary')||items[0]);
+    }
+    const cur=PAD.cur;
+    if(nav){
+      const dx=nav==='R'?1:nav==='L'?-1:0,dy=nav==='D'?1:nav==='U'?-1:0;
+      if(dx&&cur.matches('input[type=range]')){   // a slider is turned where it stands
+        const st2=+cur.step||1,v=Math.max(+cur.min,Math.min(+cur.max,+cur.value+dx*st2*2));
+        if(v!==+cur.value){cur.value=v;cur.dispatchEvent(new Event('input',{bubbles:true}));}
+      }else{
+        let best=null,bs=1e9;
+        for(const el of items){if(el===cur)continue;const r=el.getBoundingClientRect();
+          const ox=r.left+r.width/2-PAD.cx,oy=r.top+r.height/2-PAD.cy,along=ox*dx+oy*dy,across=Math.abs(ox*dy)+Math.abs(oy*dx);
+          if(along<6)continue;const sc=along+across*2.5;if(sc<bs){bs=sc;best=el;}}
+        if(best)padCursor(best);
+      }
+    }
+    if(b(0))padPress(PAD.cur);
+    if(b(4)||b(5)){   // the tabs, by the shoulders
+      const tabs=[...root.querySelectorAll('.tabs .tab')].filter(el=>el.offsetParent!==null),i=tabs.findIndex(t=>t.classList.contains('on'));
+      if(tabs.length>1){padPress(tabs[(i+(b(5)?1:tabs.length-1))%tabs.length]);}
+    }
+  }
+  function pad(dt){
+    const g=padGet();
+    if(!g){if(PAD.live){PAD.live=false;PAD.lx=PAD.ly=PAD.rx=PAD.ry=0;PAD.r1=PAD.ads=false;
+        if(PAD.trig){PAD.trig=false;st.chargeRelease=true;}padCursor(null);PAD.prev.length=0;}
+      return;}
+    const raw=g.mapping!=='standard'&&/054c/i.test(g.id)?PAD_RAW:null;
+    const down=i=>{const j=raw?raw.b.indexOf(i):i,q=j>=0?g.buttons[j]:null;return !!q&&(q.pressed||q.value>.45);};
+    const now=[];for(let i=0;i<18;i++)now[i]=down(i);
+    const b=i=>now[i]&&!PAD.prev[i];
+    const ax=i=>{const v=g.axes[raw?raw.ax[i]:i];return isFinite(v)?v:0;};
+    const L=padStick(ax(0),ax(1)),R=padStick(ax(2),ax(3));
+    let any=false;for(let i=0;i<18;i++)if(now[i]){any=true;break;}
+    if(any||L[0]||L[1]||R[0]||R[1]){
+      if(!PAD.live){PAD.live=true;document.body.classList.add('pad');
+        if(!PAD.said){PAD.said=true;try{toast('controller — the map is on the pause screen');}catch(e){}}}
+    }
+    if(!PAD.live){PAD.prev=now;return;}
+    for(let i=0;i<18;i++)if(b(i)){st.anyPressed=true;break;}
+    // a direction, once on the press and then at a steady repeat while it is held (the menus)
+    const nx=(now[15]?1:0)-(now[14]?1:0)||(Math.abs(L[0])>.6?Math.sign(L[0]):0),ny=(now[13]?1:0)-(now[12]?1:0)||(Math.abs(L[1])>.6?Math.sign(L[1]):0);
+    const nk=ny?(ny>0?'D':'U'):nx?(nx>0?'R':'L'):'';let nav='';
+    if(nk!==PAD.navK){PAD.navK=nk;PAD.navT=.34;nav=nk;}
+    else if(nk){PAD.navT-=dt;if(PAD.navT<=0){PAD.navT=.13;nav=nk;}}
+    const ui=padUiRoot();
+    if(!ui&&PAD.cur)padCursor(null);
+    if(G.mode==='title'||CODEX.on){
+      if(nav)padKey({U:'ArrowUp',D:'ArrowDown',L:'ArrowLeft',R:'ArrowRight'}[nav]);
+      if(G.mode==='title'&&(b(0)||b(9)))padKey('Enter');
+      if(CODEX.on){if(b(0))padKey('Space');if(b(1)||b(9))st.pausePressed=true;st.camDX+=R[0]*420*dt;st.camDY+=R[1]*420*dt;}
+    }else if(ui){
+      padUi(ui,nav,b);
+      if(b(1)||b(9)||b(17))st.pausePressed=true;
+    }else if(G.mode==='play'){
+      if(b(9)||b(17))st.pausePressed=true;
+      if(b(1))st.swipe={kind:'dodge',atype:null,sx:null,sy:null};
+      if(b(0))st.interactPressed=true;
+      if(b(2))st.reloadPressed=true;
+      if(b(3)||b(14)||b(15))st.swapPressed=true;
+      if(b(12))st.zoomPressed=true;
+      if(b(4)||b(11))setAutoLock(!G.lockAuto);
+      if(b(8))setPov(!FPS.on);
+      if(b(5)){if(fpsMode)st.firePressed=true;else st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};}
+      if(b(7)){st.firePressed=true;PAD.trigT=performance.now();}
+    }
+    // what is HELD is read by `poll`, with the keys and the thumbs
+    const play=G.mode==='play'&&!ui&&!CODEX.on;
+    if(PAD.trig&&!(play&&now[7])&&(!fpsMode||fpsBlade))st.chargeRelease=true;
+    if(PAD.ads&&!(play&&now[6])&&fpsMode&&fpsBlade)st.chargeRelease=true;
+    PAD.trig=play&&now[7];PAD.ads=play&&now[6];PAD.r1=play&&now[5];
+    PAD.lx=play?L[0]:0;PAD.ly=play?L[1]:0;PAD.rx=play?R[0]:0;PAD.ry=play?R[1]:0;
+    PAD.prev=now;
+  }
+  /* the pad shakes where the phone would: one buzz for the whole pattern,
+     harder the longer it was asked for */
+  function rumble(ms){
+    if(!PAD.live)return;
+    try{const g=padGet(),a=g&&g.vibrationActuator;if(!a||!a.playEffect)return;
+      const d=Array.isArray(ms)?ms.reduce((x,y)=>x+y,0):+ms||0;if(d<=0)return;
+      const r=a.playEffect('dual-rumble',{startDelay:0,duration:Math.min(400,d+40),weakMagnitude:Math.min(1,.3+d/160),strongMagnitude:Math.min(1,d/140)});
+      if(r&&r.catch)r.catch(()=>{});}catch(e){}
+  }
+  addEventListener('gamepaddisconnected',()=>{document.body.classList.remove('pad');});
+
   function poll(dt){
     reapStale();                    // (the frame's own check: no event is needed to notice)
     // fold keyboard into the move vector
@@ -4173,7 +4338,12 @@ const Input=(()=>{
     if(keys.KeyD||keys.ArrowRight)kx+=1;
     // keys walk unless R is held — the stick sprints past ~3/4 deflection
     if(kx||kz){const l=Math.hypot(kx,kz)/((fpsMode?keys.ShiftLeft:keys.KeyR)?1:.62);st.mx=kx/l;st.mz=kz/l;}
+    else if(PAD.lx||PAD.ly){st.mx=PAD.lx;st.mz=PAD.ly;}   // (the pad's stick is the thumb's: its reach is the sprint)
     else if(stickId===null){st.mx=0;st.mz=0;}
+    /* the pad's right stick is a drag that never ends: so many pixels a
+       second at full tilt, eased near the middle so a small push is a small
+       turn. Faster behind the eyes, where the same drag turns the lens less. */
+    if(PAD.rx||PAD.ry){const m=Math.hypot(PAD.rx,PAD.ry),k=(.35+.65*m)*(fpsMode?900:430)*dt;st.camDX+=PAD.rx*k;st.camDY+=PAD.ry*k*(fpsMode?.72:1);}
     // a still finger that never moved gets no pointermove: settle it here
     if(gesture&&gesture.mode==='pending'&&performance.now()-gesture.t0>HOLD_MS){
       const g=gesture;settleHold(g,g.lx,g.ly);
@@ -4186,10 +4356,10 @@ const Input=(()=>{
        then the wind. Over the shoulder it is `touchCharge` (the right
        thumb held still), and on a keyboard L, except behind the eyes with
        a GUN, where L is the sights. */
-    const trigHeld=fpsMode&&fpsBlade&&touchFireN>0&&performance.now()-fireDownT>HEAVY_HOLD;
-    st.chargeHeld=touchCharge||((!fpsMode||fpsBlade)&&!!keys.KeyL)||(fpsMode&&fpsBlade&&(mouseAds||adsTouch||trigHeld||!!keys.KeyJ));
-    st.fireHeld=touchFireN>0||mouseFire||(fpsMode&&!!keys.KeyJ);
-    st.adsHeld=mouseAds||(fpsMode&&!!keys.KeyL);
+    const trigHeld=fpsMode&&fpsBlade&&((touchFireN>0&&performance.now()-fireDownT>HEAVY_HOLD)||(PAD.trig&&performance.now()-PAD.trigT>HEAVY_HOLD));
+    st.chargeHeld=touchCharge||((!fpsMode||fpsBlade)&&!!keys.KeyL)||(!fpsMode&&PAD.trig)||(fpsMode&&fpsBlade&&(mouseAds||adsTouch||PAD.ads||trigHeld||!!keys.KeyJ));
+    st.fireHeld=touchFireN>0||mouseFire||PAD.trig||PAD.r1||(fpsMode&&!!keys.KeyJ);
+    st.adsHeld=mouseAds||(fpsMode&&PAD.ads)||(fpsMode&&!!keys.KeyL);
     if(fpsMode&&fpsBlade&&st.firePressed&&!st.swipe)st.swipe={kind:'atk',atype:'tap',sx:null,sy:null};   // desktop: the mouse's left button is the strike under a blade
     if(keys.KeyZ)st.camDX-=260*dt;   // Z looks left, C looks right
     if(keys.KeyC)st.camDX+=260*dt;
@@ -4200,7 +4370,7 @@ const Input=(()=>{
     st.firePressed=false;st.adsTap=false;st.adsRelease=false;st.reloadPressed=false;st.swapPressed=false;st.zoomPressed=false;st.pickGun=-1;
     st.camDX=0;st.camDY=0;st.anyPressed=false;
   }
-  return {st,poll,consume,releaseAll,setFps,setBlade};
+  return {st,poll,consume,releaseAll,setFps,setBlade,pad,rumble};
 })();
 const IN=Input.st;
 /* ---------------- level geometry & walkable space ----------------
@@ -4284,8 +4454,8 @@ const LEAF={mats:[],u:{value:1}};
    gradual turn of the weather (XF) can take summer in or out without the
    crowns popping. Opaque the whole way: nothing to sort. */
 function leafMat(col){const m=lam({map:texCache.leaves,color:new THREE.Color(col).convertSRGBToLinear()});m.visible=RUN.weather==='summer';if(!XF.on)LEAF.u.value=m.visible?1:0;
-  const pre=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{pre(sh,r);sh.uniforms.uLeaf=LEAF.u;
-    sh.fragmentShader='uniform float uLeaf;\n'+sh.fragmentShader.replace('void main() {','void main() {\n if(uLeaf<.999){float lh=fract(sin(dot(floor(gl_FragCoord.xy),vec2(12.9898,78.233)))*43758.5453);if(lh>uLeaf)discard;}');};
+  const pre=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{pre(sh,r);sh.uniforms.uLeaf=LEAF.u;sh.uniforms.uResK=resK;
+    sh.fragmentShader='uniform float uLeaf;uniform float uResK;\n'+sh.fragmentShader.replace('void main() {','void main() {\n if(uLeaf<.999){float lh=fract(sin(dot(floor(gl_FragCoord.xy/uResK),vec2(12.9898,78.233)))*43758.5453);if(lh>uLeaf)discard;}');};
   LEAF.mats.push(m);return m;}
 function syncLeaves(){if(XF.on)return;const on=RUN.weather==='summer';LEAF.u.value=on?1:0;for(const m of LEAF.mats)m.visible=on;}
 // a crown's shape from where the tree stands, NOT from the seed's stream: drawing on `rnd` here would move every later thing the seed places
@@ -11729,13 +11899,13 @@ const bladeTrail=(()=>{
   const idx=[];for(let i=0;i<NV-1;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}
   geo.setIndex(idx);
   const mat=new THREE.ShaderMaterial({
-    uniforms:{uSnap:snapUniform},vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    uniforms:{uSnap:snapUniform,uResK:resK},vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
     vertexShader:`uniform vec2 uSnap;attribute float alpha;varying vec3 vCol;varying float vA;
       void main(){vCol=color;vA=alpha;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);
         p.xy=floor(p.xy/p.w*uSnap+0.5)/uSnap*p.w;gl_Position=p;}`,                       // the world's vertex snap
-    fragmentShader:`varying vec3 vCol;varying float vA;
+    fragmentShader:`uniform float uResK;varying vec3 vCol;varying float vA;
       float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}
-      void main(){vec2 px=floor(gl_FragCoord.xy);float b=bayer2(px*.5)*.25+bayer2(px);   // the 4x4 ordered pattern, 16 levels
+      void main(){vec2 px=floor(gl_FragCoord.xy/uResK);float b=bayer2(px*.5)*.25+bayer2(px);   // the 4x4 ordered pattern, 16 levels
         vec3 c=vCol*vA;                                                                  // the fade is in the colour: additive, dimmer is fainter
         c=floor(c*31.+(b-.5)*.9)/31.;                                                    // five bits a channel, the console's own faint dither on the step
         gl_FragColor=vec4(max(c,0.),1.);
@@ -12577,7 +12747,7 @@ const G={
   bossActive:false,bossDead:false,
   cathedralOpen:false,marrowGoal:1000,spawnT:2.5,
   marrowDrop:null,
-  vibr(ms){try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}},
+  vibr(ms){try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}Input.rumble(ms);},
 };
 /* FIRST PERSON — the switch and everything it carries (see the FIRST
    PERSON section, below the camera). Declared here, beside G, because the
@@ -23194,6 +23364,7 @@ function chargeKey(){return LOADOUT.weapon==='bow'?'bowCharge':LOADOUT.weapon===
 // which katana specials wind in the saya (and so need the blade home before they fire)
 function katSheathes(){return LOADOUT.katanaCharge==='iai'||LOADOUT.katanaCharge==='fowl';}
 function cycleLoadout(k,d){
+  if(k==='res'){VIEW.res=(VIEW.res+d+3)%3;saveView();resize();fillView();renderFrame();return;}   // (the picture: see THE PICTURE, by `resize`)
   if(k==='pov'){setPov(!FPS.on);return;}                 // (setPov refills the panel itself)
   if(k==='charge'&&gunHeld()){cycleAtt(d);fillHero();return;}   // a gun's charge is what sits on its rail
   if(k==='charge')k=chargeKey();
@@ -23259,6 +23430,7 @@ function fillView(){
   $('rngSens').value=Math.round(VIEW.sens*100);
   $('lblFov').innerHTML=Math.round(VIEW.fov)+'&deg;';
   $('lblSens').textContent=VIEW.sens.toFixed(2);
+  if($('selRes'))$('selRes').textContent=RES_FORCE?RES_FORCE+' lines':RES_NAMES[VIEW.res];
 }
 if($('rngFov')){
   const stop=e=>e.stopPropagation();
@@ -23351,6 +23523,7 @@ function frame(now){
   requestAnimationFrame(frame);
   perfTick(now);
   let dt=Math.min(.05,(now-last)/1000);last=now;
+  Input.pad(dt);   // (ahead of the pause: OPTIONS must be able to end the pause it began)
   if(IN.pausePressed){IN.pausePressed=false;if(CODEX.on)codexExit();else if(DEF.shopOpen)setShop(false);else setPaused(!G.paused);}
   /* THE PAUSE SCREEN IS NOT A GAME. It used to render the whole field
      under the panel at sixty a second, which is the same heat as playing

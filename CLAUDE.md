@@ -57,7 +57,10 @@ This is a **deliberate PlayStation 1 tribute**, not a game that happens to
 look dated. Preserve it:
 
 - Low internal render resolution, upscaled nearest-neighbor. Never "fix"
-  the blurriness or raise the resolution.
+  the blurriness or raise the DEFAULT resolution: 216 lines is the game.
+  The player may choose a finer raster (`VIEW.res`, "the picture"); the
+  vertex snap and every dither stay on the 216-line grid (`resK`), so a
+  new screen-space pattern divides `gl_FragCoord` by `uResK`.
 - Clip-space vertex snapping (the PSX wobble). Keep it.
 - Dithering, film grain, vignette, coarse colour grading.
 - Flat-shaded low-poly hulls. No smooth normals, no PBR, no soft shadows.
@@ -222,6 +225,10 @@ Each line is a rule. The why is in NOTES under the same names.
   the look. This was tried both ways.
 - `bindBtn` wraps `setPointerCapture` in a try.
 - `lockAuto` gates the LOCK, never its consumers.
+- The pad (`Input.pad`) is polled at the TOP of `frame`, ahead of the pause
+  check, and writes the same `st` the thumbs and keys do. Its menu cursor
+  presses by raising `pointerdown`: a new pressable thing in a panel needs
+  one of the classes in `padItems`, not a handler of its own.
 
 ### Camera
 
