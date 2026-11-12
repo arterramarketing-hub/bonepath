@@ -85,7 +85,8 @@ that matters on a phone; the frame counter is under *The field (testing)*
 on the pause screen.
 
 - **Never change the number of lights in the scene.** three.js recompiles
-  every lit shader when it changes. `LPOOL` is a fixed pool; `bladeLight`
+  every lit shader when it changes. `LPOOL` is a fixed pool; it is made
+  inside hex 0's capture window and `tileCommit` must go on skipping it; `bladeLight`
   stays at intensity 0 for ever (do not delete it, do not light it).
   Muzzle flashes, flames, bubbles, glows: sprites and haze, NEVER a light.
 - **Folding.** `bakeStatic(root)` folds a cathedral (or a tile group);

@@ -7355,7 +7355,8 @@ function tileCapture(){return {W:world.children.length,S:scene.children.length,H
 function tileCommit(t,c,offZ,offY){   // (`offY`: a cathedral is built at fixed heights and lifted whole onto its tile's base: see pathBase)
   offY=offY||0;
   for(let i=c.W;i<world.children.length;i++){const o=world.children[i];o.position.z+=offZ;o.position.y+=offY;t.objsW.push(o);}
-  for(let i=c.S;i<scene.children.length;i++){const o=scene.children[i];o.position.z+=offZ;o.position.y+=offY;t.objsS.push(o);}
+  for(let i=c.S;i<scene.children.length;i++){const o=scene.children[i];if(o.isLight&&LPOOL.lights.includes(o))continue;   // (the pool is made inside hex 0's window and is NOT the hex's: torn down with it, every lantern after went dark and every lit shader relinked)
+    o.position.z+=offZ;o.position.y+=offY;t.objsS.push(o);}
   if(hazeSep())for(let i=c.H;i<hazeScene.children.length;i++){const o=hazeScene.children[i];o.position.z+=offZ;o.position.y+=offY;t.hazes.push(o);}
   for(let i=c.O;i<obstacles.length;i++){const o=obstacles[i];if(o.seg){o.az+=offZ;o.bz+=offZ;}else o.z+=offZ;if(o.top!=null)o.top+=offY;t.obs.push(o);}
   for(let i=c.B;i<breakables.length;i++){const b=breakables[i];b.z+=offZ;t.brk.push(b);}
@@ -14737,7 +14738,7 @@ class Enemy{
     // same fight held down for twice as long
     this.red=!this.boss&&!this.mother&&!opts.plain&&(opts.red||(!this.zombie&&Math.random()<.14));   // (`plain`: the codex's hollow is never the red one by chance)
     if(this.red){
-      this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material=o.material.clone();o.material.color.setHex(0xd23c3c);}});
+      this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material=psx(o.material.clone());o.material.color.setHex(0xd23c3c);}});
       this.maxHp=Math.round(this.maxHp*2.2);this.hp=this.maxHp;this.marrow=Math.round(this.marrow*2);
     }
     scene.add(this.rig.root);
@@ -18499,31 +18500,6 @@ function updateBubbles(dt){
   }
 }
 function dropBubbles(){for(let i=BUBBLES.length-1;i>=0;i--)popBubble(BUBBLES[i],true);}
-/* the flying cut: nothing but the swift of the blade, a crescent of pale
-   arcs that races on ahead of the knight and cuts whatever it crosses */
-function airSlash(x,z,facing,dmg,full){
-  const fx=Math.sin(facing),fz=Math.cos(facing);
-  let px=x+fx*1.1,pz=z+fz*1.1,life=0,arcT=0;const hitSet=new Set();
-  effects.push({update(dt){
-    life+=dt;arcT+=dt;
-    const st=dt*17;px+=fx*st;pz+=fz*st;
-    const gy=heightAt(px,pz);
-    while(arcT>0){arcT-=.04;                                    // crossed cut lines left in its wake: an X in flight
-      const ax=px-fx*arcT*17,az=pz-fz*arcT*17,col=life<.1?0xffffff:0xe8f2ff;
-      slashArc(ax,az,gy+1.25,facing,col,'cross',1);slashArc(ax,az,gy+1.25,facing,col,'cross',-1);}
-    for(const e of enemies){
-      if(e.hp<=0||e.state==='dormant'||e.untouchable||e.state==='scatter'||hitSet.has(e))continue;
-      const ey=e.crow?e.y:gy+1.1;if(Math.abs(ey-(gy+1.25))>1.4)continue;
-      const dx=e.x-px,dz=e.z-pz;if(Math.hypot(dx,dz)>e.radius+1.3)continue;
-      hitSet.add(e);AudioSys.hit();sparkBurst(e.x,gy+1.2,e.z,10);
-      e.takeHit(dmg,full&&!e.boss?99:3,x,z,1.2,{dx:fx,dz:fz,up:1.2});
-      G.hitstop=Math.max(G.hitstop,.06);
-    }
-    const probe={x:px,z:pz};pushOut(probe,.05);
-    if(life>.55||Math.hypot(probe.x-px,probe.z-pz)>.01)return false;
-    return true;
-  }});
-}
 // the oldest scar or slab gives way
 const scars=[];   // (the old plane scars are gone: marks are painted into the ground now — see paintScar)
 const groundTint={};

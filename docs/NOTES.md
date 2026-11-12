@@ -3732,3 +3732,21 @@ Known state of play:
   `uResK`. Compared at 844x390: `sharp` and `fine` clean the edges and
   leave texels, wobble and dither chunky. Frame cost was not measurable
   here (software GL); it is fill only, and wants a phone.
+
+- **The pool went out with the first hex.** `addLight` makes the twelve
+  pool lights lazily, the first time a lantern asks, and that is inside
+  hex 0's `tileCapture` window: so `tileCommit` recorded the pool as the
+  hex's own scene children and `teardownTile` took it away with the hex.
+  Measured on the path at z about -83: pool lights in the scene 12 to 0,
+  seven lit programs relinked in one frame (371ms, then a 1.1s stall), and
+  `syncLightPool` writing into lights that were no longer anywhere, so no
+  lantern lit the ground for the rest of the run. `tileCommit` now passes
+  over the pool. After: twelve in the scene at z -260 with hex 0 gone, and
+  no link. Found by the audit's performance pass, which also measured: a
+  red hollow's clone was made without `psx()` (three programs linked the
+  first time one appeared, 161ms, and it did not wobble); `airSlash` had no
+  caller and is gone. Left alone and written up for a decision: 39 live
+  point lights on the field (the pool is the path's only), 77 draws for the
+  pilgrim's rig in every mode, about a hundred one-quad glow draws, the
+  pews' hundred draws at a path cathedral, and the ground paint reading
+  back its whole 1024 sheet for each mark.
