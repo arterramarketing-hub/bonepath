@@ -1,0 +1,313 @@
+{
+ "field": {
+  "before": {
+   "calls": 516,
+   "tris": 73366,
+   "programs": 25,
+   "geometries": 453
+  },
+  "cathedral": {
+   "meshes": 7,
+   "ground": 0,
+   "folded": 6,
+   "verts": 97450,
+   "cloned": 0,
+   "regions": 1,
+   "renders": 16,
+   "readbacks": 16,
+   "mapSize": 512,
+   "ms": {
+    "total": 1279,
+    "gather": 27.9,
+    "render": 32.6,
+    "read": 1060.4,
+    "unpack": 22.9,
+    "verts": 115.6,
+    "write": 16.3
+   },
+   "bytes": 194900,
+   "twins": 7
+  },
+  "rest": {
+   "meshes": 96,
+   "ground": 1,
+   "folded": 60,
+   "verts": 55496,
+   "cloned": 13,
+   "regions": 1,
+   "renders": 16,
+   "readbacks": 16,
+   "mapSize": 1024,
+   "ms": {
+    "total": 1234.4,
+    "gather": 87,
+    "render": 39.8,
+    "read": 929.1,
+    "unpack": 88.1,
+    "verts": 62.3,
+    "write": 25.1
+   },
+   "bytes": 110992,
+   "twins": 42
+  },
+  "key": 2,
+  "paint": {
+   "ms": 359.4,
+   "render": 13.7,
+   "read": 111.1,
+   "renders": 3,
+   "readbacks": 3,
+   "size": 1024,
+   "texels": 38070,
+   "bytes": 0
+  },
+  "after": {
+   "calls": 516,
+   "tris": 73366,
+   "programs": 33,
+   "geometries": 473
+  },
+  "base": 2,
+  "twins": 42,
+  "verts": 152946,
+  "bytes": 305892,
+  "play": {
+   "frames": 173,
+   "worstFrameMs": 808,
+   "walked": 60,
+   "hour": "dusk",
+   "wx": "rain",
+   "notes": [
+    "unbaked 4"
+   ],
+   "late": 1,
+   "lateBakes": [
+    {
+     "meshes": 3,
+     "verts": 336,
+     "ms": 635.2,
+     "renders": 16
+    }
+   ],
+   "calls": 505,
+   "programs": 36,
+   "mode": "play"
+  },
+  "errors": [],
+  "bootErrors": []
+ },
+ "path": {
+  "before": {
+   "calls": 466,
+   "tris": 52012,
+   "programs": 25,
+   "geometries": 401
+  },
+  "all": {
+   "meshes": 265,
+   "ground": 3,
+   "folded": 6,
+   "verts": 114712,
+   "cloned": 10,
+   "regions": 1,
+   "renders": 16,
+   "readbacks": 16,
+   "mapSize": 1024,
+   "ms": {
+    "total": 1003.6,
+    "gather": 60.3,
+    "render": 35.5,
+    "read": 693.5,
+    "unpack": 75.7,
+    "verts": 114.8,
+    "write": 21.2
+   },
+   "bytes": 229424,
+   "twins": 28
+  },
+  "paint": {
+   "ms": 261.5,
+   "render": 6.1,
+   "read": 60.2,
+   "renders": 3,
+   "readbacks": 3,
+   "size": 1024,
+   "texels": 81983,
+   "bytes": 0
+  },
+  "after": {
+   "calls": 466,
+   "tris": 52012,
+   "programs": 32,
+   "geometries": 411
+  },
+  "base": 1,
+  "twins": 28,
+  "verts": 114712,
+  "bytes": 229424,
+  "play": {
+   "frames": 259,
+   "worstFrameMs": 1037,
+   "walked": 177,
+   "hour": "dusk",
+   "wx": "rain",
+   "notes": [
+    "unbaked 0"
+   ],
+   "late": 2,
+   "lateBakes": [
+    {
+     "meshes": 343,
+     "verts": 16443,
+     "ms": 336.4,
+     "renders": 16
+    },
+    {
+     "meshes": 194,
+     "verts": 111699,
+     "ms": 977.3,
+     "renders": 16
+    }
+   ],
+   "calls": 380,
+   "programs": 35,
+   "mode": "play"
+  },
+  "errors": [],
+  "bootErrors": []
+ },
+ "ravine": {
+  "before": {
+   "calls": 451,
+   "tris": 58690,
+   "programs": 24,
+   "geometries": 400
+  },
+  "all": {
+   "meshes": 250,
+   "ground": 3,
+   "folded": 12,
+   "verts": 145214,
+   "cloned": 0,
+   "regions": 1,
+   "renders": 16,
+   "readbacks": 16,
+   "mapSize": 1024,
+   "ms": {
+    "total": 1269.2,
+    "gather": 64.3,
+    "render": 35.6,
+    "read": 855.2,
+    "unpack": 85.2,
+    "verts": 180.3,
+    "write": 46
+   },
+   "bytes": 290428,
+   "twins": 25
+  },
+  "paint": {
+   "ms": 268.2,
+   "render": 3.6,
+   "read": 58.6,
+   "renders": 3,
+   "readbacks": 3,
+   "size": 1024,
+   "texels": 85167,
+   "bytes": 0
+  },
+  "after": {
+   "calls": 451,
+   "tris": 58690,
+   "programs": 31,
+   "geometries": 401
+  },
+  "base": 1,
+  "twins": 25,
+  "verts": 145214,
+  "bytes": 290428,
+  "play": {
+   "frames": 255,
+   "worstFrameMs": 331,
+   "walked": 280,
+   "hour": "dusk",
+   "wx": "rain",
+   "notes": [
+    "unbaked 4"
+   ],
+   "late": 0,
+   "lateBakes": [],
+   "calls": 376,
+   "programs": 38,
+   "mode": "play"
+  },
+  "errors": [],
+  "bootErrors": []
+ },
+ "mire": {
+  "before": {
+   "calls": 232,
+   "tris": 30420,
+   "programs": 19,
+   "geometries": 204
+  },
+  "all": {
+   "meshes": 176,
+   "ground": 1,
+   "folded": 61,
+   "verts": 51551,
+   "cloned": 2,
+   "regions": 1,
+   "renders": 16,
+   "readbacks": 16,
+   "mapSize": 1024,
+   "ms": {
+    "total": 1013.7,
+    "gather": 55.4,
+    "render": 31.9,
+    "read": 742.8,
+    "unpack": 78.7,
+    "verts": 66.4,
+    "write": 37.1
+   },
+   "bytes": 103102,
+   "twins": 35
+  },
+  "paint": {
+   "ms": 362.6,
+   "render": 8.6,
+   "read": 57.2,
+   "renders": 3,
+   "readbacks": 3,
+   "size": 1024,
+   "texels": 28005,
+   "bytes": 0
+  },
+  "after": {
+   "calls": 232,
+   "tris": 30420,
+   "programs": 26,
+   "geometries": 255
+  },
+  "base": 1,
+  "twins": 35,
+  "verts": 51551,
+  "bytes": 103102,
+  "play": {
+   "frames": 280,
+   "worstFrameMs": 171,
+   "walked": 22,
+   "hour": "dusk",
+   "wx": "rain",
+   "notes": [
+    "unbaked 4"
+   ],
+   "late": 0,
+   "lateBakes": [],
+   "calls": 293,
+   "programs": 29,
+   "mode": "play"
+  },
+  "errors": [],
+  "bootErrors": []
+ }
+}
