@@ -5181,7 +5181,7 @@ function buildHouse(M){
     fl.scale.set(.9,1.1,1);fl.position.set(hx,1.05,hz);g.add(fl);fl.userData.lodKeep=true;
     const wx=ox+hx,wz=oz+hz;
     addHaze(wx,oy+1.1,wz,0xff9a40,4.2,.22);
-    const l=new THREE.PointLight(0xff9a3c,1.25,10,2);l.position.set(wx,oy+1.2,wz);addLight(l);
+    const l=new THREE.PointLight(0xff9a3c,1.25,10,2);l.position.set(wx,oy+1.2,wz);addLight(l);LPOOL.extra.push(l);
     HOUSE.hearth={x:wx,z:wz,fl,l,on:true};
   }
   // fold the permanent timber: the walls are registered and stay their own
@@ -5669,21 +5669,23 @@ function bakeStatic(root,rec){   // (`rec`: remember every folded mesh in BAKED,
   const M=new THREE.Matrix4();let folded=0,made=0;
   for(const [m,list] of groups){
     if(list.length<2)continue;
-    const pos=[],nrm=[],uvs=[],recs=[];
+    /* poured into arrays cut to size first: pushing every float onto a
+       plain array and converting it afterwards was most of a cathedral
+       hex's stall on the path (246 of 416ms over four of them) */
+    let nv=0;for(const o of list)nv+=o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count;
+    const pos=new Float32Array(nv*3),nrm=new Float32Array(nv*3),uvs=new Float32Array(nv*2),recs=[];let at=0;
     for(const o of list){
       const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();
       g.applyMatrix4(M.multiplyMatrices(toLocal,o.matrixWorld));   // (normals ride the normal matrix with it)
-      const p=g.attributes.position.array,q=g.attributes.normal.array,u=g.attributes.uv.array;
-      if(rec)recs.push({o,parent:o.parent,start:pos.length/3,count:p.length/3});
-      for(let i=0;i<p.length;i++)pos.push(p[i]);
-      for(let i=0;i<q.length;i++)nrm.push(q[i]);
-      for(let i=0;i<u.length;i++)uvs.push(u[i]);
+      const p=g.attributes.position.array,q=g.attributes.normal.array,u=g.attributes.uv.array,n=p.length/3;
+      if(rec)recs.push({o,parent:o.parent,start:at,count:n});
+      pos.set(p,at*3);nrm.set(q,at*3);uvs.set(u,at*2);at+=n;
       g.dispose();
     }
     const merged=new THREE.BufferGeometry();
-    merged.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-    merged.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));
-    merged.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    merged.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    merged.setAttribute('normal',new THREE.BufferAttribute(nrm,3));
+    merged.setAttribute('uv',new THREE.BufferAttribute(uvs,2));
     merged.computeBoundingSphere();
     const one=new THREE.Mesh(merged,m);one.userData.baked=true;
     root.add(one);
@@ -8644,16 +8646,23 @@ const lanternLights=[];
    fixed dozen point lights are, from the first frame, and each frame
    the twelve nearest the pilgrim are copied into them (position, colour,
    flicker). The count never changes, so nothing ever recompiles. */
-const LPOOL={lights:[],N:12};
+/* AND NOW EVERYWHERE. The field had thirty-nine point lights in the scene
+   and the Mire twenty-nine, every one of them looped over by every lit
+   vertex and uploaded with every material, though a lantern reaches eight
+   or eleven metres and the pilgrim is beside two or three of them. The
+   pool is every mode's: the twelve nearest burn, the rest are a wisp and
+   a halo until he walks up. `extra` is for a light nothing flickers (the
+   house's hearth), which is in no `lanternLights` entry to be found by. */
+const LPOOL={lights:[],N:12,extra:[]};
 function addLight(l){
-  if(!PATH.on){scene.add(l);return l;}
   if(!LPOOL.lights.length)for(let i=0;i<LPOOL.N;i++){const p=new THREE.PointLight(0xffffff,0,8,2);p.position.set(0,-50,0);scene.add(p);LPOOL.lights.push(p);}
   l.pooled=true;return l;
 }
 function syncLightPool(){
-  if(!PATH.on||!LPOOL.lights.length)return;
+  if(!LPOOL.lights.length)return;
   const px=player.x,pz=player.z,live=[];
   for(const L of lanternLights)if(L.l.pooled)live.push([Math.hypot(L.l.position.x-px,L.l.position.z-pz),L.l]);
+  for(const l of LPOOL.extra)live.push([Math.hypot(l.position.x-px,l.position.z-pz),l]);
   live.sort((a,b)=>a[0]-b[0]);
   for(let i=0;i<LPOOL.N;i++){const p=LPOOL.lights[i],s=live[i];
     if(!s){if(p.intensity){p.intensity=0;p.position.y=-50;}continue;}

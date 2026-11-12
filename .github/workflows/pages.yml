@@ -42,6 +42,19 @@ jobs:
           sed -i "s/const BP_BUILD='dev',BP_BUILT='';/const BP_BUILD='$N',BP_BUILT='$D';/" index.html
           grep -q "const BP_BUILD='$N'" index.html
           echo "stamped v$(grep -o "BP_MAJOR='[^']*'" index.html | cut -d"'" -f2).$N ($D)"
+      # THE SERVED PAGE IS THE SOURCE WITHOUT ITS NOTES (tools/build/minify.js):
+      # comments and whitespace only, AFTER the stamp, on this checkout alone.
+      # It fails the deploy if the page stops compiling or the version lines
+      # the update check reads do not survive.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Strip the notes from the served page
+        run: |
+          (cd tools/build && npm ci)
+          node tools/build/minify.js index.html
+          (cd tools/check && node run.js parse)
+          rm -rf tools/build/node_modules
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

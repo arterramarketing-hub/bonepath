@@ -3750,3 +3750,22 @@ Known state of play:
   pilgrim's rig in every mode, about a hundred one-quad glow draws, the
   pews' hundred draws at a path cathedral, and the ground paint reading
   back its whole 1024 sheet for each mark.
+
+- **After the audit: the pool everywhere, a quicker fold, and a lighter
+  page.** The field had 39 point lights in the scene and the Mire 29;
+  `addLight` now pools in every mode, so each has the twelve nearest and
+  the seven that were never lanterns: 19, counted in the field, the Mire
+  and the path. The hearth is in no `lanternLights` entry, so it is found
+  through `LPOOL.extra`. What is lost: a lantern past the twelve nearest
+  lights no ground, which a scope can see.
+  `bakeStatic` pushed every float onto a plain array and converted it
+  afterwards, which was 246 of the 416ms four path cathedrals cost to
+  build; it now counts first and pours into typed arrays.
+  And the page is served without its notes. Comments are a third of the
+  script (493 KB) and about 212 KB of the gzipped download. The deploy
+  strips comments and whitespace only (terser, no compress, no mangle,
+  quotes kept): 670 KB to 437 KB gzipped. Renaming would save about 20 KB
+  more and cost readable stack traces and `window.BP`, so it does not.
+  The update check reads the `BP_BUILD` and `BP_MAJOR` lines out of the
+  live page's text, so the script fails if either changes by a character.
+  `check.yml` boots the stripped page as well as the source.

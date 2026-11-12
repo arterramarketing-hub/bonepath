@@ -35,3 +35,9 @@ jobs:
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
       - run: node run.js
+      # and the page as it is SERVED: stripped by the deploy's build step, it must still start every mode
+      - run: |
+          (cd ../build && npm ci)
+          mkdir -p /tmp/served && cp -r ../../icons ../../manifest.webmanifest ../../sw.js /tmp/served/
+          node ../build/minify.js ../../index.html /tmp/served/index.html
+          node run.js --file=/tmp/served/index.html parse boot

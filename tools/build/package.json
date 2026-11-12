@@ -1,0 +1,6 @@
+{
+  "name": "bonepath-build",
+  "private": true,
+  "description": "The deploy's one build step: strips comments and whitespace from the page that is served. The source stays as written.",
+  "dependencies": { "terser": "5.36.0" }
+}

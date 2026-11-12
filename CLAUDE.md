@@ -43,6 +43,12 @@ back into existence (it happened once, and stranded `main` behind it).
 `const BP_BUILD='dev',BP_BUILT='';` exactly: never reformat it, or the
 deploy fails. The title's update check reads that line from the live page.
 
+**The served page is the source with its comments and whitespace stripped**
+(`tools/build/minify.js`, run by `pages.yml` after the stamp, on the
+runner's checkout only). The file in the repository is never minified and
+still runs from disk with no build. Names are not changed. It fails the
+deploy if the `BP_BUILD` or `BP_MAJOR` line does not survive.
+
 `.github/workflows/pages.yml` deploys from `main` alone. **Do not add a
 second branch to it.** A push anywhere else stops the site updating, which
 is the signal you want.
@@ -85,7 +91,9 @@ that matters on a phone; the frame counter is under *The field (testing)*
 on the pause screen.
 
 - **Never change the number of lights in the scene.** three.js recompiles
-  every lit shader when it changes. `LPOOL` is a fixed pool; it is made
+  every lit shader when it changes. `LPOOL` is a fixed pool in EVERY mode: a lantern's light goes through
+  `addLight` and into `lanternLights` (or `LPOOL.extra` if nothing flickers
+  it), never `scene.add`. It is made
   inside hex 0's capture window and `tileCommit` must go on skipping it; `bladeLight`
   stays at intensity 0 for ever (do not delete it, do not light it).
   Muzzle flashes, flames, bubbles, glows: sprites and haze, NEVER a light.
