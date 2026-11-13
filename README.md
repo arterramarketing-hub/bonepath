@@ -576,6 +576,15 @@ needs switching on: press a button and it is in use.
 - A browser will not start sound from a pad's button alone. Click or touch
   the page once.
 
+## The stone's own shade
+
+The cathedral knows how much of the sky each corner of its stone can see,
+worked out once when it is built and kept in the stone. Under the roof
+that is very little, so by day the nave is dark and the windows and the
+lantern pools are what light it; from outside the door is a dark mouth.
+It is the trick the consoles of that year used: no light is added, and
+nothing is worked out while you play.
+
 ## The picture
 
 The pause screen's **the picture** has three settings. `console` is the

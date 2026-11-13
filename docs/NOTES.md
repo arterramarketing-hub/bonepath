@@ -3769,3 +3769,28 @@ Known state of play:
   The update check reads the `BP_BUILD` and `BP_MAJOR` lines out of the
   live page's text, so the script fails if either changes by a character.
   `check.yml` boots the stripped page as well as the source.
+
+- **The stone's own shade.** Asked for as "baked lighting". A prototype
+  injected from outside (`tools/bakelight/`, sheets in `docs/bakelight/`)
+  tried sky occlusion per vertex, contact shade in the ground's paint
+  sheet, and a baked moon shadow, over the field, the path, the ravine and
+  the Mire. What it found: the nave and the doorway are the whole win;
+  open ground sees the sky and gains nothing; the baked shadow is nothing
+  at noon and blotches at dusk on a ground too coarse to draw it, and
+  would be wrong whenever the hour turned. A plain vertex colour was the
+  wrong carrier, because it dimmed the lantern pools under the roof.
+  What went in is the narrow part: `bakeSky(cath)` after the cathedral's
+  fold. The cathedral turned out to be nine folded meshes and one plane
+  (102k vertices), so the folds are both casters and receivers and no
+  geometry is cloned. Sixteen 512 depth maps of proxies in a scene of
+  their own, one readback each; `aBake` is one normalized byte a vertex
+  and scales the hemisphere's irradiance in a twin material. The twin
+  shares the original's `color`/`emissive` objects, so a tint reaches
+  both. Measured here (software GL): 400ms at build, six twins, five more
+  programs, draw calls unchanged. Compared in the nave at noon, dusk and
+  night: clear at noon, slighter after dark, where `G.naveDim` had already
+  dimmed the sky's light for the same reason (both are kept; the floor is
+  .42). NOT measured: a phone's readback time, which lands in the
+  cathedral hex's build on the path. If that hitch shows, spread the
+  sixteen maps over frames. Not done: the paint-sheet feet (two functions
+  wipe that sheet), the castle, the Mire's house.

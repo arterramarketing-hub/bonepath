@@ -744,7 +744,7 @@
    the ground as a function ........... heightAt, pathBase, groundGone, slopeHold, constrain,
                                         camStone, castleStone, castleWalk
    the Mire (defend mode) ............. "THE MIRE", "THE HOUSE", "THE ROUNDS", "THE SHOP"
-   the folds .......................... bakeStatic, bakeWorld, unbake, BAKED
+   the folds, and their baked shade ... bakeStatic, bakeWorld, unbake, BAKED, "THE STONE'S OWN SHADE" (bakeSky, skyTwin, SKY)
    the world .......................... buildWorld
      the gothic cathedral ............. buildCathedral, "THE GOTHIC CATHEDRAL", "THE ROOF"
      the six wedges and the chunks .... "THE WEDGES", CHUNKS, "THE CASTLE" (CHUNKS.castle)
@@ -5714,6 +5714,102 @@ function bakeStatic(root,rec){   // (`rec`: remember every folded mesh in BAKED,
    Not on the path: its tiles are torn down by index in `world.children`
    (tileCapture), and a fold would move the ground under that count. */
 const BAKED=new Map();
+/* THE STONE'S OWN SHADE. What a console of that year did for light it
+   could not afford: worked out once how much of the sky each corner of the
+   stone can see, and kept the answer in the vertex. Under a roof the
+   answer is little, so the nave falls dark by itself and the windows and
+   the lantern pools carry the room; the doorway is a dark mouth from
+   outside. No light is added, no draw, nothing each frame.
+
+   HOW. A cathedral is nine folded meshes (see THE STATIC BAKE) and nothing
+   else of it is lit, so the folds are both what casts and what receives.
+   They are drawn depth-only from `SKY.N` directions over the upper sky into
+   one small target, each read back once, and every vertex (pushed a hand
+   off its face) asks each map whether it sees that direction. The share it
+   sees, weighted by how squarely the face looks that way, is `aBake`: one
+   byte a vertex.
+
+   IT SCALES THE HEMISPHERE'S LIGHT AND NOTHING ELSE. A vertex colour would
+   multiply the lanterns too, and a lantern under a roof is the point. So
+   the fold wears a TWIN of its material (`skyTwin`) whose light chunk has
+   the hemisphere's share multiplied by `aBake`; the moon, the point lights
+   and the map are untouched. The twin SHARES its colour objects with the
+   original, so anything that tints the stone tints both, and it carries
+   the original's `onBeforeCompile`, so it still wobbles.
+
+   The moon's own shadow is not baked: it would be wrong the moment the
+   hour turned, and the ground is too coarse to draw it (tried: see NOTES).
+   `?sky=0` turns the whole thing off, to compare. */
+const SKY={N:16,SIZE:512,off:.16,floor:.42,lo:.08,hi:.8,twins:new Map(),on:true,ms:0};
+try{if(new URLSearchParams(location.search).get('sky')==='0')SKY.on=false;}catch(e){}
+function skyTwin(m){
+  let t=SKY.twins.get(m);if(t)return t;
+  t=m.clone();t.color=m.color;if(m.emissive)t.emissive=m.emissive;if(m.specular)t.specular=m.specular;
+  const orig=m.onBeforeCompile;
+  t.onBeforeCompile=function(sh,r){
+    if(orig)orig.call(this,sh,r);
+    const C=THREE.ShaderChunk;
+    if(t.isMeshLambertMaterial){
+      sh.vertexShader='attribute float aBake;\n'+sh.vertexShader.replace('#include <lights_lambert_vertex>',
+        C.lights_lambert_vertex.replace('vIndirectFront += getHemisphereLightIrradiance( hemisphereLights[ i ], geometry );','vIndirectFront += getHemisphereLightIrradiance( hemisphereLights[ i ], geometry ) * aBake;'));
+    }else{
+      sh.vertexShader='attribute float aBake;varying float vBake;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvBake=aBake;');
+      sh.fragmentShader='varying float vBake;\n'+sh.fragmentShader.replace('#include <lights_fragment_begin>',
+        C.lights_fragment_begin.replace('irradiance += getHemisphereLightIrradiance( hemisphereLights[ i ], geometry );','irradiance += getHemisphereLightIrradiance( hemisphereLights[ i ], geometry ) * vBake;'));
+    }
+  };
+  const key='sky|'+(orig?orig.toString():'');t.customProgramCacheKey=()=>key;
+  SKY.twins.set(m,t);return t;
+}
+function bakeSky(root){
+  if(!SKY.on)return 0;
+  const t0=performance.now(),folds=[];
+  root.updateWorldMatrix(true,true);
+  root.traverse(o=>{if(o.isMesh&&o.userData.baked&&o.geometry.attributes.normal&&!o.geometry.attributes.aBake&&(o.material.isMeshLambertMaterial||o.material.isMeshPhongMaterial))folds.push(o);});
+  if(!folds.length)return 0;
+  // the casters: the same geometry under a depth material, in a scene of their own (the world's is not disturbed)
+  if(!SKY.scn){SKY.scn=new THREE.Scene();SKY.mat=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide});
+    SKY.rt=new THREE.WebGLRenderTarget(SKY.SIZE,SKY.SIZE,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,depthBuffer:true,stencilBuffer:false});
+    SKY.px=new Uint8Array(SKY.SIZE*SKY.SIZE*4);SKY.d=new Float32Array(SKY.SIZE*SKY.SIZE);SKY.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,2);}
+  const box=new THREE.Box3(),v=new THREE.Vector3(),n=new THREE.Vector3(),nm=new THREE.Matrix3(),jobs=[],proxies=[];
+  for(const o of folds){
+    const px=new THREE.Mesh(o.geometry,SKY.mat);px.matrixAutoUpdate=false;px.matrix.copy(o.matrixWorld);px.matrixWorld.copy(o.matrixWorld);px.frustumCulled=false;SKY.scn.add(px);proxies.push(px);
+    const P=o.geometry.attributes.position,Nn=o.geometry.attributes.normal,c=P.count,wp=new Float32Array(c*3),wn=new Float32Array(c*3);
+    nm.getNormalMatrix(o.matrixWorld);
+    for(let i=0,k=0;i<c;i++,k+=3){v.fromBufferAttribute(P,i).applyMatrix4(o.matrixWorld);n.fromBufferAttribute(Nn,i).applyMatrix3(nm).normalize();box.expandByPoint(v);
+      wn[k]=n.x;wn[k+1]=n.y;wn[k+2]=n.z;wp[k]=v.x+n.x*SKY.off;wp[k+1]=v.y+n.y*SKY.off;wp[k+2]=v.z+n.z*SKY.off;}
+    jobs.push({o,c,wp,wn,vis:new Float32Array(c),ws:new Float32Array(c)});
+  }
+  const ctr=box.getCenter(new THREE.Vector3()),rad=box.getSize(new THREE.Vector3()).length()/2+1,S=SKY.SIZE,cam=SKY.cam,d=SKY.d,px=SKY.px;
+  const keepRT=renderer.getRenderTarget(),keepC=renderer.getClearColor(new THREE.Color()),keepA=renderer.getClearAlpha();
+  cam.left=-rad;cam.right=rad;cam.top=rad;cam.bottom=-rad;cam.near=0;cam.far=2*rad;cam.updateProjectionMatrix();
+  const VP=new THREE.Matrix4(),dir=new THREE.Vector3(),GA=Math.PI*(3-Math.sqrt(5)),bias=(2*rad/S*1.6+.04)/(2*rad),K=255/256/255;
+  for(let q=0;q<SKY.N;q++){
+    const y=.1+.9*(q+.5)/SKY.N,r=Math.sqrt(1-y*y),a=q*GA;dir.set(Math.cos(a)*r,y,Math.sin(a)*r);   // (a spiral over the upper sky)
+    cam.position.copy(ctr).addScaledVector(dir,rad);cam.up.set(0,1,0);if(y>.99)cam.up.set(0,0,-1);cam.lookAt(ctr);cam.updateMatrixWorld(true);
+    renderer.setRenderTarget(SKY.rt);renderer.setClearColor(0xffffff,1);renderer.clear(true,true,true);renderer.render(SKY.scn,cam);
+    renderer.readRenderTargetPixels(SKY.rt,0,0,S,S,px);
+    for(let i=0,j=0;i<d.length;i++,j+=4)d[i]=(px[j+3]+px[j+2]/256+px[j+1]/65536+px[j]/16777216)*K;
+    const e=VP.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse).elements;
+    for(const J of jobs){const wp=J.wp,wn=J.wn,vis=J.vis,ws=J.ws;
+      for(let i=0,k=0;i<J.c;i++,k+=3){
+        const w=.03+.97*Math.max(0,wn[k]*dir.x+wn[k+1]*dir.y+wn[k+2]*dir.z);ws[i]+=w;
+        const x=wp[k],yy=wp[k+1],z=wp[k+2];
+        const u=((e[0]*x+e[4]*yy+e[8]*z+e[12])*.5+.5)*S-.5,vv=((e[1]*x+e[5]*yy+e[9]*z+e[13])*.5+.5)*S-.5,dz=(e[2]*x+e[6]*yy+e[10]*z+e[14])*.5+.5-bias;
+        const iu=Math.floor(u),iv=Math.floor(vv);
+        if(iu<0||iv<0||iu>=S-1||iv>=S-1){vis[i]+=w;continue;}                  // (off the map is open sky)
+        const p=iv*S+iu,fu=u-iu,fv=vv-iv;
+        vis[i]+=w*(((dz<=d[p]?1:0)*(1-fu)+(dz<=d[p+1]?1:0)*fu)*(1-fv)+((dz<=d[p+S]?1:0)*(1-fu)+(dz<=d[p+S+1]?1:0)*fu)*fv);}}
+  }
+  renderer.setRenderTarget(keepRT);renderer.setClearColor(keepC,keepA);
+  for(const p of proxies)SKY.scn.remove(p);
+  for(const J of jobs){const col=new Uint8Array(J.c);
+    for(let i=0;i<J.c;i++){const sv=J.ws[i]>0?J.vis[i]/J.ws[i]:1,t=clamp((sv-SKY.lo)/(SKY.hi-SKY.lo),0,1);   // (a little sky lost is no shade at all: without the knee every wall is merely dirtier)
+      col[i]=Math.round(255*(SKY.floor+(1-SKY.floor)*t));}
+    J.o.geometry.setAttribute('aBake',new THREE.BufferAttribute(col,1,true));
+    J.o.material=skyTwin(J.o.material);}
+  SKY.ms=performance.now()-t0;return folds.length;
+}
 function bakeWorld(){
   const held=new WeakSet();
   const claim=o=>{if(!o)return;if(o.traverse)o.traverse(c=>held.add(c));else held.add(o);};
@@ -6160,6 +6256,7 @@ function buildWorld(){
     // the stone is done and everything interactive in it is registered:
     // fold the parts that are only ever looked at
     cath.userData.bake=bakeStatic(cath);
+    bakeSky(cath);                       // (and the folds are given their shade: see THE STONE'S OWN SHADE)
   };
   if(!DEF.on){const c0=PATH.on?tileCapture():null;buildCathedral(PATH.on);   // (on the path this is tile 0's, and caught like any tile's so it can be torn down behind you)
     if(c0){PATH.tile0=PATH.tile0||{objsW:[],objsS:[],hazes:[],obs:[],brk:[],lamps:[],wisps:[]};tileCommit(PATH.tile0,c0,0);}}
@@ -23666,7 +23763,7 @@ if(/[?&]go=1/.test(location.search)&&!CODEX.on){try{const u=new URL(location.hre
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={SKY,camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */

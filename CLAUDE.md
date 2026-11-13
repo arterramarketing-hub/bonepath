@@ -106,6 +106,12 @@ on the pause screen.
   `BAKED`.** `unbakeGroup(g)` asks by record, not by traversal. A `fold`
   breakable lets its group fold and claims only its `obs`.
 - The pause screen renders every fifth frame and the title every third.
+- **The cathedral's folds carry a baked shade** (`bakeSky`, `aBake`, one
+  byte a vertex: how much sky it sees). It scales the HEMISPHERE's light
+  only, through a twin of the fold's material (`skyTwin`) that shares the
+  original's colour objects and carries its `onBeforeCompile`. Never bake
+  it into a vertex colour (that dims the lanterns), never bake the moon's
+  shadow, and call it only on a fold that never moves. `?sky=0` is off.
 - LOD (`lodUpdate`): the threshold is APPARENT size, not distance (scopes).
   Never swap the boss, a mini, anything dead, ragdolling, burning or
   scattering. A part added directly to a rig's `root` is LOD'd unless
