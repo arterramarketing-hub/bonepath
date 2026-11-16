@@ -112,6 +112,17 @@ on the pause screen.
   original's colour objects and carries its `onBeforeCompile`. Never bake
   it into a vertex colour (that dims the lanterns), never bake the moon's
   shadow, and call it only on a fold that never moves. `?sky=0` is off.
+- **Halos and wisps are not Sprites.** `addHaze`/`addWisp` return an empty
+  Object3D with a `material` (`color`, `opacity`); `glowSync` draws them
+  all as one mesh a pass. A new glow goes through them (or `glow()`), never
+  `new THREE.Sprite`, and the two batch meshes are made before the world.
+- **A host rig is folded by joint and material** (`foldRig`, `RIGFOLD`),
+  before any tint. It skips anything the rig names in its own properties:
+  a part something will move, tint or detach alone must be on the rig by
+  name BEFORE the fold. The hero's body is never folded, only a plain blade.
+- A pew is one mesh (`PEW.geo`); a path bone pile is folded where it is made.
+- The ground paint uploads only its dirty box (`flushPaint`); a wipe sets
+  `GP.full`. Anything new that paints the sheet grows `GP.box` or sets it.
 - LOD (`lodUpdate`): the threshold is APPARENT size, not distance (scopes).
   Never swap the boss, a mini, anything dead, ragdolling, burning or
   scattering. A part added directly to a rig's `root` is LOD'd unless

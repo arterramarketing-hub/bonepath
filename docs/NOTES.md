@@ -3794,3 +3794,43 @@ Known state of play:
   cathedral hex's build on the path. If that hitch shows, spread the
   sixteen maps over frames. Not done: the paint-sheet feet (two functions
   wipe that sheet), the castle, the Mire's house.
+
+- **The rest of the audit's draws.** Four things, each measured against the
+  build before it on one frozen frame (seed 7, night, 844x390):
+  field 517 draws to 387, path 467 to 283, ravine 452 to 303, Mire 232 to
+  221; triangles unchanged.
+  THE GLOWS. A hundred Sprites, one draw each, are now two meshes
+  (`glowSync`). What made it safe is that they are additive and write no
+  depth, so order means nothing. What made it small is that `glow()` hands
+  back an Object3D with the few things callers used of a Sprite, still a
+  child of the scene, so `tileCapture`/`tileCommit`/`teardownTile` count,
+  shift and remove it as before. The batch meshes are made at definition,
+  before `buildWorld`, because anything made inside hex 0's window is torn
+  down with it (the light pool's bug). The shader is the Sprite's own
+  chunks (fog, encoding). Lost: per-sprite frustum culling (nothing) and
+  depth ordering against other see-through things (the wisps draw last).
+  THE PEWS AND PILES. A pew was five boxes; broken, it is thrown away and
+  replaced by planks, so nothing needed its parts: one shared `PEW.geo`,
+  kept out of teardown's dispose. A bone pile is folded on the path only;
+  on the field `bakeWorld` already takes the bones into its cells and
+  skips anything already baked.
+  THE RIGS. The audit hoped for 77 to 30 on the pilgrim. Measured: his
+  wardrobe gives him 34 materials, so joint-and-material folding could
+  reach 50 at best, and `dressSnow` reads each mesh's own height and the
+  first-person mask takes arm meshes singly. So his body is left alone and
+  only a plain blade's furniture is folded (77 to 60). The host is where
+  it pays: a hollow 37 to 21. `foldRig` excludes whatever the rig holds by
+  name, found by walking the rig's own properties. Stress run on folded
+  rigs (field, snow, path): sixteen severs, three splits, two home runs,
+  hits, kills, first person and back: no error, no NaN. The first cache
+  key was exact to a tenth of a millimetre and a hollow's scale is any
+  number, so the cache grew with every horror sown (1431 geometries at hex
+  80 against 1111). Keyed to two centimetres it saturates: 258 entries
+  after 800 spawned hollows, and 1052 geometries at hex 80.
+  THE PAINT. A mark re-read and re-sent the whole 1024 sheet. Now the marks
+  keep a box and `flushPaint` sends that box with `texSubImage2D` on
+  three's own handle, from `getImageData` (the Safari rule). Identical
+  pixels to a full upload; a mark's frame 9.4ms to 2.9ms here.
+  Also seen: r128 warns that `flatShading` is not a property of
+  MeshLambertMaterial. `flatMat` asks for it and has never had it; the
+  facets come from unshared vertices.
