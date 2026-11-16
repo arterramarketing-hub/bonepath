@@ -118,6 +118,17 @@ on the pause screen.
   original's colour objects and carries its `onBeforeCompile`. Never bake
   it into a vertex colour (that dims the lanterns), never bake the moon's
   shadow, and call it only on a fold that never moves. `?sky=0` is off.
+- **Halos and wisps are not Sprites.** `addHaze`/`addWisp` return an empty
+  Object3D with a `material` (`color`, `opacity`); `glowSync` draws them
+  all as one mesh a pass. A new glow goes through them (or `glow()`), never
+  `new THREE.Sprite`, and the two batch meshes are made before the world.
+- **A host rig is folded by joint and material** (`foldRig`, `RIGFOLD`),
+  before any tint. It skips anything the rig names in its own properties:
+  a part something will move, tint or detach alone must be on the rig by
+  name BEFORE the fold. The hero's body is never folded, only a plain blade.
+- A pew is one mesh (`PEW.geo`); a path bone pile is folded where it is made.
+- The ground paint uploads only its dirty box (`flushPaint`); a wipe sets
+  `GP.full`. Anything new that paints the sheet grows `GP.box` or sets it.
 - LOD (`lodUpdate`): the threshold is APPARENT size, not distance (scopes).
   Never swap the boss, a mini, anything dead, ragdolling, burning or
   scattering. A part added directly to a rig's `root` is LOD'd unless
@@ -163,6 +174,10 @@ loudly. `docs/three-r187/README.md` has the proof, picture by picture.
   **A string replace that matches nothing is silent**: `tools/three-parity`
   counts them (`misses`); run it after touching any `onBeforeCompile`.
 - A partial upload is `attr.addUpdateRange(start,count)`, not `updateRange`.
+- **A raw GL call on one of three's textures goes through `renderer.state`**
+  (`bindTexture`, `pixelStorei`): the library caches both, and a bare
+  `gl.pixelStorei` leaves it believing the old value, so the NEXT texture
+  it uploads comes in upside down (`flushPaint`).
 - `MeshDepthMaterial`'s RGBA packing has R as the TOP byte (`bakeSky`).
 - A see-through two-sided material is drawn in ONE pass, an opaque one
   writes its own alpha, and cones carry no zero-area faces at the tip

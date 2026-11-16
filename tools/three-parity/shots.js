@@ -38,6 +38,10 @@ const SHOTS=[
   {id:'hollows',q:Q+'noon',pre:`B.player.x=30;B.player.z=40;for(const e of B.enemies.slice()){const r=e.rig&&e.rig.root;if(r&&r.parent)r.parent.remove(r);}B.enemies.length=0;
      for(const [k,x,z] of [['hollow',31.5,36],['thrower',28.5,36.5],['brute',30,34.5],['hollow',33,20],['hollow',27,16],['hollow',30,4],['thrower',36,-6],['hollow',24,-12],['brute',31,-20]])B.spawnFoe(k,x,z);
      window.__view={p:[30,40],eye:[30.5,2.4,43.5],at:[30,1,20]};`,frames:200},
+  {id:'hollow-close',q:Q+'dusk',pre:`B.player.x=30;B.player.z=40;for(const e of B.enemies.slice()){const r=e.rig&&e.rig.root;if(r&&r.parent)r.parent.remove(r);}B.enemies.length=0;
+     B.spawnFoe('hollow',30,37.6);B.spawnFoe('brute',31.6,37.2);window.__view={p:[30,40],eye:[29.2,1.5,39.4],at:[30.4,1.1,37.5]};`,frames:170},
+  {id:'paint-marks',q:'seed=7&time=noon&wx=snow',pre:`window.__view={p:[-28,-9],eye:[-27.2,2.6,-6.6],at:[-28,0,-10]};`,frames:30,
+     post:`for(let i=0;i<7;i++){B.printSnow(-28.6+i*.25,-9.6-i*.35,.4);window.__pump(2);}B.bloodDecal&&B.bloodDecal(-27.4,-10.4,1);window.__pump(3);`},
   {id:'snow',q:'seed=7&time=noon&wx=snow',view:GRAVES},
   {id:'blizzard',q:'seed=7&time=dusk&wx=blizzard',view:CATH},
   {id:'fog',q:'seed=7&time=noon&wx=fog',view:CATH},
