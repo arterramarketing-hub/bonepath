@@ -110,6 +110,10 @@ checked at build or load. Proof: `docs/three-r187/README.md`.
   raw GL call on three's texture goes through `renderer.state`
   (`bindTexture`, `pixelStorei`), never a bare `gl.pixelStorei`.
 - `MeshDepthMaterial` RGBA packing: R is the TOP byte.
+- The nine maps the game never sets (`alphaMap`, `specularMap`, `envMap`,
+  `aoMap`, `lightMap`, `emissiveMap`, `bumpMap`, `normalMap`,
+  `displacementMap`) have no uniforms (`legacy.js` 8): setting one throws.
+  Wanting one means putting its uniforms back there first.
 
 ### Boot order
 - Function DECLARATIONS, not const arrows: `isThief`, `adsWalk`,

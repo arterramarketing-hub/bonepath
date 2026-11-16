@@ -28,6 +28,14 @@
    7. NO NEW PROGRAMS: r187 would compile a second shader for a see-through
       material, for a geometry without normals, and for a "flat" Lambert,
       none of which is a different shader here (PATCHES again).
+   8. NO UNIFORMS FOR MAPS THE GAME NEVER SETS. r187 gives every map its
+      own uv transform, and the renderer clones a material's whole uniform
+      table when it first draws it: nine Matrix3s more per Lambert or Phong
+      than r128 (bump, normal, displacement, ao, light, emissive, specular,
+      alpha, and the env map's rotation), for maps the game has none of.
+      They are taken out of the tables, and those maps cannot be set on the
+      five materials the game uses: a setter throws, rather than the
+      renderer reading a uniform that is not there. `map` keeps its own.
    NOT carried: shadow maps and environment maps on a Lambert (the game
    has neither), and the old units on any lit material but Lambert and
    Phong. */
@@ -36,6 +44,10 @@ import { ShaderChunk } from 'three/src/renderers/shaders/ShaderChunk.js';
 import { ShaderLib } from 'three/src/renderers/shaders/ShaderLib.js';
 import { Material } from 'three/src/materials/Material.js';
 import { MeshLambertMaterial } from 'three/src/materials/MeshLambertMaterial.js';
+import { MeshPhongMaterial } from 'three/src/materials/MeshPhongMaterial.js';
+import { MeshBasicMaterial } from 'three/src/materials/MeshBasicMaterial.js';
+import { PointsMaterial } from 'three/src/materials/PointsMaterial.js';
+import { SpriteMaterial } from 'three/src/materials/SpriteMaterial.js';
 
 ColorManagement.enabled = false;
 
@@ -250,3 +262,22 @@ Object.defineProperty( MeshLambertMaterial.prototype, 'flatShading', { get() { r
 
 // 4. a single pass, whatever the material
 Object.defineProperty( Material.prototype, 'forceSinglePass', { get() { return true; }, set() {}, configurable: true } );
+
+// 8. no uniforms for maps the game never sets (each one cloned into every material's table is a Matrix3 or a texture slot)
+const NO_MAPS = [ 'alphaMap', 'specularMap', 'envMap', 'aoMap', 'lightMap', 'emissiveMap', 'bumpMap', 'normalMap', 'displacementMap' ];
+const NO_UNIFORMS = [ 'flipEnvMap', 'envMapRotation', 'reflectivity', 'ior', 'refractionRatio', 'dfgLUT', 'aoMapIntensity', 'lightMapIntensity',
+	'bumpScale', 'normalScale', 'displacementScale', 'displacementBias' ];
+for ( const id of [ 'basic', 'lambert', 'phong', 'points', 'sprite' ] ) {
+
+	const u = ShaderLib[ id ].uniforms;
+	if ( ! u || ! u.diffuse || ! u.map ) throw new Error( 'THE OLD LIGHT: ShaderLib.' + id + ' has no diffuse or map uniform' );
+	for ( const m of NO_MAPS ) { delete u[ m ]; delete u[ m + 'Transform' ]; }
+	for ( const k of NO_UNIFORMS ) delete u[ k ];
+
+}
+for ( const M of [ MeshBasicMaterial, MeshLambertMaterial, MeshPhongMaterial, PointsMaterial, SpriteMaterial ] ) {
+
+	for ( const m of NO_MAPS ) Object.defineProperty( M.prototype, m, { get() { return null; },
+		set( v ) { if ( v ) throw new Error( 'THE OLD LIGHT: ' + m + ' has no uniforms here (legacy.js, 8)' ); }, configurable: true } );
+
+}

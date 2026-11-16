@@ -3951,6 +3951,28 @@ Known state of play:
   name by name); the explanations are here. The whole of it as it stood
   before the cut follows, so nothing it said is lost.
 
+
+- **The r187 heap, accounted for.** The upgrade left the heap 0.7 to 2.2 MB
+  larger. Measured again on the seeded clock and dice, with forced GC and
+  heap snapshots diffed by retainer, against r128 (5be81a4): the field
+  +1.20 MB, the path +1.07, the Mire +0.67, the codex +0.63. (The earlier
+  4.5 MB in the codex was the harness: `perf.js` sets `player.maxHp=1e6`,
+  and the HUD builds a hundred thousand hearts.) Nothing leaks: the path's
+  objects shrink between 20 and 60 seconds in both builds, and at 150
+  seconds the two are 40 KB apart.
+  What it was: the renderer clones a material's whole `ShaderLib` uniform
+  table the first time it draws it, about 325 materials on the field, and
+  r187's tables are larger: a Lambert's went from 48 entries and two
+  Matrix3s to 71 and ten, for a uv transform on every map type and the env
+  map's rotation (+527 KB). The game sets none of those maps. `legacy.js`
+  section 8 takes them out of the five tables the game uses and makes the
+  maps unsettable (a setter throws, so a later use fails loudly instead of
+  reading a missing uniform). Saved: 0.69 MB on the field, 0.64 on the
+  path, 0.23 in the Mire, 0.17 in the codex. All 39 parity shots 0 pixels,
+  same programs and draws. What remains, about half a megabyte, is r187's
+  own: compiled code for a different library, larger shader chunk strings,
+  a `Source` a texture. It is fixed, not growing.
+
 ## The long rules (CLAUDE.md as it stood on 2026-11-16)
 
     # BONEPATH — working notes for Claude
