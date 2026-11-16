@@ -758,8 +758,8 @@
      the day turning .................. turnDay, xfStart, xfTick, applyTime, setWeather
    gargoyles, the ground mesh ......... GARG, "THE GROUND MESH IS NOT THE GROUND FUNCTION"
    snow marks ......................... TROD, "THE FURROW", onStone, updateTrail, updateWeather
-   ambience, the light pool ........... updateAmbient, LPOOL
-   rig geometry, the ground shade ..... geoCache, gq, "THE GROUND SHADE", shadeRigs
+   ambience, the light pool, glows .... updateAmbient, LPOOL, "EVERY GLOW IN ONE DRAW" (glow, glowSync, GLOW)
+   rig geometry, the ground shade ..... geoCache, gq, "THE GROUND SHADE", shadeRigs, foldRig, RIGFOLD
    level of detail .................... lodUpdate
    poses .............................. resetPose, seg4, poseWalk, poseRise, plantHand,
                                         poseHomerun, poseFloored, seamGrab
@@ -2295,6 +2295,7 @@ const gradeMat=new THREE.ShaderMaterial({
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
 function renderFrame(){
   renderer.info.reset();
+  glowSync();   // (every halo and wisp, poured into its pass's one buffer)
   // the sky rides on the camera's shoulder. It is a sphere of radius 210
   // and the camera sees to 220, so once the hero walked a few paces off
   // the origin the far side of the dome fell past the far plane and was
@@ -5490,12 +5491,22 @@ const breakables=[];
    carries the same crown (`b.obs.top`) and answers for both.
    `breakPew` removes the pair together, so the tag cannot outlive it. */
 function addBreakable(b){if(b.obs)b.obs.brk=true;breakables.push(b);return b;}
+/* A PEW IS ONE DRAW. It was five boxes, and a nave has twenty: a hundred
+   draws at every cathedral on the path for furniture that never moves
+   until it is broken, and a broken pew is thrown away whole and replaced
+   with flying planks (breakPew), so nothing ever asks for its parts. The
+   five are folded once into `PEW.geo` and every pew wears that. The path
+   must not dispose it with a hex (teardownTile's `shared`). */
+const PEW={geo:null};
 function makePew(x,z,parent,woodM){
   const g=new THREE.Group();g.position.set(x,0,z);parent.add(g);
-  g.add(box(3.4,.1,.5,woodM,0,.62,0));                 // seat
-  g.add(box(3.4,.55,.1,woodM,0,.95,-.22));             // back
-  for(const s of[1,-1])g.add(box(.1,.9,.55,woodM,s*1.7,.45,0)); // ends
-  g.add(box(3.2,.06,.4,woodM,0,.2,.05));               // kneeler
+  if(!PEW.geo){const T=new THREE.Group();
+    T.add(box(3.4,.1,.5,woodM,0,.62,0));                 // seat
+    T.add(box(3.4,.55,.1,woodM,0,.95,-.22));             // back
+    for(const s of[1,-1])T.add(box(.1,.9,.55,woodM,s*1.7,.45,0)); // ends
+    T.add(box(3.2,.06,.4,woodM,0,.2,.05));               // kneeler
+    bakeStatic(T);PEW.geo=T.children.find(o=>o.isMesh&&o.userData.baked).geometry;}
+  g.add(new THREE.Mesh(PEW.geo,woodM));
   addWall(x-1.65,z,x+1.65,z,.38,false,PH+1.23);   // the back rail's top (the cathedral's floor is PH)
   const obs=obstacles[obstacles.length-1];
   addBreakable({g,x,z,hw:1.7,hd:.4,hp:2,obs,parent,kind:'pew'});
@@ -6315,6 +6326,7 @@ function buildWorld(){
     const pile=new THREE.Group(),n=2+((rnd()*4)|0);
     for(let k=0;k<n;k++)pile.add(box(rr(.3,.7),.09,.09,M.bone,rr(-.4,.4),.05+k*.02,rr(-.4,.4),rnd()*TAU));
     if(rnd()<.6){const sk=new THREE.Mesh(new THREE.SphereGeometry(.14,6,5),M.bone);sk.position.set(rr(-.2,.2),.14,rr(-.2,.2));pile.add(sk);}
+    if(PATH.on)bakeStatic(pile);                         // (one draw a pile, not one a bone: on the path nothing else folds them; the field's and the Mire's go into bakeWorld's cells)
     pile.position.set(px,heightAt(px,pz),pz);world.add(pile);
   }
   function standingStone(px,pz,h){
@@ -7609,7 +7621,7 @@ function forkHost(w,t,budget){
   K.sow('hollow',q*rr(6,12),-37+rr(-12,4),{ambush:true});
 }   // (all at once: before the first frame, or for a probe)
 function teardownTile(t){
-  const shared=new Set(PATH.helpers.shared);
+  const shared=new Set(PATH.helpers.shared);if(PEW.geo)shared.add(PEW.geo);
   for(const o of t.objsW){world.remove(o);o.traverse(c=>{if(c.isMesh&&c.geometry&&!shared.has(c.geometry))c.geometry.dispose();const mp=c.material&&c.material.map;if(mp&&mp.bpOwn)mp.dispose();});}   // (and a texture cloned for this tile alone: a path cathedral's floor and plinth)
   for(const o of t.objsS)scene.remove(o);
   for(const o of t.hazes)hazeScene.remove(o);
@@ -7924,7 +7936,7 @@ function applyGroundSurface(){
      with a repeat that matches the ground's tile size on both. */
   applyRoadSurface();
   TRAIL_GROUND.k.value=snowy?0:1;                  // (the trail goes under the snow with everything else)
-  if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;}
+  if(GP.ctx){GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;GP.full=true;}
   trodClear();trailClear();
 }
 function applyRoadSurface(){
@@ -8710,8 +8722,8 @@ function updateWeather(dt){
    ellipse along the direction given, its edge jagged, a lighter lip round
    a dark core — and the sheet is sent to the GPU once a frame, not once a
    stroke. Scorch is the same shape, darker */
-const GP={cv:null,ctx:null,tex:null,S:1024,EXT:150,dirty:false,strokes:0,oz:0};
-function movePaint(z){GP.oz=z;if(GP.ctx)GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;if(groundMat&&groundMat.userData.shader)groundMat.userData.shader.uniforms.uPaintZ.value=z;}
+const GP={cv:null,ctx:null,tex:null,S:1024,EXT:150,dirty:false,strokes:0,oz:0,box:null,full:true};
+function movePaint(z){GP.oz=z;if(GP.ctx)GP.ctx.clearRect(0,0,GP.S,GP.S);GP.dirty=true;GP.full=true;if(groundMat&&groundMat.userData.shader)groundMat.userData.shader.uniforms.uPaintZ.value=z;}
 function paintScar(x,z,facing,w,l,dark,pal){
   if(!GP.ctx)return;
   const ctx=GP.ctx,k=GP.S/GP.EXT,cx=(x/GP.EXT+.5)*GP.S,cy=((z-GP.oz)/GP.EXT+.5)*GP.S;
@@ -8723,6 +8735,8 @@ function paintScar(x,z,facing,w,l,dark,pal){
   const P=pal||(dark?['rgba(40,30,22,.5)','rgba(20,15,11,.85)']:['rgba(104,82,56,.55)','rgba(64,46,30,.9)']);
   blob(1.3,P[0]);blob(.85,P[1]);
   GP.dirty=true;GP.strokes++;
+  {const r=Math.max(l,w)/2*1.76*k+2,b=GP.box;   // (the torn edge reaches 1.35 of the half-length, the outer blob 1.3 of that)
+    if(b){b[0]=Math.min(b[0],cx-r);b[1]=Math.min(b[1],cy-r);b[2]=Math.max(b[2],cx+r);b[3]=Math.max(b[3],cy+r);}else GP.box=[cx-r,cy-r,cx+r,cy+r];}
 }
 // a boot pressed into snow: a small cold hollow with a lip of shadow,
 // painted into the same sheet the gouges are, so it follows the ground
@@ -8732,8 +8746,81 @@ function printSnow(x,z,facing){
   const side=Math.random()<.5?-.18:.18;                      // left boot or right
   paintScar(x+Math.cos(facing)*side,z-Math.sin(facing)*side,facing,.22,.44,false,SNOW_PRINT);
 }
-function flushPaint(){if(GP.dirty&&GP.tex){GP.tex.needsUpdate=true;GP.dirty=false;}}
+/* ONLY THE PART THAT WAS PAINTED GOES UP. A mark is a few dozen texels and
+   the sheet is 1024 square: sending the whole sheet for each one read back
+   four megabytes and uploaded them (3-7ms of read and about ten of frame,
+   measured, for every boot-print and gouge). The marks keep a box round
+   what they touched, and that box alone is read (`getImageData`, the clean
+   pixels, as the Safari rule asks) and written into the texture where it
+   lies. A wipe (`movePaint`, `applyGroundSurface`) or a sheet the card has
+   not seen yet still goes whole, the old way. */
+function flushPaint(){
+  if(!GP.dirty||!GP.tex)return;
+  GP.dirty=false;const b=GP.box;GP.box=null;
+  const h=renderer.properties.get(GP.tex).__webglTexture;
+  if(GP.full||!b||!h){GP.full=false;GP.tex.needsUpdate=true;return;}
+  const S=GP.S,x0=clamp(Math.floor(b[0]),0,S-1),y0=clamp(Math.floor(b[1]),0,S-1),x1=clamp(Math.ceil(b[2]),x0+1,S),y1=clamp(Math.ceil(b[3]),y0+1,S);
+  if(b[2]<0||b[3]<0||b[0]>S||b[1]>S)return;                // (painted off the sheet: nothing of it shows)
+  try{const gl=renderer.getContext(),img=GP.ctx.getImageData(x0,y0,x1-x0,y1-y0);
+    renderer.state.bindTexture(gl.TEXTURE_2D,h);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_ALIGNMENT,4);
+    gl.texSubImage2D(gl.TEXTURE_2D,0,x0,y0,gl.RGBA,gl.UNSIGNED_BYTE,img);
+  }catch(e){GP.tex.needsUpdate=true;}
+}
 
+/* A JOINT'S STONES OF ONE KIND ARE ONE DRAW. A hollow is thirty-seven
+   meshes on fourteen joints, and most joints carry two or three boxes of
+   the same bone: a forearm, its wrist and its hand never move against one
+   another. `foldRig` pours each joint's meshes that share a material into
+   one, in the joint's own frame, so every pose, sever, ragdoll and cut
+   still works on the joints it always did. A hollow goes 37 to 19.
+
+   WHAT IT WILL NOT TOUCH: anything the rig holds by name (`bladeMesh`,
+   `eyes`, `shade`, a shield: found by looking through the rig's own
+   properties, so a part named later is safe if it is named before the
+   fold), anything with children, anything see-through, anything tagged
+   `lodKeep`. The folded geometry is cached by what went into it
+   (`RIGFOLD`), so a field of hollows the same size shares one set and
+   `geoCache`'s rule holds: nothing grows with the host.
+   It runs BEFORE any tint clones a rig's materials (a red hollow's are
+   cloned one a mesh, and nothing would match afterwards), and the HERO'S
+   BODY IS NEVER FOLDED: his wardrobe (`dressSnow`) gives each part its own
+   material by its height, and the first-person mask takes his arms one
+   mesh at a time. Only his blade is, and only a plain blade's. */
+const RIGFOLD=new Map();
+function foldRig(rig,only){
+  const named=new Set(),see=v=>{if(v&&v.isObject3D)named.add(v);};
+  for(const k in rig){const v=rig[k];if(!v||typeof v!=='object')continue;
+    if(v.isObject3D)named.add(v);else if(Array.isArray(v))v.forEach(see);else if(!v.isBufferGeometry&&!v.isMaterial&&Object.getPrototypeOf(v)===Object.prototype)for(const j in v)see(v[j]);}
+  const M=new THREE.Matrix4();let saved=0;
+  (only||rig.root).traverse(G=>{
+    if(G.isMesh||!G.children.length)return;
+    const by=new Map();
+    for(const c of G.children){
+      if(!c.isMesh||c.children.length||named.has(c)||c.userData.lodKeep||c.userData.baked||!c.visible)continue;
+      const m=c.material,a=c.geometry&&c.geometry.attributes;
+      if(!m||Array.isArray(m)||m.transparent||!a||!a.position||!a.normal)continue;
+      const k=m.uuid+'|'+(a.uv?'u':'')+(a.color?'c':'')+'|'+c.layers.mask+'|'+c.renderOrder;
+      let l=by.get(k);if(!l)by.set(k,l=[]);l.push(c);}
+    for(const [,list] of by){
+      if(list.length<2)continue;
+      let key='';for(const c of list){c.updateMatrix();key+=c.geometry.uuid+':'+Array.from(c.matrix.elements,x=>Math.round(x*1e4)).join(',')+';';}
+      let geo=RIGFOLD.get(key);
+      if(!geo){
+        const a0=list[0].geometry.attributes,hasUv=!!a0.uv,hasC=!!a0.color;let nv=0;
+        for(const c of list)nv+=c.geometry.index?c.geometry.index.count:c.geometry.attributes.position.count;
+        const pos=new Float32Array(nv*3),nrm=new Float32Array(nv*3),uv=hasUv?new Float32Array(nv*2):null,col=hasC?new Float32Array(nv*3):null;let at=0;
+        for(const c of list){const g=c.geometry.index?c.geometry.toNonIndexed():c.geometry.clone();g.applyMatrix4(c.matrix);
+          const n=g.attributes.position.count;pos.set(g.attributes.position.array,at*3);nrm.set(g.attributes.normal.array,at*3);
+          if(hasUv)uv.set(g.attributes.uv.array,at*2);if(hasC)col.set(g.attributes.color.array.subarray(0,n*3),at*3);at+=n;g.dispose();}
+        geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(nrm,3));
+        if(hasUv)geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));if(hasC)geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+        geo.computeBoundingSphere();geo.computeBoundingBox();RIGFOLD.set(key,geo);}
+      const one=new THREE.Mesh(geo,list[0].material);one.layers.mask=list[0].layers.mask;one.renderOrder=list[0].renderOrder;one.frustumCulled=list[0].frustumCulled;one.userData.fold=list.length;
+      for(const c of list)G.remove(c);G.add(one);saved+=list.length-1;}
+  });
+  return saved;
+}
 const lanternLights=[];
 /* THE LIGHT POOL (the path): three.js recompiles every lit shader the
    moment the scene's count of lights changes — on a phone that is the
@@ -8792,17 +8879,81 @@ function makeLantern(x,z){
 
 /* a soft haze around a light: a big, faint additive disc drawn in the
    haze pass (after the grade, depth-tested against the scene) */
-function addHaze(x,y,z,color,size,op){
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texCache.glow,color,transparent:true,
-    opacity:op,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending}));
-  s.scale.set(size,size,1);s.position.set(x,y,z);hazeScene.add(s);return s;
+/* EVERY GLOW IN ONE DRAW. A halo and a wisp were each a Sprite with a
+   material of its own: a hundred one-quad draws on the field, eighty at the
+   start of the path, for discs that differ only in where they are, how big
+   and what colour. They are additive and write no depth, so the order they
+   are drawn in changes nothing, and they can all go to the card together.
+   `glow()` hands back what a Sprite was to its callers: a thing in the
+   scene with a `position`, a `scale`, a `visible` and a `material` whose
+   `color` and `opacity` can be written. It is an empty Object3D, so the
+   tile capture still counts it, shifts it and removes it like any other
+   child, and nothing that held a sprite has to know. `glowSync` (from
+   `renderFrame`) pours the live ones into one quad buffer for each pass:
+   the centre, the size and the colour ride on the vertices and the shader
+   turns each quad to the eye, exactly as the Sprite's did (same fog, same
+   encoding, same blend). The two meshes are made HERE, before the world is
+   built, so no hex's capture window takes them for its own. */
+const GLOW={lists:[[],[]],mesh:[null,null],cap:[0,0]};
+function glowMesh(k,cap){
+  const geo=new THREE.BufferGeometry(),pos=new Float32Array(cap*12),uv=new Float32Array(cap*8),idx=new Uint16Array(cap*6);
+  for(let i=0;i<cap;i++){pos.set([-.5,-.5,0,.5,-.5,0,.5,.5,0,-.5,.5,0],i*12);uv.set([0,0,1,0,1,1,0,1],i*8);const v=i*4;idx.set([v,v+1,v+2,v,v+2,v+3],i*6);}
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  for(const [n,sz] of [['aC',3],['aS',2],['aCol',4]]){const a=new THREE.BufferAttribute(new Float32Array(cap*4*sz),sz);a.setUsage(THREE.DynamicDrawUsage);geo.setAttribute(n,a);}
+  geo.setIndex(new THREE.BufferAttribute(idx,1));geo.setDrawRange(0,0);
+  let m=GLOW.mesh[k];
+  if(m){m.geometry.dispose();m.geometry=geo;}
+  else{const mat=new THREE.ShaderMaterial({
+      uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{map:{value:null}}]),fog:true,transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,
+      vertexShader:`attribute vec3 aC;attribute vec2 aS;attribute vec4 aCol;varying vec2 vGUv;varying vec4 vCol;
+        #include <common>
+        #include <fog_pars_vertex>
+        void main(){vGUv=uv;vCol=aCol;vec4 mvPosition=viewMatrix*vec4(aC,1.0);mvPosition.xy+=position.xy*aS;gl_Position=projectionMatrix*mvPosition;
+        #include <fog_vertex>
+        }`,
+      fragmentShader:`uniform sampler2D map;varying vec2 vGUv;varying vec4 vCol;
+        #include <common>
+        #include <fog_pars_fragment>
+        void main(){vec4 t=texture2D(map,vGUv);gl_FragColor=vec4(vCol.rgb*t.rgb,vCol.a*t.a);
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
+        #include <fog_fragment>
+        }`});
+    m=GLOW.mesh[k]=new THREE.Mesh(geo,mat);m.frustumCulled=false;m.renderOrder=k?0:900;m.userData.lodKeep=true;   // (the wisps go after the world's other see-through things)
+    (k?hazeScene:scene).add(m);}
+  GLOW.cap[k]=cap;return m;
 }
+glowMesh(0,128);glowMesh(1,128);
+function glow(k,x,y,z,color,size,op){
+  const o=new THREE.Object3D();o.isGlow=true;o.material={color:new THREE.Color(color),opacity:op,dispose(){}};
+  o.scale.set(size,size,1);o.position.set(x,y,z);
+  const L=GLOW.lists[k];L.push(o);o.addEventListener('added',()=>{if(!L.includes(o))L.push(o);});   // (taken out of the scene and put back: it is listed again)
+  (k?hazeScene:scene).add(o);return o;
+}
+const _glowV=new THREE.Vector3();
+function glowSync(){
+  for(let k=0;k<2;k++){
+    const L=GLOW.lists[k],root=k?hazeScene:scene;let n=0;
+    for(let i=L.length-1;i>=0;i--)if(!L[i].parent)L.splice(i,1);                 // (removed with its hex, or spent)
+    if(L.length>GLOW.cap[k])glowMesh(k,Math.max(L.length+32,GLOW.cap[k]*2));
+    const m=GLOW.mesh[k],g=m.geometry,aC=g.attributes.aC.array,aS=g.attributes.aS.array,aCol=g.attributes.aCol.array;
+    if(!m.material.uniforms.map.value)m.material.uniforms.map.value=texCache.glow;
+    for(const o of L){
+      const mt=o.material;if(!o.visible||!(mt.opacity>0))continue;
+      let x=o.position.x,y=o.position.y,z=o.position.z;
+      if(o.parent!==root){let p=o.parent,vis=true,top=o;for(;p;top=p,p=p.parent)if(!p.visible){vis=false;break;}
+        if(!vis||top!==root)continue;                                             // (hidden with its group, or in neither scene)
+        o.updateWorldMatrix(true,false);_glowV.setFromMatrixPosition(o.matrixWorld);x=_glowV.x;y=_glowV.y;z=_glowV.z;}
+      const c=mt.color,sx=o.scale.x,sy=o.scale.y,a=mt.opacity;
+      for(let v=0;v<4;v++){const q=n*4+v;aC[q*3]=x;aC[q*3+1]=y;aC[q*3+2]=z;aS[q*2]=sx;aS[q*2+1]=sy;aCol[q*4]=c.r;aCol[q*4+1]=c.g;aCol[q*4+2]=c.b;aCol[q*4+3]=a;}
+      n++;}
+    g.setDrawRange(0,n*6);m.visible=n>0;
+    if(n){g.attributes.aC.needsUpdate=true;g.attributes.aS.needsUpdate=true;g.attributes.aCol.needsUpdate=true;}
+  }
+}
+function addHaze(x,y,z,color,size,op){return glow(1,x,y,z,color,size,op);}
 function addWisp(x,y,z,color,size){
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({
-    map:texCache.glow,color,transparent:true,opacity:.5,depthWrite:false,
-    blending:THREE.AdditiveBlending}));
-  s.scale.set(size,size,1);s.position.set(x,y,z);
-  scene.add(s);
+  const s=glow(0,x,y,z,color,size,.5);
   wispSystems.push({sprite:s,y0:y,ph:Math.random()*TAU});
   return s;
 }
@@ -12945,6 +13096,7 @@ const player={
     this.dropThrown();dropBubbles();       // a swarm does not follow him into another loadout
     if(this.rig)scene.remove(this.rig.root);
     this.rig=makeKnightRig(LOADOUT);
+    if(this.rig.weapon&&!this.rig.gun&&!this.rig.bat&&LOADOUT.weapon!=='bow'&&LOADOUT.weapon!=='wand')foldRig(this.rig,this.rig.weapon);   // (the blade's furniture only: never his body)
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
     heroifyObject(this.rig.root);                 // the hero draws crisp, on its own layer
@@ -14831,6 +14983,7 @@ class Enemy{
     // heavy blows break a raised guard; pokes don't
     this.heavyHitter=this.boss||this.big;
     this.rig=this.shade?makeShadeRig():this.lamp?makeLampRig():this.boss?(this.rider?makeRiderFootRig():makeWardenRig()):this.zombie?makeZombieRig({scale:this.mother?1.55:this.crawler?.72:this.variant==='hulk'?1.32:this.variant==='runner'?.9:undefined}):makeHollowRig(this.big,this.caster);
+    if(!this.boss&&!this.shade)foldRig(this.rig);   // (each joint's bones of one kind, one draw: see foldRig. Before any tint.)
     if(!this.boss)clipWarm(this.rig,(this.zombie?'z'+(this.variant||'')+(this.mother?'m':'')+(this.crawler?'c':''):(this.big?'big':'')+(this.caster?'cast':'')+(this.shade?'shade':'')+'h'));   // the cut's shaders and pipelines, built now rather than on the hit
     this.reach=this.boss?3.4:this.big?2.4:2.15;
     if(this.zombie){this.reach=this.mother?2.7:this.crawler?1.5:this.variant==='hulk'?2.3:1.95;
@@ -23763,7 +23916,7 @@ if(/[?&]go=1/.test(location.search)&&!CODEX.on){try{const u=new URL(location.hre
 // debug/testing handle
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
-window.BP={SKY,camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
+window.BP={SKY,GLOW,RIGFOLD,GP,paintScar,flushPaint,camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
   summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
