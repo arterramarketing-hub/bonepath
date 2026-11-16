@@ -56,6 +56,7 @@ recoverable by SHA.
 | Godot hero-character experiment | `07b3907a32e0ceef3400e5d71b012bd146771de2` |
 | Godot + Blender knight (has rendered turnarounds) | `178fbf2efffeeed36d9cd904ad612bd99753f903` |
 | Godot weather system | `3219d5c3cb1923678ba6c04cd625e8b99a377f62` |
+| `claude/fps-pov-toggle-mode-3vaqes`: the game's history before `main` was re-rooted on 2026-09-19 (150 commits to 12 Sep; all of its game is in `main`), deleted 2026-11-16 | `aa990ecfe0da0a16be84bef5d66d41119cadba0c` |
 
 Restore one with `git checkout -b rescue <sha>`.
 
