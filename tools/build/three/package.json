@@ -1,0 +1,14 @@
+{
+  "name": "bonepath-three-bundle",
+  "private": true,
+  "description": "Builds the one inlined line of index.html that is three.js: r187's WebGL renderer, shaken down to what the game names, with the old light (legacy.js).",
+  "scripts": {
+    "build": "node build.js",
+    "check": "node build.js --check"
+  },
+  "dependencies": {
+    "esbuild": "0.25.12",
+    "three": "0.187.0",
+    "three-r128": "npm:three@0.128.0"
+  }
+}

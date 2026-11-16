@@ -13,8 +13,14 @@ system, and put the story of any new rule there.
 
 ## Read this before you touch anything
 
-**One line of `index.html` is the inlined three.js r128 bundle — a single
-minified 603 KB line.** It will swamp every grep. Its line number moves with
+**One line of `index.html` is the inlined three.js r187 bundle — a single
+minified 591 KB line** (149 KB gzipped; r128's was 603 and 149). **It is
+BUILT, never edited:** `tools/build/three/build.js` bundles three's WebGL
+renderer (not webgpu/tsl) into one classic script that defines
+`window.THREE`, carrying only the `THREE.Name`s the game uses, and stamps
+it in. A new name is a rebuild (`cd tools/build/three && npm ci && node
+build.js`); `parse` fails until then. See *three.js* under the rules.
+It will swamp every grep. Its line number moves with
 every edit above it, so find it, then filter it out:
 
 ```sh
@@ -127,6 +133,41 @@ on the pause screen.
 
 Each line is a rule. The why is in NOTES under the same names.
 
+### three.js (r187, wearing r128's light)
+
+The game was drawn against r128, and its look is made of things the
+library has since stopped doing. `tools/build/three/legacy.js` (THE OLD
+LIGHT, bundled into the line) and the `PATCHES` in `build.js` put each
+back; every one is checked at build or at load, so a new revision fails
+loudly. `docs/three-r187/README.md` has the proof, picture by picture.
+
+- **Lambert is lit per VERTEX** (`lights_lambert_vertex`, `vLightFront`,
+  `vIndirectFront`), and `flatShading` on a Lambert does nothing, as in
+  r128: it follows the geometry's normals. Never "restore" three's own
+  per-fragment Lambert: the pool of point lights is cheap only this way.
+- **Light intensities are r128's**, not physical: no candela, a point
+  light reaches zero AT its `distance` (`(1-d/distance)^decay`), and every
+  `PointLight` names its decay (the library's default is now 2). Only
+  Lambert and Phong carry the old units: no Standard/Physical/Toon.
+- **No colour management** (`ColorManagement.enabled=false`): a hex is the
+  number it says; "as seen" colours still go through `convertSRGBToLinear`.
+- A texture is sRGB by `tex.colorSpace=THREE.SRGBColorSpace` (was
+  `.encoding`); it is stored RGBA8 and decoded in the shader after
+  filtering, never SRGB8. A render target's texture `colorSpace` is what
+  the shader WRITES into it (`rt`, `hazeRT`, `heroRT` are sRGB; the grade
+  quad reads them raw). A texture sampled through a uniform of the game's
+  own is raw: decode it with `sRGBTransferEOTF(...)`.
+- Shader names a patch may lean on: `vMapUv` (not `vUv`),
+  `<colorspace_fragment>` (not `encodings`), `sRGBTransferEOTF` (not
+  `mapTexelToLinear`/`sRGBToLinear`), `geometryNormal` in the light loops.
+  **A string replace that matches nothing is silent**: `tools/three-parity`
+  counts them (`misses`); run it after touching any `onBeforeCompile`.
+- A partial upload is `attr.addUpdateRange(start,count)`, not `updateRange`.
+- `MeshDepthMaterial`'s RGBA packing has R as the TOP byte (`bakeSky`).
+- A see-through two-sided material is drawn in ONE pass, an opaque one
+  writes its own alpha, and cones carry no zero-area faces at the tip
+  (fewer triangles than r128; the same picture).
+
 ### Declaration order (boot)
 
 - **Function DECLARATIONS, not const arrows**: `isThief`, `adsWalk`,
@@ -166,8 +207,9 @@ Each line is a rule. The why is in NOTES under the same names.
   carries `aTrail` (zeros on the field and in the Mire).
 - `TRAIL_WIG` is repeated in GLSL inside `TRAIL_GROUND.frag`. Change one,
   change both.
-- r128 textures have no `userData`; the path's own textures are flagged
-  `bpOwn` and disposed on teardown.
+- The path's own textures are flagged `bpOwn` (a plain property, from
+  when r128's textures had no `userData`) and disposed on teardown. A
+  texture `clone()` now shares its source's upload; dispose still pairs.
 - A stand-in for shader warming (`clipWarm`, `warmEffects`) carries the
   same attribute set as the thing it stands for; programs live for ever in
   `PROG_KEEP`.
@@ -534,7 +576,8 @@ node run.js                       # everything, ~6 minutes
 node run.js parse boot            # the quick pass, ~1 minute
 ```
 
-Checks: `parse` (every inline script compiles), `boot` (field, path, ravine
+Checks: `parse` (every inline script compiles, and the three.js line
+carries every `THREE.Name` the game uses), `boot` (field, path, ravine
 and Mire start clean), `codex` (every entry of every section), `path` and
 `ravine` (walk about seventy hexes), `road` (nothing a hex builds stands on
 its own road), `castle` (raised at hex 3: the gate,
@@ -543,6 +586,12 @@ ceilings on heap, geometry and the registries). Chromium comes from `$CHROME_PAT
 then `/opt/pw-browsers`, then playwright's own install.
 `.github/workflows/check.yml` runs all of it on every push; it never
 deploys.
+
+`tools/three-parity` holds the PICTURE still: `shots.js` draws some
+forty frozen frames (its own clock and dice, so two runs of one file are
+identical to the pixel) and `compare.js` differences two sets. Take a set
+before and after anything that touches the renderer, a shader patch, a
+material or the three.js line; the floor is zero.
 
 The game exposes `window.BP` for harnesses (`BP._reg()` counts the
 registries). A new system worth probing should be added to it.

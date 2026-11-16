@@ -35,6 +35,8 @@ jobs:
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
       - run: node run.js
+      # the three.js line is BUILT (tools/build/three): it must be exactly what the script builds, never a hand edit
+      - run: (cd ../build/three && npm ci && node build.js --check)
       # and the page as it is SERVED: stripped by the deploy's build step, it must still start every mode
       - run: |
           (cd ../build && npm ci)

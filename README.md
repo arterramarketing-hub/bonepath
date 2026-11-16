@@ -3135,7 +3135,12 @@ inside a data URI.
 
 Everything is generated at boot inside the one file:
 
-- **Renderer** — three.js r128 (inlined), rendered at ~240p and upscaled with
+- **Renderer** — three.js r187, inlined as one line that
+  `tools/build/three` builds (the WebGL renderer only, shaken down to the
+  names the game uses, 591 KB), and made to light the way r128 did, which
+  is the way the game was drawn: Lambert summed at the vertex, intensities
+  as plain multipliers, no colour management (`legacy.js`; the pictures
+  that prove it are in `docs/three-r187`). Rendered at ~240p and upscaled with
   nearest-neighbor, clip-space vertex snapping for the PSX wobble,
   **affine texture mapping** — the console's most famous wrong, textures
   walked across a triangle in even steps of screen space instead of of

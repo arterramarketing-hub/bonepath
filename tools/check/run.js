@@ -61,6 +61,15 @@ function checkParse(){
   const re=/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g;let m,i=0,bad=0;
   while((m=re.exec(h))){i++;try{new Function(m[1]);}catch(e){bad++;fail('parse','script '+i+': '+e.message);}}
   if(!bad)ok(i+' inline scripts compile');
+  /* the three.js line carries only the names the game uses (tools/build/three): a `THREE.Name` it does not carry is
+     `undefined` in play, and silent until that line of the game runs. The library loads without a page, so ask it. */
+  try{const S=[];re.lastIndex=0;while((m=re.exec(h)))S.push(m[1]);
+    const lib=S.find(s=>/^var THREE=/m.test(s));if(!lib){fail('parse','no three.js line (var THREE=...) found');return;}
+    const ctx={};require('vm').createContext(ctx);require('vm').runInContext(lib,ctx);
+    const used=[...new Set([...S.filter(s=>s!==lib).join('\n').matchAll(/\bTHREE\.([A-Za-z_]\w*)/g)].map(x=>x[1]))],miss=used.filter(n=>!(n in ctx.THREE));
+    if(miss.length)fail('parse','the three.js line lacks THREE.'+miss.join(', THREE.')+' — re-run tools/build/three/build.js');
+    else ok('three r'+ctx.THREE.REVISION+' carries all '+used.length+' THREE names the game uses');
+  }catch(e){fail('parse','the three.js line: '+e.message);}
 }
 
 /* ---- boot every mode ---- */

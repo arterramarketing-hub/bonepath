@@ -89,7 +89,7 @@ Known state of play:
   the mark is painted onto that object's own texture, which is why they
   were never folded before. `BAKED` maps each folded mesh to its parent
   and its run of vertices in the fold; `unbake(o)` collapses the run to a
-  point (a partial upload via `updateRange`) and puts the original back
+  point (a partial upload via `addUpdateRange`; `updateRange` before r187) and puts the original back
   where it was. `markTree`, `fellTree`, `markStone` and `breakPew` call
   it first, so the thing under a mark, a felling or a break is its own
   mesh again from that moment. **`unbakeGroup(g)` asks by RECORD, not by
@@ -837,8 +837,8 @@ Known state of play:
      height is the whole test.
   3. The viewmodel is a child of `camera`, so `buildViewmodel` does
      `scene.add(camera)` — nothing else in the game ever put it there.
-     Its materials are `lam()` (Lambert has no `flatShading` in r128;
-     passing it only logs a warning).
+     Its materials are `lam()` (Lambert had no `flatShading` in r128, and the r187 line keeps it without effect;
+     it once logged a warning, and now says nothing).
   4. **Hiding the body is two transitions, not a per-frame rule**
      (`syncFpsRig`): hidden while alive in first person, shown once on
      death. A per-frame "visible while dead" would fight `meltHero`, which
@@ -3794,3 +3794,71 @@ Known state of play:
   cathedral hex's build on the path. If that hitch shows, spread the
   sixteen maps over frames. Not done: the paint-sheet feet (two functions
   wipe that sheet), the castle, the Mire's house.
+
+- **three.js r128 to r187, and the picture did not move.** Fifty-nine
+  revisions in one step, with the look held to the pixel. The whole
+  account, the table and the sheets are in `docs/three-r187/`; this is
+  the part worth remembering.
+  WHAT HAD TO BE FOUND FIRST: a way to tell. A game that runs on
+  `Math.random` and the wall clock never draws the same frame twice, so
+  `tools/three-parity` gives the page a clock and a dice of its own before
+  its first script runs (`__pump(n)` turns frames, the timers ride on
+  them), and gives the LIBRARY a separate dice (it rolls four times for
+  every uuid and each revision makes a different number of them; the
+  caller's line number tells the two apart, the library being one line).
+  Two runs of r128 then differ by nothing at all, in every shot. That is
+  the floor everything below is read against.
+  WHAT r128 DID THAT r187 DOES NOT, each put back (`legacy.js`, `PATCHES`):
+  1. Lambert lit at the vertex (gone in r144). Restored as the material's
+     own shader in `ShaderLib.lambert`, with `lights_lambert_vertex` a
+     chunk again so `skyTwin` can still rewrite its hemisphere line.
+     `flatShading` was "not a property" of r128's Lambert (it logged a
+     warning at every boot, for years): the world's faceting
+     is its GEOMETRY's normals. A property accessor keeps it without effect.
+  2. Light units. r128's shaders multiplied irradiance by pi and its
+     Lambert BRDF divided it out; the library later dropped the pi, and in
+     r165 the switch that kept it.
+     The pi is back in the ambient and hemisphere terms, in the Lambert
+     sum and in Phong's `RE_Direct`, and the point light's falloff is the
+     old `(1-d/distance)^decay`. Intensities in the game are untouched.
+  3. Colour. `ColorManagement.enabled=false`. r128 stored every texture
+     RGBA8 and decoded sRGB in the shader AFTER filtering; r187 would
+     store SRGB8_ALPHA8, which decodes BEFORE filtering and so changes
+     every mip level of every dark, busy texture. A source patch keeps
+     RGBA8 and sends every sRGB map down the decode path three keeps for
+     video. A render target was written in its `encoding`; r187 writes
+     every target linear; a second patch writes it in its texture's
+     `colorSpace`.
+  4. Things nobody would think of. A see-through two-sided face is now drawn
+     twice (back, then front): `forceSinglePass` for all. An
+     opaque material's alpha is now forced to 1: written as given
+     again (it reaches the pause portrait's canvas). The Blinn-Phong
+     Fresnel takes V.H where r128 took L.H, equal on paper and a unit
+     apart in a float: r128's arithmetic. `LatheGeometry` now works its
+     normals out analytically and every highlight on a helm
+     and a pauldron moved: r128's file, whole, and `ExtrudeGeometry`'s
+     with it (other diagonals on the caps). `MeshDepthMaterial` packs
+     with R as the top byte (`bakeSky` reads it the new way round).
+  5. Programs. r187 keys a program on things r128 did not (see-through
+     or not, normals or not, "flat" for a Lambert without normals): three
+     more programs on the field, each a stall at first draw. Patched out
+     of the key; the count is r128's again (28 on the field).
+  WHAT DOES NOT MATCH, and is left: a render target without a depth
+  texture had a 16-bit depth buffer and has 24 now, so the pause
+  portrait's z-fighting specks (63 pixels of 48,000, on the belt and the
+  pauldron trim) fall differently. Proved by giving r128 a 24-bit buffer:
+  the portraits are then identical. And cones no longer carry a zero-area
+  face at the tip: 350 fewer triangles on the field, the same picture.
+  WHAT IS GONE: WebGL1. r163 dropped it, so a device without WebGL2 does
+  not start (every iPhone since iOS 15 has it). `HAZE_SEP`'s fallback is
+  now dead code, left in place.
+  THE LINE IS BUILT (`tools/build/three/build.js`, esbuild, from three's
+  `src/`): there is no UMD build to inline any more. It carries only the
+  names the game uses (read out of `index.html`), so a new `THREE.Name`
+  is a rebuild, and `parse` runs the line in a bare VM and says which
+  name is missing. `check.yml` rebuilds it and fails on a byte's
+  difference. 603 KB to 591 KB; gzipped 148.7 to 148.6.
+  NOT measured: a phone, and Safari. The clean-canvas path was checked
+  here (every canvas still arrives as `ImageData`: r187 uses
+  `texStorage2D` and a seven-argument `texSubImage2D`, which the wrapper
+  already covered), but the speckle it prevents only shows on Safari.
