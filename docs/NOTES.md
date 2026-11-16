@@ -3842,7 +3842,13 @@ Known state of play:
   5. Programs. r187 keys a program on things r128 did not (see-through
      or not, normals or not, "flat" for a Lambert without normals): three
      more programs on the field, each a stall at first draw. Patched out
-     of the key; the count is r128's again (28 on the field).
+     of the key; the count is r128's again.
+  6. The card's unpack state. r187 CACHES `pixelStorei` in
+     `renderer.state`. `flushPaint` (main's partial upload of the ground
+     paint, merged in afterwards) called `gl.pixelStorei` itself, which
+     under r187 leaves the cache believing the old values: the next
+     texture three uploads would skip its own flip. It goes through
+     `renderer.state.pixelStorei` now. Any raw GL on three's textures does.
   WHAT DOES NOT MATCH, and is left: a render target without a depth
   texture had a 16-bit depth buffer and has 24 now, so the pause
   portrait's z-fighting specks (63 pixels of 48,000, on the belt and the
@@ -3858,6 +3864,9 @@ Known state of play:
   is a rebuild, and `parse` runs the line in a bare VM and says which
   name is missing. `check.yml` rebuilds it and fails on a byte's
   difference. 603 KB to 591 KB; gzipped 148.7 to 148.6.
+  After main's batched glows, folded rigs and partial paint were merged
+  in, the whole set was shot again against main on r128: 32 of 39 frames
+  identical, six within fourteen pixels, the portrait as above.
   NOT measured: a phone, and Safari. The clean-canvas path was checked
   here (every canvas still arrives as `ImageData`: r187 uses
   `texStorage2D` and a seven-argument `texSubImage2D`, which the wrapper
