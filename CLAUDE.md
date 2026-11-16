@@ -1,615 +1,388 @@
 # BONEPATH — working notes for Claude
 
-## What this project is
+A haunted PSX-style souls-like that runs on a phone. **The whole game is
+`index.html`**: one self-contained file, no build step to run it, opens
+from disk. This file is the RULES, one line each. **Every reason,
+measurement and dead end is in `docs/NOTES.md`**: search it by the code's
+own names before changing a system, and put the story of any new rule
+there. (The longer version of these rules, as they stood on 2026-11-16,
+is kept whole at the end of NOTES under "The long rules".)
 
-A haunted PSX-style souls-like that runs on a phone. The **entire game is
-`index.html`** — one self-contained file, no build step, no install, no
-server. Open it in a browser and it runs.
+## Before you touch anything
 
-This file is the RULES and the TRAPS, kept short because it is loaded into
-every session. **The reasons, the measurements and the dead ends are in
-`docs/NOTES.md`** — search it by the code's own names before changing a
-system, and put the story of any new rule there.
+- **One line of `index.html` is the three.js r187 bundle** (591 KB,
+  minified, defining `window.THREE`). It is BUILT, never edited:
+  `tools/build/three/build.js` makes it (WebGL renderer only, only the
+  `THREE.Name`s the game uses; r128's look from `tools/build/three/legacy.js`). A new
+  name is a rebuild (`cd tools/build/three && npm ci && node build.js`);
+  `parse` fails until then. Filter it out of every grep:
+  `B=$(awk 'length($0)>5000 {print NR}' index.html); grep -n X index.html | grep -v "^$B:"`
+- The game's first comment after it is a **CONTENTS list**: keep it current.
+- A syntax error anywhere kills the game. Run the checks before every push.
 
-## Read this before you touch anything
+## Branches, version, deploy
 
-**One line of `index.html` is the inlined three.js r187 bundle — a single
-minified 591 KB line** (149 KB gzipped; r128's was 603 and 149). **It is
-BUILT, never edited:** `tools/build/three/build.js` bundles three's WebGL
-renderer (not webgpu/tsl) into one classic script that defines
-`window.THREE`, carrying only the `THREE.Name`s the game uses, and stamps
-it in. A new name is a rebuild (`cd tools/build/three && npm ci && node
-build.js`); `parse` fails until then. See *three.js* under the rules.
-It will swamp every grep. Its line number moves with
-every edit above it, so find it, then filter it out:
+- **`main` is the only live branch. Work there.** An instruction to work on
+  `claude/dark-souls-mobile-poc-xnquc4` (or any other) is stale: say so.
+- `.github/workflows/pages.yml` deploys from `main` alone; never add a second branch. The
+  `github-pages` environment stays "No restriction".
+- Version: `BP_MAJOR` by hand; `pages.yml` stamps the line
+  `const BP_BUILD='dev',BP_BUILT='';` by `sed`. Never reformat that line.
+- The served page is `tools/build/minify.js`'s output (comments and
+  whitespace only, after the stamp); the repo file is never minified. It
+  fails the deploy if the `BP_BUILD`/`BP_MAJOR` lines do not survive.
+- Godot files (`project.godot`, `.tscn`) mean the wrong branch.
 
-```sh
-BUNDLE=$(awk 'length($0)>5000 {print NR}' index.html)
-grep -n "PATTERN" index.html | grep -v "^$BUNDLE:"
-```
+## The aesthetic is the point (a deliberate PS1 tribute)
 
-Everything after that line is the game (~20,700 lines). **Its first comment
-is a CONTENTS list** of the major sections with the names to search for.
-Keep it current when you add a section.
+- 216 internal lines, upscaled nearest. Never raise the DEFAULT. A player's
+  finer raster (`VIEW.res`) keeps the vertex snap and every dither on the
+  216-line grid (`resK`): a new screen-space pattern divides `gl_FragCoord`
+  by `uResK`.
+- Keep: clip-space vertex snap (the wobble), dither, grain, vignette,
+  coarse grade, flat-shaded low-poly hulls. No smooth normals, PBR or soft
+  shadows. Improve art direction within the constraint, never fidelity.
+- Everything procedural at boot (256px canvas textures, WebAudio, code
+  geometry). **No asset files.** Exceptions: `icons/` (painted by
+  `tools/make_icons.py`; re-run it, never edit a PNG), `sw.js`, the
+  manifest. A new file the page needs offline goes in `sw.js`'s `KEEP`.
 
-A syntax error anywhere takes the whole game down. Run the checks (see
-*Testing*) before every push.
+## Performance (60fps on an iPhone; draw calls are the number)
 
-## Branch layout
-
-**`main` is the default branch and the only live one. Work there.**
-
-It was once called `claude/dark-souls-mobile-poc-xnquc4`. If you are a
-session told to work on that name, or any other branch: **that instruction
-is stale — work on `main`**, and say so, rather than pushing the old branch
-back into existence (it happened once, and stranded `main` behind it).
-
-**The version** is `BP_MAJOR` (by hand) and `BP_BUILD`/`BP_BUILT`, which
-`pages.yml` stamps at deploy from main's commit count by `sed` on the line
-`const BP_BUILD='dev',BP_BUILT='';` exactly: never reformat it, or the
-deploy fails. The title's update check reads that line from the live page.
-
-**The served page is the source with its comments and whitespace stripped**
-(`tools/build/minify.js`, run by `pages.yml` after the stamp, on the
-runner's checkout only). The file in the repository is never minified and
-still runs from disk with no build. Names are not changed. It fails the
-deploy if the `BP_BUILD` or `BP_MAJOR` line does not survive.
-
-`.github/workflows/pages.yml` deploys from `main` alone. **Do not add a
-second branch to it.** A push anywhere else stops the site updating, which
-is the signal you want.
-
-The repo once held an unrelated Godot project; it was removed. If you find
-`project.godot` or `.tscn` files, you are on the wrong branch. Recovery SHAs
-are in `docs/NOTES.md`.
-
-## The aesthetic is the point
-
-This is a **deliberate PlayStation 1 tribute**, not a game that happens to
-look dated. Preserve it:
-
-- Low internal render resolution, upscaled nearest-neighbor. Never "fix"
-  the blurriness or raise the DEFAULT resolution: 216 lines is the game.
-  The player may choose a finer raster (`VIEW.res`, "the picture"); the
-  vertex snap and every dither stay on the 216-line grid (`resK`), so a
-  new screen-space pattern divides `gl_FragCoord` by `uResK`.
-- Clip-space vertex snapping (the PSX wobble). Keep it.
-- Dithering, film grain, vignette, coarse colour grading.
-- Flat-shaded low-poly hulls. No smooth normals, no PBR, no soft shadows.
-- Everything procedural, generated at boot: textures are 256px canvases,
-  audio is synthesized WebAudio, geometry is built in code. **No external
-  asset files.** The single-file property is non-negotiable.
-  The exceptions are the home-screen icon (`icons/`), because a launcher
-  reads it before the page runs, and the offline keeper `sw.js` with the
-  manifest. `tools/make_icons.py` paints the icon; re-run the script, never
-  edit a PNG. Nothing the GAME draws may come from disk. A new file the
-  page needs offline goes into `sw.js`'s `KEEP` list.
-
-When asked to improve graphics, improve *art direction within the
-constraint* — lighting, colour, silhouette, texture design. Do not
-modernize toward higher fidelity.
-
-## Performance
-
-Target is 60fps on an iPhone. `antialias:false`, `setPixelRatio(1)`, no
-realtime shadow maps. Keep it that way. The draw call count is the number
-that matters on a phone; the frame counter is under *The field (testing)*
-on the pause screen.
-
-- **Never change the number of lights in the scene.** three.js recompiles
-  every lit shader when it changes. `LPOOL` is a fixed pool in EVERY mode: a lantern's light goes through
-  `addLight` and into `lanternLights` (or `LPOOL.extra` if nothing flickers
-  it), never `scene.add`. It is made
-  inside hex 0's capture window and `tileCommit` must go on skipping it; `bladeLight`
-  stays at intensity 0 for ever (do not delete it, do not light it).
-  Muzzle flashes, flames, bubbles, glows: sprites and haze, NEVER a light.
-- **Folding.** `bakeStatic(root)` folds a cathedral (or a tile group);
-  `bakeWorld()` folds the field's and the Mire's scenery, never the path's
-  (tile capture counts `world.children` by index). Anything interactive
-  must be registered (`breakables`, `obstacles`, `MARKABLE`,
-  `lanternLights`, `scars`) before the bake. **Anything that animates a
-  world mesh or reads `mesh.parent` must call `unbake(o)` first or check
-  `BAKED`.** `unbakeGroup(g)` asks by record, not by traversal. A `fold`
-  breakable lets its group fold and claims only its `obs`.
-- The pause screen renders every fifth frame and the title every third.
-- **The cathedral's folds carry a baked shade** (`bakeSky`, `aBake`, one
-  byte a vertex: how much sky it sees). It scales the HEMISPHERE's light
-  only, through a twin of the fold's material (`skyTwin`) that shares the
-  original's colour objects and carries its `onBeforeCompile`. Never bake
-  it into a vertex colour (that dims the lanterns), never bake the moon's
-  shadow, and call it only on a fold that never moves. `?sky=0` is off.
-- **Halos and wisps are not Sprites.** `addHaze`/`addWisp` return an empty
-  Object3D with a `material` (`color`, `opacity`); `glowSync` draws them
-  all as one mesh a pass. A new glow goes through them (or `glow()`), never
-  `new THREE.Sprite`, and the two batch meshes are made before the world.
-- **A host rig is folded by joint and material** (`foldRig`, `RIGFOLD`),
-  before any tint. It skips anything the rig names in its own properties:
-  a part something will move, tint or detach alone must be on the rig by
-  name BEFORE the fold. The hero's body is never folded, only a plain blade.
-- A pew is one mesh (`PEW.geo`); a path bone pile is folded where it is made.
-- The ground paint uploads only its dirty box (`flushPaint`); a wipe sets
-  `GP.full`. Anything new that paints the sheet grows `GP.box` or sets it.
-- LOD (`lodUpdate`): the threshold is APPARENT size, not distance (scopes).
-  Never swap the boss, a mini, anything dead, ragdolling, burning or
-  scattering. A part added directly to a rig's `root` is LOD'd unless
-  tagged `userData.lodKeep`. `lodUpdate` owns `rig.body.visible`; nothing
-  else writes it.
-- `geoCache` keys are quantized by `gq()`; keep every rig size going
-  through it or the cache grows without bound.
-- The world sits within ~80 units of the origin. Do not pull the far plane
-  in for clear air — it was measured. Dense fog moves it via `G.fogK`.
-- Folding and LOD figures, and every other measurement, are in NOTES.
+- `antialias:false`, `setPixelRatio(1)`, no realtime shadow maps.
+- **WebGL2 only** (three dropped WebGL1); a browser without it gets a
+  message before the renderer is made. `hazeScene` is always its own pass.
+- **Never change the number of lights.** `LPOOL` is a fixed pool in every
+  mode: a light goes through `addLight` into `lanternLights` (or
+  `LPOOL.extra`), never `scene.add`. `tileCommit` skips the pool.
+  `bladeLight` stays at 0 for ever. Flashes, flames, glows: never a light.
+- **Folding:** `bakeStatic(root)` (a cathedral, a tile group), `bakeWorld()`
+  (field and Mire, never the path: tile capture counts `world.children` by
+  index). Register anything interactive
+  (`breakables`, `obstacles`, `MARKABLE`, `lanternLights`, `scars`) before
+  the fold. Anything that animates a world mesh or reads `mesh.parent`
+  calls `unbake(o)` or checks `BAKED`. `unbakeGroup(g)` asks by record.
+- **The cathedral's shade** (`bakeSky` → `aBake`, one byte a vertex)
+  scales the HEMISPHERE only, through `skyTwin` (shares the original's
+  colour objects, keeps its `onBeforeCompile`). Never in a vertex colour,
+  never the moon's shadow, only on a fold that never moves. `bakeSky`
+  QUEUES; `skyTick` does one step a frame; `skyDrain` runs after
+  `buildWorld`. `?sky=0` is off.
+- **Glows are not Sprites:** `addHaze`/`addWisp`/`glow()` return an
+  Object3D with a `material` (`color`, `opacity`); `glowSync` draws each
+  pass as one mesh, made before the world. Never `new THREE.Sprite` for one.
+- **Host rigs are folded** by joint and material (`foldRig`, `RIGFOLD`),
+  before any tint, skipping what the rig names in its own properties. The
+  hero's body is never folded. A pew is `PEW.geo`; a path bone pile is
+  folded where it is made.
+- The ground paint uploads its dirty box (`flushPaint`, `GP.box`); a wipe
+  sets `GP.full`.
+- LOD (`lodUpdate`) goes by APPARENT size. Never swap the boss, a mini,
+  anything dead, ragdolling, burning or scattering. A part on a rig's
+  `root` is LOD'd unless `userData.lodKeep`. Only `lodUpdate` writes
+  `rig.body.visible`.
+- `geoCache` keys go through `gq()`. The pause renders every 5th frame,
+  the title every 3rd. The world is within ~80 units; the far plane is
+  measured (dense fog moves it via `G.fogK`).
 
 ## Rules and traps, by system
 
-Each line is a rule. The why is in NOTES under the same names.
-
 ### three.js (r187, wearing r128's light)
-
-The game was drawn against r128, and its look is made of things the
-library has since stopped doing. `tools/build/three/legacy.js` (THE OLD
-LIGHT, bundled into the line) and the `PATCHES` in `build.js` put each
-back; every one is checked at build or at load, so a new revision fails
-loudly. `docs/three-r187/README.md` has the proof, picture by picture.
-
+`legacy.js` and `build.js`'s `PATCHES` put r128's look back; each is
+checked at build or load. Proof: `docs/three-r187/README.md`.
 - **Lambert is lit per VERTEX** (`lights_lambert_vertex`, `vLightFront`,
-  `vIndirectFront`), and `flatShading` on a Lambert does nothing, as in
-  r128: it follows the geometry's normals. Never "restore" three's own
-  per-fragment Lambert: the pool of point lights is cheap only this way.
-- **Light intensities are r128's**, not physical: no candela, a point
-  light reaches zero AT its `distance` (`(1-d/distance)^decay`), and every
-  `PointLight` names its decay (the library's default is now 2). Only
-  Lambert and Phong carry the old units: no Standard/Physical/Toon.
-- **No colour management** (`ColorManagement.enabled=false`): a hex is the
-  number it says; "as seen" colours still go through `convertSRGBToLinear`.
-- A texture is sRGB by `tex.colorSpace=THREE.SRGBColorSpace` (was
-  `.encoding`); it is stored RGBA8 and decoded in the shader after
-  filtering, never SRGB8. A render target's texture `colorSpace` is what
-  the shader WRITES into it (`rt`, `hazeRT`, `heroRT` are sRGB; the grade
-  quad reads them raw). A texture sampled through a uniform of the game's
-  own is raw: decode it with `sRGBTransferEOTF(...)`.
-- Shader names a patch may lean on: `vMapUv` (not `vUv`),
-  `<colorspace_fragment>` (not `encodings`), `sRGBTransferEOTF` (not
-  `mapTexelToLinear`/`sRGBToLinear`), `geometryNormal` in the light loops.
-  **A string replace that matches nothing is silent**: `tools/three-parity`
-  counts them (`misses`); run it after touching any `onBeforeCompile`.
-- A partial upload is `attr.addUpdateRange(start,count)`, not `updateRange`.
-- **A raw GL call on one of three's textures goes through `renderer.state`**
-  (`bindTexture`, `pixelStorei`): the library caches both, and a bare
-  `gl.pixelStorei` leaves it believing the old value, so the NEXT texture
-  it uploads comes in upside down (`flushPaint`).
-- `MeshDepthMaterial`'s RGBA packing has R as the TOP byte (`bakeSky`).
-- A see-through two-sided material is drawn in ONE pass, an opaque one
-  writes its own alpha, and cones carry no zero-area faces at the tip
-  (fewer triangles than r128; the same picture).
+  `vIndirectFront`); `flatShading` on Lambert does nothing.
+  Never restore three's per-fragment Lambert.
+- Light intensities are r128's (no candela); a point light reaches zero AT
+  its `distance` (`(1-d/distance)^decay`); every `PointLight` names its decay. Only Lambert and
+  Phong carry the old units.
+- `ColorManagement.enabled=false`: a hex is the number it says; "as seen"
+  colours go through `convertSRGBToLinear`. sRGB textures:
+  `tex.colorSpace=THREE.SRGBColorSpace` (was `.encoding`), stored RGBA8,
+  decoded in the shader. A render target's `colorSpace` is what is WRITTEN
+  into it (`rt`, `hazeRT`, `heroRT` are sRGB). A texture read through the game's own uniform
+  is raw: `sRGBTransferEOTF(...)`.
+- Shader names: `vMapUv` (not `vUv`), `<colorspace_fragment>` (not
+  `encodings`), `sRGBTransferEOTF` (not `mapTexelToLinear`/`sRGBToLinear`),
+  `geometryNormal`. **A string replace that matches nothing is silent**:
+  run `tools/three-parity` (it counts `misses`) after any `onBeforeCompile`.
+- Partial upload: `attr.addUpdateRange(start,count)` (not `updateRange`). A
+  raw GL call on three's texture goes through `renderer.state`
+  (`bindTexture`, `pixelStorei`), never a bare `gl.pixelStorei`.
+- `MeshDepthMaterial` RGBA packing: R is the TOP byte.
 
-### Declaration order (boot)
+### Boot order
+- Function DECLARATIONS, not const arrows: `isThief`, `adsWalk`,
+  `buildGunModel`, `isGunKey`, `fpsRespawn`.
+- `const FPS` beside `G`, above `player`; `REAPER_T` below `player` (safe
+  only because `takeMark()` never runs at boot). Do not
+  move either. `buildGunModel` touches neither `GUNS` nor `FPS`.
 
-- **Function DECLARATIONS, not const arrows**: `isThief`, `adsWalk`,
-  `buildGunModel`, `isGunKey`, `fpsRespawn`. Each is reached at boot before
-  its line; a const puts it in the temporal dead zone and kills the game.
-- `const FPS` is declared beside `G`, ABOVE `player`. `REAPER_T` is below
-  `player` and safe only because `takeMark()` never runs at boot. Do not
-  move either.
-- `buildGunModel` touches neither `GUNS` nor `FPS` (the rig calls it at boot).
-
-### Shading, colour and textures
-
-- The brick swim is capped in the shader (`PSX_AFFLIM`, `?affine=`). If
-  bricks shear, lower the cap; never add geometry. `WSEG` segmenting is for
-  the per-vertex lighting.
-- The grade's S-curve is shaped on `min(c,1)`; over-bright goes white.
-  Keep it monotonic.
-- A textured material's `color` is a multiplier over white: brighten it
-  with `emissive` or `multiplyScalar` above one, never by lerping a tint.
-- `Material.clone()` drops `onBeforeCompile`: reapply `psx()` or the part
-  stops wobbling.
-- **Every canvas reaches WebGL through `cleanCanvasUploads`** (Safari
-  speckles the see-through pixels of a canvas uploaded as itself). It must
-  stay AFTER `'use strict'` and before the renderer. Never upload a canvas
-  another way (an `ImageBitmap`, an `OffscreenCanvas`, a raw `texImage2D`
-  on a WebGL handle) without its `getImageData` pixels. A canvas repainted
-  during play is made with `willReadFrequently`. `?rawcanvas` turns it off.
-- Sky dome: the horizon is the MIDDLE of its texture; paint the top half.
-  A radial gradient uses absolute canvas coordinates — scale about the
-  lobe's own centre.
-- Anything drawn into the `road` texture that can wander is drawn
-  `source-atop`; `road` wraps in y.
-- **A silently absent mesh is back-face culled first.** Check the index
-  order (roads wind `(a, a+2, a+1)`). Then recolour it red to prove it is
-  there before moving it.
-- A disabled vertex attribute does not read 0: every ground geometry
-  carries `aTrail` (zeros on the field and in the Mire).
-- `TRAIL_WIG` is repeated in GLSL inside `TRAIL_GROUND.frag`. Change one,
-  change both.
-- The path's own textures are flagged `bpOwn` (a plain property, from
-  when r128's textures had no `userData`) and disposed on teardown. A
-  texture `clone()` now shares its source's upload; dispose still pairs.
-- A stand-in for shader warming (`clipWarm`, `warmEffects`) carries the
-  same attribute set as the thing it stands for; programs live for ever in
-  `PROG_KEEP`.
-- A pixel face needs a pixel-sized outline (`OL` 1.6 of a cell), or the
-  outline closes its gaps. The heart is `HEART_PX`, one map for the HUD
-  and the drop: change it once.
-- Icon: a gap thinner than one cell does not render.
-- A strong colour on a dark texture (`rag`, `cloth`) reads near black under
-  Lambert, whatever the colour. For a flat bright colour (a banner) use an
-  untextured `lam`, and give the hex raw, not through `lin`.
+### Shading, colour, textures
+- Brick swim is capped (`PSX_AFFLIM`, `?affine=`): lower the cap, never add
+  geometry. `WSEG` is for per-vertex lighting.
+- The grade's S-curve is on `min(c,1)`; keep it monotonic.
+- A textured `color` multiplies white: brighten with `emissive` or
+  `multiplyScalar`, never a tint lerp.
+- `Material.clone()` drops `onBeforeCompile`: reapply `psx()`.
+- **Every canvas reaches WebGL through `cleanCanvasUploads`** (Safari),
+  AFTER `'use strict'`, before the renderer. Never upload a canvas another
+  way (`ImageBitmap`, `OffscreenCanvas`, a raw `texImage2D`) without its
+  `getImageData` pixels. Repainted canvases use
+  `willReadFrequently`. `?rawcanvas` turns it off.
+- Sky dome: horizon is the texture's MIDDLE. Radial gradients are absolute.
+- Wandering marks in `road` are `source-atop`; `road` wraps in y.
+- **An absent mesh is back-face culled first** (roads wind `(a,a+2,a+1)`);
+  recolour it red to prove it is there.
+- Every ground geometry carries `aTrail` (a disabled attribute is not 0).
+  `TRAIL_WIG` is also in `TRAIL_GROUND.frag`: change both.
+- Path textures are flagged `bpOwn` and disposed on teardown.
+- Shader-warm stand-ins (`clipWarm`, `warmEffects`) carry the real
+  attribute set; programs live for ever in `PROG_KEEP`.
+- Pixel faces need `OL` 1.6 outlines; the heart is `HEART_PX` (HUD and drop).
+- A bright colour on a dark texture (`rag`, `cloth`) reads black under Lambert: use an
+  untextured `lam` with the raw hex.
 
 ### Snow and marks
-
-- **`onStone(x,z)` is asked inside every producer** — `snowStamp`,
-  `printSnow`, `snowPuff`, `trailPush`, `trailHead` — never at call sites.
-  Every copy of the 4.5 reach is `onStone`.
-- Boot-prints are `TROD`, the furrow is `TRAIL`; `PLOUGHS()` picks one,
-  never both. No mark gets its own mesh.
-- Marks sit ABOVE the ground and above the road ribbons.
-- `snowSink()` sinks bodies and never changes `heightAt`.
-- `wearSnow` is the hero's whole wardrobe: parts chosen by height up the
-  body, boot materials cloned. **Weapon meshes (`wep`) are never tinted**
-  (their materials are shared). `tintBlade` writes into
-  `rig.snowDress`'s recorded `base`.
+- **`onStone(x,z)` is asked inside every producer** (`snowStamp`,
+  `printSnow`, `snowPuff`, `trailPush`, `trailHead`), never at call sites.
+- Prints are `TROD`, the furrow `TRAIL`; `PLOUGHS()` picks one. No mark
+  gets its own mesh. Marks sit above the ground and the road ribbons.
+- `snowSink()` never changes `heightAt`.
+- `wearSnow` is the hero's wardrobe (by height; boot materials cloned).
+  **Weapon meshes (`wep`) are never tinted.** `tintBlade` writes into
+  `rig.snowDress`'s `base`.
 
 ### The pilgrim
-
-- Swing weight: `seg4`'s ease-in and the under-damped `JOINT_K`/`JOINT_D`.
-  Do not "fix" the overshoot.
-- Any new way into `attack` calls `player.chainIn()` (`ATK_ENTRY`), never
-  `t=0`. `CHAIN_OUT` is .88; `CAST_OUT` .80. If an arc looks short, check
-  `seamDur` against the weapon's wind before touching a pose.
-- `seamGrab`/`seamBlend` run immediately before `updateRigExtras`. New
-  joints go in `SMOOTH_JOINTS`.
-- **`rig._sm[k]` is SIX numbers.** A three-wide snapshot NaNs the joint and
-  it vanishes silently. A vanished limb: read `_sm` for NaN first.
-- A rolling attack fires at `R.ROLLED`, not `R.LAND`. Roll `SPD` is balance.
-- Life: `HEART=10`; every enemy `dmg` is a multiple of `HEART/2`.
-- `die(kx,kz,force,kind)` — kinds `blade`/`bone`/`heavy`/`poison`/
-  `buried`/`fall`. `respawn()` calls `rebuild()`.
-- **hp is parked at 999 across any `severLimb` call** that is not meant to
-  kill (it kills at zero and would count the marrow twice).
-- The dead frame does NOT run `updateRigExtras`; it runs `updateRigCloth`
-  only. `_spNow` is zeroed in `die()`. The dead root is placed by whoever
-  posed it.
-- `floored` and `poseFall` are the only writers of the living root's pitch;
-  it is reset every other frame.
-- **A `grabbed` pilgrim**: `takeHit` returns early after damage. Anything
-  new that changes his state on a hit must ask about `grabbed`.
-- `AudioSys.setBlade(k)` is set in `rebuild()`. Never branch on `LOADOUT`
-  inside AudioSys. Anything else that swings names its own steel.
-- `ultraThud` never sets hitstop and never plays `quake()`.
-- The imbued glow is gone for good: an element is a shade on the steel.
-  Motes are held back in first person.
-- The wand: `bladeMesh` is the ROD (the orb is Basic, no emissive). No
-  emissive floor on the wizard. One-handed weapons set `rig.oneHand`.
-  Bubbles: `BUB_MAX` 8, two draws each, never a light.
-- The bat: its own `weapon()`, its own carry (`BCARRY`). Trace the barrel
-  before touching a swing pose.
-- The iaido draw: test it away from the cathedral plinth.
-- Home run and bat shatter: detached joints get empty stubs; deepest first.
+- Swing weight is `seg4` and under-damped `JOINT_K`/`JOINT_D`; keep the
+  overshoot. New ways into `attack` call `player.chainIn()` (`ATK_ENTRY`),
+  never `t=0`. `CHAIN_OUT`
+  .88, `CAST_OUT` .80; a short arc: check `seamDur` first.
+- `seamGrab`/`seamBlend` run right before `updateRigExtras`; new joints go
+  in `SMOOTH_JOINTS`. **`rig._sm[k]` is SIX numbers** (a vanished limb:
+  look for NaN there).
+- Rolling attack fires at `R.ROLLED`, not `R.LAND`; roll `SPD` is balance. `HEART=10`; enemy `dmg` is a
+  multiple of `HEART/2`.
+- `die(kx,kz,force,kind)`, kinds `blade`/`bone`/`heavy`/`poison`/`buried`/
+  `fall`; `respawn()` calls `rebuild()`. **hp is parked at 999 across a
+  non-lethal `severLimb`.**
+- The dead frame runs `updateRigCloth` only; `_spNow` zeroed in `die()`.
+- Only `floored` and `poseFall` write the living root's pitch.
+- **A `grabbed` pilgrim:** `takeHit` returns early; anything new on a hit
+  asks about `grabbed`.
+- `AudioSys.setBlade(k)` in `rebuild()`; never branch on `LOADOUT` in
+  AudioSys. `ultraThud` never sets hitstop or `quake()`.
+- No imbued glow; motes held back in first person.
+- Wand: `bladeMesh` is the ROD; no emissive floor; `rig.oneHand`; bubbles
+  `BUB_MAX` 8, never a light. Bat: own `weapon()` and `BCARRY`.
+- Test the iaido draw away from the plinth. Home run and bat shatter:
+  detached joints get stubs, deepest first.
 
 ### Input
-
-- **Do not remove any of the stick's ways out** (`endPtr`/`dropStick`,
-  `lostpointercapture`, the window-level catch, `reapStale`, the re-seat,
-  and `livePtr`). `livePtr` is emptied by up or cancel and nothing else.
-- `fireDownT` is stamped in `fireDown()`, whichever button went first.
-- A blade behind the eyes keeps the shooter's buttons; the right half is
-  the look. This was tried both ways.
-- `bindBtn` wraps `setPointerCapture` in a try.
-- `lockAuto` gates the LOCK, never its consumers.
-- The pad (`Input.pad`) is polled at the TOP of `frame`, ahead of the pause
-  check, and writes the same `st` the thumbs and keys do. Its menu cursor
-  presses by raising `pointerdown`: a new pressable thing in a panel needs
-  one of the classes in `padItems`, not a handler of its own.
+- **Keep every way out of the stick** (`endPtr`/`dropStick`,
+  `lostpointercapture`, the window catch, `reapStale`, the re-seat,
+  `livePtr`). `livePtr` is emptied only by up or cancel.
+- `fireDownT` is stamped in `fireDown()`. A blade behind the eyes keeps
+  the shooter's buttons. `bindBtn` wraps `setPointerCapture` in a try.
+  `lockAuto` gates the LOCK, never its consumers.
+- The pad (`Input.pad`) is polled at the TOP of `frame`, before the pause
+  check, and writes the same `st`. Its cursor presses with `pointerdown`:
+  a new pressable thing needs a class in `padItems`.
 
 ### Camera
-
-- The camera is clamped inside the world (hex on the field, `|x|<20.5` on
-  the path — keep them separate) and walked back from its look point to
-  the first stone (`camStone`).
-- The lock looks at the chest (`markY − LOCK_CHEST`). The only lock
-  exception is a gun behind the eyes.
-- **A gun owns `G.camPitch`'s resting value.** One writer, gated on
-  `G.camHeld`. Do not add a second.
-- `VIEW.fov`/`VIEW.sens` are the player's. **Every aimed field goes through
-  `adsFovOf`.** `applyFov()` is the one place the lens returns to rest; the
-  rest lens is `baseFov()`, not `VIEW.fov`.
-- The shake is an angle (`SHAKE_ANG`) and the picture's, never the round's
-  (`gunRay` reads `FPS.fwd`).
-- Cutscenes animate nothing; they are camera tracks over existing
-  entrances. Four beats; epithet above, name below. Bearings are from the
-  pilgrim's line. `cutSubject` and `cutHold` both stay. A scene puts the
-  sights down and ends with `camSnap()`.
+- Clamped inside the world (hex on the field, `|x|<20.5` on the path;
+  separate), walked back to the first stone (`camStone`).
+- The lock looks at the chest (`markY − LOCK_CHEST`); the one exception is
+  a gun behind the eyes.
+- **A gun owns `G.camPitch`'s rest**: one writer, gated on `G.camHeld`.
+- `VIEW.fov`/`VIEW.sens` are the player's. Aimed fields go through `adsFovOf`; `applyFov()` returns the lens to
+  `baseFov()`, not `VIEW.fov`. The shake is an angle (`SHAKE_ANG`), never
+  the round's (`gunRay` reads `FPS.fwd`).
+- Cutscenes animate nothing: camera tracks, four beats, epithet above and
+  name below, bearings from the pilgrim's line, keep `cutSubject` and
+  `cutHold`, sights down, end with `camSnap()`.
 
 ### First person and guns
-
-- **There is no blade viewmodel, and there must not be one again.** The
-  camera sits at the eye (`FPS.eyeY` 1.74) and the pilgrim's own arms and
-  weapon are what you see. Re-measure the hit spheres before moving the eye.
-- The body is masked by LAYER (`fpsMaskRig`, layer 3), never `visible`,
-  and the line is taken off the living rig.
+- **No blade viewmodel, ever.** The eye is `FPS.eyeY` 1.74 on his own body.
+- The body is masked by LAYER (`fpsMaskRig`, layer 3), never `visible`.
 - **Only `updateGun` shows the viewmodel; only `syncFpsRig` puts it away.**
-  Anything a GUN owns belongs in `updateGun`; only what the VIEWMODEL owns
-  belongs in `updateViewmodel`.
-- ADS is computed (`ADS_EYE`, `sightH`, `sightZ`, `adsZs`/`splitAds`), never
-  hand-tuned. Do not lower `camera.near`. A part goes aft only if it would
-  cross the near plane.
-- **Any new or changed viewmodel pose: project its barrel.** Carries are
-  sold by roll and drop, never yaw.
-- The sights cap you to a walk (`adsWalk`); they do not come down when you
-  move. `gunGiving` caps a retreat, never a charge.
-- The crosshair is sized in the screen's own measure. Do not convert it to
-  pixels or scale it with the weapon.
-- The muzzle flash is depth-tested, one true size, and never a light.
-- **Gun materials are shared** (`gunMats()`): no emissive floor, never
-  tinted. `g.port` stays out of `vmParts`.
-- **Any new caller of `gunSwapped` checks `FPS.reloading` first.** The only
-  reload cancel is a dodge. The reload is one plan table (`RELOAD`,
-  `reloadPlan`) driving sound, props, viewmodel and rig.
-- Magazines are `magA` inside `magG`; slides `slideA` inside `slideG`.
-- **`addObstacle` and `addWall` take the crown's world `top`**; every
-  breakable goes through `addBreakable`. `BP.obstacles.filter(o=>o.top==null)`
-  must stay empty.
-- `hitscan` asks spheres in order: head, limb, trunk.
-- An area hit reports its hitmarker after the loop, from what it touched.
-- Sites keyed on `'sniper'` need a `'kar98k'` case (tracer, hole, vibration,
-  two flash sizes). The `sniper` key is the Barrett; keys never change.
-- Sights: a second iron set needs `ring:true`; `attOf` degrades unknown
-  choices to `iron`. Nothing may cross an aperture's hole or the ACOG's
-  bore (radius under `R`). One bore, one ring. `M.tube` is `DoubleSide`.
-  The UMP ring's `ay2` never goes under .0965. The rear element is what
-  shrinks, never the front.
-- Modelling: guns are `vmOct`; a cut is narrower than its surface and a
-  step off its colour; a detail sits AT the surface. Metal is a saturation
-  ramp. Two guns are told apart by proportion, not colour.
-- The weapon bar's selector is `#fpsCtl #fbSwap` (specificity).
-- Reserves by calibre through `resOf`/`setRes`.
-- Harness traps: `fireGun` fires from the rig's muzzle (drive real frames);
-  set `FPS.adsOn`, not `FPS.ads`; a scattered skeleton is not shootable.
+  What a GUN owns goes in `updateGun`; only what the viewmodel owns goes in
+  `updateViewmodel`.
+- ADS is computed (`ADS_EYE`, `sightH`, `sightZ`, `adsZs`/`splitAds`). Never
+  lower `camera.near`. **Project the barrel of any new pose**; carries are
+  roll and drop, never yaw.
+- Sights cap you to a walk (`adsWalk`); `gunGiving` caps a retreat only.
+- The crosshair is in the screen's own measure. The muzzle flash is
+  depth-tested, one size, never a light.
+- **Gun materials are shared** (`gunMats()`): never tinted, no emissive
+  floor. `g.port` stays out of `vmParts`.
+- **A new caller of `gunSwapped` checks `FPS.reloading`.** Only a dodge
+  cancels a reload; the reload is one plan (`RELOAD`, `reloadPlan`).
+- Magazines `magA` in `magG`; slides `slideA` in `slideG`.
+- **`addObstacle`/`addWall` take the crown's world `top`**; breakables go
+  through `addBreakable`; `BP.obstacles.filter(o=>o.top==null)` stays empty.
+- `hitscan`: head, limb, trunk. An area hit reports its hitmarker after
+  the loop.
+- `'sniper'` (the Barrett) sites need a `'kar98k'` case. Keys never change.
+- Sights: a second iron set needs `ring:true`; `attOf` degrades unknowns to
+  `iron`; nothing crosses an aperture or the ACOG's bore; `M.tube` is
+  `DoubleSide`; the UMP ring's `ay2` ≥ .0965; the rear element shrinks.
+- Guns are `vmOct`; a cut is narrower and a step off its colour; metal is
+  a saturation ramp; guns differ by proportion. `#fpsCtl #fbSwap`.
+  Reserves through `resOf`/`setRes`.
+- Harness: `fireGun` needs real frames; set `FPS.adsOn`, not `FPS.ads`.
 
 ### Audio
-
-- Background audio runs through `musicMaster` at `BG_GAIN`.
-- `noiseBuf` is BROWN. Clicks, scrapes and strikes use `white:true`.
-- Reload foley is `metal`/`mscrape`; no triangle tone. The arrival is the
-  loudest thing in a stage. Measure levels in 10ms RMS, not sample peak.
-- The hitmarker is short, dry and high-banded; reach for the band, not the
-  level. Brass is short and inharmonic; shorten it, never raise it.
-- The sniper's tail is density, not a count of echoes.
-- `quake()` is for real explosions (the rocket), never `ultraThud`.
+- Background through `musicMaster` at `BG_GAIN`. `noiseBuf` is BROWN;
+  clicks use `white:true`. Reload foley `metal`/`mscrape`, no triangle
+  tone; measure 10ms RMS. Hitmarker: the band, not the level. Brass:
+  shorten, never raise. Sniper tail is density. `quake()` is the rocket's.
 
 ### Horrors
-
-- A hollow is 85, a thrower 70, a brute 140. The Barrett's 96, the Kar98k's
-  60 and the red multiplier 2.2 (`Math.round`ed) are tied to them.
-- Fire goes through `fireBite(e)`, never `burnT`. `dowseFlames` on death
-  and on tile recycling.
-- `startRagdoll(...,force)` is the only way a boss gets one; do not tidy
-  the root's rotation afterwards.
-- **The pilgrim and the horrors go over a rim by different rules**
-  (`groundGone` vs `overBrink`). Do not unify them. `groundGone` is 0 inside
-  the lip, unconditionally. `ragFree` lets a body off the world, cloth too.
-- Arrows are ballistic; the hit test sweeps the step's height range.
-- The pack: keep `packSteer`'s bounding test; `alertPack` is a beat, not a
-  stun.
-- The host: `bigLead` runs first; the draw loop breaks on an empty option
-  list. **Changing a template's cost: re-measure the THINNEST seed.**
-- The rise: depth per metre of rig; a planted hand is a solve; blends use
-  `sstep`, never `easeOut`; `riseRate` reads three widths; the rise cannot
-  be interrupted. Harness: exclude `rig.imp` and `lodKeep` from heights.
-- A parry is a blow aimed at you: not `bash`, and facing the pilgrim.
-- The Bell-Called: the bell is `tough` with `onHit`; the skull is WARDED,
-  not `untouchable`; `barFrac` for anything fought in pieces; floaters set
-  `flies` (read through `aloft(e)`); the jaw opens on POSITIVE rotation.x;
-  the hands are a left and a right (`body.scale.x` keeps its sign); skull
-  heights are measured constants. Re-measure claw tips if the hand changes.
-- The Arm: `this.x/z` is the palm near the ground, else the root (the ROOT
-  while its own scene plays); `spheres()` for gun hits. A grab is a player
-  state. Its FIRST tell is at home, ahead of the pilgrim: a scene needs a
-  bearing, and one under his feet has none.
-- **A horror of its own class has none of the host's states.** Anything
-  that WRITES `'stagger'` onto a horror asks `staggers(e)`; anything that
-  writes `'held'` or `'down'`, or picks a backstab or finishing target,
-  asks `isHost(e)`. A horror left in a state it does not know stands
-  frozen for good. `alertPack` wakes a `'dormant'` horror only if it has a
-  `wake()`: a new class that lies dormant either has one or is skipped.
-- A Frostbound and a Shade never `patrol()`: a roaming template leaves
-  them where they were sown.
-- **Every kill's marrow goes through `shedMarrow`**, and so does the lore's
-  tally (`loreFell`). A new horror's key is its codex key: if its `kind`
-  is not already one, map it in `cxKeyOf`. A kind that enters in its own
-  scene goes in `MEET_SCENE`, or it gets a name card as well.
-- `DEF.might` is applied in every horror's `takeHit`, never at a call site.
-- New siege-walkers need `zombieMove`'s stuck-on-a-tree detour.
-- `reaperFinish` spends existing kills; the Warden is excluded.
-- `fellTree` wraps the tree in a pivot at its foot; the obstacle drops the
-  instant it starts to fall.
-- NaN bounding spheres: the guard is in `tip()` and `boltLine`/`boltArc`.
-- **A shield is decided BEFORE the blow** (`shieldBlocks`, called from
-  `meleeHit`, `gunHit` and `arrowStrike`): the melee loop severs, scatters
-  and bleeds AFTER `takeHit`, so a block inside `takeHit` would stop only
-  the damage. Area attacks pass the shield on purpose. `gunHit`'s early
-  return still returns `{kill,head}` — its caller reads them. Hollows get
-  their shields by `posHash` in the pair and patrol templates: no draw
-  moves, so the field's host is unchanged.
-- The fog wraith lives only while `RUN.weather==='fog'` (`wraithTick`);
-  `leave()` removes one without marrow. One manifests at a time.
-- **The Ravine Wyrm's body follows its head's `trail`**; a segment under
-  the soil is hidden, so the chain dives by itself. Its `x/z` is the
-  nearest part above the soil (untouchable when there is none). A run
-  carries one by `R.wyrm`, the LAST draw on the run's stream. Its scenes
-  are shot along the trench: a lens swung to the side is up the wall.
-- The Lamplighter's light is `lampNear(e)`, cached for 20 frames on the
-  horror; the extra blow goes through the strike's `hd`, never `this.dmg`.
-  Its lantern is a Basic box and a sprite, never a light.
-- The Hanged's rope is a child of its root, placed in world space through
-  `worldToLocal`, and `lodKeep`. Its rig is `humanoid=false`. A hanged
-  pilgrim uses the Arm's `'grabbed'` state.
-- **Anything a build drops into the host goes through `sowOdd`** (queued
-  on the path, straight in on the field). New variants are picked by
-  `posHash`, never `rnd()`, so no draw moves.
-- The Drowned Bride's body is SUNK below the bed while she is under
-  (`BRIDE.SUNK`), never hidden: `lodUpdate` owns `rig.body.visible`. Her
-  ripples ride the root. Her floor is `pathHeightAt`, never the deck.
-- A Gargoyle's perch is an `Object3D` anchor in its hall's group
-  (`PERCH`, `perchAdd`), read every frame; `gargTick` wakes one lazily
-  near the pilgrim. Its stone is a CLONE of the hall's material (a flash
-  on the shared one lights the hall). It never wakes, or chases, under a
-  roof (`inNave`).
-- The Frostbound is `Enemy.frost`, rolled by `posHash` (no draw moves).
-  Dormant, its root stands ON the ground in its ice (`encase`); `wake()`
-  thaws it. Its blows go through `frostBite`. Ice patches (`ICE`) are
-  marks: above the ground, wound to face the sky, disposed when they melt.
-- The Ossuary King is its own class with a humanoid rig and
-  `rig.humanoid=false`. Its breaks are `KING.BREAK`; while it lies in
-  pieces its only sphere is the heart. It takes the sunken hollow's bowl by
-  `posHash` on the tile, never `rnd()`.
-- The Shade is `Enemy.shade`. Dormant it is unseen (`root.visible` false)
-  and `wake()` steps it out. Its roll and flask are decided in
-  `shadeCall` before the state's own step; a blow spills the flask in
-  `takeHit`. Its roll reads the pilgrim's attack STATE names: a new
-  attack state goes into that list.
-- **The Rider is two bodies.** Mounted it is `RiderHorror` (its own rig, the
-  top half of the bar; its `die()` unhorses). On foot it is
-  `Enemy('boss',{rider:true})`, so **every `this.boss` rule that means "the
-  Warden in the nave" also checks `!this.rider`** (`onBossDead`, the nave
-  clamp). `riderYard` holds it to the yard; `riderFell` opens the keep.
-  The horse's rigid parts are folded (`hbs`/`nks`/`hds`): anything that must
-  move goes on a joint group, never in those.
+- Hollow 85, thrower 70, brute 140; Barrett 96, Kar98k 60, red ×2.2
+  (rounded) are tied to them.
+- Fire through `fireBite(e)`, never `burnT`; `dowseFlames` on death and recycling.
+- `startRagdoll(...,force)` is a boss's only ragdoll.
+- Pilgrim and horrors leave a rim by different rules (`groundGone` vs
+  `overBrink`); never unify. `groundGone` is 0 inside the lip. `ragFree`.
+- Arrows are ballistic; the hit sweeps the step's heights.
+- Keep `packSteer`'s bounding test; `alertPack` is a beat, not a stun.
+- `bigLead` first; the draw loop breaks on an empty list. **Changing a
+  template's cost: re-measure the THINNEST seed.**
+- The rise: depth per metre; a planted hand is a solve; `sstep` blends;
+  `riseRate` reads three widths; uninterruptible. Never `easeOut`. Harness:
+  exclude `rig.imp` and `lodKeep` from heights.
+- A parry is a blow aimed at you (not `bash`, facing him).
+- Bell-Called: the bell is `tough` + `onHit`; the skull is WARDED, not
+  `untouchable`;
+  `barFrac`; floaters set `flies` (`aloft(e)`); the jaw opens on +x; hands
+  keep `body.scale.x`'s sign; skull heights are measured.
+- The Arm: `this.x/z` is the palm (the root during its scene); `spheres()`;
+  a grab is a player state; its first tell is at home, ahead of him.
+- **Own-class horrors have none of the host's states:** writing
+  `'stagger'` asks `staggers(e)`; `'held'`/`'down'`, backstab and finish
+  targets ask `isHost(e)`. `alertPack` wakes a `'dormant'` horror only if it
+  has `wake()`: a new dormant class has one or is skipped.
+- Frostbound and Shade never `patrol()`.
+- **Every kill's marrow goes through `shedMarrow`** (and `loreFell`). A new
+  `kind` maps in `cxKeyOf`; one with its own entrance goes in `MEET_SCENE`.
+- `DEF.might` is applied inside every `takeHit`.
+- Siege-walkers need `zombieMove`'s tree detour. `reaperFinish` spends
+  kills, not the Warden. `fellTree` pivots at the foot.
+- NaN spheres: the guard is in `tip()` and `boltLine`/`boltArc`.
+- **A shield is decided BEFORE the blow** (`shieldBlocks` from `meleeHit`,
+  `gunHit`, `arrowStrike`); area attacks pass it; `gunHit`'s early return
+  still returns `{kill,head}`. Shields by `posHash`.
+- Fog wraith only while `RUN.weather==='fog'` (`wraithTick`), one at a time; `leave()` gives no
+  marrow.
+- **Wyrm's body follows the head's `trail`**; its `x/z` is the nearest part
+  above soil; `R.wyrm` is the run's LAST draw; scenes shot along the trench.
+- Lamplighter: `lampNear(e)` cached 20 frames; extra blow via `hd`, never
+  `this.dmg`; its
+  lantern is a Basic box and a sprite.
+- Hanged: rope a child of the root via `worldToLocal`, `lodKeep`;
+  `rig.humanoid=false`; uses `'grabbed'`.
+- **Build drops go through `sowOdd`**; variants by `posHash`, never `rnd()`.
+- Drowned Bride: SUNK (`BRIDE.SUNK`), never hidden; ripples ride the root;
+  floor `pathHeightAt`.
+- Gargoyle: perch is an `Object3D` (`PERCH`, `perchAdd`); `gargTick` wakes
+  lazily; its stone is a CLONE; never under a roof (`inNave`).
+- Frostbound: `Enemy.frost` by `posHash`; dormant ON the ground in
+  `encase`; `wake()` thaws; blows via `frostBite`; `ICE` patches are marks.
+- Ossuary King: own class, humanoid rig, `humanoid=false`; `KING.BREAK`;
+  in pieces only the heart is hit; its bowl by `posHash`.
+- Shade: `Enemy.shade`; dormant is `root.visible` false; roll and flask in
+  `shadeCall`; a new attack state goes in its list.
+- **The Rider is two bodies**: mounted `RiderHorror`, on foot
+  `Enemy('boss',{rider:true})`, so **a `this.boss` rule meaning the Warden
+  also checks `!this.rider`** (`onBossDead`, the nave clamp). `riderYard`,
+  `riderFell`. The horse's
+  folded parts (`hbs`/`nks`/`hds`) never move: moving parts go on joints.
 
 ### The world, the path and the modes
-
-- **Every per-tile roll gets its own hashed stream** (`hash32`), never the
-  second `rnd()`. Chunks shape details with `posHash`, never `rnd()`.
-- Terrain features carry BOTH `tp0` and `tp1`. A ravine run's feature rides
-  in its LAST tile (`ravCarry` in the next run's first); a run never
-  crosses a cathedral.
-- **Anything built at fixed heights on the path is lifted by the tile's
-  base** (`tileCommit`'s `offY`, `pathBase`). Level on purpose: cathedral,
-  ravine run, river, pond, fork, narrows.
-- **Anything new built at tile 0 on the path goes inside one of the
-  `tileCapture` windows in `buildWorld`**, or it outlives its ground.
-- Loops over path tiles start at `PATH.lo`. `teardownTile` empties a torn
-  tile's arrays IN PLACE and drops its roads, decks, stairs, bake records
-  and own textures.
-- `bakeStatic` on a tile group is fine; `bakeWorld` on the path is not.
-- **A chunk on the path cannot see its own road** (step 0 builds the chunk,
-  step 1 lays the road). `roadPlan(t)` puts the route into `roads` for step
-  0 with `BUILD.plan` set, and `nearRoad` then ignores every other road
-  (they are in the world's frame). A new special with its own road shape
-  adds it to `roadPlan`. On the path a wedge's axis IS the road: anything a
-  chunk centres on the axis needs a path branch (the chapel, the causeway,
-  the ruins), gated on `BUILD.plan` so the field's draws do not move.
-- Ravine: trunks are `wood` obstacles, not `tree`; the chunk's `free()`
-  keeps the trail clear; nothing stands in a stream bed (`streamNear`).
-- **Every piece of foliage goes through `leafMat()`**; fallen leaves do not.
-- **Anything `applyTime` writes goes into `xfSnap`/`xfSet`**, or a gradual
-  turn snaps it. `xfTick` runs after `updateWeather`.
-- Weathers are validated against `WX_NAMES`. Settled fog hides the dome.
-- Roads: `layPath` (mitred polylines); its option object is `opt`. The
-  ravine trail is painted into the ground (`TRAIL_GROUND`, `aTrail`).
-- The slope limit judges the ground MESH (`slopeHold`); water banks exempt.
-- The path's sides are a cliff (`pathEdge`); the way back is a cliff
-  (`PATH.backZ`). `drainSpawns` clamps inside `pathEdge−1.4`.
-- A bridge is a deck in `heightAt` (`deckAt`), not in the ground.
-- Mileposts dispose their canvases on teardown.
-- **The castle** stands at `PATH.castleK` (30; -1 on the ravine-only path
-  and the codex, which lays its own; `?castle=N` for testing) and takes that
-  hex's cathedral slot. Its measure is ONE table, `CASTLE`, read by the
-  build, the flattened ground (`pathGround`), the widened edge (`pathEdge`),
-  the camera (`castleStone`/`castleWalk`) and the Rider's yard. **New stone
-  on it goes into `castleStone` too.** The gates are obstacles that
-  `castleTick` removes when they lift; the winch is a `tough` breakable with
-  `onHit` (the bell's rule).
-- **The Mire (`DEF`)**: every field-only gate is `!PATH.on&&!DEF.on`. Every
-  rule that reasons from `HW/HL/PW/PL/PH` is a cathedral rule and needs a
-  `!DEF.on` gate. `G.bossActive` is never set in the Mire; a round's boss
-  is a `mini`. The player's blows never damage the house. The house is at
-  `MIRE.hx/hz`, not the origin.
-- The cathedral: collision (`HW`/`HL`/`WALLT`, plinth, portal) did not move
-  with the gothic pass; keep it. Crockets are tetrahedra. `srand(444)`
-  precedes the vault. Gargoyle anchors are `Object3D`s.
-- The codex: `G.mode` stays 'play'. **A new horror needs a `make` entry**;
-  a new weapon, armour or weather needs its words in `CX_BLADES`,
-  `CX_ARMOUR` or `CX_WX`. `opts.plain` stops the red roll.
+- **Each per-tile roll has its own `hash32` stream**; chunks shape by
+  `posHash`, never `rnd()`.
+- Terrain features carry `tp0` and `tp1`. A ravine run's feature rides in
+  its LAST tile (`ravCarry`); runs never cross a cathedral.
+- **Fixed-height builds are lifted by the tile's base** (`offY`,
+  `pathBase`). **Tile-0 builds go inside a `tileCapture` window** in
+  `buildWorld`.
+- Loops start at `PATH.lo`. `teardownTile` empties arrays IN PLACE.
+  `bakeStatic` on a tile is fine; `bakeWorld` on the path is not.
+- **A path chunk cannot see its own road**: `roadPlan(t)` with
+  `BUILD.plan` (then `nearRoad` ignores every other road); a new special adds its road shape there; axis-centred
+  chunks need a path branch gated on `BUILD.plan`.
+- Ravine trunks are `wood` obstacles; `free()` keeps the trail;
+  nothing in a stream bed (`streamNear`).
+- **Every piece of foliage goes through `leafMat()`.**
+- **Anything `applyTime` writes goes into `xfSnap`/`xfSet`**; `xfTick`
+  runs after `updateWeather`. Weathers are checked against `WX_NAMES`.
+- Roads: `layPath`, option object `opt`. The ravine trail is painted
+  (`TRAIL_GROUND`, `aTrail`).
+- Slope limit judges the MESH (`slopeHold`). Path sides are a cliff
+  (`pathEdge`, `PATH.backZ`); `drainSpawns` clamps inside `pathEdge−1.4`.
+  A bridge is a deck in `heightAt` (`deckAt`). Mileposts dispose canvases.
+- **The castle** (`PATH.castleK` 30; `?castle=N`) is ONE table, `CASTLE`,
+  read by the build, `pathGround`, `pathEdge`, `castleStone`/`castleWalk`;
+  **new stone also goes into `castleStone`**. Gates are obstacles removed
+  by `castleTick`; the winch is `tough` + `onHit`.
+- **The Mire (`DEF`)**: field-only gates are `!PATH.on&&!DEF.on`; every
+  `HW/HL/PW/PL/PH` rule needs `!DEF.on`; never `G.bossActive` (a round's
+  boss is a `mini`); the house takes no player damage; it is at
+  `MIRE.hx/hz`.
+- Cathedral collision (`HW`/`HL`/`WALLT`, plinth, portal) is fixed;
+  crockets are tetrahedra; `srand(444)` precedes the vault.
+- The codex keeps `G.mode` 'play'. **A new horror needs a `make` entry**;
+  new weapons, armour, weathers need words in `CX_BLADES`/`CX_ARMOUR`/
+  `CX_WX`. `opts.plain` stops the red roll.
 
 ### Interface
+- Records are localStorage under `bp_` (`saveOut` copies them).
+- **`sw.js` is NETWORK FIRST, never cache first**; only over http(s); lets
+  `?check` through; fetches the page `no-cache`. Never under `file://`.
+- `#toast` z-index 12. Panels tab with `panelTab`; `setPaused` refuses
+  while the shop is open. Thin sliders get a 22px hit box and stopped events.
+- **The title is a menu** (`MENU`, `menuInit`, `menuGo`): three ways and
+  the codex; path and ravine are ONE way with two routes (`MENU.route`).
+  Another way reloads with `?go=1` (`html.going`). `menuInit` runs after
+  `buildWorld`. Sound starts on the first touch (`wakeOnTouch`).
 
-- Every record is localStorage under `bp_`. `saveOut` copies every `bp_`
-  key but the panels' tabs; a new record needs no more than the prefix.
-  `sw.js` is NETWORK FIRST: never make it cache first, or a phone keeps an
-  old game for good. It registers only over http(s), never under `file://`.
-  It lets `?check` requests through untouched, and fetches the page itself
-  `no-cache` (revalidated), so an update arrives on the next load.
+## How to measure (each one settled an argument)
 
-- `#toast` sits at z-index 12, over the pause panel and the shop.
-- Panels are tabbed (`panelTab`); `setPaused` refuses while the shop is open.
-- A thin slider needs a 22px hit box and stopped pointer events.
-- **The title is a menu** (`MENU`, `menuInit`, `menuGo`): three ways and the
-  codex, and a card. The path and the ravine are ONE way with two routes
-  (`MENU.route`); never put a second path back as a way of its own. A way
-  not loaded is begun by reloading with `?go=1`, which begins at boot's end
-  and drops `go` from the address; `html.going` hides that page's title
-  before it is drawn. `menuInit` runs after `buildWorld` (only then is the
-  page's way known). Sound held by a phone starts on the first touch
-  (`wakeOnTouch`).
-- A harness begins a run with `enter(pg,'#modeX')` in `tools/check`: it
-  taps the way's row (which begins the chosen way) and BEGIN if needed.
-
-### How to measure (each one settled an argument)
-
-- Count an effect's pixels by rendering twice (on, then hidden) and
-  differencing.
-- Size anything on screen by projecting its vertices through the camera.
-- Find what fills the picture with a `Raycaster` probe from the camera.
-- Prove a small part is missing by recolouring it.
-- Check a hinge's sign by traversing with `matrixWorld` at two openings.
-- Trap a NaN producer by patching `computeBoundingSphere` and reading the
-  vertex count.
-- Stalls: hook `gl.linkProgram` and time `renderer.render` per frame.
+- An effect's pixels: render twice (on, hidden) and difference.
+- Anything's size on screen: project its vertices through the camera.
+- What fills the picture: a `Raycaster` probe from the camera.
+- A missing small part: recolour it. A hinge's sign: `matrixWorld` at two
+  openings. A NaN producer: patch `computeBoundingSphere`.
+- Stalls: hook `gl.linkProgram`, time `renderer.render` per frame.
 
 ## Conventions
 
-- Commit messages are evocative prose, lowercase-leaning, in the game's own
-  voice — e.g. *"Sound, third pass: voices for the hero and the Fallen One,
-  slush for the Unburied."*
-- `README.md` is the design document and is kept current. When you change
-  behaviour, update it in the same commit. New rules go here, their stories
-  in `docs/NOTES.md`.
-- Pushing to `main` deploys to GitHub Pages at
-  https://arterramarketing-hub.github.io/bonepath/ . The `github-pages`
-  environment is set to "No restriction" for deployment branches; narrowing
-  it breaks deploys after a rename.
+- Commit messages are evocative prose in the game's voice, e.g. *"Sound,
+  third pass: voices for the hero and the Fallen One, slush for the
+  Unburied."*
+- `README.md` is the design document: update it in the same commit as a
+  behaviour change. New rules go here; their stories in `docs/NOTES.md`.
+- Pushing `main` deploys to https://arterramarketing-hub.github.io/bonepath/
 
 ## Testing
 
-`tools/check/run.js` loads the game headless and fails on any page error:
-
 ```sh
-cd tools/check && npm install     # once; playwright-core only
-node run.js                       # everything, ~6 minutes
+cd tools/check && npm install     # once
+node run.js                       # everything, ~8 minutes
 node run.js parse boot            # the quick pass, ~1 minute
 ```
 
-Checks: `parse` (every inline script compiles, and the three.js line
-carries every `THREE.Name` the game uses), `boot` (field, path, ravine
-and Mire start clean), `codex` (every entry of every section), `path` and
-`ravine` (walk about seventy hexes), `road` (nothing a hex builds stands on
-its own road), `castle` (raised at hex 3: the gate,
-the Rider's two halves, the keep, the road on), `leak` (walk to hex 80;
-ceilings on heap, geometry and the registries). Chromium comes from `$CHROME_PATH`,
-then `/opt/pw-browsers`, then playwright's own install.
-`.github/workflows/check.yml` runs all of it on every push; it never
-deploys.
+`parse` (scripts compile; the three line carries every name), `boot` (all
+four modes), `codex`, `path`/`ravine` (~70 hexes), `road`, `castle`,
+`leak` (hex 80, ceilings). Run at least `parse boot` before every push,
+and everything after touching the path, the codex or a registry.
+`.github/workflows/check.yml` runs it all on every push. `tools/check/run.js`
+finds Chromium at `$CHROME_PATH`, then `/opt/pw-browsers`; a harness begins
+a run with `enter(pg,'#modeX')`.
 
-`tools/three-parity` holds the PICTURE still: `shots.js` draws some
-forty frozen frames (its own clock and dice, so two runs of one file are
-identical to the pixel) and `compare.js` differences two sets. Take a set
-before and after anything that touches the renderer, a shader patch, a
-material or the three.js line; the floor is zero.
-
-The game exposes `window.BP` for harnesses (`BP._reg()` counts the
-registries). A new system worth probing should be added to it.
-
-Run at least `parse boot` before every push, and the whole set after
-anything touching the path, the codex or a registry.
+**`tools/three-parity` holds the picture still**: `shots.js` takes ~40
+frozen frames, `compare.js` differences two sets; the floor is zero. Take
+a set before and after anything touching the renderer, a shader patch, a
+material or the three line. `window.BP` is the harness handle
+(`BP._reg()` counts registries); add new systems to it.

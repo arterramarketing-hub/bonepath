@@ -2110,6 +2110,16 @@ function buildTextures(){
 
 /* ---------------- renderer / PSX pipeline ---------------- */
 const canvas=$('gl');
+/* WEBGL2 OR NOTHING. three.js dropped WebGL1 at r163, and the game needs
+   r187 (see the three.js rules). A browser without WebGL2 (an iPhone
+   before iOS 15, an old Android) used to get a black page and an error in
+   a console nobody sees; it gets a sentence instead, and the script stops
+   here before anything else is made. */
+{let ok=false;try{ok=!!document.createElement('canvas').getContext('webgl2');}catch(e){}
+  if(!ok){const d=document.createElement('div');
+    d.style.cssText='position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:24px;background:#090d12;color:#c8bea0;font:15px/1.6 Georgia,serif;text-align:center;letter-spacing:.04em';
+    d.innerHTML='<div><div style="font-size:22px;letter-spacing:.3em;margin-bottom:14px">BONEPATH</div>This browser cannot draw the game: it needs WebGL 2.<br>Any current Safari, Chrome or Firefox has it (an iPhone needs iOS 15 or later).</div>';
+    document.body.appendChild(d);throw new Error('BONEPATH needs WebGL2');}}
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.setPixelRatio(1);
@@ -2203,14 +2213,14 @@ rt.texture.colorSpace=THREE.SRGBColorSpace;
 /* the haze pass: the lights' soft glow is drawn AFTER the PSX grade, in
    its own buffer that shares the scene's depth — so it is never
    quantized or dithered (no stray coloured pixels) and walls still
-   hide it. Without depth-texture support it falls back into the scene. */
-const HAZE_SEP=!!(renderer.capabilities.isWebGL2||renderer.extensions.get('WEBGL_depth_texture'));
-if(HAZE_SEP)rt.depthTexture=new THREE.DepthTexture(4,4,THREE.UnsignedIntType);
+   hide it. (It once fell back into the scene without depth textures: that
+   was WebGL1, which the library no longer draws with.) */
+rt.depthTexture=new THREE.DepthTexture(4,4,THREE.UnsignedIntType);
 const hazeRT=new THREE.WebGLRenderTarget(4,4,{
   minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true});
 hazeRT.texture.colorSpace=THREE.SRGBColorSpace;
-if(HAZE_SEP)hazeRT.depthTexture=rt.depthTexture;
-const hazeScene=HAZE_SEP?new THREE.Scene():scene;
+hazeRT.depthTexture=rt.depthTexture;
+const hazeScene=new THREE.Scene();
 /* (The crisp pass is gone: a switch that drew the hero again at the
    device's own resolution over the PSX frame. It was off, and while off it
    still kept a render target and had the grade quad sample it on every
@@ -2221,12 +2231,12 @@ const postScene=new THREE.Scene();
 const postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const gradeMat=new THREE.ShaderMaterial({
   uniforms:{tex:{value:rt.texture},uPx:{value:new THREE.Vector2(1/240,1/135)},uSize:{value:new THREE.Vector2(240,135)},
-    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0},uExpo:{value:1.04}},
+    hazeTex:{value:hazeRT.texture},uExpo:{value:1.04}},
   depthTest:false,depthWrite:false,
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
   fragmentShader:[
     'precision mediump float;',
-    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform float uHazeOn;uniform float uExpo;uniform vec2 uPx;uniform vec2 uSize;varying vec2 vUv;',
+    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform float uExpo;uniform vec2 uPx;uniform vec2 uSize;varying vec2 vUv;',
     'float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}',
     'vec3 grade(vec3 c,vec2 px){',
     '  c*=uExpo;',
@@ -2255,7 +2265,7 @@ const gradeMat=new THREE.ShaderMaterial({
     // the world: graded and dithered on ITS pixel grid, however big the screen
     '  vec3 c=grade(texture2D(tex,vUv).rgb,floor(vUv*uSize));',
     // the haze rides on top, untouched by the grade: just soft light
-    '  c+=texture2D(hazeTex,vUv).rgb*uHazeOn;',
+    '  c+=texture2D(hazeTex,vUv).rgb;',
     '  gl_FragColor=vec4(c,1.0);',
     '}'].join('\n')});
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
@@ -2280,12 +2290,10 @@ function renderFrame(){
   if(XF.dome2&&XF.dome2.visible)XF.dome2.position.copy(camera.position);   // (the blend's second sky rides with it)
   renderer.setRenderTarget(rt);
   renderer.render(scene,camera);
-  if(HAZE_SEP){
-    renderer.setRenderTarget(hazeRT);
-    renderer.autoClearDepth=false;   // keep the scene's depth: walls hide the haze
-    renderer.render(hazeScene,camera);
-    renderer.autoClearDepth=true;
-  }
+  renderer.setRenderTarget(hazeRT);
+  renderer.autoClearDepth=false;   // keep the scene's depth: walls hide the haze
+  renderer.render(hazeScene,camera);
+  renderer.autoClearDepth=true;
   renderer.setRenderTarget(null);
   renderer.render(postScene,postCam);
 }
@@ -5728,12 +5736,38 @@ function skyTwin(m){
   const key='sky|'+(orig?orig.toString():'');t.customProgramCacheKey=()=>key;
   SKY.twins.set(m,t);return t;
 }
+/* AND IT IS PAID A SIXTEENTH AT A TIME. Sixteen renders, sixteen
+   readbacks and sixteen passes over a hundred thousand vertices were one
+   synchronous lump inside the cathedral hex's build (400ms here, and that
+   hex is already the heaviest the path has). So `bakeSky` only queues the
+   work, and `skyTick` (top of `frame`) does one step a frame: the gather,
+   then one direction, then the write. The folds draw unshaded for those
+   eighteen frames; a path cathedral is built well ahead of the pilgrim, so
+   nobody sees it change. At boot the queue is drained at once
+   (`skyDrain`, after `buildWorld`): boot is a loading moment, and the
+   field's or tile 0's cathedral is in view from the first frame. A job
+   whose hex is torn down before it finishes is dropped. */
 function bakeSky(root){
   if(!SKY.on)return 0;
-  const t0=performance.now(),folds=[];
+  if(!SKY.queue)SKY.queue=[];
+  SKY.queue.push({root,step:0});return 1;
+}
+function skyAttached(o){while(o.parent)o=o.parent;return o===scene;}
+function skyTick(){
+  const Q=SKY.queue;if(!Q||!Q.length)return;
+  const job=Q[0],t0=performance.now();
+  if(!skyAttached(job.root)){if(job.proxies)for(const p of job.proxies)SKY.scn.remove(p);Q.shift();return;}   // (its hex was torn down first)
+  if(job.step===0){skyGather(job);job.step=1;if(!job.jobs){Q.shift();return;}}
+  else if(job.step<=SKY.N){skyDir(job,job.step-1);job.step++;}
+  else{skyWrite(job);Q.shift();}
+  const dt=performance.now()-t0;SKY.ms+=dt;SKY.stepMax=Math.max(SKY.stepMax||0,dt);
+}
+function skyDrain(){while(SKY.queue&&SKY.queue.length)skyTick();}
+function skyGather(job){
+  const root=job.root,folds=[];
   root.updateWorldMatrix(true,true);
   root.traverse(o=>{if(o.isMesh&&o.userData.baked&&o.geometry.attributes.normal&&!o.geometry.attributes.aBake&&(o.material.isMeshLambertMaterial||o.material.isMeshPhongMaterial))folds.push(o);});
-  if(!folds.length)return 0;
+  if(!folds.length)return;
   // the casters: the same geometry under a depth material, in a scene of their own (the world's is not disturbed)
   if(!SKY.scn){SKY.scn=new THREE.Scene();SKY.mat=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide});
     SKY.rt=new THREE.WebGLRenderTarget(SKY.SIZE,SKY.SIZE,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,depthBuffer:true,stencilBuffer:false});
@@ -5747,35 +5781,42 @@ function bakeSky(root){
       wn[k]=n.x;wn[k+1]=n.y;wn[k+2]=n.z;wp[k]=v.x+n.x*SKY.off;wp[k+1]=v.y+n.y*SKY.off;wp[k+2]=v.z+n.z*SKY.off;}
     jobs.push({o,c,wp,wn,vis:new Float32Array(c),ws:new Float32Array(c)});
   }
-  const ctr=box.getCenter(new THREE.Vector3()),rad=box.getSize(new THREE.Vector3()).length()/2+1,S=SKY.SIZE,cam=SKY.cam,d=SKY.d,px=SKY.px;
+  job.jobs=jobs;job.proxies=proxies;
+  job.ctr=box.getCenter(new THREE.Vector3());job.rad=box.getSize(new THREE.Vector3()).length()/2+1;
+}
+const _skyVP=new THREE.Matrix4(),_skyDir=new THREE.Vector3();
+function skyDir(job,q){
+  const S=SKY.SIZE,cam=SKY.cam,d=SKY.d,px=SKY.px,ctr=job.ctr,rad=job.rad;
   const keepRT=renderer.getRenderTarget(),keepC=renderer.getClearColor(new THREE.Color()),keepA=renderer.getClearAlpha();
+  for(const p of job.proxies)p.visible=true;
   cam.left=-rad;cam.right=rad;cam.top=rad;cam.bottom=-rad;cam.near=0;cam.far=2*rad;cam.updateProjectionMatrix();
-  const VP=new THREE.Matrix4(),dir=new THREE.Vector3(),GA=Math.PI*(3-Math.sqrt(5)),bias=(2*rad/S*1.6+.04)/(2*rad),K=255/256/255;
-  for(let q=0;q<SKY.N;q++){
-    const y=.1+.9*(q+.5)/SKY.N,r=Math.sqrt(1-y*y),a=q*GA;dir.set(Math.cos(a)*r,y,Math.sin(a)*r);   // (a spiral over the upper sky)
-    cam.position.copy(ctr).addScaledVector(dir,rad);cam.up.set(0,1,0);if(y>.99)cam.up.set(0,0,-1);cam.lookAt(ctr);cam.updateMatrixWorld(true);
-    renderer.setRenderTarget(SKY.rt);renderer.setClearColor(0xffffff,1);renderer.clear(true,true,true);renderer.render(SKY.scn,cam);
-    renderer.readRenderTargetPixels(SKY.rt,0,0,S,S,px);
-    for(let i=0,j=0;i<d.length;i++,j+=4)d[i]=(px[j]+px[j+1]/256+px[j+2]/65536+px[j+3]/16777216)*K;
-    const e=VP.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse).elements;
-    for(const J of jobs){const wp=J.wp,wn=J.wn,vis=J.vis,ws=J.ws;
-      for(let i=0,k=0;i<J.c;i++,k+=3){
-        const w=.03+.97*Math.max(0,wn[k]*dir.x+wn[k+1]*dir.y+wn[k+2]*dir.z);ws[i]+=w;
-        const x=wp[k],yy=wp[k+1],z=wp[k+2];
-        const u=((e[0]*x+e[4]*yy+e[8]*z+e[12])*.5+.5)*S-.5,vv=((e[1]*x+e[5]*yy+e[9]*z+e[13])*.5+.5)*S-.5,dz=(e[2]*x+e[6]*yy+e[10]*z+e[14])*.5+.5-bias;
-        const iu=Math.floor(u),iv=Math.floor(vv);
-        if(iu<0||iv<0||iu>=S-1||iv>=S-1){vis[i]+=w;continue;}                  // (off the map is open sky)
-        const p=iv*S+iu,fu=u-iu,fv=vv-iv;
-        vis[i]+=w*(((dz<=d[p]?1:0)*(1-fu)+(dz<=d[p+1]?1:0)*fu)*(1-fv)+((dz<=d[p+S]?1:0)*(1-fu)+(dz<=d[p+S+1]?1:0)*fu)*fv);}}
-  }
+  const dir=_skyDir,GA=Math.PI*(3-Math.sqrt(5)),bias=(2*rad/S*1.6+.04)/(2*rad),K=255/256/255;
+  const y=.1+.9*(q+.5)/SKY.N,r=Math.sqrt(1-y*y),a=q*GA;dir.set(Math.cos(a)*r,y,Math.sin(a)*r);   // (a spiral over the upper sky)
+  cam.position.copy(ctr).addScaledVector(dir,rad);cam.up.set(0,1,0);if(y>.99)cam.up.set(0,0,-1);cam.lookAt(ctr);cam.updateMatrixWorld(true);
+  renderer.setRenderTarget(SKY.rt);renderer.setClearColor(0xffffff,1);renderer.clear(true,true,true);renderer.render(SKY.scn,cam);
+  renderer.readRenderTargetPixels(SKY.rt,0,0,S,S,px);
   renderer.setRenderTarget(keepRT);renderer.setClearColor(keepC,keepA);
-  for(const p of proxies)SKY.scn.remove(p);
-  for(const J of jobs){const col=new Uint8Array(J.c);
+  for(let i=0,j=0;i<d.length;i++,j+=4)d[i]=(px[j]+px[j+1]/256+px[j+2]/65536+px[j+3]/16777216)*K;
+  const e=_skyVP.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse).elements;
+  for(const J of job.jobs){const wp=J.wp,wn=J.wn,vis=J.vis,ws=J.ws;
+    for(let i=0,k=0;i<J.c;i++,k+=3){
+      const w=.03+.97*Math.max(0,wn[k]*dir.x+wn[k+1]*dir.y+wn[k+2]*dir.z);ws[i]+=w;
+      const x=wp[k],yy=wp[k+1],z=wp[k+2];
+      const u=((e[0]*x+e[4]*yy+e[8]*z+e[12])*.5+.5)*S-.5,vv=((e[1]*x+e[5]*yy+e[9]*z+e[13])*.5+.5)*S-.5,dz=(e[2]*x+e[6]*yy+e[10]*z+e[14])*.5+.5-bias;
+      const iu=Math.floor(u),iv=Math.floor(vv);
+      if(iu<0||iv<0||iu>=S-1||iv>=S-1){vis[i]+=w;continue;}                  // (off the map is open sky)
+      const p=iv*S+iu,fu=u-iu,fv=vv-iv;
+      vis[i]+=w*(((dz<=d[p]?1:0)*(1-fu)+(dz<=d[p+1]?1:0)*fu)*(1-fv)+((dz<=d[p+S]?1:0)*(1-fu)+(dz<=d[p+S+1]?1:0)*fu)*fv);}}
+  for(const p of job.proxies)p.visible=false;   // (the next job's casters are its own)
+}
+function skyWrite(job){
+  for(const p of job.proxies)SKY.scn.remove(p);
+  for(const J of job.jobs){const col=new Uint8Array(J.c);
     for(let i=0;i<J.c;i++){const sv=J.ws[i]>0?J.vis[i]/J.ws[i]:1,t=clamp((sv-SKY.lo)/(SKY.hi-SKY.lo),0,1);   // (a little sky lost is no shade at all: without the knee every wall is merely dirtier)
       col[i]=Math.round(255*(SKY.floor+(1-SKY.floor)*t));}
     J.o.geometry.setAttribute('aBake',new THREE.BufferAttribute(col,1,true));
     J.o.material=skyTwin(J.o.material);}
-  SKY.ms=performance.now()-t0;return folds.length;
+  SKY.done=(SKY.done||0)+1;
 }
 function bakeWorld(){
   const held=new WeakSet();
@@ -7417,14 +7458,13 @@ function ravineStart(k,z0,force){   // (`force` is the codex's: {v,n,via} named 
 }
 // what a step adds — to the world, the scene, the haze, the lists — is
 // caught in a window, and the window is shifted north into the tile's place
-const hazeSep=()=>hazeScene!==scene;
-function tileCapture(){return {W:world.children.length,S:scene.children.length,H:hazeSep()?hazeScene.children.length:0,O:obstacles.length,B:breakables.length,L:lanternLights.length,WS:wispSystems.length};}
+function tileCapture(){return {W:world.children.length,S:scene.children.length,H:hazeScene.children.length,O:obstacles.length,B:breakables.length,L:lanternLights.length,WS:wispSystems.length};}
 function tileCommit(t,c,offZ,offY){   // (`offY`: a cathedral is built at fixed heights and lifted whole onto its tile's base: see pathBase)
   offY=offY||0;
   for(let i=c.W;i<world.children.length;i++){const o=world.children[i];o.position.z+=offZ;o.position.y+=offY;t.objsW.push(o);}
   for(let i=c.S;i<scene.children.length;i++){const o=scene.children[i];if(o.isLight&&LPOOL.lights.includes(o))continue;   // (the pool is made inside hex 0's window and is NOT the hex's: torn down with it, every lantern after went dark and every lit shader relinked)
     o.position.z+=offZ;o.position.y+=offY;t.objsS.push(o);}
-  if(hazeSep())for(let i=c.H;i<hazeScene.children.length;i++){const o=hazeScene.children[i];o.position.z+=offZ;o.position.y+=offY;t.hazes.push(o);}
+  for(let i=c.H;i<hazeScene.children.length;i++){const o=hazeScene.children[i];o.position.z+=offZ;o.position.y+=offY;t.hazes.push(o);}
   for(let i=c.O;i<obstacles.length;i++){const o=obstacles[i];if(o.seg){o.az+=offZ;o.bz+=offZ;}else o.z+=offZ;if(o.top!=null)o.top+=offY;t.obs.push(o);}
   for(let i=c.B;i<breakables.length;i++){const b=breakables[i];b.z+=offZ;t.brk.push(b);}
   for(let i=c.L;i<lanternLights.length;i++){const L=lanternLights[i];if(!L.l.parent){L.l.position.z+=offZ;L.l.position.y+=offY;}t.lamps.push(L);}   // (a pooled light is no scene child: shifted by hand)
@@ -23333,6 +23373,7 @@ $('lockBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropaga
 
 buildTextures();
 buildWorld();
+skyDrain();   // (the cathedral in view from the first frame is shaded before it: see AND IT IS PAID A SIXTEENTH AT A TIME)
 menuInit();
 $('verTxt').textContent=verLabel(BP_BUILD,BP_BUILT);
 $('verBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();checkUpdate();});
@@ -23715,6 +23756,7 @@ function frame(now){
   perfTick(now);
   let dt=Math.min(.05,(now-last)/1000);last=now;
   Input.pad(dt);   // (ahead of the pause: OPTIONS must be able to end the pause it began)
+  skyTick();       // (a queued cathedral's shade, one step a frame)
   if(IN.pausePressed){IN.pausePressed=false;if(CODEX.on)codexExit();else if(DEF.shopOpen)setShop(false);else setPaused(!G.paused);}
   /* THE PAUSE SCREEN IS NOT A GAME. It used to render the whole field
      under the panel at sixty a second, which is the same heat as playing
