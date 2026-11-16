@@ -3910,3 +3910,17 @@ Known state of play:
   Also seen: r128 warns that `flatShading` is not a property of
   MeshLambertMaterial. `flatMat` asks for it and has never had it; the
   facets come from unshared vertices.
+
+- **HERO_HI, the crisp pass, removed.** A switch that drew the pilgrim a
+  second time at the device's own resolution, depth-tested against the
+  low-resolution world and laid over the PSX frame by the grade quad. It
+  had been off (`HERO_HI=false`) for a long time: the hero belongs in the
+  same dithered, snapped frame as the world, which is the whole look. Off,
+  it still made a render target (`crispRT`) and the grade shader sampled
+  it on every pixel and multiplied the result by zero. Gone with it:
+  `heroify`, `heroifyObject` (called once, from `rebuild`, where it did
+  nothing), `heroRes`, `worldDepth`, `heroClip`, `lightSweep`, and the two
+  `BP` exports nothing used. The finer picture a player may now choose is
+  `VIEW.res` ("the picture"), which raises the whole frame together and
+  keeps the snap and the dither on the console's grid. Held against the
+  frames from before it with `tools/three-parity`.

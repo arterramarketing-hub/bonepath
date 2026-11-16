@@ -55,8 +55,8 @@ screen, begin the same way again at once.
   plain cross, a long grip and an octagonal pommel, carried across the
   shoulder. The hero is drawn in the PSX frame with everything else —
   snapped, dithered and graded on the same coarse grid. (The crisp pass
-  that once drew the player alone at the device's resolution is still in
-  the code behind a switch, off.)
+  that once drew the player alone at the device's resolution has been
+  taken out; "the picture" on the pause screen sharpens the whole frame.)
   **knight plate** (the sculpted knight, after a Faraam-style reference:
   a ridged helm with a central bar and an eye slit to either side, one
   small fur pelt, one piece turned from a profile and roughed with

@@ -2211,53 +2211,22 @@ const hazeRT=new THREE.WebGLRenderTarget(4,4,{
 hazeRT.texture.colorSpace=THREE.SRGBColorSpace;
 if(HAZE_SEP)hazeRT.depthTexture=rt.depthTexture;
 const hazeScene=HAZE_SEP?new THREE.Scene():scene;
-/* the crisp pass: the hero alone is drawn again at the DEVICE's resolution
-   into its own buffer and laid over the PSX frame by the grade quad —
-   hidden behind the world wherever the low-res depth says the world is
-   nearer. Layer 1 is the hero's; every light shines on both layers. Needs
-   the depth texture, like the haze does. */
-const HERO_HI=false;        // off: the hero is drawn in the PSX frame with the rest of the world (set to HAZE_SEP for the crisp pass)
-const crispRT=new THREE.WebGLRenderTarget(4,4,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true});
-crispRT.texture.colorSpace=THREE.SRGBColorSpace;
-const heroRes={value:new THREE.Vector2(1,1)};
-const worldDepth={value:HAZE_SEP?rt.depthTexture:null};
-const heroClip={value:1};   // (0: draw the hero unclipped — for renders that use another camera)
-// a hero material: no vertex snap, and every fragment checks the world's
-// depth under it before it draws
-function heroify(m){
-  if(!HERO_HI||m.userData.hero)return m;
-  m.userData.hero=true;
-  m.onBeforeCompile=s=>{
-    s.uniforms.uWorldDepth=worldDepth;s.uniforms.uHeroRes=heroRes;s.uniforms.uHeroClip=heroClip;
-    s.fragmentShader='uniform sampler2D uWorldDepth;uniform vec2 uHeroRes;uniform float uHeroClip;\n'+s.fragmentShader.replace(
-      '#include <clipping_planes_fragment>',
-      `#include <clipping_planes_fragment>
-       if(uHeroClip>0.5){ vec2 suv=gl_FragCoord.xy/uHeroRes; float wd=texture2D(uWorldDepth,suv).r;
-         if(gl_FragCoord.z>wd+0.0004) discard; }`);
-  };
-  m.needsUpdate=true;return m;
-}
-function heroifyObject(root){
-  if(!HERO_HI)return;                                   // (the hero stays on the world's layer, snapped and dithered like everything else)
-  root.traverse(o=>{
-    if(o.isLight){o.layers.enable(0);o.layers.enable(1);return;}
-    o.layers.set(1);
-    if(o.isMesh||o.isSprite){const ms=Array.isArray(o.material)?o.material:[o.material];for(const m of ms)if(m)heroify(m);}
-  });
-}
-let lightSweep=0;
+/* (The crisp pass is gone: a switch that drew the hero again at the
+   device's own resolution over the PSX frame. It was off, and while off it
+   still kept a render target and had the grade quad sample it on every
+   pixel. The hero is drawn in the PSX frame with everything else; that is
+   the game. Its story is in NOTES, under HERO_HI.) */
 renderer.setClearColor(0x000000,1);
 const postScene=new THREE.Scene();
 const postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const gradeMat=new THREE.ShaderMaterial({
   uniforms:{tex:{value:rt.texture},uPx:{value:new THREE.Vector2(1/240,1/135)},uSize:{value:new THREE.Vector2(240,135)},
-    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0},uExpo:{value:1.04},
-    tHero:{value:crispRT.texture},uHeroOn:{value:HERO_HI?1:0}},
+    hazeTex:{value:hazeRT.texture},uHazeOn:{value:HAZE_SEP?1:0},uExpo:{value:1.04}},
   depthTest:false,depthWrite:false,
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
   fragmentShader:[
     'precision mediump float;',
-    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform sampler2D tHero;uniform float uHazeOn;uniform float uHeroOn;uniform float uExpo;uniform vec2 uPx;uniform vec2 uSize;varying vec2 vUv;',
+    'uniform sampler2D tex;uniform sampler2D hazeTex;uniform float uHazeOn;uniform float uExpo;uniform vec2 uPx;uniform vec2 uSize;varying vec2 vUv;',
     'float bayer2(vec2 a){a=floor(a);return fract(a.x*.5+a.y*a.y*.75);}',
     'vec3 grade(vec3 c,vec2 px){',
     '  c*=uExpo;',
@@ -2287,9 +2256,6 @@ const gradeMat=new THREE.ShaderMaterial({
     '  vec3 c=grade(texture2D(tex,vUv).rgb,floor(vUv*uSize));',
     // the haze rides on top, untouched by the grade: just soft light
     '  c+=texture2D(hazeTex,vUv).rgb*uHazeOn;',
-    // the hero, crisp, graded the same way on the device's grid
-    '  vec4 h=texture2D(tHero,vUv);',
-    '  c=mix(c,grade(h.rgb,gl_FragCoord.xy),h.a*uHeroOn);',
     '  gl_FragColor=vec4(c,1.0);',
     '}'].join('\n')});
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),gradeMat));
@@ -2314,13 +2280,6 @@ function renderFrame(){
   if(XF.dome2&&XF.dome2.visible)XF.dome2.position.copy(camera.position);   // (the blend's second sky rides with it)
   renderer.setRenderTarget(rt);
   renderer.render(scene,camera);
-  if(HERO_HI){
-    if(--lightSweep<=0){lightSweep=90;scene.traverse(o=>{if(o.isLight){o.layers.enable(0);o.layers.enable(1);}});}  // (new lights come and go)
-    const bg=scene.background;scene.background=null;
-    renderer.setRenderTarget(crispRT);renderer.setClearColor(0x000000,0);renderer.clear();
-    camera.layers.set(1);renderer.render(scene,camera);camera.layers.set(0);
-    renderer.setClearColor(0x000000,1);scene.background=bg;
-  }
   if(HAZE_SEP){
     renderer.setRenderTarget(hazeRT);
     renderer.autoClearDepth=false;   // keep the scene's depth: walls hide the haze
@@ -2359,10 +2318,7 @@ function resize(){
   const glass=short*Math.min(3,devicePixelRatio||1),bshort=Math.min(bw,bh);
   const m=Math.max(1,Math.min(RES_FORCE?RES_FORCE/bshort:RES_MUL[VIEW.res]||1,glass/bshort));
   const iw=Math.round(bw*m),ih=Math.round(bh*m);resK.value=m;
-  // the canvas itself is the device's size when the hero is drawn crisp
-  // (the PSX frame is upscaled onto it); otherwise it is the small frame
-  if(HERO_HI){renderer.setSize(w,h,false);crispRT.setSize(w,h);heroRes.value.set(w,h);}
-  else renderer.setSize(iw,ih,false);
+  renderer.setSize(iw,ih,false);   // (the canvas is the small frame; CSS upscales it nearest)
   rt.setSize(iw,ih);hazeRT.setSize(iw,ih);
   gradeMat.uniforms.uPx.value.set(2/iw,2/ih);gradeMat.uniforms.uSize.value.set(bw,bh);
   camera.aspect=w/h;camera.updateProjectionMatrix();applyFov();   // (the lens at rest depends on which way up the screen is)
@@ -9195,7 +9151,7 @@ function sheetDress(rig,o){
       It stretches away from the light as the light drops, and leans out
       from under the body with it.
    It stays ONE DRAW each. The material is NOT shared, and that was tried:
-   `heroifyObject` MUTATES a material in place to give it the hero's
+   `heroifyObject` (the crisp pass, since removed) MUTATED a material in place to give it the hero's
    depth-clip shader, so one material behind every body in the world would
    have taken that shader the moment the pilgrim's rig was built. A float
    written per body per frame is nothing; a shared shader that discards
@@ -13100,7 +13056,6 @@ const player={
     if(this.rig.weapon&&!this.rig.gun&&!this.rig.bat&&LOADOUT.weapon!=='bow'&&LOADOUT.weapon!=='wand')foldRig(this.rig,this.rig.weapon);   // (the blade's furniture only: never his body)
     this.rig.smoothPose=true;
     scene.add(this.rig.root);
-    heroifyObject(this.rig.root);                 // the hero draws crisp, on its own layer
     if(FPS.on&&this.state!=='dead'&&gunHeld()){this.rig.root.visible=false;FPS.hidRig=true;}   // (a gun puts the body away; a blade is masked by syncFpsRig)
     this.mats=[];
     this.rig.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)this.mats.push(o.material);});
@@ -23918,7 +23873,7 @@ if(/[?&]go=1/.test(location.search)&&!CODEX.on){try{const u=new URL(location.hre
 const WX_WHITE=new THREE.Color(0xd8e0ee);
 window.codexShowX=(c,i)=>codexShow(c,i);window.CX_N=()=>CODEX_CATS.map(c=>c.items.length);
 window.BP={SKY,GLOW,RIGFOLD,GP,paintScar,flushPaint,camera,LORE,cxKeyOf,MEET,CODEX,GARG,OssuaryKing,SHADE,ArmHorror,Hanged,lampNear,DrownedBride,Gargoyle,PERCH,ICE,icePatch,onIce,RavineWyrm,FogWraith,wraithTick,CASTLE,RiderHorror,winchStruck,castleStone,roads,_reg:()=>({geoCache:Object.keys(geoCache).length,roads:roads.length,roadMeshes:roadMeshes.length,rigFold:RIGFOLD.size,MARKABLE:MARKABLE.length,obstacles:obstacles.length,breakables:breakables.length,lanterns:lanternLights.length,wisps:wispSystems.length,effects:effects.length,world:world.children.length,scene:scene.children.length,enemies:enemies.length,tiles:PATH.tiles.length,terrain:PATH.terrain.length,baked:BAKED.size,garg:GARG.a.length,decks:(PATH.decks||[]).length,spawnQ:(PATH.spawnQ||[]).length}),_heightAt:heightAt,_renderer:renderer,slopeHold,slopeY,xfStart,XF,turnDay,LEAF,worldLights,pathEdge,pathSurfaceY,strikeBreakables,streamAt,wading,PROG_KEEP,buildTile,teardownTile,RAVINE,batShatter,flyBone,boltCant,boltCycle,slideMotion,CLIP_WARM,renderFrame,updateLock,lockCands,BAKED,bakeWorld,unbake,unbakeGroup,markTree,markStone,G,player,IN,Input,enemies,DEF,HOUSE,bladeMeetsStone,buildStakes,siegeTargets,laneLamps,defSummon,hitscan,MARROW,shedMarrow,setShop,shopBuy,shopItems,defAlive,defNextRound,defBoss,defRoundHeld,spawnDrowned,severLimb,zombieGore,PL,PW,PH,STAIR_L,wading,bashSeg,mendSeg,segFall,houseFrac,bladeTrail,RUN,WX,lockScore,get boss(){return boss;},bonfires,AudioSys,scene,renderer,camera,decals,bloodDecal,elemDrops,spawnElemDrop,spawnFoe,heightAt,summonAngel,
-  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,heroifyObject,heroClip:(v)=>{heroClip.value=v;},breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
+  summonGhoul:(x,z)=>{const e=new GraveGhoul(x,z);enemies.push(e);return e;},summonBellHorror,CUT,cutPlay,cutEnd,cutWarden,cutAngel,cutGhoul,cutBell,lockReach,splitEnemy,effects,scars,slashArc,groundWave,breakables,breakPew,ragdolls,obstacles,LOADOUT,cycleLoadout,fillHero,setPaused,FPS,GUNS,CALIBRES,ATTACH,setPov,fireGun,hitscan,gunSpheres,gunAimBase,shootable,RELOAD,reloadPlan,cancelReload,reloadMotion,rlW,MAGDROPS,cycleGun,cycleAtt,attOf,applyAttachment,gunAmmo,resOf,startReload,gunRay,coneNow,gunHeld,gunOf,SHELLS,ejectShell,VIEW,applyFov,adsFovOf,saveView,fillView,dashGhost,rocketBurst,HOLES,punchHole,woundEnemy,clearWounds,popHead,calOf,surfaceHit,holeTargets,lanternLights,applyTime,setWeather,cycleField,snowStamp,TROD,TRAIL,printSnow,snowDeep,lodUpdate,lodSet,lodParts,snowSink,onStone,cathDist,snowPuff,SHADOW,shadeRigs,poseRise,poseBatCharge,poseHomerun,poseLight,homeRun,homeRunOK,resetPose,riseUp,poseWalk,poseWandCast,poseRun,plantHand,riseTip,GP,fireBite,setAblaze,tickBurn,markTree,get treeMarkCount(){return treeMarkCount;},get stoneMarkCount(){return stoneMarkCount;},MARKABLE,markStone,worldLights,texCache,wrapA,GP,paintScar,overBrink,brinkOut,groundGone,groundSurfaceY,fellTree,seamGrab,markY,foeY,lockMarker:()=>lockMarker,thorStrike,throwKatana,recallKatana,BUB:()=>BUBBLES,castBubble,camStone,updateCamera,LPOOL,PATH,buildTile,cathZ,pathHeightAt,constrain,endGame,cath:()=>{let c=null;scene.traverse(o=>{if(o.name==="cath")c=o;});return c;}};
 
 })(); /* end BONEPATH */
 </script>
